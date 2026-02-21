@@ -35,15 +35,12 @@ personas:
   tech-writer:
     name: Paige
     role: "Spec Engineer — agent-os alignment, documentation, contract checks"
-  stakeholder:
-    name: Stakeholder
-    role: "Stakeholder proxy — business context, acceptance validation"
 
 # --- Phase Configuration ---
 phases:
   phase_0_intake:
     lead: analyst
-    members: [architect, dev, stakeholder]
+    members: [architect, dev]
     debate_rounds: 3
     human_gate_on_gaps: true    # Pause and ask user if gaps/contradictions found in specs
     description: "Fetch Jira ticket, scaffold folder, spawn analysis team, determine scope"
@@ -70,7 +67,7 @@ phases:
 
   phase_4_implementation:
     per_ticket: dev
-    listeners: [architect, sm]
+    on_demand: [architect, sm]       # On-demand responders (not persistent listeners)
     use_bmad_dev_workflow: true   # Use BMAD dev-story workflow (structured, with self-check)
     bmad_workflow: "dev-story"    # "dev-story" (thorough) or "quick-dev" (lean, Barry)
     description: "Branch, code, test per sub-ticket (parallel per wave)"
@@ -158,11 +155,11 @@ build:
     test: "echo 'No test runner detected — skipping tests'"
     build_image: "echo 'No image build configured'"
 
-# --- Advisory Limits ---
-# These are NOT enforced programmatically (no mechanism exists in Claude Code).
-# They serve as guidelines for the orchestrator to self-regulate.
+# --- Limits ---
+# max_agents_concurrent is enforced via deterministic wave splitting.
+# Other limits are advisory guidelines for the orchestrator.
 limits:
-  max_agents_concurrent: 6               # Don't spawn more than this at once
+  max_agents_concurrent: 6               # Enforced: waves with more tickets are split into sub-waves of this size
   observer_context_budget: "handoff YAMLs only — never send full reports to observer"
   phase_0_2_budget: "Keep debate rounds short (200-400 words per agent per round)"
   phase_4_5_budget: "One impl agent per sub-ticket, sequential gates"

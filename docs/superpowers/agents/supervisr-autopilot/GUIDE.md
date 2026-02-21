@@ -9,7 +9,7 @@ description: "Complete guide to the Supervisr Autopilot v0.2 — autonomous deve
 
 The Supervisr Autopilot is an autonomous orchestrator agent that takes a **Jira ticket ID** and drives it through the entire development lifecycle — from intake analysis to deployed code — with minimal human intervention.
 
-It doesn't write code, design architecture, or make product decisions. It **spawns specialized agents** (BMAD personas) who do the work, coordinates their output through **handoff files**, and uses **Jira ticket comments** as the observable communication bus.
+It doesn't write code, design architecture, or make product decisions. It **spawns specialized agents** (BMAD personas) who do the work, coordinates their output through **handoff files** and **`SendMessage`** at runtime, and posts consolidated summaries to **Jira ticket comments** as a write-only audit trail.
 
 ```
 ┌─────────────┐     ┌──────────────────────────────────────────────────┐
@@ -106,13 +106,13 @@ All agent activity is posted as **Jira comments** on the ticket. You can follow 
 Teams are created and destroyed as phases progress:
 
 ```
-Phase 0 ─────── Phase 2: autopilot-{TKT}-analysis  (Mary, Winston, Amelia, Stakeholder)
+Phase 0 ─────── Phase 2: autopilot-{TKT}-analysis  (Mary, Winston, Amelia)
                          ↓ shutdown
 Phase 3: ────────────── autopilot-{TKT}-planning    (Bob)
                          ↓ shutdown
 Phase 4 ─────── Phase 5: autopilot-{TKT}-impl       (Dev agents + Winston on-demand + Bob on-demand)
                          ↓ shutdown
-Phase 6 ─────── Phase 8: autopilot-{TKT}-ship       (Ship agents + Winston)
+Phase 6 ─────── Phase 8: autopilot-{TKT}-ship       (Ship agents + Winston, created at Phase 6 start)
                          ↓ shutdown
 Phase 0 ─────── Phase 9: autopilot-{TKT}-observer   (passive, sonnet)
                          ↓ shutdown
@@ -128,6 +128,9 @@ handoff-phase1.yaml → PRD path, ACs
 handoff-phase2.yaml → design doc, ADRs, API changes
 handoff-phase3.yaml → sub-tickets, wave plan, dependencies
 handoff-phase4-5.yaml → per-ticket impl status, gate results
+handoff-phase6.yaml → tags, image references per service
+handoff-phase7.yaml → integration validation, deploy order
+handoff-phase8.yaml → deploy status, pipeline URLs
 handoff-phase9.yaml → final summary, stats
 ```
 
@@ -155,7 +158,7 @@ If the analysis team identifies:
 - **Nonsensical requests** — scope that doesn't make sense technically or business-wise
 - **Insufficient context** — can't determine affected services or scope
 
-The agent pauses and presents findings via `AskUserQuestion`:
+The agent pauses and presents findings via `AskUserQuestion` (a Claude Code tool that pauses agent execution and presents a question to the user with selectable options; the agent resumes when the user responds):
 ```
 The analysis team identified gaps in SPV-42:
 
@@ -199,10 +202,10 @@ This is NOT a "third human gate." It is an escalation path for genuinely stuck s
 
 ## Jira Communication
 
-All agent-to-agent communication is posted as Jira comments. This provides:
+All runtime agent-to-agent communication uses `SendMessage`. The orchestrator posts consolidated summaries to Jira as a **write-only audit trail**. Agents never read Jira comments for coordination. This provides:
 - **Observability** — you see everything in Jira without checking the terminal
 - **Audit trail** — every decision is documented
-- **Future-proofing** — when deployed to cloud, Jira is the interface
+- **Future-proofing** — when deployed to cloud, Jira becomes the primary interface
 
 ### Comment Frequency
 
@@ -268,12 +271,9 @@ personas:
   tech-writer:
     name: Paige
     role: "Spec Engineer — agent-os alignment, documentation"
-  stakeholder:
-    name: Stakeholder
-    role: "Stakeholder proxy — business context validation"
 ```
 
-These map to BMAD agent personas. Each agent receives their persona identity when spawned, which affects their communication style and focus areas.
+Mary also covers the stakeholder/business perspective during Phase 0 analysis. These map to BMAD agent personas. Each agent receives their persona identity when spawned, which affects their communication style and focus areas.
 
 **Customizing personas:** You can change the `role` description to adjust what each agent focuses on. The `name` is the BMAD persona name — changing it breaks the mapping to BMAD agent definitions.
 
@@ -283,7 +283,7 @@ These map to BMAD agent personas. Each agent receives their persona identity whe
 phases:
   phase_0_intake:
     lead: analyst
-    members: [architect, dev, stakeholder]
+    members: [architect, dev]
     debate_rounds: 3                          # How many rounds of cross-challenge
     human_gate_on_gaps: true                  # Pause for human if gaps found
 ```
@@ -298,7 +298,7 @@ phases:
 phases:
   phase_4_implementation:
     per_ticket: dev                  # Agent persona for implementers
-    listeners: [architect, sm]       # Persistent listeners during impl
+    on_demand: [architect, sm]       # On-demand responders (not persistent listeners)
     use_bmad_dev_workflow: true      # Use BMAD dev-story workflow for implementation
 ```
 
@@ -382,7 +382,7 @@ Key BMAD workflows available to implementation agents:
 
 ## Escalation Protocol (Phases 4-5)
 
-During implementation, agents communicate via Jira comments:
+During implementation, agents communicate via `SendMessage` through the orchestrator (which posts exchanges to Jira for the audit trail):
 
 ```
 ┌─────────────┐         ┌──────────────┐         ┌─────────────┐
@@ -393,10 +393,10 @@ During implementation, agents communicate via Jira comments:
 ```
 
 **How it works:**
-1. Implementer posts a Jira comment tagging `@architect` or `@scrum-master`
-2. Orchestrator reads the comment and relays the question to Winston/Bob via `SendMessage`
+1. Implementer sends a message to the orchestrator via `SendMessage`, tagging `@architect` or `@scrum-master`
+2. Orchestrator relays the question to Winston/Bob via `SendMessage`
 3. Winston/Bob responds via `SendMessage` back to orchestrator (they go idle between questions — Claude agents do NOT have event loops or background polling)
-4. Orchestrator posts the response as a Jira comment and relays to the implementer
+4. Orchestrator relays the response to the implementer via `SendMessage`, and posts the exchange as a Jira comment for the audit trail
 
 **Note:** This is sequential, not concurrent. If multiple implementers need architect input at the same time, the orchestrator processes them one at a time. This is a known limitation of running in a single Claude Code session (see Known Limitations in agent definition).
 
@@ -436,6 +436,9 @@ tickets/{EPIC}/{TICKET}/
         ├── handoff-phase2.yaml
         ├── handoff-phase3.yaml
         ├── handoff-phase4-5.yaml
+        ├── handoff-phase6.yaml
+        ├── handoff-phase7.yaml
+        ├── handoff-phase8.yaml
         ├── handoff-phase9.yaml
         ├── closeout-{DATE}.md
         └── process-observations-{DATE}.md
@@ -461,7 +464,7 @@ Then reference them in the phase config:
 ```yaml
 phases:
   phase_0_intake:
-    members: [architect, dev, stakeholder, compliance]
+    members: [architect, dev, compliance]
 ```
 
 The autopilot will spawn Clara as an additional analysis team member.

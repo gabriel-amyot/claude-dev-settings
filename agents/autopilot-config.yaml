@@ -1,0 +1,134 @@
+# Supervisr Autopilot Configuration
+# Dashboard for tuning the autonomous development pipeline.
+# Referenced by: ~/.claude-shared-config/agents/supervisr-autopilot.md
+
+# --- Model Assignment ---
+models:
+  orchestrator: opus
+  workers: opus          # Mary, Winston, Amelia, Bob, Quinn, Paige, etc.
+  observer: sonnet       # Passive process observer only
+
+# --- Persona Mapping ---
+# Each persona maps to a BMAD agent identity with a display name and role.
+personas:
+  analyst:
+    name: Mary
+    role: "Business Analyst — requirements, domain analysis, intake lead"
+  architect:
+    name: Winston
+    role: "System Architect — design, ADRs, technical feasibility, integration validation"
+  dev:
+    name: Amelia
+    role: "Senior Developer — implementation, effort estimation, feasibility challenge"
+  sm:
+    name: Bob
+    role: "Scrum Master — task breakdown, wave planning, scope management"
+  qa:
+    name: Quinn
+    role: "QA Engineer — code review, spec validation, quality gates"
+  tech-writer:
+    name: Paige
+    role: "Spec Engineer — agent-os alignment, documentation, contract checks"
+  stakeholder:
+    name: Stakeholder
+    role: "Stakeholder proxy — business context, acceptance validation"
+
+# --- Phase Configuration ---
+phases:
+  phase_0_intake:
+    lead: analyst
+    members: [architect, dev, stakeholder]
+    debate_rounds: 3
+    human_gate_on_gaps: true    # Pause and ask user if gaps/contradictions found in specs
+    description: "Fetch Jira ticket, scaffold folder, spawn analysis team, determine scope"
+
+  phase_1_prd:
+    lead: analyst
+    members: [architect, dev]
+    description: "Create PRD — lean for bugs, full for epics"
+    gate: "PRD has testable acceptance criteria"
+
+  phase_2_architecture:
+    lead: architect
+    members: [dev]
+    description: "Design solution, create ADRs if warranted"
+    gate: "Affected services + API changes documented"
+
+  phase_3_task_breakdown:
+    lead: sm
+    members: []
+    description: "Break into vertical slices, create Jira sub-tickets"
+    gate: "Each sub-ticket has >= 2 testable ACs"
+
+  phase_4_implementation:
+    per_ticket: dev
+    listeners: [architect, sm]
+    use_bmad_dev_workflow: true   # Use BMAD dev-story workflow (structured, with self-check)
+    bmad_workflow: "dev-story"    # "dev-story" (thorough) or "quick-dev" (lean, Barry)
+    description: "Branch, code, test per sub-ticket (parallel per wave)"
+
+  phase_5_gates:
+    code_review: qa
+    spec_qa: qa
+    spec_engineer: tech-writer
+    description: "Quality gates per sub-ticket"
+
+  phase_6_ship:
+    description: "Tag, JIB build, push-adr, status-index per service"
+
+  phase_7_integration:
+    lead: architect
+    description: "Cross-service validation — GraphQL, Pub/Sub, contracts"
+    gate: "No contract mismatches"
+
+  phase_8_deploy:
+    human_gate: true
+    description: "Create GitLab MRs, set image tags, wait for human approval"
+
+  phase_9_closeout:
+    description: "Push ADRs, status-index, promote docs, Jira summary, cleanup"
+
+# --- Retry & Halt ---
+retry:
+  impl_gate_max_cycles: 3    # Phase 4->5 retry limit per sub-ticket
+  halt_on_failure: true       # Halt that ticket, continue others
+
+# --- Jira Communication ---
+jira:
+  comment_prefix: "[autopilot"      # e.g. [autopilot:architect]
+  comment_suffix: "]"
+  tag_format: "@{role}"             # @architect, @scrum-master, @implementer, @qa, @spec-engineer
+  consolidate_gates: true           # Batch all gate results into one comment per sub-ticket
+  phase_summaries_only: true        # Parent ticket gets phase summaries only, not per-agent chatter
+  roles:
+    - architect
+    - scrum-master
+    - implementer
+    - qa
+    - spec-engineer
+
+# --- Deployment ---
+deployment:
+  human_gate: true          # Phase 8 requires human approval (always)
+  auto_deploy: false        # Future: set to true when confident
+
+# --- Team Naming ---
+teams:
+  analysis: "autopilot-{ticket}-analysis"     # Phases 0-2
+  planning: "autopilot-{ticket}-planning"     # Phase 3
+  impl: "autopilot-{ticket}-impl"            # Phases 4-5
+  ship: "autopilot-{ticket}-ship"            # Phases 6-8
+  observer: "autopilot-{ticket}-observer"     # Phases 0-9
+
+# --- Handoff Schema Version ---
+handoff_version: "1.0"
+
+# --- Skills Used (reference, not config) ---
+# Phase 0: /jira
+# Phase 1: /create-prd
+# Phase 3: /jira (create sub-tickets)
+# Phase 4: BMAD dev-story or quick-dev workflow + /jira (comments)
+# Phase 5: /supervisr-review, /supervisr-validate, /jira
+# Phase 6: /supervisr-release, /push-adr, /status-index
+# Phase 8: /gitlab
+# Phase 9: /push-adr, /status-index, /jira, /archive

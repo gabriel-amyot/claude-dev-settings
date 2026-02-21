@@ -1,12 +1,18 @@
-# Supervisr Autopilot Configuration
+# Supervisr Autopilot Configuration v0.2
 # Dashboard for tuning the autonomous development pipeline.
 # Referenced by: ~/.claude-shared-config/agents/supervisr-autopilot.md
+#
+# NOTE: This file is read by the orchestrator agent as structured text.
+# Claude reads YAML natively — no separate YAML parser is needed.
+# The agent references these values when making decisions (model selection,
+# retry limits, team naming, etc.). It does NOT programmatically parse
+# this file with a YAML library.
 
 # --- Model Assignment ---
 models:
   orchestrator: opus
   workers: opus          # Mary, Winston, Amelia, Bob, Quinn, Paige, etc.
-  observer: sonnet       # Passive process observer only
+  observer: sonnet       # Passive process observer (receives handoff YAMLs only, not full reports)
 
 # --- Persona Mapping ---
 # Each persona maps to a BMAD agent identity with a display name and role.
@@ -51,12 +57,14 @@ phases:
   phase_2_architecture:
     lead: architect
     members: [dev]
+    skip_for_scopes: [bug]               # Bugs skip architecture phase
     description: "Design solution, create ADRs if warranted"
     gate: "Affected services + API changes documented"
 
   phase_3_task_breakdown:
     lead: sm
     members: []
+    skip_for_scopes: [bug]               # Bugs skip task breakdown (single ticket, no sub-tickets)
     description: "Break into vertical slices, create Jira sub-tickets"
     gate: "Each sub-ticket has >= 2 testable ACs"
 
@@ -78,6 +86,7 @@ phases:
 
   phase_7_integration:
     lead: architect
+    skip_for_scopes: [bug]               # Bugs skip integration (single service)
     description: "Cross-service validation — GraphQL, Pub/Sub, contracts"
     gate: "No contract mismatches"
 
@@ -119,6 +128,45 @@ teams:
   impl: "autopilot-{ticket}-impl"            # Phases 4-5
   ship: "autopilot-{ticket}-ship"            # Phases 6-8
   observer: "autopilot-{ticket}-observer"     # Phases 0-9
+
+# --- Build Commands (per language/toolchain) ---
+# The orchestrator detects the project type from repo contents and uses
+# the matching build commands. Do NOT hardcode mvn — not all services are Java.
+build:
+  java_maven:
+    detect: "pom.xml"                    # If this file exists at repo root, use these commands
+    compile: "mvn clean compile"
+    test: "mvn test"
+    build_image: "mvn compile jib:build -Djib.to.tags={tag} -DskipTests"
+  java_gradle:
+    detect: "build.gradle"
+    compile: "./gradlew compileJava"
+    test: "./gradlew test"
+    build_image: "./gradlew jibDockerBuild --image={image}:{tag}"
+  node:
+    detect: "package.json"
+    compile: "npm ci && npm run build"
+    test: "npm test"
+    build_image: "docker build -t {image}:{tag} ."
+  python:
+    detect: "pyproject.toml"
+    compile: "pip install -e . 2>/dev/null || true"
+    test: "pytest"
+    build_image: "docker build -t {image}:{tag} ."
+  fallback:
+    compile: "echo 'No build system detected — skipping compile'"
+    test: "echo 'No test runner detected — skipping tests'"
+    build_image: "echo 'No image build configured'"
+
+# --- Advisory Limits ---
+# These are NOT enforced programmatically (no mechanism exists in Claude Code).
+# They serve as guidelines for the orchestrator to self-regulate.
+limits:
+  max_agents_concurrent: 6               # Don't spawn more than this at once
+  observer_context_budget: "handoff YAMLs only — never send full reports to observer"
+  phase_0_2_budget: "Keep debate rounds short (200-400 words per agent per round)"
+  phase_4_5_budget: "One impl agent per sub-ticket, sequential gates"
+  abort_cleanup: true                     # On abort, post Jira comments on all created sub-tickets
 
 # --- Handoff Schema Version ---
 handoff_version: "1.0"

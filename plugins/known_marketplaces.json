@@ -1,0 +1,18 @@
+{
+  "claude-plugins-official": {
+    "source": {
+      "source": "github",
+      "repo": "anthropics/claude-plugins-official"
+    },
+    "installLocation": "/Users/gabrielamyot/.claude/plugins/marketplaces/claude-plugins-official",
+    "lastUpdated": "2026-02-21T21:47:54.853Z"
+  },
+  "claude-code-workflows": {
+    "source": {
+      "source": "github",
+      "repo": "wshobson/agents"
+    },
+    "installLocation": "/Users/gabrielamyot/.claude/plugins/marketplaces/claude-code-workflows",
+    "lastUpdated": "2026-01-27T15:02:42.743Z"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "supervisr-release",
+  "version": "1.0.0",
+  "description": "Full release pipeline: test, tag, build, and publish GraphQL schema",
+  "script": "supervisr_release.py",
+  "entrypoint": "main",
+  "supported_platforms": ["macos", "linux"],
+  "requirements": [
+    "git",
+    "python3.8+",
+    "maven",
+    "rover (optional, for schema publishing)"
+  ]
+}

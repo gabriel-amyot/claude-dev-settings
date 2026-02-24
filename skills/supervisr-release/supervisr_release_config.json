@@ -1,0 +1,44 @@
+{
+  "apollo_graph": "SupervisrAI",
+  "services": {
+    "lead-lifecycle-service": {
+      "local_path": "/Users/gabrielamyot/Developer/supervisr-ai/app/micro-services/lead-lifecycle-service",
+      "schema_path": "src/main/resources/schema/lead.graphqls",
+      "subgraph_name": "lead-lifecycle-service",
+      "routing_urls": {
+        "dev": "https://run-usce1-lead-lifecycle-service-978993959218.us-central1.run.app/private/graphql",
+        "sandbox": "https://run-usce1-lead-lifecycle-service-978993959218.us-central1.run.app/private/graphql",
+        "uat": null,
+        "prod": null
+      }
+    },
+    "retell-service": {
+      "local_path": "/Users/gabrielamyot/Developer/supervisr-ai/app/micro-services/retell-service",
+      "schema_path": "src/main/resources/schema/schema.graphqls",
+      "subgraph_name": "retell-service",
+      "routing_urls": {
+        "dev": "https://run-usce1-retell-service-978993959218.us-central1.run.app/graphql",
+        "sandbox": "https://run-usce1-retell-service-978993959218.us-central1.run.app/graphql",
+        "uat": null,
+        "prod": null
+      }
+    },
+    "supervisor-query-service": {
+      "local_path": "/Users/gabrielamyot/Developer/supervisr-ai/app/micro-services/supervisor-query-service",
+      "schema_path": "src/main/resources/schema/schema.graphqls",
+      "subgraph_name": "query-service",
+      "routing_urls": {
+        "dev": "https://run-usce1-query-service-978993959218.us-central1.run.app/graphql",
+        "sandbox": "https://run-usce1-query-service-978993959218.us-central1.run.app/graphql",
+        "uat": null,
+        "prod": null
+      }
+    },
+    "compliance-ers": {
+      "local_path": "/Users/gabrielamyot/Developer/supervisr-ai/app/micro-services/compliance-ers",
+      "schema_path": null,
+      "subgraph_name": null,
+      "routing_urls": {}
+    }
+  }
+}

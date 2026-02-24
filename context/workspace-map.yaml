@@ -1,0 +1,55 @@
+# Workspace Map — Organization & Project Navigation
+
+personal:
+  root: ~/Developer/gabriel-amyot
+
+klever:
+  root: ~/Developer/grp-beklever-com
+  project_management:
+    path: ~/Developer/grp-beklever-com/project-management
+    objective: Where all context for ongoing Klever projects are documented
+    preferred_process:
+      1: Create a development contract
+      2: Create a PRD
+      3: Define a task list and implement while iterating on the task list
+    tickets:
+      description: When starting a session on the Klever domain, we are always working on a ticket. Either the ticket exists and we can continue the work by finding the folder, or we create new subfolders with the name of the ticket (example: ticket ins223 -> /INS-223/)
+      path: ~/Developer/grp-beklever-com/project-management/tickets
+  application_projects:
+    root: ~/Developer/grp-beklever-com/grp-app
+    project_workspaces:
+      path: ~/Developer/grp-beklever-com/grp-app/_project_workspaces
+      description: Multi-repository app workspaces
+      projects:
+        proximity-report-full-stack:
+          details: Consult local AGENTS.md for context
+          path: ~/Developer/grp-beklever-com/grp-app/_project_workspaces/proximity-report-full-stack
+    tickets:
+      description: Create new subfolders for each Jira ticket we work on
+      path: ~/Developer/grp-beklever-com/grp-app/_project_workspaces/tickets
+  infrastructure:
+    description: Terraform-based infrastructure (mainly GCP)
+    gcp_project_management: ~/Developer/grp-beklever-com/grp-iac
+    gcp_resources:
+      path: ~/Developer/grp-beklever-com/grp-dac
+      warning: "NEVER run terraform commands here. Changes must be reviewed and applied manually or via CI/CD pipeline."
+    terraform_docs: ~/Developer/grp-beklever-com/grp-comp
+
+supervisr_ai:
+  root: ~/Developer/supervisr-ai
+  project_management: ~/Developer/supervisr-ai/project-management
+  infrastructure:
+    description: Infrastructure managed using Terraform in GCP
+    core_services_dac: ~/Developer/supervisr-ai/faas/grp-dac/grp-dac-sprvsr/grp-dac-sprvsr-core
+    warning: "NEVER run terraform commands here. Always deploy via CI/CD."
+    deployment_workflow:
+      - Make changes to Terraform configuration files (e.g., cloud_run_service_res.tf)
+      - Commit and push to repository
+      - CI/CD pipeline automatically runs terraform plan and terraform apply
+      - Monitor pipeline logs for deployment status
+      - "Cloud Run Services: Changes to env vars, resource limits, scaling config, or secrets trigger service redeployment"
+
+origin8:
+  root: ~/Developer/origin8
+  project_management: ~/Developer/supervisr-ai/project-management
+  description: Old company rebranded as supervisr.ai. Still need some repos here, but new services deploy under supervisr.ai. Managed from Supervisr.ai project-management.

@@ -1,0 +1,81 @@
+workspaces:
+  supervisr-ai:
+    detect:
+      - faas
+      - app/micro-services
+    scan_paths:
+      app:
+        - app/micro-services
+      dac:
+        - faas/grp-dac/grp-dac-sprvsr/grp-dac-sprvsr-core
+    infrastructure:
+      dac:
+        base_path: faas/grp-dac/grp-dac-sprvsr/grp-dac-sprvsr-core
+      iac:
+        base_path: faas/grp-iac/grp-iac-sprvsr
+        shared: iac-sprvsr-core
+
+  grp-beklever-com:
+    detect:
+      - grp-app
+      - grp-dac
+      - grp-iac
+    scan_paths:
+      app-backend-drmpip:
+        - grp-app/grp-backend/grp-drmpip
+      app-backend-ms:
+        - grp-app/grp-backend/grp-ms
+      app-backend-cloud-function:
+        - grp-app/grp-backend/grp-gcp/grp-cloud-function
+      app-backend-models:
+        - grp-app/grp-backend/grp-gcp/grp-models
+      app-backend-script:
+        - grp-app/grp-backend/grp-script
+      app-frontend:
+        - grp-app/grp-frontend
+      app-includes:
+        - grp-app/grp-includes
+      iac-org:
+        - grp-iac/grp-iac-org
+      iac-cmm:
+        - grp-iac/grp-iac-cmm
+      iac-env-global:
+        - grp-iac/grp-iac-env/grp-iac-env-global
+      iac-env-drmpip:
+        - grp-iac/grp-iac-env/grp-iac-env-drmpip
+      iac-env-data:
+        - grp-iac/grp-iac-env/grp-iac-env-data
+      iac-env-biz:
+        - grp-iac/grp-iac-env/grp-iac-env-biz
+      iac-env-main:
+        - grp-iac/grp-iac-env
+      dac-env-drm:
+        - grp-dac/grp-dac-env-drm
+      dac-env-cst:
+        - grp-dac/grp-dac-env/grp-dac-env-cst
+      dac-env-ai:
+        - grp-dac/grp-dac-env/grp-dac-env-ai
+      dac-env-back:
+        - grp-dac/grp-dac-env/grp-dac-env-back
+      dac-env-front:
+        - grp-dac/grp-dac-env/grp-dac-env-front
+      dac-templates:
+        - grp-dac/templates
+      comp-inits:
+        - grp-comp/grp-inits
+      comp-templates:
+        - grp-comp/grp-project-templates
+      comp-includes:
+        - grp-comp/grp-includes
+      comp-docs:
+        - grp-comp/grp-documentation
+      cfg:
+        - grp-cfg
+      data-workflow:
+        - .
+    infrastructure:
+      dac:
+        base_path: grp-dac
+      iac:
+        base_path: grp-iac
+        shared: null

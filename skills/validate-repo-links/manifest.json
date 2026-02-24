@@ -1,0 +1,11 @@
+{
+  "name": "validate-repo-links",
+  "version": "1.0.0",
+  "description": "Validate .repo-links.yaml integrity and manage repo graph index",
+  "script": "validate_repo_links.py",
+  "supported_platforms": ["macos", "linux"],
+  "requirements": [
+    "python3.8+",
+    "PyYAML (pip install pyyaml)"
+  ]
+}

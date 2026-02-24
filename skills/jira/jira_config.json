@@ -1,0 +1,17 @@
+{
+  "organizations": {
+    "klever": {
+      "jira_url": "https://beklever.atlassian.net",
+      "jira_username": "gamyot@beklever.com",
+      "local_path": "/Users/gabrielamyot/Developer/grp-beklever-com",
+      "default_project": "INS"
+    },
+    "supervisrai": {
+      "jira_url": "https://origin8cares.atlassian.net",
+      "jira_username": "gabriel@origin8cares.com",
+      "local_path": "/Users/gabrielamyot/Developer/supervisr-ai",
+      "default_project": null
+    }
+  },
+  "default_org": "supervisrai"
+}

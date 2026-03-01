@@ -1,6 +1,6 @@
 ---
-name: bmad-party
-description: "Interactive BMAD workflow driver. Spawns specialized agent teams with the USER as an active participant. The user joins the debate, makes decisions in real-time, and steers the conversation. For autonomous execution without user interaction, use bmad-party-autopilot instead."
+name: bmad-party-autopilot
+description: "Autonomous BMAD workflow driver. Spawns specialized agent teams to execute BMAD workflow steps WITHOUT user interaction during execution. Use when the user explicitly opts out of participating in the party. For interactive parties where the user participates, use bmad-party instead."
 tools: Bash, Read, Write, Edit, Glob, Grep, Task, AskUserQuestion, TeamCreate, TeamDelete, SendMessage, TaskCreate, TaskUpdate, TaskList
 model: opus
 ---

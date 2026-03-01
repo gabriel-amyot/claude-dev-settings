@@ -447,7 +447,7 @@ def create_issue(summary, issue_type, project=None, description=None, assignee=N
         }
 
         if description:
-            fields["description"] = description
+            fields["description"] = markdown_to_jira_wiki(description)
 
         if assignee:
             fields["assignee"] = {"name": assignee}
@@ -506,7 +506,7 @@ def update_issue(key, description=None, summary=None):
         fields = {}
 
         if description is not None:
-            fields["description"] = description
+            fields["description"] = markdown_to_jira_wiki(description)
 
         if summary is not None:
             fields["summary"] = summary
@@ -527,11 +527,32 @@ def update_issue(key, description=None, summary=None):
         return {"error": str(e)}
 
 
+def markdown_to_jira_wiki(text):
+    """Convert markdown to Jira wiki markup"""
+    import re
+    lines = text.split('\n')
+    result = []
+    for line in lines:
+        # Headers: ## → h2., ### → h3., etc.
+        line = re.sub(r'^######\s+', 'h6. ', line)
+        line = re.sub(r'^#####\s+', 'h5. ', line)
+        line = re.sub(r'^####\s+', 'h4. ', line)
+        line = re.sub(r'^###\s+', 'h3. ', line)
+        line = re.sub(r'^##\s+', 'h2. ', line)
+        line = re.sub(r'^#\s+', 'h1. ', line)
+        # Bold: **text** → *text*
+        line = re.sub(r'\*\*(.+?)\*\*', r'*\1*', line)
+        # Bullet lists: - item → * item
+        line = re.sub(r'^- ', '* ', line)
+        result.append(line)
+    return '\n'.join(result)
+
+
 def add_comment(key, comment_body):
     """Add a comment to an issue"""
     try:
         issue = jira.issue(key)
-        comment = jira.add_comment(issue, comment_body)
+        comment = jira.add_comment(issue, markdown_to_jira_wiki(comment_body))
 
         return {
             "success": True,
@@ -1108,6 +1129,29 @@ try:
                 result = {"error": "add-comment requires --comment parameter"}
             else:
                 result = add_comment(key, comment_body)
+
+    elif command == "delete-comment":
+        if len(sys.argv) < 4:
+            result = {"error": "delete-comment requires issue key and --comment-id"}
+        else:
+            key = sys.argv[2]
+            comment_id = None
+
+            if "--comment-id" in sys.argv:
+                idx = sys.argv.index("--comment-id")
+                if idx + 1 < len(sys.argv):
+                    comment_id = sys.argv[idx + 1]
+
+            if not comment_id:
+                result = {"error": "delete-comment requires --comment-id parameter"}
+            else:
+                try:
+                    issue = jira.issue(key)
+                    comment = jira.comment(key, comment_id)
+                    comment.delete()
+                    result = {"success": True, "key": key, "deleted_comment_id": comment_id}
+                except Exception as e:
+                    result = {"error": str(e)}
 
     elif command == "fetch":
         if len(sys.argv) < 3:

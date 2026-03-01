@@ -2,9 +2,15 @@
 
 personal:
   root: ~/Developer/gabriel-amyot
+  dependencies:
+    depends_on: []  # TODO: populate with known dependencies
+    memory: null
 
 klever:
   root: ~/Developer/grp-beklever-com
+  dependencies:
+    depends_on: []  # TODO: populate with known dependencies
+    memory: null
   project_management:
     path: ~/Developer/grp-beklever-com/project-management
     objective: Where all context for ongoing Klever projects are documented
@@ -37,6 +43,9 @@ klever:
 
 supervisr_ai:
   root: ~/Developer/supervisr-ai
+  dependencies:
+    depends_on: []  # TODO: populate with known dependencies
+    memory: null  # Note: lead-lifecycle-service has MEMORY.md at ~/.claude/projects/-Users-gabrielamyot-Developer-supervisr-ai-app-micro-services-lead-lifecycle-service/memory/MEMORY.md
   project_management: ~/Developer/supervisr-ai/project-management
   infrastructure:
     description: Infrastructure managed using Terraform in GCP
@@ -51,5 +60,8 @@ supervisr_ai:
 
 origin8:
   root: ~/Developer/origin8
+  dependencies:
+    depends_on: [supervisr_ai]  # Legacy org managed from Supervisr.ai
+    memory: null
   project_management: ~/Developer/supervisr-ai/project-management
   description: Old company rebranded as supervisr.ai. Still need some repos here, but new services deploy under supervisr.ai. Managed from Supervisr.ai project-management.

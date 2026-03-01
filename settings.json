@@ -50,5 +50,6 @@
       "*(*_rsa*)"
     ]
   },
-  "model": "sonnet"
+  "model": "sonnet",
+  "autoMemoryEnabled": false
 }

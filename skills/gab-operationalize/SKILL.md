@@ -181,6 +181,73 @@ Based on confirmed design and level:
 
 ---
 
+## Memory Mode
+
+**Usage:** `/operationalize --memory [hint]`
+
+**Examples:**
+```
+/operationalize --memory                     # Extract reusable facts from session into persistent docs
+/operationalize --memory "deployment flow"   # Focus memory extraction on deployment-related knowledge
+```
+
+`--memory` shifts the skill from "create a new artifact" to "extract and persist facts into existing documentation." Same Phase 1 extraction logic, different output target.
+
+### Phase 1: Mine Facts
+
+Same as standard Phase 1, but optimize for **atomic facts** rather than full procedures:
+
+1. **Decisions made** — architectural choices, tool selections, trade-offs evaluated
+2. **Patterns confirmed** — coding conventions, naming patterns, file placement rules
+3. **Gotchas discovered** — things that didn't work, surprising behaviors, platform limitations
+4. **Corrections applied** — wrong assumptions that were fixed during the session
+5. **Preferences expressed** — user's stated preferences for workflow, style, tooling
+
+For each fact, classify:
+- **NEW** — not found in any existing documentation
+- **MUTATE** — updates or refines something already documented
+- **SKIP** — already documented accurately
+
+Present the classified list to the user with `AskUserQuestion` (multiSelect). Only NEW and MUTATE items should be selected by default.
+
+### Phase 2: Identify Target
+
+Infer the target repo or project from conversation context (what repo was being discussed, what org the work belongs to).
+
+Ask the user where to write using `AskUserQuestion`:
+- **In-repo docs** — e.g., `{repo}/docs/decisions/`, `{repo}/agent-os/`
+- **Shared config** — `~/.claude-shared-config/docs/`
+- **Custom path** — user specifies
+
+If the user selects in-repo docs, confirm the specific subfolder. If the target file doesn't exist yet, confirm the filename before creating it.
+
+### Phase 3: Diff and Merge
+
+For each selected fact:
+
+1. Read the target file (if it exists)
+2. For **NEW** items: append with a date tag `(YYYY-MM-DD)`
+3. For **MUTATE** items: show the existing entry and proposed replacement side-by-side, ask user to confirm
+4. For items that conflict with existing content: flag the conflict explicitly, don't silently overwrite
+
+### Phase 4: Write and Confirm
+
+1. Show the full proposed changes (diff-style) before writing
+2. Write the updated file
+3. Print summary: what was added, what was mutated, what was skipped
+
+### Phase 5: Promote Check
+
+After writing, check if any extracted facts should also live at a higher durability level:
+
+- Fact in a docs file → should it also be in CLAUDE.md?
+- Fact in a repo doc → should it also be in shared-config?
+- Decision → should it be a formal ADR?
+
+Propose promotions but don't auto-execute. Let the user decide.
+
+---
+
 ## Guidelines
 
 - **Don't over-engineer.** If a CLAUDE.md section is sufficient, don't create a skill. Simpler is better.

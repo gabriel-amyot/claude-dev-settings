@@ -237,12 +237,7 @@ Write: `{epic_path}/reports/ship/ship_epic_{DATE}.md`
    - Mark each criterion: MET / NOT MET / CANNOT DETERMINE
    - For CANNOT DETERMINE, explain what's unclear
 
-5. **Compile and test (invoke `/supervisr-validate` skill logic):**
-   - For each affected repo:
-     - `cd {repo_path}`
-     - `mvn clean compile` (must pass)
-     - `mvn test` (must pass — distinguish new vs pre-existing failures)
-   - If service can start locally, run smoke test
+5. **Compile and test:** Invoke `/supervisr-validate` for each affected repo. The skill handles compilation, test execution, and smoke tests. Use its output directly.
 
 ### Output
 
@@ -310,26 +305,11 @@ Write: `{ticket_path}/reports/ship/validation_{SHORT_HASH}_{DATE}.md`
 
 ### Steps
 
-1. **Identify relevant standards from diff:**
+1. **Invoke `/supervisr-review`** for each affected repo. The skill handles: repo standards compliance, global CLAUDE.md standards, security checks, pattern adherence. Use its output directly.
+
+2. **Supplement with ship-specific checks** (not covered by the skill):
    - Cross-reference changed files against `standards/index.yml` loaded in Preflight
-   - Examples:
-     - Changed GraphQL schema → load `standards/graphql/*.md`
-     - Changed Datastore queries → load `standards/datastore/*.md`
-     - Changed test files → load `standards/testing/*.md`
-   - Load only targeted standard files
-
-2. **Check repo standards (Part A):**
-   - For each relevant standard, verify changed code follows the documented pattern
-   - Flag violations as Critical (blocks) or Warning (noted)
-
-3. **Check global standards (Part B — from CLAUDE.md):**
-   - Code style: self-documenting code, small methods, no comment cruft
-   - Test quality: `{Given}{When}{Then}` naming, constants extracted, `List.of()`, no class-level LENIENT
-   - Security: OWASP top 10 (injection, auth, secrets, misconfiguration)
-
-4. **Pattern adherence:**
-   - Does the code follow existing patterns in the repo?
-   - Are helper methods reused vs. copy-pasted?
+   - Verify no new patterns contradict existing ADRs (from Phase 1 context)
 
 ### Output
 

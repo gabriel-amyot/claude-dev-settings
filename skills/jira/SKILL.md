@@ -70,6 +70,7 @@ Use this skill to interact with Jira issues through simple CLI commands. All com
 - `metadata KEY` - Get all metadata (assignee, reporter, labels, links, etc.)
 - `attachments KEY` - Get all attachments for an issue
 - `download-attachment URL FILENAME [--output-dir DIR]` - Download an attachment
+- `upload-attachment KEY FILEPATH` - Upload a local file as an attachment to an issue
 - `search JQL [--max N] [--full]` - Raw JQL search
 - `create --summary SUMMARY --type TYPE --project PROJECT [--description DESC] [--assignee USER] [--labels LABEL1,LABEL2]` - Create new issue
 - `transition KEY STATUS` - Transition issue to a new status

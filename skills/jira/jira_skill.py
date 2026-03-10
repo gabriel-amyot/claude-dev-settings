@@ -306,6 +306,30 @@ def get_attachments(key):
         return {"error": str(e)}
 
 
+def upload_attachment(key, filepath):
+    """Upload a file as an attachment to a Jira issue"""
+    try:
+        import os
+
+        if not os.path.isfile(filepath):
+            return {"error": f"File not found: {filepath}"}
+
+        issue = jira.issue(key)
+        attachment = jira.add_attachment(issue=issue, attachment=filepath)
+
+        return {
+            "success": True,
+            "key": key,
+            "attachment_id": attachment.id,
+            "filename": attachment.filename,
+            "size": attachment.size,
+            "content_type": attachment.mimeType,
+            "url": attachment.content
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
 def download_attachment(attachment_url, filename, output_dir="."):
     """Download a single attachment using authenticated session"""
     try:
@@ -1027,6 +1051,14 @@ try:
                     output_dir = sys.argv[idx + 1]
             result = download_attachment(attachment_url, filename, output_dir)
 
+    elif command == "upload-attachment":
+        if len(sys.argv) < 4:
+            result = {"error": "upload-attachment requires issue key and file path"}
+        else:
+            key = sys.argv[2]
+            filepath = sys.argv[3]
+            result = upload_attachment(key, filepath)
+
     elif command == "search":
         if len(sys.argv) < 3:
             result = {"error": "search requires JQL"}
@@ -1122,8 +1154,20 @@ try:
             if "--comment" in sys.argv:
                 idx = sys.argv.index("--comment")
                 if idx + 1 < len(sys.argv):
-                    # Join all remaining args as the comment body
-                    comment_body = " ".join(sys.argv[idx + 1:])
+                    # Join remaining args as comment body, excluding known flags
+                    known_flags = {"--skip-disclaimer", "--org", "--full"}
+                    body_parts = []
+                    i = idx + 1
+                    while i < len(sys.argv):
+                        if sys.argv[i] in known_flags:
+                            # Skip the flag (and its value for --org)
+                            if sys.argv[i] == "--org" and i + 1 < len(sys.argv):
+                                i += 1
+                            i += 1
+                            continue
+                        body_parts.append(sys.argv[i])
+                        i += 1
+                    comment_body = " ".join(body_parts)
 
             if not comment_body:
                 result = {"error": "add-comment requires --comment parameter"}

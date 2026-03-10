@@ -12,6 +12,15 @@ Configurations
 
 When navigating between projects, starting work on a ticket, or when user mentions a specific org/project, read `~/.claude/context/workspace-map.yaml` for full paths and conventions.
 
+# Context Engineering
+- **Progressive disclosure.** Never bulk-load. Read INDEX.md first, then selectively load only what the current decision requires.
+- **Recursive INDEX.md.** Every document folder must have an INDEX.md with enough metadata (purpose, date, relevance) to decide whether to load each file without reading it. Read the index, pick selectively, never read all files.
+- **On-demand context tables.** CLAUDE.md tables map triggers → files. Read on trigger, not at session start.
+- **Metadata before content.** Explore via filenames, folder structure, and indexes before reading full files.
+- **Every write requires an index update.** After creating or modifying a document, update the nearest INDEX.md. If none exists, create one. Unindexed documents get forgotten or bulk-loaded.
+- **Distill, don't accumulate.** Write summaries to disk between phases. Index them. Never carry raw source material across sessions.
+- **All context is on-demand** except user-level and project-level CLAUDE.md (auto-loaded by system). Ticket front-loaders, architecture docs, everything else: load when the task requires it.
+
 # Core Rules
 - Never pipe git commands. Run them sequentially (e.g., `git fetch` then `git status`, not `git fetch && git status`).
 - When only incomplete or contradictory instructions/context is available, read the README.md.
@@ -32,14 +41,27 @@ When navigating between projects, starting work on a ticket, or when user mentio
 - **Scope agent sessions to 2-3 ACs max.** Break larger work into sequential sessions: research/docs first, then code, then review. Each session reads the previous session's distilled output, not raw source material.
 - **Separate research from coding.** Session A produces docs/plans (committed). Session B reads the plan and writes code. Session C reviews. This prevents context explosion from reading large architecture docs AND writing code in the same session.
 
+# Spec Fidelity (Learned from SPV-3: searchLeads incident)
+- **Never add endpoints, APIs, or interfaces not explicitly covered in the spec.** If the spec says Query X lives on Service A, do not also add Query X to Service B for convenience. Read the architecture spec before adding any new public interface.
+- **Never modify the spec to justify a code change.** If the code you want to write contradicts the spec, STOP.
+  - **Interactive mode:** Ask the user whether the spec or the code intent is correct.
+  - **Headless/overnight mode:** Spawn an Opus architect agent and a contrarian reviewer agent. Spend tokens analyzing the conflict. If their conclusion is "the spec needs to change," park the task with a written rationale in `tickets/{ID}/reports/status/` and move on to the next non-dependent task. Do NOT commit spec changes autonomously.
+- **Hacks for validation are OK, commits are not.** If you need a temporary endpoint to test something (e.g., peek inside an opaque service), you may create it locally and run tests against it. But do NOT commit it. If the hack reveals a real need, document it as a proposal in `tickets/{ID}/reports/architecture/` for user review.
+- **ADR-023** codifies this for the dreampipe pattern specifically: source-of-truth services must not expose search/list queries that duplicate EQS's role.
+
 # Autonomous Mode
-When the user explicitly opts out of human gates ("don't ask questions until done", "go autonomous", "work overnight"), follow these guardrails:
-- **Status reports:** Write progress snapshots to `tickets/{ID}/reports/status/` at each meaningful milestone (not every iteration, but every phase gate).
-- **WIP commits:** Commit at logical boundaries. Uncommitted code dies with the context window.
-- **Context management:** Compact at 85% context utilization. After compaction, reload the plan file and any front-loader docs (README, STATUS_SNAPSHOT) to restore working context.
-- **Diagnose-fix loop:** Budget 5-7 iterations max. Each iteration targets one specific blocker. If stuck after budget, write a status report with what's blocked and stop.
-- **Multi-agent model assignment:** Haiku for straightforward coding tasks. Sonnet for QA, diagnostics, and code review. Opus for architecture supervision and integration decisions.
-- **Adversarial gate:** After all tests pass, run `/adversarial-review` before declaring phase complete. A green suite is not proof of correctness until a reviewer has challenged it.
+When the user opts out of human gates ("go autonomous", "work overnight"), use the `night-crawl` agent which contains the full autonomous protocol (status reports, WIP commits, context management, diagnose-fix loop, model assignment, adversarial gate).
+
+# Ticket References (Learned from SPV-69 session)
+- **Never use internal/made-up task names in external-facing content** (commits, PRs, Jira comments, Slack). Always use the real Jira ticket key (e.g., SPV-69, not "A-3").
+- Internal shorthand (A-1, A-2, B-3, etc.) from planning docs is for internal context only. Before referencing a task externally, look up the Jira key using the `/jira` skill.
+- If no Jira ticket exists for the work, propose creating one before committing or posting.
+
+# External Posts (PR comments, Jira comments, Slack)
+Never generate or post externally visible content inline. All external posts go through `/post-comment`.
+Protocol: write draft to disk, invoke `/post-comment`, agent renders via template, previews full content, waits for explicit approval, posts, logs to audit trail.
+
+This applies to: GitHub PR comments/replies, Jira comments/ticket updates, Slack messages, GitLab MR comments, and any external API that writes content others can see. No exceptions, even if a plan was previously approved.
 
 # Shipping Safeguards
 - Do NOT run GitLab pipelines from Claude
@@ -48,6 +70,11 @@ When the user explicitly opts out of human gates ("don't ask questions until don
 - Commits and tags push; CI/CD picks up automatically
 
 When tagging, shipping, deploying, creating merge requests, or working with CI/CD, read `~/.claude/context/shipping-workflow.md` for the full workflow.
+
+# Creating New Skills & Agents
+- When creating a new agent (`~/.claude/agents/`), always: (1) identify the pipeline gap it fills (what feeds in, what it feeds into), (2) read existing templates/formats it must consume or produce, (3) update MEMORY.md with the agent's role and pipeline position, (4) update the skills-and-agents-index if one exists for the project.
+- Agent output format must match what downstream tools expect. Design from the consumer backwards.
+- After creating any skill or agent, check if a decision/design questions document exists and mark questions as answered.
 
 # Code Style Preferences
 - Code should be self-documenting. Name variables and methods intuitively. If explanation is truly needed, use `log.debug()` instead of comments.

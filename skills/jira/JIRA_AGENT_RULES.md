@@ -4,6 +4,26 @@ These rules apply to all AI agent interactions with Jira, regardless of project 
 
 ---
 
+## Rule 0: HUMAN GATE on All Public Writes
+
+**STOP. Before executing ANY write operation (create ticket, update description, add comment, transition), you MUST:**
+
+1. Show the user exactly what you intend to write (full text, not a summary)
+2. Get explicit confirmation in the SAME conversation turn ("go ahead", "post it", "yes")
+3. Only then execute
+
+This applies even if a plan was previously approved. Plans go stale. Gab's reputation is on every Jira comment and every PR reply. Draft locally first, show it, get the green light.
+
+**Write operations that require this gate:**
+- `create` (new tickets)
+- `update --description` (ticket descriptions)
+- `add-comment` (Jira comments)
+- `transition` to Done/Closed (also covered by Rule 1)
+
+**Read operations that do NOT require this gate:** `list`, `get`, `description`, `metadata`, `search`, `subtasks`, `epic`, `comments`, `attachments`, `fetch`
+
+---
+
 ## Rule 1: Never Close Tickets Without Human Confirmation
 
 Agent CAN transition tickets to:

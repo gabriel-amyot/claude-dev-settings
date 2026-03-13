@@ -12,6 +12,7 @@ Templates for `/post-comment`. Organized by intent, not platform. The engine han
 | `status-update.md` | `date`, `body`, `next_steps` | Jira ticket progress update |
 | `deploy-comment.md` | `environment`, `body`, `frontend?`, `frontend_version?`, `frontend_link?`, `backend?`, `backend_version?`, `backend_link?`, `mention?` | Post-deploy notice |
 | `batch-preview.md` | `count`, `rows`, `first_preview` | Summary table before bulk post |
+| `scope-clarification.md` | `mention?`, `body` | Clarify ticket scope gaps with assumptions and call for correction |
 
 Variables marked with `?` are optional. They control conditional sections via `{{#var}}...{{/var}}` blocks.
 

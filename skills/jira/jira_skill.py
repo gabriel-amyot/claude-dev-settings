@@ -458,8 +458,8 @@ def search(jql, max_results=20, full=False):
         return {"error": str(e)}
 
 
-def create_issue(summary, issue_type, project=None, description=None, assignee=None, labels=None):
-    """Create a new issue"""
+def create_issue(summary, issue_type, project=None, description=None, assignee=None, labels=None, parent=None):
+    """Create a new issue. Use --parent KEY to create a sub-task linked to a parent."""
     if not project:
         return {"error": "project is required"}
 
@@ -479,14 +479,20 @@ def create_issue(summary, issue_type, project=None, description=None, assignee=N
         if labels:
             fields["labels"] = labels if isinstance(labels, list) else [labels]
 
+        if parent:
+            fields["parent"] = {"key": parent}
+
         issue = jira.create_issue(fields=fields)
-        return {
+        result = {
             "created": True,
             "key": issue.key,
             "summary": summary,
             "project": project,
             "url": f"{url}/browse/{issue.key}"
         }
+        if parent:
+            result["parent"] = parent
+        return result
     except Exception as e:
         return {"error": str(e)}
 
@@ -523,8 +529,8 @@ def transition_issue(key, status_name):
         return {"error": str(e)}
 
 
-def update_issue(key, description=None, summary=None):
-    """Update issue fields (description, summary)"""
+def update_issue(key, description=None, summary=None, assignee=None, labels=None, parent=None):
+    """Update issue fields (description, summary, assignee, labels, parent)"""
     try:
         issue = jira.issue(key)
         fields = {}
@@ -535,8 +541,17 @@ def update_issue(key, description=None, summary=None):
         if summary is not None:
             fields["summary"] = summary
 
+        if assignee is not None:
+            fields["assignee"] = assignee
+
+        if labels is not None:
+            fields["labels"] = labels if isinstance(labels, list) else [labels]
+
+        if parent is not None:
+            fields["parent"] = {"key": parent}
+
         if not fields:
-            return {"error": "No fields to update. Provide --description or --summary"}
+            return {"error": "No fields to update. Provide --description, --summary, --assignee, --labels, or --parent"}
 
         issue.update(fields=fields)
 
@@ -545,6 +560,7 @@ def update_issue(key, description=None, summary=None):
             "success": True,
             "key": key,
             "updated_fields": list(fields.keys()),
+            "assignee": get_assignee_name(updated_issue.fields.assignee),
             "url": f"{url}/browse/{key}"
         }
     except Exception as e:
@@ -1107,7 +1123,13 @@ try:
                 if idx + 1 < len(sys.argv):
                     labels = sys.argv[idx + 1].split(",")
 
-            result = create_issue(summary, issue_type, project, description, assignee, labels)
+            parent = None
+            if "--parent" in sys.argv:
+                idx = sys.argv.index("--parent")
+                if idx + 1 < len(sys.argv):
+                    parent = sys.argv[idx + 1]
+
+            result = create_issue(summary, issue_type, project, description, assignee, labels, parent)
 
     elif command == "transition":
         if len(sys.argv) < 4:
@@ -1131,6 +1153,7 @@ try:
             key = sys.argv[2]
             description = None
             summary = None
+            assignee = None
 
             if "--description" in sys.argv:
                 idx = sys.argv.index("--description")
@@ -1142,7 +1165,24 @@ try:
                 if idx + 1 < len(sys.argv):
                     summary = sys.argv[idx + 1]
 
-            result = update_issue(key, description=description, summary=summary)
+            if "--assignee" in sys.argv:
+                idx = sys.argv.index("--assignee")
+                if idx + 1 < len(sys.argv):
+                    assignee = sys.argv[idx + 1]
+
+            labels = None
+            if "--labels" in sys.argv:
+                idx = sys.argv.index("--labels")
+                if idx + 1 < len(sys.argv):
+                    labels = sys.argv[idx + 1].split(",")
+
+            parent = None
+            if "--parent" in sys.argv:
+                idx = sys.argv.index("--parent")
+                if idx + 1 < len(sys.argv):
+                    parent = sys.argv[idx + 1]
+
+            result = update_issue(key, description=description, summary=summary, assignee=assignee, labels=labels, parent=parent)
 
     elif command == "add-comment":
         if len(sys.argv) < 4:

@@ -46,6 +46,14 @@ Drafts and posted content are saved to `tickets/{TICKET}/reports/ship/posts/`:
 
 Templates live in `~/.claude-shared-config/skills/templates/`. See `README.md` there for the full list and draft file format.
 
+## Learned Rules
+
+- **Tag the reporter, not "team".** Jira comments should mention the ticket reporter (or a specific person), not a generic audience. Look up the reporter from the ticket context.
+- **Never reference local ticket folders.** The `tickets/` tree is local-only (not in Jira). Do not mention "documented in the ticket folder" in external posts.
+- **No aggressive deadlines.** Avoid "if I don't hear by EOD I'll proceed" framing. Instead, use warm proactive language: "I'm going to start implementing shortly. Let me know if you disagree or have a better approach."
+- **Skip redundant headers.** If the comment purpose is obvious from context (e.g., a single comment on a ticket), do not add a formal header like "Implementation Assumptions (call for correction)".
+- **Jira auth: use macOS Keychain, not env vars.** The jira skill stores tokens in keychain (`security find-generic-password -s claude-jira -a jira_{org}`). The `JIRA_API_TOKEN` env var is stale. Always retrieve the token from keychain via the same method the jira skill uses. Config is at `~/.claude-shared-config/skills/jira/jira_config.json`.
+
 ## Audit Log
 
 Every post is logged to `tickets/{TICKET}/reports/ship/post-log.yaml` (or `global-post-log.yaml` if no ticket context). Each entry records: timestamp, platform, target, template, draft path, posted URL, content hash, action (new/edit/delete), and replaces_hash (for edits).

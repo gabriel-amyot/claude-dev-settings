@@ -72,10 +72,12 @@ Use this skill to interact with Jira issues through simple CLI commands. All com
 - `download-attachment URL FILENAME [--output-dir DIR]` - Download an attachment
 - `upload-attachment KEY FILEPATH` - Upload a local file as an attachment to an issue
 - `search JQL [--max N] [--full]` - Raw JQL search
-- `create --summary SUMMARY --type TYPE --project PROJECT [--description DESC] [--assignee USER] [--labels LABEL1,LABEL2]` - Create new issue
+- `create --summary SUMMARY --type TYPE --project PROJECT [--description DESC] [--assignee USER] [--labels LABEL1,LABEL2] [--parent KEY]` - Create new issue (use --parent to create sub-tasks)
+- `add-comment KEY --comment "BODY"` - Add a comment to an issue
+- `delete-comment KEY --comment-id ID` - Delete a comment from an issue
 - `transition KEY STATUS` - Transition issue to a new status
 - `transitions KEY` - List available transitions for an issue
-- `update KEY [--description DESC] [--summary SUMMARY]` - Update issue fields
+- `update KEY [--description DESC] [--summary SUMMARY] [--assignee USER] [--labels LABEL1,LABEL2] [--parent KEY]` - Update issue fields
 
 ## fetch — Materialize a Ticket to Disk
 
@@ -83,13 +85,13 @@ The `fetch` command is the standard way to pull a Jira ticket into the local pro
 
 ```bash
 # Fetch a single ticket into current directory
-python3 ~/.claude-shared-config/skills/jira/jira.py fetch KTP-100
+cd ~/.claude/skills/jira && python3 jira_skill.py fetch KTP-100
 
 # Fetch into a specific folder
-python3 ~/.claude-shared-config/skills/jira/jira.py fetch KTP-100 --output-dir ./tickets
+cd ~/.claude/skills/jira && python3 jira_skill.py fetch KTP-100 --output-dir ./tickets
 
 # Fetch an epic + all its children (depth 2)
-python3 ~/.claude-shared-config/skills/jira/jira.py fetch KTP-115 --output-dir ./tickets --depth 2
+cd ~/.claude/skills/jira && python3 jira_skill.py fetch KTP-115 --output-dir ./tickets --depth 2
 ```
 
 **Output structure per ticket:**
@@ -117,40 +119,45 @@ KEY/
 
 List your open issues (compact output):
 ```bash
-python3 ~/.claude-shared-config/skills/jira/jira.py list
+cd ~/.claude/skills/jira && python3 jira_skill.py list
 ```
 
 Get full details of a specific issue:
 ```bash
-python3 ~/.claude-shared-config/skills/jira/jira.py get INS-226 --full
+cd ~/.claude/skills/jira && python3 jira_skill.py get INS-226 --full
 ```
 
 List your TO DO items in the INS project:
 ```bash
-python3 ~/.claude-shared-config/skills/jira/jira.py list --status "TO DO" --project INS
+cd ~/.claude/skills/jira && python3 jira_skill.py list --status "TO DO" --project INS
 ```
 
 Search for bugs in a project:
 ```bash
-python3 ~/.claude-shared-config/skills/jira/jira.py search "project = INS AND type = Bug"
+cd ~/.claude/skills/jira && python3 jira_skill.py search "project = INS AND type = Bug"
 ```
 
 Create a new bug:
 ```bash
-python3 ~/.claude-shared-config/skills/jira/jira.py create --summary "Bug: Login page broken" --type Bug --project INS --description "Login not working on mobile" --labels "bug,urgent"
+cd ~/.claude/skills/jira && python3 jira_skill.py create --summary "Bug: Login page broken" --type Bug --project INS --description "Login not working on mobile" --labels "bug,urgent"
 ```
 
 Create a task assigned to someone:
 ```bash
-python3 ~/.claude-shared-config/skills/jira/jira.py create --summary "Update documentation" --type Task --project INS --assignee gamyot@beklever.com
+cd ~/.claude/skills/jira && python3 jira_skill.py create --summary "Update documentation" --type Task --project INS --assignee gamyot@beklever.com
+```
+
+Create a sub-task under a parent issue:
+```bash
+cd ~/.claude/skills/jira && python3 jira_skill.py create --summary "Implement login API" --type Sub-task --project INS --parent INS-204
 ```
 
 List subtasks of an issue:
 ```bash
-python3 ~/.claude-shared-config/skills/jira/jira.py subtasks INS-204
+cd ~/.claude/skills/jira && python3 jira_skill.py subtasks INS-204
 ```
 
 Get the parent epic of an issue:
 ```bash
-python3 ~/.claude-shared-config/skills/jira/jira.py epic INS-226
+cd ~/.claude/skills/jira && python3 jira_skill.py epic INS-226
 ```

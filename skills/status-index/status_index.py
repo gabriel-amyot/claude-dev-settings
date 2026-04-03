@@ -59,7 +59,7 @@ def is_leaf_ticket(ticket_path: Path) -> bool:
 
 def read_ac_yaml(ticket_path: Path) -> Tuple[Optional[Dict[str, Any]]]:
     """Read ac.yaml and return the full data structure."""
-    ac_file = ticket_path / "jira" / "ac.yaml"
+    ac_file = ticket_path / "jira" / "ac" / "index.yaml"
 
     if not ac_file.exists():
         return None
@@ -75,7 +75,7 @@ def read_ac_yaml(ticket_path: Path) -> Tuple[Optional[Dict[str, Any]]]:
 
 def read_readme(ticket_path: Path) -> Optional[str]:
     """Read title from README.md."""
-    readme = ticket_path / "README.md"
+    readme = ticket_path / "INDEX.md"
     if not readme.exists():
         return None
 

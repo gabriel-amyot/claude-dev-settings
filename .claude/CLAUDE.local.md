@@ -16,13 +16,13 @@ This repository contains shared Claude Code configurations for React/React Nativ
 ### TDD Mode
 Use `/tdd` command to activate Test-Driven Development workflow. The system includes:
 - Automated workflow enforcement via hooks
-- Mandatory 8-step TDD process defined in `docs/workflows/tdd_workflow.md`
+- Mandatory 8-step TDD process defined in `library/practices/workflows/tdd-workflow-test-first-quality-gates.md`
 - Code review integration with principal engineer-level standards
 - Separate commits for tests and implementation
 
 ### Lean Mode
 Use `/lean` command for rapid development with quality gates:
-- 5-step development process in `docs/workflows/lean_workflow.md`
+- 5-step development process in `library/practices/workflows/lean-workflow-minimal-process-rapid-iteration.md`
 - Code review at each iteration
 - Focus on requirements analysis and iterative refinement
 
@@ -40,7 +40,7 @@ Use `/lean` command for rapid development with quality gates:
 
 ## Code Review Process
 
-All code must pass through the Code Review Super Star Agent (`docs/guidelines/code_review_agent.md`):
+All code must pass through the Code Review Super Star Agent (`library/practices/quality/code-review-priority-checklist.md`):
 - Principal engineer with 20+ years FAANG experience standards
 - Checks for correctness, test coverage, security, performance, maintainability
 - Overfitting detection to ensure general solutions
@@ -48,7 +48,7 @@ All code must pass through the Code Review Super Star Agent (`docs/guidelines/co
 
 ## Commit Guidelines
 
-Follow the format in `docs/guidelines/commit_guidelines.md`:
+Follow the format in `library/practices/standards/commit-message-conventional-format.md`:
 - Type-based prefixes: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`
 - Lowercase titles, max 50 characters
 - Optional bullet point body explaining changes
@@ -94,5 +94,5 @@ When modifying this configuration repository:
 - Configuration designed for symbolic linking from this repo to `~/.claude/`
 - Hooks system integrated with tool execution for workflow enforcement
 - Modular command structure in `/commands` directory for easy extension
-- Structured documentation in `/docs` with guidelines and workflows
+- Structured documentation in `/library` with organized knowledge base
 - Settings.json configured for React/React Native development security model

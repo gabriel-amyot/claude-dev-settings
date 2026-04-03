@@ -13,6 +13,14 @@ Stop at any failure. Persist reports and Jira comments at every stop point.
 
 ---
 
+## Responsibility Boundary
+- **Owns:** Spec validation, code review, release tagging, deployment coordination, Jira reporting
+- **Delegates to:** Specialized review agents via /supervisr-review (code standards), /supervisr-validate (compilation and tests), /supervisr-release (tagging and image builds)
+- **Escalates to:** Human (when spec violations found, when deployment to UAD/PROD needed, Phase 4 deploy gate always requires user confirmation)
+- **Must not:** Run GitLab pipelines in PROD/UAD, update CI/CD variables in PROD/UAD, run terraform, skip spec validation, skip phases on re-invocation
+
+---
+
 ## Invocation Context
 
 You run from a ticket folder inside project-management:
@@ -369,6 +377,47 @@ Write: `{ticket_path}/reports/ship/review_{SHORT_HASH}_{DATE}.md`
 
 ---
 
+## Phase 2.5: Adversarial Review
+
+**Goal:** Challenge the validation evidence from Phase 1. Verify that acceptance criteria are genuinely met, not just claimed.
+
+### Steps
+
+1. **Load adversarial context:**
+   - Phase 1 validation report (AC verdicts and evidence)
+   - Phase 2 review report (standards findings)
+   - Jira ACs (from Preflight)
+
+2. **Challenge each AC:**
+   - For each AC marked MET in Phase 1: "Could this test pass with a broken service? Is the evidence from a real end-to-end test, or just a unit test?"
+   - For each AC marked CANNOT DETERMINE: escalate as BLOCKED
+   - Check for coverage inflation (CODE VERIFIED claimed as VERIFIED)
+
+3. **Compile verdict table:**
+
+   | AC | Phase 1 Verdict | Adversarial Verdict | Finding |
+   |----|-----------------|---------------------|---------|
+   | AC-1 | MET | PASS/FAIL/BLOCKED | {details} |
+
+### Gates
+
+- Any AC with FAIL verdict → STOP. Present findings. User must resolve before Phase 3.
+- Any AC with BLOCKED verdict → WARN. Ask user: proceed without, or resolve first.
+- All PASS → proceed to Phase 3.
+
+### Output
+
+Write: `{ticket_path}/reports/ship/adversarial_{SHORT_HASH}_{DATE}.md`
+
+### On Failure
+
+1. Persist adversarial report
+2. Add Jira comment: `[automated] Adversarial review found issues. {summary}. Agent: supervisr-ship.`
+3. Update master ship report with STOPPED status
+4. Stop execution
+
+---
+
 ## Phase 3: Release
 
 **Goal:** Create tagged release, build Docker image, push to registry.
@@ -482,6 +531,7 @@ Write: `{ticket_path}/reports/ship/deploy_{TAG}_{DATE}.md`
    ```
 
 3. Ask user if they want to transition the ticket status
+   - **GATE:** Only offer transition if Phase 2.5 adversarial verdict was all-PASS (or user-overridden BLOCKED). If Phase 2.5 had FAIL verdicts that were resolved, note the resolution in the Jira comment.
 
 ### Output
 

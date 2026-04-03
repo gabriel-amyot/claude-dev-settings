@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Harness Scorecard Entry",
+  "description": "Schema for automated harness crawl scorecard entries. Validated by write-scorecard.sh before appending to the scorecard YAML.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "date",
+    "crawl_type",
+    "ticket",
+    "crawl_number",
+    "iterations_used",
+    "iterations_budget",
+    "gate_results",
+    "exit_reason",
+    "wall_time_minutes"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version for forward compatibility"
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "description": "ISO date of the crawl (YYYY-MM-DD)"
+    },
+    "crawl_type": {
+      "type": "string",
+      "enum": ["night-crawl", "dev-crawl", "ralph-loop", "supervisr-autopilot", "bmad-party"],
+      "description": "Type of crawl executed"
+    },
+    "ticket": {
+      "type": "string",
+      "pattern": "^[A-Z]+-[A-Z0-9-]+$",
+      "description": "Ticket ID (e.g., SPV-3, HARNESS-DRY-RUN)"
+    },
+    "crawl_number": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Sequential crawl number for this ticket"
+    },
+    "iterations_used": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of iterations consumed"
+    },
+    "iterations_budget": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Maximum iterations allowed (0 = unlimited)"
+    },
+    "gate_results": {
+      "type": "object",
+      "required": ["pass", "fail"],
+      "properties": {
+        "pass": { "type": "integer", "minimum": 0 },
+        "fail": { "type": "integer", "minimum": 0 }
+      },
+      "description": "Verification gate pass/fail counts"
+    },
+    "self_healing_attempts": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of self-healing attempts"
+    },
+    "self_healing_resolved": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of self-healing attempts that succeeded"
+    },
+    "exit_reason": {
+      "type": "string",
+      "enum": ["success", "budget_exhausted", "blocked", "aborted"],
+      "description": "Why the crawl ended"
+    },
+    "wall_time_minutes": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total wall clock time in minutes"
+    },
+    "sub_agents_spawned": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total sub-agents spawned during crawl"
+    },
+    "context_compactions": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of context compaction events"
+    },
+    "harness_changes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Harness improvements implemented during this crawl"
+    },
+    "sub_agent_metrics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["agent_name", "tasks_assigned", "tasks_completed"],
+        "properties": {
+          "agent_name": { "type": "string" },
+          "tasks_assigned": { "type": "integer", "minimum": 0 },
+          "tasks_completed": { "type": "integer", "minimum": 0 },
+          "hit_hard_cap": { "type": "integer", "minimum": 0 }
+        }
+      },
+      "description": "Per-sub-agent task metrics"
+    }
+  },
+  "additionalProperties": false
+}

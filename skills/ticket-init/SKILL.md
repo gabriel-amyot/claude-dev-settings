@@ -1,6 +1,6 @@
 ---
 name: ticket-init
-description: "Scaffold a new ticket folder with standard structure: README.md, REPO_MAPPING.yaml, STATUS_SNAPSHOT.yaml, reports/ tree, and optional Jira AC fetch. Use when creating a new ticket or epic folder."
+description: "Scaffold a new ticket folder with standard structure: INDEX.md, REPO_MAPPING.yaml, STATUS_SNAPSHOT.yaml, plan/ stubs, jira/ac/ subfolder, reports/ tree, and optional Jira AC fetch. Use when creating a new ticket or epic folder."
 ---
 
 # Ticket Init
@@ -40,12 +40,18 @@ Check if the folder already exists. If it does, warn the user and stop.
 
 ```
 {base}/
-├── README.md
+├── INDEX.md
 ├── REPO_MAPPING.yaml        (if epic-level or cross-service ticket)
 ├── STATUS_SNAPSHOT.yaml
+├── plan/
+│   ├── PRD.md               (stub)
+│   └── TASKS.md             (stub)
 ├── jira/                    (if --jira flag)
 │   ├── ticket.yaml
-│   └── ac.yaml
+│   ├── description.md
+│   └── ac/
+│       ├── index.yaml
+│       └── ac-NNN.md
 └── reports/
     ├── architecture/
     ├── implementation/
@@ -53,20 +59,25 @@ Check if the folder already exists. If it does, warn the user and stop.
     └── status/
 ```
 
-### 3. Populate README.md
+### 3. Populate INDEX.md
 
 ```markdown
 # {TICKET-ID}: {Title from Jira or placeholder}
 
-## Overview
-{Description from Jira or "TODO: Add overview"}
+**Status:** not_started | **Epic:** {EPIC-ID if provided} | [Jira](https://supervisr.atlassian.net/browse/{TICKET-ID})
 
-## Acceptance Criteria
-{AC from Jira or "TODO: Define AC"}
+## Navigation
+| Section | Path | Notes |
+|---|---|---|
+| Metadata | jira/ticket.yaml | Status, assignee, sprint |
+| Description | jira/description.md | Full ticket description |
+| Acceptance Criteria | jira/ac/index.yaml | N ACs |
+| Plan | plan/PRD.md | stub |
+| Tasks | plan/TASKS.md | stub |
 
-## Related
-- Epic: {EPIC-ID if provided}
-- Jira: https://supervisr.atlassian.net/browse/{TICKET-ID}
+## Repos
+| Repo | Path | Role |
+|---|---|---|
 ```
 
 ### 4. Populate STATUS_SNAPSHOT.yaml
@@ -100,16 +111,17 @@ Run the Jira skill to fetch ticket details:
 
 Parse the output and populate:
 - `jira/ticket.yaml`: Full ticket metadata
-- `jira/ac.yaml`: Extracted acceptance criteria as a YAML list
-- Update README.md title and description from Jira data
+- `jira/ac/index.yaml`: Extracted AC list + per-AC `ac-NNN.md` stubs
+- Update INDEX.md title and status from Jira data
 
 ### 7. Report
 
 Print summary:
 ```
 Ticket {TICKET-ID} initialized at {base}/
-  - README.md ✓
+  - INDEX.md ✓
   - STATUS_SNAPSHOT.yaml ✓
+  - plan/ stubs ✓
   - REPO_MAPPING.yaml ✓ (or skipped for sub-ticket)
   - reports/ tree ✓
   - jira/ ✓ (or skipped)

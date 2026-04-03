@@ -678,6 +678,210 @@ def trigger_pipeline(project_id, ref="dev", variables=None):
     }
 
 
+def deploy_watch(project_id, pipeline_id, poll_interval=15, max_polls=80):
+    """Watch a deployment pipeline through 3 stages:
+    Stage 1: Wait for init/validate jobs to complete, show summary.
+    Stage 2: Report pass/fail of validate stage.
+    Stage 3: Detect blocked auto-deploy (e.g., resource destruction), report for user decision.
+    """
+    VALIDATE_STAGE_NAMES = {"validate", "init", "plan", "terraform-plan", "terraform-validate"}
+    DEPLOY_STAGE_NAMES = {"deploy", "apply", "terraform-apply", "auto-deploy", "auto_deploy"}
+
+    def classify_jobs(jobs):
+        validate_jobs = []
+        deploy_jobs = []
+        other_jobs = []
+        for j in jobs:
+            stage = (j.get("stage") or "").lower()
+            name = (j.get("name") or "").lower()
+            if stage in VALIDATE_STAGE_NAMES or any(v in name for v in ("validate", "init", "plan")):
+                validate_jobs.append(j)
+            elif stage in DEPLOY_STAGE_NAMES or any(d in name for d in ("deploy", "apply")):
+                deploy_jobs.append(j)
+            else:
+                other_jobs.append(j)
+        return validate_jobs, deploy_jobs, other_jobs
+
+    def job_summary(j):
+        return {
+            "id": j.get("id"),
+            "name": j.get("name"),
+            "stage": j.get("stage"),
+            "status": j.get("status"),
+            "duration": j.get("duration"),
+            "failure_reason": j.get("failure_reason"),
+            "web_url": j.get("web_url"),
+            "allow_failure": j.get("allow_failure", False),
+        }
+
+    def is_terminal(status):
+        return status in ("success", "failed", "canceled", "skipped")
+
+    def get_validate_log_summary(project_id, validate_jobs):
+        summaries = []
+        for j in validate_jobs:
+            if j.get("status") in ("success", "failed"):
+                log_resp = api_request(f"/projects/{project_id}/jobs/{j['id']}/trace", raw=True)
+                if isinstance(log_resp, str):
+                    clean = re.sub(r'\x1b\[[0-9;]*m', '', log_resp)
+                    plan_match = re.search(
+                        r"Plan:\s*(\d+)\s*to add,\s*(\d+)\s*to change,\s*(\d+)\s*to destroy",
+                        clean
+                    )
+                    if plan_match:
+                        summaries.append({
+                            "job": j.get("name"),
+                            "plan_add": int(plan_match.group(1)),
+                            "plan_change": int(plan_match.group(2)),
+                            "plan_destroy": int(plan_match.group(3)),
+                        })
+                    error_lines = [
+                        l.strip() for l in clean.split("\n")
+                        if re.search(r"\[\s*ERROR\s*\]|Error:|error:", l)
+                    ]
+                    if error_lines:
+                        summaries.append({
+                            "job": j.get("name"),
+                            "errors": error_lines[:10],
+                        })
+        return summaries
+
+    stages_result = {
+        "pipeline_id": pipeline_id,
+        "stage_1_validate": None,
+        "stage_2_result": None,
+        "stage_3_deploy": None,
+    }
+
+    for poll in range(max_polls):
+        jobs_resp = api_request(
+            f"/projects/{project_id}/pipelines/{pipeline_id}/jobs",
+            params={"per_page": 100}
+        )
+        if isinstance(jobs_resp, dict) and "error" in jobs_resp:
+            return jobs_resp
+
+        validate_jobs, deploy_jobs, other_jobs = classify_jobs(jobs_resp)
+
+        if validate_jobs:
+            all_done = all(is_terminal(j.get("status", "")) for j in validate_jobs)
+            if all_done:
+                log_summaries = get_validate_log_summary(project_id, validate_jobs)
+                stages_result["stage_1_validate"] = {
+                    "status": "complete",
+                    "jobs": [job_summary(j) for j in validate_jobs],
+                    "plan_summaries": log_summaries,
+                }
+
+                failed = [j for j in validate_jobs if j.get("status") == "failed" and not j.get("allow_failure")]
+                if failed:
+                    stages_result["stage_2_result"] = {
+                        "status": "failed",
+                        "failed_jobs": [job_summary(j) for j in failed],
+                        "message": "Validate stage FAILED. Pipeline will not proceed to deploy.",
+                    }
+                    return stages_result
+                else:
+                    stages_result["stage_2_result"] = {
+                        "status": "passed",
+                        "message": "Validate stage passed.",
+                    }
+
+                if deploy_jobs:
+                    blocked, manual, running, succeeded, failed_deploy = [], [], [], [], []
+                    for j in deploy_jobs:
+                        status = j.get("status", "")
+                        if status == "manual":
+                            manual.append(j)
+                        elif status in ("created", "waiting_for_resource", "pending"):
+                            blocked.append(j)
+                        elif status == "running":
+                            running.append(j)
+                        elif status == "success":
+                            succeeded.append(j)
+                        elif status == "failed":
+                            failed_deploy.append(j)
+
+                    if manual:
+                        manual_details = []
+                        for j in manual:
+                            detail = job_summary(j)
+                            log_resp = api_request(
+                                f"/projects/{project_id}/jobs/{j['id']}/trace", raw=True
+                            )
+                            if isinstance(log_resp, str):
+                                clean = re.sub(r'\x1b\[[0-9;]*m', '', log_resp)
+                                reason_lines = [
+                                    l.strip() for l in clean.split("\n")
+                                    if re.search(r"\[\s*ERROR\s*\]|Error:|[Dd]estroy", l)
+                                ]
+                                if reason_lines:
+                                    detail["blocking_reasons"] = reason_lines[:10]
+                            manual_details.append(detail)
+
+                        stages_result["stage_3_deploy"] = {
+                            "status": "blocked_manual",
+                            "message": "Auto-deploy is BLOCKED. Manual approval required. Review the blocking reasons and use 'play-job' to trigger manually.",
+                            "manual_jobs": manual_details,
+                            "play_command": "play-job <project> --job <JOB_ID>",
+                        }
+                    elif running:
+                        stages_result["stage_3_deploy"] = {
+                            "status": "deploying",
+                            "message": "Deploy is running.",
+                            "jobs": [job_summary(j) for j in running],
+                        }
+                    elif succeeded:
+                        stages_result["stage_3_deploy"] = {
+                            "status": "deployed",
+                            "message": "Deploy completed successfully.",
+                            "jobs": [job_summary(j) for j in succeeded],
+                        }
+                    elif failed_deploy:
+                        stages_result["stage_3_deploy"] = {
+                            "status": "deploy_failed",
+                            "message": "Deploy job(s) FAILED.",
+                            "jobs": [job_summary(j) for j in failed_deploy],
+                        }
+                    elif blocked:
+                        stages_result["stage_3_deploy"] = {
+                            "status": "waiting",
+                            "message": "Deploy jobs are waiting (not yet started).",
+                            "jobs": [job_summary(j) for j in blocked],
+                        }
+                    else:
+                        stages_result["stage_3_deploy"] = {
+                            "status": "unknown",
+                            "jobs": [job_summary(j) for j in deploy_jobs],
+                        }
+                else:
+                    stages_result["stage_3_deploy"] = {
+                        "status": "no_deploy_jobs",
+                        "message": "No deploy-stage jobs found in this pipeline.",
+                    }
+
+                return stages_result
+
+        time.sleep(poll_interval)
+
+    return {"error": "Timed out waiting for validate stage to complete", "partial": stages_result}
+
+
+def play_job(project_id, job_id):
+    """Trigger a manual/blocked job (e.g., 'apply manually' after blocked auto-deploy)."""
+    response = api_request(f"/projects/{project_id}/jobs/{job_id}/play", method="POST")
+    if isinstance(response, dict) and "error" in response:
+        return response
+    return {
+        "played": True,
+        "id": response.get("id"),
+        "name": response.get("name"),
+        "status": response.get("status"),
+        "stage": response.get("stage"),
+        "web_url": response.get("web_url"),
+    }
+
+
 def manage_variables(project_id, action, key=None, value=None, scope=None):
     """Manage CI/CD variables"""
     scope_filter = {"filter[environment_scope]": scope} if scope else {}
@@ -1028,6 +1232,49 @@ try:
                         scope = sys.argv[idx + 1]
 
                 result = manage_variables(project_id, action, key=key, value=value, scope=scope)
+
+    elif command == "deploy-watch":
+        # Watch deployment pipeline: deploy-watch <project> --pipeline <id> [--interval 15]
+        project_name_or_id = None
+        if "--project" in sys.argv:
+            project_name_or_id = sys.argv[sys.argv.index("--project") + 1]
+        elif len(sys.argv) > 2 and not sys.argv[2].startswith("--"):
+            project_name_or_id = sys.argv[2]
+
+        if not project_name_or_id:
+            result = {"error": "deploy-watch requires project name (e.g., 'deploy-watch lead-lifecycle --pipeline 21872')"}
+        elif "--pipeline" not in sys.argv:
+            result = {"error": "deploy-watch requires --pipeline <id>"}
+        else:
+            project_id = resolve_project_id(project_name_or_id, current_org["name"])
+            if not project_id:
+                result = {"error": f"Could not resolve project '{project_name_or_id}'."}
+            else:
+                pipeline_id = sys.argv[sys.argv.index("--pipeline") + 1]
+                interval = 15
+                if "--interval" in sys.argv:
+                    interval = int(sys.argv[sys.argv.index("--interval") + 1])
+                result = deploy_watch(project_id, pipeline_id, poll_interval=interval)
+
+    elif command == "play-job":
+        # Trigger a manual/blocked job: play-job <project> --job <id>
+        project_name_or_id = None
+        if "--project" in sys.argv:
+            project_name_or_id = sys.argv[sys.argv.index("--project") + 1]
+        elif len(sys.argv) > 2 and not sys.argv[2].startswith("--"):
+            project_name_or_id = sys.argv[2]
+
+        if not project_name_or_id:
+            result = {"error": "play-job requires project name (e.g., 'play-job lead-lifecycle --job 56102')"}
+        elif "--job" not in sys.argv:
+            result = {"error": "play-job requires --job <id>"}
+        else:
+            project_id = resolve_project_id(project_name_or_id, current_org["name"])
+            if not project_id:
+                result = {"error": f"Could not resolve project '{project_name_or_id}'."}
+            else:
+                job_id = sys.argv[sys.argv.index("--job") + 1]
+                result = play_job(project_id, job_id)
 
     elif command == "index":
         group_override = None

@@ -17,7 +17,7 @@ if [ "$BASENAME" != "CLAUDE.md" ]; then
   exit 0
 fi
 
-STANDARDS="$HOME/.claude/context/claude-md-authoring.md"
+STANDARDS="$HOME/.claude/library/context/claude-md-authoring.md"
 if [ -f "$STANDARDS" ]; then
   echo ""
   echo "CLAUDE.MD GUARD: You just edited a CLAUDE.md file."

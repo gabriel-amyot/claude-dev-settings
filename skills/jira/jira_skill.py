@@ -120,12 +120,14 @@ url = None
 username = None
 token = None
 
-# Parse --org flag if present
+# Parse --org flag if present and strip it from argv so it doesn't interfere with command parsing
 org_name = None
 if "--org" in sys.argv:
     idx = sys.argv.index("--org")
     if idx + 1 < len(sys.argv):
         org_name = sys.argv[idx + 1]
+        sys.argv.pop(idx)  # remove --org
+        sys.argv.pop(idx)  # remove the value (now at same index)
 
 # Try config-based approach
 current_org = get_org_config(org_name)
@@ -529,10 +531,44 @@ def transition_issue(key, status_name):
         return {"error": str(e)}
 
 
-def update_issue(key, description=None, summary=None, assignee=None, labels=None, parent=None):
-    """Update issue fields (description, summary, assignee, labels, parent)"""
+def _check_ownership(issue, force=False):
+    """Check if the current user owns (reported) this ticket.
+    Returns None if OK, or an error dict if blocked."""
+    if force:
+        return None
+    reporter = safe_get(issue.fields.reporter)
+    if reporter is None:
+        return None  # No reporter set, allow
+    reporter_email = safe_get(issue.fields.reporter, "emailAddress") or ""
+    reporter_name = get_assignee_name(reporter) or ""
+    # Check if the configured Jira username matches the reporter
+    if username and (username.lower() in reporter_email.lower()):
+        return None  # Reporter matches current user
+    # Also check display name for "gabriel" (covers display name mismatches)
+    if "gabriel" in reporter_name.lower():
+        return None
+    return {
+        "error": f"BLOCKED: ticket {issue.key} reported by {reporter_name} ({reporter_email}), not you. "
+                 f"Use add-comment instead, or pass --force to override.",
+        "blocked_by": "ownership_gate",
+        "reporter": reporter_name,
+        "reporter_email": reporter_email
+    }
+
+
+def update_issue(key, description=None, summary=None, assignee=None, labels=None, parent=None, force=False):
+    """Update issue fields (description, summary, assignee, labels, parent).
+    Ownership gate: blocks description updates on tickets not reported by the current user.
+    Pass force=True or --force to override."""
     try:
         issue = jira.issue(key)
+
+        # Ownership gate: block description changes on other people's tickets
+        if description is not None:
+            ownership_error = _check_ownership(issue, force=force)
+            if ownership_error:
+                return ownership_error
+
         fields = {}
 
         if description is not None:
@@ -568,12 +604,15 @@ def update_issue(key, description=None, summary=None, assignee=None, labels=None
 
 
 def markdown_to_jira_wiki(text):
-    """Convert markdown to Jira wiki markup"""
+    """Convert markdown to Jira wiki markup. Skips conversion if text is already Jira wiki."""
     import re
+    # If text already contains Jira wiki markers, assume it's already formatted
+    if re.search(r'^h[1-6]\.\s', text, re.MULTILINE):
+        return text
     lines = text.split('\n')
     result = []
     for line in lines:
-        # Headers: ## → h2., ### → h3., etc.
+        # Headers: ## → h2., ### → h3., etc. (multi-# first to avoid greedy match)
         line = re.sub(r'^######\s+', 'h6. ', line)
         line = re.sub(r'^#####\s+', 'h5. ', line)
         line = re.sub(r'^####\s+', 'h4. ', line)
@@ -717,17 +756,17 @@ def fetch_ticket(key, output_dir, depth=1, _visited=None):
 
     Structure written:
       KEY/
-        ticket-overview.md   — machine-generated summary (always refreshed)
-        README.md            — only written if absent (preserved if user edited it)
         jira/
           ticket.yaml        — full metadata incl. children refs
-          description.md     — verbatim raw description (backup)
-          overview.md        — context / "why" section of description
-          ac.yaml            — acceptance criteria items (omitted if none found)
+          description.md     — verbatim raw description
+          ac/                — only created if criteria found
+            index.yaml       — all ACs with status (always refreshed)
+            ac-NNN.md        — per-AC scratchpad (only written if absent)
           technical.md       — implementation / design notes (omitted if none found)
           comments/          — only created if comments exist
             index.yaml
             comment-NNN-<slug>.md
+      INDEX.md and STATUS_SNAPSHOT.yaml are owned by the pickup-ticket agent, not this script.
     """
     import os
 
@@ -803,21 +842,24 @@ def fetch_ticket(key, output_dir, depth=1, _visited=None):
     # ── 5. jira/description.md — verbatim backup ─────────────────────────────
     if description_text:
         with open(os.path.join(jira_dir, "description.md"), "w", encoding="utf-8") as f:
-            f.write(f"# {meta['key']}: {meta['summary']}\n\n")
             f.write(description_text)
 
-    # ── 6. jira/overview.md — context / why ──────────────────────────────────
-    if overview_text:
-        with open(os.path.join(jira_dir, "overview.md"), "w", encoding="utf-8") as f:
-            f.write(f"# {meta['key']}: Overview\n\n")
-            f.write(overview_text)
-
-    # ── 7. jira/ac.yaml — acceptance criteria ────────────────────────────────
+    # ── 7. jira/ac/ — acceptance criteria subfolder ──────────────────────────
     if criteria:
-        _write_yaml(
-            os.path.join(jira_dir, "ac.yaml"),
-            {"ticket": key, "acceptance_criteria": criteria},
-        )
+        ac_dir = os.path.join(jira_dir, "ac")
+        os.makedirs(ac_dir, exist_ok=True)
+        ac_index = []
+        for i, criterion in enumerate(criteria, start=1):
+            ac_id = f"AC-{i}"
+            filename = f"ac-{i:03d}.md"
+            ac_path = os.path.join(ac_dir, filename)
+            ac_index.append({"id": ac_id, "file": filename, "description": criterion, "status": "not_started"})
+            if not os.path.exists(ac_path):
+                with open(ac_path, "w", encoding="utf-8") as f:
+                    f.write(f"---\nid: {ac_id}\nstatus: not_started\neffort: ~\n---\n\n")
+                    f.write(f"## Description\n{criterion}\n\n")
+                    f.write("## Strategy\n\n## Tasks\n\n## Progress Log\n\n## Blockers\n")
+        _write_yaml(os.path.join(ac_dir, "index.yaml"), {"ticket": key, "criteria": ac_index})
 
     # ── 8. jira/technical.md — implementation / design notes ─────────────────
     if technical_text:
@@ -830,6 +872,25 @@ def fetch_ticket(key, output_dir, depth=1, _visited=None):
     if isinstance(comments, list) and comments:
         comments_dir = os.path.join(jira_dir, "comments")
         os.makedirs(comments_dir, exist_ok=True)
+
+        # Load existing index to preserve acknowledged + triage_task fields
+        existing_index_path = os.path.join(comments_dir, "index.yaml")
+        existing_meta = {}
+        if os.path.exists(existing_index_path):
+            try:
+                import yaml as _yaml
+                with open(existing_index_path, "r") as _f:
+                    existing_data = _yaml.safe_load(_f) or {}
+                for entry in existing_data.get("comments", []):
+                    if entry.get("id"):
+                        existing_meta[str(entry["id"])] = {
+                            "acknowledged": entry.get("acknowledged", False),
+                            "triage_task": entry.get("triage_task"),
+                        }
+            except Exception:
+                pass
+
+        assignee = meta.get("assignee", "")
         index = []
         for i, comment in enumerate(comments, start=1):
             body = comment.get("body", "")
@@ -841,99 +902,28 @@ def fetch_ticket(key, output_dir, depth=1, _visited=None):
                 f.write(f"**Date:** {comment.get('created', '')}\n\n")
                 f.write("---\n\n")
                 f.write(body)
-            index.append({
+            comment_id = str(comment.get("id", ""))
+            preserved = existing_meta.get(comment_id, {})
+            author = comment.get("author", "")
+            # Own comments (by assignee) are auto-acknowledged; others require triage
+            is_own = bool(assignee and author and assignee.lower() in author.lower())
+            entry = {
                 "file": filename,
                 "id": comment.get("id"),
-                "author": comment.get("author"),
+                "author": author,
                 "created": comment.get("created"),
                 "preview": preview[:100],
-            })
+                "acknowledged": preserved.get("acknowledged", True if is_own else False),
+            }
+            if not is_own:
+                # triage_task is set by pickup-ticket once the task is created
+                triage = preserved.get("triage_task")
+                if triage:
+                    entry["triage_task"] = triage
+            index.append(entry)
         _write_yaml(os.path.join(comments_dir, "index.yaml"), {"ticket": key, "comments": index})
 
-    # ── 10. ticket-overview.md — machine summary, always refreshed ───────────
-    ov_lines = [
-        f"# {meta['key']}: {meta['summary']}",
-        "",
-        f"**Status:** {meta['status']}  ",
-        f"**Type:** {meta['type']}  ",
-        f"**Priority:** {meta.get('priority', '—')}  ",
-        f"**Assignee:** {meta.get('assignee') or '—'}  ",
-        f"**Reporter:** {meta.get('reporter') or '—'}  ",
-    ]
-    if meta.get("parent_key"):
-        ov_lines.append(f"**Parent:** {meta['parent_key']}  ")
-    if meta.get("epic_key") and meta.get("epic_key") != meta.get("parent_key"):
-        ov_lines.append(f"**Epic:** {meta['epic_key']}  ")
-    if meta.get("sprint"):
-        sprint_val = meta["sprint"]
-        sprint_str = ", ".join(sprint_val) if isinstance(sprint_val, list) else str(sprint_val)
-        ov_lines.append(f"**Sprint:** {sprint_str}  ")
-    ov_lines += [
-        f"**Updated:** {meta.get('updated', '—')}  ",
-        f"**Jira:** [{meta['key']}]({meta.get('url', '')})",
-        "",
-    ]
-    if meta.get("labels"):
-        ov_lines += [f"**Labels:** {', '.join(meta['labels'])}", ""]
-
-    if meta.get("links"):
-        ov_lines.append("## Links")
-        for lnk in meta["links"]:
-            ov_lines.append(f"- [{lnk['type']}] [{lnk['key']}]({url}/browse/{lnk['key']}): {lnk.get('summary', '')}")
-        ov_lines.append("")
-
-    if overview_text:
-        teaser = overview_text.strip()[:300].replace("\n", " ")
-        ov_lines += [
-            "## Context",
-            f"> {teaser}{'…' if len(overview_text.strip()) > 300 else ''}",
-            "",
-            "_Full context: [jira/overview.md](jira/overview.md)_",
-            "",
-        ]
-
-    if criteria:
-        ov_lines += ["## Acceptance Criteria"]
-        for c in criteria:
-            ov_lines.append(f"- [ ] {c}")
-        ov_lines.append("")
-
-    if technical_text:
-        ov_lines += ["## Technical Notes", "_See [jira/technical.md](jira/technical.md)_", ""]
-
-    if children:
-        ov_lines += ["## Child Tickets"]
-        for c in children:
-            ov_lines.append(f"- [{c['key']}](./{c['key']}/README.md): {c['summary']} _{c.get('status', '')}_")
-        ov_lines.append("")
-
-    ov_lines += [
-        "## Files",
-        "| File | Contents |",
-        "|---|---|",
-        "| [jira/ticket.yaml](jira/ticket.yaml) | Full metadata, links, children |",
-    ]
-    if overview_text:
-        ov_lines.append("| [jira/overview.md](jira/overview.md) | Context / why this ticket exists |")
-    if criteria:
-        ov_lines.append("| [jira/ac.yaml](jira/ac.yaml) | Acceptance criteria |")
-    if technical_text:
-        ov_lines.append("| [jira/technical.md](jira/technical.md) | Implementation / design notes |")
-    if description_text:
-        ov_lines.append("| [jira/description.md](jira/description.md) | Verbatim Jira description |")
-    if isinstance(comments, list) and comments:
-        ov_lines.append(f"| [jira/comments/](jira/comments/) | {len(comments)} comment(s) |")
-
-    with open(os.path.join(ticket_dir, "ticket-overview.md"), "w", encoding="utf-8") as f:
-        f.write("\n".join(ov_lines))
-
-    # ── 11. README.md — only written if absent ────────────────────────────────
-    readme_path = os.path.join(ticket_dir, "README.md")
-    if not os.path.exists(readme_path):
-        with open(readme_path, "w", encoding="utf-8") as f:
-            f.write("\n".join(ov_lines))
-
-    # ── 12. Recurse into children ─────────────────────────────────────────────
+    # ── 10. Recurse into children ─────────────────────────────────────────────
     fetched_children = []
     if depth > 1 and children:
         for child in children:
@@ -948,12 +938,10 @@ def fetch_ticket(key, output_dir, depth=1, _visited=None):
         "ac_count": len(criteria),
         "has_technical": bool(technical_text),
         "files_written": {
-            "ticket-overview.md": True,
             "ticket.yaml": True,
-            "overview.md": bool(overview_text),
-            "ac.yaml": bool(criteria),
-            "technical.md": bool(technical_text),
             "description.md": bool(description_text),
+            "ac/": bool(criteria),
+            "technical.md": bool(technical_text),
             "comments/": isinstance(comments, list) and bool(comments),
         },
     }
@@ -1182,7 +1170,8 @@ try:
                 if idx + 1 < len(sys.argv):
                     parent = sys.argv[idx + 1]
 
-            result = update_issue(key, description=description, summary=summary, assignee=assignee, labels=labels, parent=parent)
+            force = "--force" in sys.argv
+            result = update_issue(key, description=description, summary=summary, assignee=assignee, labels=labels, parent=parent, force=force)
 
     elif command == "add-comment":
         if len(sys.argv) < 4:

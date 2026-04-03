@@ -1,0 +1,4 @@
+{
+  "warn_threshold": 150,
+  "critical_threshold": 200
+}

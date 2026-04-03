@@ -44,12 +44,12 @@ Check if the ticket directory has sub-ticket directories (directories matching p
 
 Read the following sources (in order of priority):
 
-#### 2a. Read `jira/ac.yaml` (required for completion calculation)
+#### 2a. Read `jira/ac/index.yaml` (required for completion calculation)
 
-Path: `{ticket_path}/jira/ac.yaml`
+Path: `{ticket_path}/jira/ac/index.yaml`
 
 If this file doesn't exist:
-- Warn: "No jira/ac.yaml found for {ticket}. Cannot calculate AC-weighted completion."
+- Warn: "No jira/ac/index.yaml found for {ticket}. Cannot calculate AC-weighted completion."
 - Fall back to looking for completion info in existing STATUS_SNAPSHOT.yaml or README.md
 - Set `completion: null` and add a note that AC data is missing
 
@@ -70,13 +70,11 @@ Check these sources for deployment info:
    - `git -C {repo_path} branch --show-current` for current branch
    - `git -C {repo_path} status --short` for working tree state
 
-**Auto-correct ac.yaml when deployment state is fresher:**
+**Auto-correct ac/index.yaml when deployment state is fresher:**
 If an AC item's description references a version (e.g., `0.0.8-dev`) and git shows a newer tag (e.g., `0.0.10-dev`):
-- Update the AC description to reference the current version
-- If the AC is about deployment and the service IS deployed at the latest tag, mark it `done`
-- If the AC is about deployment and the service is NOT yet deployed at the latest tag, keep it `blocked` but update the version reference
-- Write the updated `jira/ac.yaml` back to disk
-- Log: "Updated ac.yaml: AC-{N} version {old} → {new}"
+- Update the `status` field in `jira/ac/index.yaml` for that AC
+- If deployed at latest tag, mark `done`; if not, mark `blocked`
+- Log: "Updated ac/index.yaml: AC-{N} version {old} → {new}"
 
 **Reconciliation rules:**
 - Only auto-correct version references in AC descriptions, not arbitrary text
@@ -84,7 +82,7 @@ If an AC item's description references a version (e.g., `0.0.8-dev`) and git sho
 - Compare against: latest git tag for the mapped repo
 - To check deployed version: use `gcloud run services describe` if the service is mapped in REPO_MAPPING (best effort, don't fail if gcloud is unavailable)
 
-#### 2c. Read README.md (optional, for title/context)
+#### 2c. Read INDEX.md (optional, for title/context)
 
 Extract ticket title and any blocker/dependency info mentioned.
 
@@ -303,7 +301,7 @@ If the post fails, warn but don't fail the entire indexing operation.
 
 ## Important Notes
 
-- This skill READS `jira/ac.yaml` and MAY UPDATE it when deployment state is fresher than what ac.yaml describes (version reconciliation). It never creates ac.yaml from scratch — that comes from Jira (via `/jira` skill or manual entry).
+- This skill READS `jira/ac/index.yaml` and MAY UPDATE individual `jira/ac/ac-NNN.md` status fields when deployment state is fresher. It never creates the ac/ folder from scratch — that comes from Jira (via `/jira` skill). The `index.yaml` is always refreshed on re-fetch; `ac-NNN.md` files are write-once (agent scratchpad).
 - The generated `STATUS_SNAPSHOT.yaml` replaces any existing one at that path.
 - Deployment info is best-effort — preserved from existing snapshots or REPO_MAPPING.yaml.
 - Timestamps use ISO 8601 format with timezone (e.g., `2026-02-16T18:00:00Z`).

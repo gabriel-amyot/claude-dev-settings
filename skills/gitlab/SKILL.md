@@ -47,6 +47,8 @@ Tokens are stored securely in **macOS Keychain** under the service `claude-gitla
 - `search QUERY [--max N]` - Search repositories by name or description
 - `pipeline DAC_NAME [--ref BRANCH] [--var KEY=VALUE ...]` - Trigger CI/CD pipeline (dev by default, prod blocked)
 - `vars DAC_NAME [--action list|get|set] [--key KEY] [--value VALUE] [--scope ENV]` - Manage CI/CD variables
+- `deploy-watch DAC_NAME --pipeline ID [--interval SECONDS]` - Watch deployment pipeline through 3 stages: validate → pass/fail → blocked deploy detection. Polls every 15s by default.
+- `play-job DAC_NAME --job JOB_ID` - Trigger a manual/blocked job (use after deploy-watch reports blocked auto-deploy). **Always requires user confirmation.**
 - `index [--group GROUP_ID]` - Build/rebuild the local project index from GitLab API
 
 ### Pipeline Log Analysis
@@ -204,6 +206,29 @@ python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py pipeline "retell s
 ```
 
 > **Safety:** Pipelines on `main`, `master`, `prod`, and `production` are blocked. Use the GitLab UI for production deployments.
+
+### Deployment Watch (3-Stage Monitor)
+
+Watch a pipeline through init/validate, pass/fail, and deploy gate:
+```bash
+# After triggering a pipeline, watch it:
+python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py deploy-watch lead-lifecycle --pipeline 21872
+
+# With custom poll interval (default 15s):
+python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py deploy-watch eqs --pipeline 21900 --interval 10
+```
+
+**Output stages:**
+- **Stage 1 (validate):** Waits for init/validate/plan jobs to complete, extracts terraform plan summary (add/change/destroy counts)
+- **Stage 2 (result):** Reports pass or fail. If failed, stops here with failure details.
+- **Stage 3 (deploy):** Checks deploy jobs. If auto-deploy is blocked (e.g., destroying resources), reports `blocked_manual` with blocking reasons and the job ID needed for manual apply.
+
+**When auto-deploy is blocked**, manually trigger after review:
+```bash
+python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py play-job lead-lifecycle --job 56102
+```
+
+> **Safety:** `play-job` triggers a manual pipeline job. **Always require explicit user confirmation before running.** Never auto-play blocked deploy jobs.
 
 ### CI/CD Variables
 

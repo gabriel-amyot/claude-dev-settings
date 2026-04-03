@@ -8,11 +8,14 @@ if [ ! -f "$MAPPING" ]; then
   exit 0
 fi
 
-# Extract file path from tool input JSON
-FILE_PATH=$(echo "$CLAUDE_TOOL_INPUT" | python3 -c "
+# Read tool input from stdin (correct API)
+INPUT=$(cat)
+
+FILE_PATH=$(echo "$INPUT" | python3 -c "
 import sys, json
 data = json.load(sys.stdin)
-print(data.get('file_path', data.get('filePath', '')))" 2>/dev/null)
+ti = data.get('tool_input', data)
+print(ti.get('file_path', ti.get('filePath', '')))" 2>/dev/null)
 
 if [ -z "$FILE_PATH" ]; then
   exit 0
@@ -28,9 +31,9 @@ if [ -z "$RELATIVE" ]; then
   exit 0
 fi
 
-# Check mapping for this file
-python3 - "$MAPPING" "$RELATIVE" <<'PYEOF'
-import sys, yaml
+# Check mapping for this file and output as JSON additionalContext
+RESULT=$(python3 - "$MAPPING" "$RELATIVE" <<'PYEOF'
+import sys, json, yaml
 
 mapping_file = sys.argv[1]
 edited_file = sys.argv[2]
@@ -41,15 +44,23 @@ with open(mapping_file) as f:
 for guard in mapping.get("guards", []):
     source = guard["source"]
     if edited_file == source or edited_file.endswith("/" + source):
-        print(f"\nSPEC GUARD: {source} is covered by specifications\n")
-        print("Guarded behaviors:")
+        lines = []
+        lines.append(f"SPEC GUARD: {source} is covered by specifications.")
+        lines.append("Guarded behaviors:")
         for b in guard.get("behaviors", []):
-            print(f"  * {b}")
-        print("\nLinked specs:")
+            lines.append(f"  * {b}")
+        lines.append("Linked specs:")
         for s in guard.get("specs", []):
-            print(f"  -> {s}")
+            lines.append(f"  -> {s}")
         for a in guard.get("adrs", []):
-            print(f"  -> {a}")
-        print("\nVerify your change preserves these behaviors before proceeding.\n")
+            lines.append(f"  -> {a}")
+        lines.append("Verify your change preserves these behaviors before proceeding.")
+        msg = "\n".join(lines)
+        print(json.dumps({"hookSpecificOutput": {"additionalContext": msg}}))
         break
 PYEOF
+)
+
+if [ -n "$RESULT" ]; then
+  echo "$RESULT"
+fi

@@ -1,6 +1,6 @@
 # Generate Tasks Command
 
-Please generate tasks from the PRD using ~/.claude/docs/ai-dev-tasks/generate-tasks.md
+Please generate tasks from the PRD using ~/.claude/library/process/task-generation-from-prd-two-phase.md
 
 If not explicitly told which PRD to use, generate a list of PRDs and ask the user to select one under `/tasks` or create a new one using `create-prd.md`:
 - assume it's stored under `/tasks` and has a filename starting with `prd-` (e.g., `prd-[name].md`)

@@ -1,0 +1,52 @@
+# Known Domain Failures and Mitigations
+# Referenced by crawl profiles for severity overrides
+# Schema: v1.0
+
+failures:
+  gitlab_unreachable:
+    detection: "curl -sf https://gitlab.com returns non-200 or timeout"
+    frequency: "Common at night (maintenance windows)"
+    fallback: "Skip deployment/MR. Continue with local test harness. Flag as partial crawl."
+    affects: [night-crawl, dev-crawl]
+
+  jira_unreachable:
+    detection: "Jira API returns error or timeout"
+    frequency: "Rare"
+    fallback: "Use cached jira/ folder data. Skip Jira comments. Flag in closeout."
+    affects: [night-crawl, dev-crawl, supervisr-autopilot]
+
+  gcp_unreachable:
+    detection: "gcloud auth print-identity-token fails"
+    frequency: "Rare"
+    fallback: "Skip dev environment work. Continue with local harness only."
+    affects: [dev-crawl]
+
+  docker_unhealthy:
+    detection: "docker compose up fails after 3 retries"
+    frequency: "Occasional (port conflicts, stale volumes)"
+    fallback: "docker compose down -v, rebuild. If still failing, escalate."
+    affects: [night-crawl]
+
+  context_exhaustion:
+    detection: "Context utilization exceeds 85% threshold"
+    frequency: "Common in long crawls"
+    fallback: "Pause main agent, spawn Haiku summarizer, inject condensed summary."
+    affects: [night-crawl, dev-crawl, supervisr-autopilot]
+
+  sub_agent_hard_cap:
+    detection: "Sub-agent reaches 3 failed attempts on same task"
+    frequency: "Occasional"
+    fallback: "Terminate sub-agent, escalate per crawl profile (next BMAD tier or human)."
+    affects: [night-crawl, dev-crawl]
+
+  port_conflict:
+    detection: "EADDRINUSE on harness ports (4010, 8080, 8081, etc.)"
+    frequency: "Common after unclean shutdown"
+    fallback: "lsof -i :{port} | kill, then retry. If persistent, docker compose down -v."
+    affects: [night-crawl]
+
+  stale_credentials:
+    detection: "GCP identity token expired, GitLab token invalid, Auth0 token expired"
+    frequency: "Common after overnight runs"
+    fallback: "Refresh tokens automatically. If refresh fails, escalate to human."
+    affects: [night-crawl, dev-crawl]

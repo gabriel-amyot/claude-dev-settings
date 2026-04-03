@@ -35,7 +35,7 @@ Search each layer in order. Collect ALL matches, but stop expanding search effor
 | 1 | Global ADRs | `documentation/architecture/adr/` | Permanent (HIGH) |
 | 2 | Global contracts | `documentation/architecture/contracts/` | Permanent (HIGH) |
 | 3 | agent-os per-service specs | `app/micro-services/*/agent-os/` | Permanent (HIGH) |
-| 4a | On-demand context files | `~/.claude/context/` | Stable (HIGH) |
+| 4a | On-demand context files | `~/.claude/library/context/` | Stable (HIGH) |
 | 4b | Project MEMORY.md | `~/.claude/projects/*/memory/` | Stable (HIGH) |
 | 5 | Ticket-local ADRs | `tickets/{ID}/architecture/adr/` | Unpromoted (MEDIUM) |
 | 6 | Ticket reports | `tickets/{ID}/reports/architecture/` | Transient (MEDIUM) |
@@ -68,7 +68,7 @@ Use the output format below based on what was found.
 
 ### Durability ratings:
 
-- `HIGH` — `documentation/architecture/adr/`, `documentation/architecture/contracts/`, `app/micro-services/*/agent-os/`, `~/.claude/context/`, `~/.claude/projects/*/memory/`
+- `HIGH` — `documentation/architecture/adr/`, `documentation/architecture/contracts/`, `app/micro-services/*/agent-os/`, `~/.claude/library/context/`, `~/.claude/projects/*/memory/`
 - `MEDIUM` — `tickets/{ID}/architecture/adr/`, `tickets/{ID}/reports/architecture/`, `tickets/*/integration-tests/config/`
 - `LOW` — `app/micro-services/*/src/`, `.specstory/history/`
 

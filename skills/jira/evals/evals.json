@@ -1,0 +1,54 @@
+{
+  "skill_name": "jira",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Fetch KTP-115 with all its subtasks into the tickets folder",
+      "expected_output": "Fetches KTP-115 with --depth 2 into tickets/, creating jira/ac/ structure with index.yaml and per-AC scratchpads, and comment index with acknowledged/triage_task fields",
+      "files": [],
+      "expectations": [
+        "The skill invokes jira_skill.py with the fetch command for KTP-115",
+        "The fetch uses --depth 2 (or equivalent) to get subtasks",
+        "The output references the jira/ac/ directory structure with index.yaml and ac-NNN.md files",
+        "The output references jira/comments/index.yaml with acknowledged and triage_task fields",
+        "The --output-dir flag points to a tickets directory (not current dir)"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Create a ticket for adding rate limiting to the API gateway in the KTP project",
+      "expected_output": "Claude loads ticket-quality-standards.md, drafts a story with AC, applies the AC quality gate (Rule 6), and shows the draft for user approval before creating",
+      "files": [],
+      "expectations": [
+        "Claude reads or references ticket-quality-standards.md before drafting",
+        "The draft ticket uses story format (As a... I want... So that...)",
+        "The draft includes at least 2 acceptance criteria",
+        "Claude shows the full draft and asks for user confirmation before creating (Rule 0 human gate)",
+        "The ACs describe outcomes (what), not implementation steps (how)"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "What is new for me? Is anything assigned to me today?",
+      "expected_output": "Claude uses the list command to show open issues assigned to the user, with concise output",
+      "files": [],
+      "expectations": [
+        "Claude invokes jira_skill.py with the list command",
+        "Output is concise and scannable, not a wall of JSON",
+        "Claude does not use --full flag unnecessarily (progressive data discovery)"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "I need a status on KTP-115, check if there are new comments or developments",
+      "expected_output": "Claude checks local state first, re-fetches to compare, and surfaces unacknowledged comments",
+      "files": [],
+      "expectations": [
+        "Claude checks for existing local ticket data before fetching from Jira",
+        "Claude fetches or re-fetches the ticket to get current state",
+        "Claude specifically surfaces comments, especially any unacknowledged ones",
+        "Claude provides a summary of changes or developments, not raw data"
+      ]
+    }
+  ]
+}

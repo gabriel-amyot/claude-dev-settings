@@ -59,6 +59,49 @@ Files are saved to `/tmp/gcloud-logs/`:
 - `{project}_{timestamp}.json` (raw log entries)
 - `{project}_{timestamp}_summary.yaml` (structured summary with top errors, severity breakdown, stack trace heads)
 
-## Datastore (Future)
+## Datastore Operations
 
-Placeholder for Datastore query support. Not yet implemented.
+### WARNING: Destructive Operations
+
+The nuke script (`tools/datastore-ops/nuke_entities.py`) is DEV-ONLY by design.
+It will refuse to run against UAT or PROD project IDs. This is not configurable.
+
+### When to Use
+- User asks to delete/clear/nuke Datastore entities in dev
+- User asks to extract/backup Datastore data from dev
+- User asks to count entities in a Datastore kind
+
+### Scripts
+- **Bulk delete:** `python3 tools/datastore-ops/nuke_entities.py`
+- **Extract/backup:** `python3 tools/datastore-extract/extract_dev_data.py`
+
+### Bulk Delete Examples
+
+```bash
+# Dry run (default) - counts entities, no deletion
+python3 tools/datastore-ops/nuke_entities.py \
+  --project dev-data \
+  --database compliance-us-central1 \
+  --kinds leads,lead_events
+
+# Execute with confirmation prompt
+python3 tools/datastore-ops/nuke_entities.py \
+  --project dev-data \
+  --database compliance-us-central1 \
+  --kinds leads,lead_events \
+  --execute
+
+# Execute without prompt (scripted use)
+python3 tools/datastore-ops/nuke_entities.py \
+  --project dev-core \
+  --database lead-lifecycle-us-central1 \
+  --kinds leads \
+  --execute --yes
+```
+
+### Safety Layers (5 deep)
+1. Hardcoded DEV allowlist (dev-core, dev-data, rnd-bac1 only)
+2. Explicit UAT/PROD blocklist with abort
+3. Dry-run by default (--execute required)
+4. Backup to JSON before any deletion (aborts if backup fails)
+5. Interactive confirmation (type DELETE, or --yes to bypass)

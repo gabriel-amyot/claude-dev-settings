@@ -23,7 +23,7 @@ You receive a ticket ID (e.g., `KTP-182`, `SPV-60`, `INS-223`). Extract it from 
 
 ## Phase 1: Detect Organization & Project Management Root
 
-1. **Read `~/.claude/context/workspace-map.yaml`** to identify which org this ticket belongs to:
+1. **Read `~/.claude/library/context/workspace-map.yaml`** to identify which org this ticket belongs to:
    - `KTP-*`, `INS-*` → Klever (`~/Developer/grp-beklever-com`)
    - `SPV-*` → Supervisr.ai (`~/Developer/supervisr-ai`)
    - Other prefixes → ask the user
@@ -55,13 +55,25 @@ You receive a ticket ID (e.g., `KTP-182`, `SPV-60`, `INS-223`). Extract it from 
 
 2. **If exists:** Read README.md and STATUS_SNAPSHOT.yaml. Report state. Ask user if we should refresh Jira data and continue, or skip to spec analysis.
 
+   **If user says yes to refresh:** After re-fetching Jira data (Phase 2 already ran), check for comment staleness:
+   - Read the refreshed `jira/comments/index.yaml`
+   - For each entry where `acknowledged: false` and no `triage_task` field exists:
+     1. Append to the TOP of `plan/TASKS.md` (create a Triage section if absent):
+        ```
+        ## Triage
+        - [ ] ⚠️ UNVERIFIED: Validate [comment-NNN by {author}](jira/comments/{file}) — does this comment change the current implementation? Review with user before proceeding.
+        ```
+     2. Set `triage_task: "plan/TASKS.md#triage"` on that comment entry in `index.yaml`
+   - Update STATUS_SNAPSHOT.yaml `last_indexed` to now
+   - Report any new unacknowledged comments to the user
+
 3. **If not exists:** proceed to Phase 4.
 
 ---
 
 ## Phase 4: Scaffold Ticket Folder
 
-Follow `~/.claude/context/ticket-initialization.md` conventions.
+Follow `~/.claude/library/context/ticket-initialization.md` conventions.
 
 ### For sub-tickets (has parent epic):
 - Check if parent epic folder exists at `$PM_ROOT/tickets/{EPIC-ID}/`
@@ -71,12 +83,20 @@ Follow `~/.claude/context/ticket-initialization.md` conventions.
 ### Structure:
 ```
 {TICKET-ID}/
-├── README.md
+├── INDEX.md
 ├── STATUS_SNAPSHOT.yaml
+├── plan/
+│   ├── PRD.md               ← stub at pickup time
+│   └── TASKS.md             ← stub at pickup time
 ├── jira/
 │   ├── ticket.yaml
-│   ├── ac.yaml
-│   └── comments.yaml
+│   ├── description.md
+│   ├── ac/
+│   │   ├── index.yaml
+│   │   └── ac-NNN.md
+│   └── comments/            ← only if ticket has comments
+│       ├── index.yaml
+│       └── comment-NNN-{slug}.md
 └── reports/
     ├── architecture/
     ├── implementation/
@@ -84,7 +104,7 @@ Follow `~/.claude/context/ticket-initialization.md` conventions.
     └── status/
 ```
 
-Populate README.md, STATUS_SNAPSHOT.yaml, and jira/ac.yaml from the Jira data.
+Populate INDEX.md, STATUS_SNAPSHOT.yaml, plan/ stubs, and jira/ac/index.yaml from the Jira data.
 
 ---
 
@@ -129,6 +149,20 @@ You are now Leo, a senior Specification Engineer. Direct, analytical, confrontat
 
 ### Analysis Steps
 
+**Step 0: Comment Resolution Check**
+ Before analyzing gaps, read the comment history:
+ 1. Check if `jira/comments/index.yaml` exists in the ticket folder.
+ 2. If it does, read the index only — do NOT bulk-read comment files.
+ 3. For each comment entry:
+    - `acknowledged: true` → skip. Already validated, no action needed.
+    - `acknowledged: false` + `triage_task` exists → a triage task is pending user review. Flag this ticket as NEEDS_REVIEW, do not proceed to design.
+    - `acknowledged: false` + no `triage_task` → this is a new comment that slipped through. Create a triage task (same as Phase 3 logic) and flag NEEDS_REVIEW.
+ 4. Comments by the assignee (own comments) are always `acknowledged: true` — never flag these as gaps.
+ 5. For any comment with `acknowledged: true`, treat it as resolved. If it contains proceed-intent language ("implementing unless you flag something"), treat spec as PROCEEDING.
+ 6. Only carry forward as blocking: comments with `acknowledged: false` that have no completed triage task.
+
+  Record your comment scan results for inclusion in the Gate Output.
+
 **Step 1: Intent Check**
 Can you state in one sentence what this ticket is trying to achieve and why? If the "why" is missing or the "what" is vague, flag it immediately. Intent must be crystal clear before anything else.
 
@@ -145,7 +179,7 @@ For each finding, explain what specific decision it hides and what a developer w
 
 **Step 3: Spec Completeness**
 
-First, load `~/.claude/context/ticket-quality-standards.md` and apply its standards:
+First, load `~/.claude/library/context/ticket-quality-standards.md` and apply its standards:
 
 - **AC quality check:** For each AC, apply the litmus test: does it describe WHAT (spec-based) or HOW (task-based)? Flag task-based ACs with suggested rewrites.
 - **Story format check:** Does the ticket follow user story format (As a [role], I want [action], so that [benefit])? Flag if the "so that" clause is missing.
@@ -190,6 +224,10 @@ Rating: CLEAR | FUZZY | MISSING
 ## Language Audit
 {Table of findings: term | location | what decision it hides | suggested replacement}
 
+## Comment Resolutions
+{Table: gap | resolved by | comment author | date | resolution summary}
+{Or: "No comments found." if jira/comments/ does not exist}
+
 ## Spec Completeness
 Rating: SHIP IT | NEEDS WORK | REWRITE
 {Detailed findings}
@@ -201,7 +239,7 @@ Rating: SHIP IT | NEEDS WORK | REWRITE
 {Files affected, patterns to follow, ripple effects}
 
 ## Open Questions (BLOCKING)
-{Questions that MUST be answered before design can proceed}
+{Questions that MUST be answered before design can proceed: must NOT include any gap already resolved in Comment Resolutions above}
 
 ## Open Questions (NON-BLOCKING)
 {Questions that can be resolved during design/implementation}

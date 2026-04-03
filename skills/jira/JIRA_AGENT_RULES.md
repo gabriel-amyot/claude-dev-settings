@@ -96,11 +96,11 @@ Jira comments written by agents must not contain emojis. Use plain text formatti
 
 Before executing any `create` command:
 
-1. **Load `~/.claude/context/ticket-quality-standards.md`** for reference
+1. **Load `~/.claude/library/context/ticket-quality-standards.md`** for reference
 2. **Check for AC section.** If the description has no acceptance criteria, warn the user and ask them to define AC before creating. Do not silently create AC-less tickets.
 3. **Apply the litmus test to each AC:** Does it describe WHAT the result looks like (spec-based) or HOW to do it (task-based)? Flag task-list ACs with a suggested rewrite using the anti-patterns table from the standards doc.
 4. **Check minimum bar:** At least 2 testable ACs per ticket. Warn if fewer.
-5. **Advisory gate, not blocking.** User can override with explicit "create it anyway." Respect their decision without re-asking.
+5. **Mandatory gate (soft block).** The agent must run this check and present findings. User can override with explicit "create it anyway." Respect their decision without re-asking.
 
 This gate does not apply to spike tickets (where AC define questions to answer, not outcomes).
 

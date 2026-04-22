@@ -1,6 +1,6 @@
 ---
 name: night-crawl
-description: "Autonomous crawl orchestrator. Interactively plans the crawl mission with the user (what, how, who), then goes autonomous: run tests, diagnose failures, fix code, re-run, adversarial review, report, cleanup agents. For Supervisr work: always uses the SPV-3 test harness. For other orgs (e.g. Klever): discovers and uses existing tests (e2e scripts, unit tests); improves them if they are insufficient as gates."
+description: "Autonomous local validation loop. Plans mission interactively, then goes autonomous: run tests via local harness (Docker), diagnose failures, fix code, re-run, adversarial review, report. For Supervisr: uses SPV-3 test harness. For Klever: discovers existing tests. Always wrapped by ralph-loop for iteration persistence. Input: ticket ID + completion promise. Returns: test results, fix commits, adversarial report."
 tools: Bash, Read, Write, Edit, Glob, Grep, Task, TeamCreate, TeamDelete, SendMessage, TaskCreate, TaskUpdate, TaskList, Skill, AskUserQuestion
 model: opus
 ---

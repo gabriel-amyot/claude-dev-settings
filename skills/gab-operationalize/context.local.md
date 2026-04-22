@@ -10,10 +10,10 @@ Resolve from cwd path:
 
 ## Org Path Mappings
 
-| Org | Root | Library | Skills |
-|-----|------|---------|--------|
-| Klever | ~/Developer/grp-beklever-com | project-management/documentation/library/ | ~/.claude/skills/ |
-| Supervisr | ~/Developer/supervisr-ai | project-management/documentation/ | ~/.claude/skills/ |
+| Org | Root | Bibliothèque | Skills |
+|-----|------|--------------|--------|
+| Klever | ~/Developer/grp-beklever-com | project-management/documentation/bibliotheque/ | ~/.claude/skills/ |
+| Supervisr | ~/Developer/supervisr-ai | project-management/documentation/bibliotheque/ | ~/.claude/skills/ |
 | Personal | ~/Developer/gabriel-amyot | — | ~/.claude/skills/ |
 
 ## Knowledge Write Targets
@@ -21,9 +21,17 @@ Resolve from cwd path:
 ### Klever
 | Type | Path |
 |------|------|
-| Project knowledge | project-management/documentation/library/ |
+| Tribal knowledge inbox | project-management/documentation/bibliotheque/inbox/ |
 | Ticket context | project-management/tickets/{ID}/reports/ |
 | Meeting decisions | project-management/general/meetings/DECISIONS_LOG.md |
+| ADR drafts | project-management/tickets/{ID}/architecture/adr/ |
+| Promoted ADRs | project-management/documentation/architecture/adr/ |
+
+### Supervisr
+| Type | Path |
+|------|------|
+| Tribal knowledge inbox | project-management/documentation/bibliotheque/inbox/ |
+| Ticket context | project-management/tickets/{ID}/reports/ |
 | ADR drafts | project-management/tickets/{ID}/architecture/adr/ |
 | Promoted ADRs | project-management/documentation/architecture/adr/ |
 

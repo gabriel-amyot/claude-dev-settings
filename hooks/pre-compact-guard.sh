@@ -20,4 +20,4 @@ Include:
 6. Files modified: List of files you have touched this session
 
 After compaction, READ THIS FILE BACK before continuing any work. Verify your next action aligns with the original plan.'''
-print(json.dumps({'hookSpecificOutput': {'additionalContext': msg}}))"
+print(json.dumps({'systemMessage': msg}))"

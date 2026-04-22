@@ -1,3 +1,9 @@
+---
+name: supervisr-release
+description: "Release pipeline for Supervisr.AI microservices only. Runs tests, creates git tag, builds Docker image, publishes GraphQL schema to Apollo. Supports --skip-tests, --no-build, --schema-only, --check-sync. Does NOT work with Klever services (Klever uses GitLab CI pipelines). Does NOT deploy (deployment is handled by CI/CD on tag push). Input: service name or cwd auto-detection. Returns: tag name, build status, schema publish result. Usually orchestrated by supervisr-ship agent. Use standalone only when you need to tag+build without the full ship pipeline."
+user_invocable: true
+---
+
 # Supervisr Release Skill
 
 Full release pipeline for Supervisr.AI microservices: test, tag, build, and publish GraphQL schema.

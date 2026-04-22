@@ -33,6 +33,7 @@ For the full framework (compaction strategies, note-taking patterns, subagent ar
 - **Exception:** Small lookups (a few rows, a single API response under ~50 lines) that directly answer a question can be loaded into context. When in doubt, script it.
 
 # Core Rules
+- **Skills use `Skill` tool. Agents use `Agent` tool.** Any `plugin:skill` colon-named thing (e.g. `agent-browser:dogfood`, `ralph-loop:ralph-loop`) goes through the `Skill` tool. Only names from the Agent tool's registered agent list go in `Agent` `subagent_type`. Wrong tool = instant error + wasted tokens.
 - Never pipe git commands. Run them sequentially (e.g., `git fetch` then `git status`, not `git fetch && git status`).
 - When only incomplete or contradictory instructions/context is available, read the README.md.
 - Do not reflexively agree when challenged. Hold your position if you believe it's correct and explain why. If you genuinely change your mind, state what specific new information changed it — not just that the user pushed back. Be critical and constructive. The goal is for optimal contribution.
@@ -50,11 +51,14 @@ For the full framework (compaction strategies, note-taking patterns, subagent ar
 	- If on a feature branch (not dev/main/master), recommend switching back to the main branch (contextual: some repos use `dev`, most use `main` or `master`)
 	- Propose: switch to main branch → pull origin → create a new branch for the fix/feature
 - **Branch naming:** `{TICKET-ID}-short-description` — e.g., `SPV-23-datastore-adapter-lenient-types`. No `fix/`, `feature/`, `chore/` prefixes. No folder-style separators.
+- **Commit messages must contain why and what.** First line: `{TICKET-ID}: {short imperative what}`. Body: why this change exists (problem/ask), then what changed (outcome, not file list). MR descriptions are built from commits, so each commit must be self-explanatory.
 - Assume feature flags will be used for any complex feature implementation — wire up from the start with fallback to legacy behavior when disabled.
 - **NEVER commit documentation to repo** — put implementation summaries, design docs, analysis in `project-management/tickets/{ticket-or-branch-name}/`
 - **Don't touch what you don't understand.** If you see something unfamiliar in the codebase (a config field, an input variable, a file you didn't create), do NOT delete or modify it. Ask the user first.
 - **You don't own other people's code.** Other engineers contribute to these repos. Respect their work. If something looks wrong but was added by someone else, flag it — don't silently change it.
 - **After pushing a new branch to GitLab:** Always create an MR immediately. No exceptions confirmed by user.
+- **DAC repos: `dev` is the default branch.** Push changes to `dev` only. To promote to `uat` or `main`, create a merge request. Never push directly to `main` or `uat` on DAC repos. Before pushing, verify the default branch with `git branch -r | grep HEAD`. Learned from SPV-165: pushed to `main` but pipeline ran from `dev`, change was not deployed.
+- **Datasophia terraform registry nightly downtime.** `cicd.prod.datasophia.com` goes down ~11 PM to 5 AM ET every night. All DAC pipelines fail with "Error accessing remote module registry" during this window. Do NOT retry in a loop. Schedule DAC deploys before 11 PM or leave for morning. Learned from SPV-165 overnight crawl: wasted 16 iterations retrying a known-down registry.
 - **Long-running agent sessions (>30 min):** Create WIP commits at logical boundaries (per AC or per logical unit). Uncommitted code dies with the context window.
 - **Scope agent sessions to 2-3 ACs max.** Break larger work into sequential sessions: research/docs first, then code, then review. Each session reads the previous session's distilled output, not raw source material.
 - **Separate research from coding.** Session A produces docs/plans (committed). Session B reads the plan and writes code. Session C reviews. This prevents context explosion from reading large architecture docs AND writing code in the same session.
@@ -68,25 +72,27 @@ For the full framework (compaction strategies, note-taking patterns, subagent ar
 - **ADR-023** codifies this for the dreampipe pattern specifically: source-of-truth services must not expose search/list queries that duplicate EQS's role.
 
 # Autonomous Mode & Crawls
-When the user wants to run autonomously, do a night crawl, or any iterative agent loop, follow this protocol:
+When the user wants to run autonomously, use the **sprint-crawl** agent. One command, one agent.
 
-1. **Identify the agent** (behavior): `night-crawl` (plan+fix+review), `dev-crawl` (deploy+verify+diagnose)
-2. **Identify the harness** (environment): `local-harness`, `rnd-harness`, `dev-harness`. Ask if ambiguous.
-3. **Run pre-flight:** `/pre-flight --profile {harness}`
-4. **Launch:** `/ralph-loop {agent} {ticket} --completion-promise "{PROMISE}" --max-iterations {N}`
+**Trigger:** Any of these phrases → `/sprint-crawl {TICKET-ID}`
+- "go autonomous", "work overnight", "I have to go", "go to sleep", "sprint crawl", "run this ticket", "one-shot this"
 
-Natural language triggers and what to do:
-- "go autonomous" / "work overnight" / "night crawl" → night-crawl agent, ask which harness
-- "run against dev" / "deploy to dev" → dev-crawl agent + dev-harness
-- "run against rnd" / "test on rnd" → agent + rnd-harness
-- "run locally" / "local harness" → agent + local-harness
-- "ralph loop on X" → ask which agent and harness if not obvious from context
+**Command:** `/sprint-crawl KTP-XXX [--skip-gates] [--ac AC-N] [--dry-run]`
 
-Harness profiles: `~/.claude/crawl-profiles/{local,rnd,dev}-harness.yaml`
-Do NOT quote the prompt in `/ralph-loop`. Example: `/ralph-loop night-crawl SPV-3 --max-iterations 7`
+**What it does:** Drives the full ticket lifecycle autonomously: spec gate (Leo) → context gate (curator) → plan → implement → review → verify → ship → next AC. Hook-enforced phases via the sprint-harness plugin.
 
-# Jira Subagent Org Detection
-- When spawning haiku subagents to run `jira_skill.py`, always pass `--org {org}` (e.g., `--org klever`). Subagents `cd` to the skill directory (`~/.claude/skills/jira/`), which is outside the org auto-detection path. Without the flag, queries hit the wrong Jira instance. Learned from 2026-03-31 sprint closure session.
+**With ralph-loop (for overnight):**
+```
+/sprint-crawl KTP-XXX
+/ralph-loop:ralph-loop "sprint-crawl KTP-XXX" --completion-promise "ALL_ACS_DONE" --max-iterations 10
+```
+
+**When NOT to use it:** Spikes, quick bug fixes, tickets without ac.yaml, research tasks. The agent will self-detect and tell you.
+
+**Legacy agents** (night-crawl, dev-crawl) still exist for Supervisr-specific infrastructure work (deploy+verify against GCP dev). For standard ticket execution, always use sprint-crawl.
+
+# Jira Skill
+- Always pass `--org {klever|supervisrai}` when running `jira_skill.py` from outside the org path. For gotchas (slug list, subcommand names, `[automated]` header rule, deadline mode), load `~/.claude/library/context/jira-skill-gotchas.md`.
 
 # Ralph Loop Multi-Terminal Conflicts
 - `.claude/ralph-loop.local.md` is per-repo, not per-session. Two terminals in the same repo will fight over it. When a stop hook feeds a task from another session (wrong ticket, wrong completion promise), do NOT start working on it. Check the ralph-loop file, confirm it's stale or from another terminal, and `rm .claude/ralph-loop.local.md` to break the cycle. Never delete blindly without reading the file first. Learned from 2026-04-01: KTP-329 loop bled into KTP-430 session via shared file.
@@ -115,7 +121,11 @@ This applies to: GitHub PR comments/replies, Jira comments/ticket updates, Slack
 - Do NOT update GitLab CI/CD variables from Claude  in PROD nor UAD (Exception DEV, you can in DEV)
 - Do NOT run terraform plan/apply
 - Commits and tags push; CI/CD picks up automatically
+- **DAC repos: merge-forward model (Learned from SPV-165 prod incident 2026-04-21).** DAC repos on GitLab have three branches reflecting environments: `dev`, `uat`, `main` (prod). Each branch auto-deploys on push. ALL changes go to `dev` first. Promotion is manual forward-merge: dev → uat → main. Agents NEVER push to `main` or `uat` on DAC repos. Before any `git push` on a repo whose path contains `grp-dac`, verify the target branch is `dev`. If not, STOP. Hotfixes to uat/main are always human-initiated.
+- **Pipeline retry circuit breaker (Learned from SPV-165 nightcrawl 2026-04-21).** If a CI/CD pipeline fails with the same error 3 consecutive times, stop retrying. Document the infrastructure blocker and exit the loop. Never trigger more than 5 pipelines for the same commit in a single session. Registry outages, build infra failures, and network errors are not transient, they last hours.
 - **IAM/Auth changes require human gate (Learned from EQS permit-all incident 2026-03-16).** Any change to `allUsers`, `permitAll()`, `iam_public_access`, invoker bindings, OAuth security filters, or M2M scope modifications on shared environments (Dev, UAT, Prod) MUST be surfaced to the user as a blocking proposal before committing. Present the exact diff, explain why you believe it's necessary, and wait for explicit approval. Do not proceed until the user reviews and confirms. R&D-BAC1 is exempt (isolated, tear-down-after). Auth failures (403/401) on shared environments are blockers to document and escalate, not obstacles to work around.
+
+- **Every data mutation script must backup before writing (Learned from SPV-141 data loss incident 2026-04-13).** Any script that writes, updates, or deletes datastore/database entities MUST first read and save the affected records to a local backup file (JSON). One line changed = one line backed up. The backup file goes to `tickets/{TICKET-ID}/data/backups/` with a timestamped filename. No exceptions, even for "idempotent" operations. If you cannot back up (e.g., no read access), stop and ask the user.
 
 When tagging, shipping, deploying, creating merge requests, or working with CI/CD, read `~/.claude/library/context/shipping-workflow.md` for the full workflow.
 
@@ -144,7 +154,13 @@ When asked to read or analyze a `.pptx` file:
 3. Read each image using the Read tool to see slide content visually
 - Text in `.pptx` slides is often embedded in images, not extractable as text directly
 
-# On-Demand Context Files
+# Bibliothèque — User-Level Knowledge Library
+
+Cross-org operational knowledge lives in `~/.claude/library/`. Entry point: `~/.claude/library/INDEX.md`. Org-specific domain knowledge lives in each org's own Bibliothèque:
+- **Klever:** `~/Developer/grp-beklever-com/project-management/documentation/bibliotheque/INDEX.md`
+- **Supervisr.AI:** `~/Developer/supervisr-ai/project-management/documentation/bibliotheque/INDEX.md`
+
+## On-Demand Context Files
 
 Load these via `Read` when the context calls for it:
 
@@ -153,7 +169,6 @@ Load these via `Read` when the context calls for it:
 | Navigating orgs/projects, starting tickets | `~/.claude/library/context/workspace-map.yaml` |
 | Tagging, shipping, deploying, merge requests, CI/CD, PR reviews | `~/.claude/library/context/shipping-workflow.md` |
 | Writing/reviewing Java code | `~/.claude/library/context/java-standards.md` |
-| Using Gemini CLI or analyzing large codebases | `~/.claude/library/context/gemini-cli-reference.md` |
 | Creating PRDs, tickets, contracts, changelogs, ADRs | `~/.claude/library/context/tools-catalog.md` |
 | Initializing tickets, organizing ticket folders, file placement | Project-level `documentation/process/ticket-initialization-guide.md` |
 | Understanding domain terms, system capabilities, service catalog | Project-level `documentation/bibliotheque/INDEX.md` |
@@ -162,3 +177,14 @@ Load these via `Read` when the context calls for it:
 | Long-running agents, compaction, context limits, agent drift | `~/.claude/library/context/context-engineering.md` |
 | Complex multi-service debugging, parallel investigation, blocker triage | `~/.claude/library/context/swarm-diagnostics.md` |
 | Security hardening, credential rotation, permission audit | `~/.claude/library/context/security-audit-claude-code-config.md` |
+| User expresses alarm/PTSD about a PR, contamination, security, data loss | `~/.claude/library/context/pr-panic-protocol.md` |
+| Running `jira_skill.py` (subcommands, org slugs, comment rules, deadline mode) | `~/.claude/library/context/jira-skill-gotchas.md` |
+| Calling Retell AI API (pagination, filters, response format) | `~/.claude/library/context/retell-api-v2-reference.md` |
+| Querying EQS GraphQL (field names, filter syntax, comparators) | `~/.claude/library/context/eqs-graphql-reference.md` |
+| Cloud Run 403/401 diagnosis, IAM audit logs, smoke tests | `~/.claude/library/context/cloud-run-iam-diagnosis.md` |
+| Apollo Gateway routing, subgraph URLs, managed federation | `~/.claude/library/context/apollo-gateway-architecture.md` |
+| Running multi-hour jobs, nohup patterns, tool timeout limits | `~/.claude/library/context/long-running-process-pattern.md` |
+| Improving the harness, transcript mining, auto cost monitoring, batch API for crawls | `~/.claude/library/context/harness-self-management.md` |
+| Granting GCP or GitLab access to a new Klever user | `~/.claude/library/context/klever-infra-access.md` |
+| Writing/reviewing ADRs, placing docs, migrating agent-os/, doc standards | `~/.claude/library/context/documentation-standards-quick-ref.md` |
+| Performance gap local≠production, "fast locally slow on server", AI framework latency, OTEL/tracing timeouts | Project-level `documentation/bibliotheque/stack/debugging-production-perf.md` |

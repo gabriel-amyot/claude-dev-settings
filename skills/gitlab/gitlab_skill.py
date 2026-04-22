@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """GitLab CLI for Claude Code - minimal, token-efficient interface"""
+import glob
 import os
 import sys
 import json
@@ -180,48 +181,83 @@ def get_token_from_keychain(org_name):
         return None
 
 
-def get_iap_token(gitlab_url):
+def get_iap_token(gitlab_url, iap_refresh_repo=None):
     """Get IAP token for a GitLab instance behind GCP Identity-Aware Proxy.
 
-    Reads the token from the git-remote-https+iap cookie file, refreshing
-    it first if expired or missing.
+    Reads the token from the git-remote-https+iap cookie file. If expired,
+    tries the IAP helper binary, then falls back to git fetch on iap_refresh_repo.
+    Self-healing: agents never need to manually refresh the IAP cookie.
     """
     hostname = gitlab_url.replace("https://", "").replace("http://", "").rstrip("/")
     cookie_file = os.path.join(IAP_COOKIE_DIR, f"{hostname}.cookie")
 
-    def read_token():
-        if not os.path.exists(cookie_file):
-            return None
-        with open(cookie_file, "r") as f:
-            line = f.read().strip()
-        if not line:
-            return None
-        # Netscape cookie format: hostname x x x expiry cookie_name token_value
-        parts = line.split("\t")
-        if len(parts) < 7:
-            return None
-        expiry = int(parts[4])
-        token = parts[6]
-        if time.time() > expiry:
-            return None
-        return token
+    def read_best_token():
+        """Try hostname.cookie first, then any user@hostname.cookie, return first valid."""
+        candidates = []
+        if os.path.exists(cookie_file):
+            candidates.append(cookie_file)
+        # user@hostname format (e.g. gamyot-beklever@cicd.prod.datasophia.com.cookie)
+        candidates.extend(sorted(glob.glob(os.path.join(IAP_COOKIE_DIR, f"*@{hostname}.cookie"))))
+        for path in candidates:
+            try:
+                with open(path, "r") as f:
+                    line = f.read().strip()
+                if not line:
+                    continue
+                parts = line.split("\t")
+                if len(parts) < 7:
+                    continue
+                expiry = int(parts[4])
+                if time.time() <= expiry:
+                    return parts[6]
+            except Exception:
+                continue
+        return None
 
-    token = read_token()
+    # Fast path: valid token already in cookie files
+    token = read_best_token()
     if token:
         return token
 
-    if not os.path.exists(IAP_HELPER_BIN):
-        return None
+    # Refresh attempt 1: IAP helper binary
+    if os.path.exists(IAP_HELPER_BIN):
+        try:
+            subprocess.run(
+                [IAP_HELPER_BIN, "check", "origin", f"https+iap://{hostname}"],
+                capture_output=True, text=True, timeout=30
+            )
+            token = read_best_token()
+            if token:
+                return token
+        except Exception:
+            pass
 
-    try:
-        subprocess.run(
-            [IAP_HELPER_BIN, "check", "origin", f"https+iap://{hostname}"],
-            capture_output=True, text=True, timeout=30
-        )
-    except Exception:
-        return None
+    # Refresh attempt 2: git fetch on configured repo (self-healing for Klever IAP)
+    if iap_refresh_repo and os.path.exists(iap_refresh_repo):
+        try:
+            subprocess.run(
+                ["git", "-C", iap_refresh_repo, "fetch", "origin"],
+                capture_output=True, text=True, timeout=30
+            )
+            return read_best_token()
+        except Exception:
+            pass
 
-    return read_token()
+    return None
+
+
+def detect_org_from_cwd(config):
+    """Longest-prefix match on $PWD vs org local_path. Falls back to default_org."""
+    cwd = os.getcwd()
+    orgs = config.get("organizations", {})
+    best_match = None
+    best_len = 0
+    for org_name, org_cfg in orgs.items():
+        local_path = org_cfg.get("local_path", "")
+        if local_path and cwd.startswith(local_path) and len(local_path) > best_len:
+            best_match = org_name
+            best_len = len(local_path)
+    return best_match or config.get("default_org")
 
 
 def get_org_config(org_name=None):
@@ -229,13 +265,13 @@ def get_org_config(org_name=None):
     config = load_config()
     orgs = config.get("organizations", {})
 
-    # Use specified org, default org, or first available
+    # Use specified org, auto-detect from $PWD, or fall back to default
     if org_name:
         if org_name not in orgs:
             print(json.dumps({"error": f"Organization '{org_name}' not found. Available: {', '.join(orgs.keys())}"}))
             sys.exit(1)
     else:
-        org_name = config.get("default_org")
+        org_name = detect_org_from_cwd(config)
         if not org_name or org_name not in orgs:
             org_name = list(orgs.keys())[0] if orgs else None
 
@@ -257,16 +293,20 @@ def get_org_config(org_name=None):
         "token": token,
         "local_path": org_config.get("local_path"),
         "gitlab_group": org_config.get("gitlab_group"),
-        "index_groups": org_config.get("index_groups")
+        "index_groups": org_config.get("index_groups"),
+        "iap_refresh_repo": org_config.get("iap_refresh_repo")
     }
 
 
-# Parse organization from arguments if present
+# Parse organization from arguments if present, then remove from sys.argv
+# so all positional-index logic downstream works unchanged
 org_name = None
 if "--org" in sys.argv:
     idx = sys.argv.index("--org")
     if idx + 1 < len(sys.argv):
         org_name = sys.argv[idx + 1]
+        # Strip --org <value> so downstream sys.argv[2] logic stays correct
+        sys.argv = sys.argv[:idx] + sys.argv[idx + 2:]
 
 # Load organization config
 current_org = get_org_config(org_name)
@@ -279,7 +319,7 @@ headers = {
 }
 
 # Add IAP authentication if available
-iap_token = get_iap_token(gitlab_url)
+iap_token = get_iap_token(gitlab_url, iap_refresh_repo=current_org.get("iap_refresh_repo"))
 if iap_token:
     headers["Authorization"] = f"Bearer {iap_token}"
 

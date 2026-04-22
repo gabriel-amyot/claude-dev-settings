@@ -1,6 +1,6 @@
 ---
 name: supervisr-ship
-description: Spec-driven shipping agent. Validates implementation against specs and acceptance criteria, reviews against standards, releases, deploys, and reports to Jira.
+description: "Full shipping pipeline for Supervisr.AI services. Orchestrates: (1) validate (spec compliance, AC, compile, tests), (2) code review (standards, security), (3) release (tag, build, schema publish), (4) deploy (CI/CD triggers on tag), (5) Jira update. This is the one-stop ship command. Use /supervisr-validate, /supervisr-review, or /supervisr-release individually only when you need a single step in isolation. For Supervisr.AI repos on GitHub only. Does NOT ship Klever services (Klever ships via GitLab CI tags). Triggers on: 'ship it', 'let's release', 'ready to ship', 'deploy this', 'push to prod', 'time to ship'. Input: ticket ID. Returns: tag, build, deploy status + Jira comment."
 tools: Bash, Read, Write, Edit, Glob, Grep, Task, AskUserQuestion, Skill
 model: sonnet
 ---

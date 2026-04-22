@@ -1,6 +1,6 @@
 ---
 name: slack-pr-listener
-description: Poll a Slack PR review channel for new pull request links, then automatically trigger local code review agents. Use when user says "watch PRs", "listen for PRs", "monitor PR channel", or "start PR listener".
+description: Poll a Slack PR review channel for new pull request links, then automatically trigger local code review agents. Use when user says "watch PRs", "listen for PRs", "monitor PR channel", or "start PR listener". This is a background poller, not interactive. For interactive Slack operations (search, reply, unread), use /slack instead.
 argument-hint: [#channel-name]
 disable-model-invocation: true
 allowed-tools: Bash(curl *), Bash(jq *), Bash(gh *), Agent

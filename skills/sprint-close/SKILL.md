@@ -1,6 +1,6 @@
 ---
 name: sprint-close
-description: "Validate and close sprint tickets with adversarial-gated, evidence-backed Jira comments. Fetches Jira state, runs parallel adversarial reviews, posts closing comments with AC-by-AC proof and honest coverage classifications."
+description: "Validate and close sprint tickets with adversarial-gated, evidence-backed Jira comments. Fetches Jira state, runs parallel adversarial reviews, posts closing comments with AC-by-AC proof and honest coverage classifications. Input: sprint name or ticket list. Returns: closing comments posted per ticket with coverage classification."
 user_invocable: true
 ---
 

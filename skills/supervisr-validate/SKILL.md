@@ -1,3 +1,9 @@
+---
+name: supervisr-validate
+description: "Pre-release validation for Supervisr.AI services. Runs spec compliance, AC verification, compile, tests, and smoke tests. Auto-detects ticket from branch name. Use before /supervisr-release to catch issues. Does NOT work with Klever repos. Input: none (auto-detects from branch). Returns: structured pass/fail report with AC coverage. Usually orchestrated by supervisr-ship agent. Use standalone only when you need validation in isolation (e.g., mid-development check)."
+user_invocable: true
+---
+
 # Supervisr Validate Skill
 
 Local validation of a fix/feature before release. Runs spec compliance checks, acceptance criteria verification, compile, tests, and smoke tests, then generates a structured report.

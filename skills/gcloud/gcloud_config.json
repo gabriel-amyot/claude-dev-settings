@@ -1,0 +1,37 @@
+{
+  "organizations": {
+    "supervisrai": {
+      "gcloud_account": "gabriel@origin8cares.com",
+      "local_path": "/Users/gabrielamyot/Developer/supervisr-ai",
+      "project_aliases": {
+        "dev-core": "prj-sprvsr-d-core-kkomv80zrg",
+        "dev-data": "prj-sprvsr-d-data-fudybht2id",
+        "uat-core": "prj-sprvsr-u-core-d1et2qoxtw",
+        "uat-data": "prj-sprvsr-u-data-mjn3pfrtey",
+        "prod-core": "prj-sprvsr-p-core-6of3dwjpzt",
+        "prod-data": "prj-sprvsr-p-data-n2s076aw4z"
+      },
+      "safety": {
+        "datastore_dev_allowlist": ["dev-core", "dev-data", "rnd-bac1"],
+        "datastore_blocked_envs": ["uat-core", "uat-data", "prod-core", "prod-data"]
+      }
+    },
+    "klever": {
+      "gcloud_account": "gamyot@beklever.com",
+      "local_path": "/Users/gabrielamyot/Developer/grp-beklever-com",
+      "project_aliases": {
+        "dev-frontend": "prj-d-global-front-6kpke3wn54",
+        "dev-proximity": "prj-d-grid-proxim-fe0wn470yh",
+        "dev-pbmod": "prj-d-grid-pbmod-nb9x844rqk",
+        "dev-insights": "prj-d-grid-insigt-3vm2fcstbw",
+        "dev-pipeline": "prj-d-biz-report-im9q1fvvc7",
+        "dev-vpc": "prj-d-env-main-bmuvo1wgpu"
+      },
+      "safety": {
+        "datastore_dev_allowlist": [],
+        "datastore_blocked_envs": []
+      }
+    }
+  },
+  "default_org": "supervisrai"
+}

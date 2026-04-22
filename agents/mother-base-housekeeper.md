@@ -1,6 +1,6 @@
 ---
 name: mother-base-housekeeper
-description: Mother Base Housekeeper — detects repo drift, missing docs, and infrastructure inconsistencies across the Supervisr workspace
+description: "Supervisr workspace housekeeper. Detects repo drift, missing docs, and infrastructure inconsistencies across Supervisr repos. Checks CLAUDE.md coverage, config freshness, infra template consistency. Does NOT cover Klever repos (use /mb-doc-housekeeping skill for DAC repos). Input: none (scans workspace). Returns: drift report with recommended fixes."
 tools: Bash, Read, Skill
 model: haiku
 color: blue

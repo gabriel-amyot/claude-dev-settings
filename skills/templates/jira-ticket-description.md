@@ -1,117 +1,129 @@
-# Jira Ticket Description Template
+# Jira Ticket Description Template (Story)
 
-Use markdown formatting. The `markdown_to_jira_wiki()` function in `jira_skill.py` converts:
-- `## Header` to `h2. Header`
-- `**bold**` to `*bold*`
-- `- item` to `* item`
-- Numbered lists (`1. item`) pass through as-is (Jira handles them)
+<!--
+PHILOSOPHY
+==========
+Every Jira Story description follows four sections, in this order:
 
-## Template
+  1. Intent (Why)        — PO-level pain point and outcome. Plain English.
+  2. Acceptance Criteria — Observable outcomes, grouped by subsystem if cross-stack.
+  3. Blockers            — Numbered open questions the PO must answer before sprint.
+  4. Figma Prompt        — Only for tickets with a UI component.
 
-```markdown
-{user_story}
+NON-GOALS (do NOT add these to Jira)
+====================================
+- NO meta header block (Type / Size / Priority / Status). Those are Jira fields.
+- NO "How" / "Technical recommendation" / "Files to touch" section. That lives in
+  a local spike or DRAFT-TICKET.md, never in Jira.
+- NO "Links" section pointing at filesystem paths. Use Jira's Links field or
+  inline ticket keys (e.g., KTP-492) for cross-references.
+- NO refactoring proposals or "while we're here" cleanups. Feature tickets are
+  feature-forward only. Quirks stay unless the PO explicitly asks for cleanup.
+- NO bare typos / nits in ACs or Blockers. Ship a separate cleanup ticket.
 
-## Scope
+FORMATTING
+==========
+Jira wiki markup, NOT GitHub markdown. Use:
+  h2. / h3.   for headers
+  *bold*      for bold
+  _italic_    for italic
+  *           for bullets
+  >           for blockquotes
+  #           for numbered lists
 
-{scope_items_as_bullet_list}
+Length discipline: a PO should be able to fill this skeleton in under 15 minutes.
+-->
 
-## Investigation Approach
+h2. Intent (Why)
 
-{approach_steps_as_numbered_list, spikes only}
+<one-paragraph plain-English pain point — what hurts today, who it hurts, and why>
 
-## Acceptance Criteria
+<optional second paragraph: the outcome this ticket delivers. State it as removal of the pain, not as a feature list.>
 
-1. **AC-1: {short title}**
-   Given {precondition}
-   When {trigger}
-   Then {observable outcome}
-   And {additional outcome if needed}
+_This ticket exists to <one-sentence outcome>._
 
-2. **AC-2: {short title}**
-   Given {precondition}
-   When {trigger}
-   Then {observable outcome}
+h2. Acceptance Criteria (What)
 
-## Definitions
+> _Gate:_ AC-0 must pass before any other AC is locked. Everything below is provisional until the PO confirms.
 
-{definition_items_as_bold_term_followed_by_description}
+*AC-0 — Scope confirmation (blocking gate)*
 
-## Guardrails
+* <PO name> reviews this ticket and confirms the Why, the ACs, and the open questions in the *Blockers* section.
+* Until AC-0 is signed off, the team does not start implementation.
 
-{guardrail_items_as_numbered_list, epics only}
-```
+<!-- If the work is single-stack, drop the h3 headings below and list ACs flat.
+     If cross-stack, group with h3 and state implementation order explicitly. -->
 
-## Rules
+h3. Backend ACs (`<repo-or-service-name>`) — implement first
 
-1. Never use em-dash (U+2014), en-dash (U+2013), or double-hyphens as separators. Use commas, periods, colons, or conjunctions.
-2. Use markdown headers (`##`) for sections, not `---` separators or ALL-CAPS labels.
-3. Acceptance Criteria MUST be an `## Acceptance Criteria` section (H2).
-4. ACs MUST be a numbered list (`1.`, `2.`, etc.), not a table or bold paragraphs.
-5. Each AC uses the Given/When/Then format with a short title: `**AC-N: {title}**`.
-6. No long definitions inside ACs. Keep ACs concise. Definitions go in a separate `## Definitions` section at the bottom of the ticket.
-7. When multiple outcomes apply, use `And` on a new line (not a comma-separated list).
-8. Keep the user story as the first line, no header needed.
-9. Only include sections that have content. Skip empty sections.
-10. For spikes: include "Investigation Approach" section. For stories: skip it.
-11. For epics with guardrails: include "Guardrails" section on the epic. Children reference the parent.
-12. `## Definitions` goes at the bottom, after AC. It is reference material, not the spec.
+*AC-1 — <short title>*
 
-## Example (Story)
+* Given <precondition>, when <trigger>, then <observable outcome>.
+* <additional outcome or constraint>
+* <additional outcome or constraint>
 
-```markdown
-As a Proximity Map user, I want the brand/advertiser selector to reflect my actual permissions so I only see brands I have access to.
+*AC-2 — <short title>*
 
-## Acceptance Criteria
+* Given <precondition>, when <trigger>, then <observable outcome>.
+* ⚠️ _<PO name> to confirm: <specific question>. (See Blockers Q<N>.)_
 
-1. **AC-1: Brands sourced from backend**
-   Given a user logs into the Proximity Map
-   When the brand/advertiser selector loads
-   Then the list comes from the IAM/permissions API (not a hardcoded frontend list)
-   And the list reflects the user's actual access permissions
+h3. Frontend ACs (`<repo-or-service-name>`) — implement second, after backend is deployed
 
-2. **AC-2: Empty state handled**
-   Given a user with no brand permissions logs in
-   When the selector loads
-   Then a clear message is displayed explaining no brands are available
-   And no empty dropdown is shown
-```
+*AC-3 — <short title>* _(depends on AC-<N>)_
 
-## Example (Spike)
+* <observable outcome>
+* <observable outcome>
 
-```markdown
-As the platform security owner, I want all O8-era Auth0 artifacts cataloged so we can safely clean up what is no longer needed.
+*AC-4 — <short title>* _(depends on AC-<N>)_
 
-## Scope
+* <observable outcome>
+* ⚠️ _<PO name> to confirm: <specific question>. (See Blockers Q<N>.)_
 
-- Enumerate all M2M applications in Auth0
-- Code search across O8 and Supervisr codebases
-- Produce deletion catalog for Dan's review
+h2. Blockers — Questions for <PO name>
 
-## Investigation Approach
+> _These block AC-0. Answer these before the ticket goes in-sprint._
 
-1. Enumerate all M2M applications and API permissions/scopes in Auth0 tenant
-2. Code search for each permission across both codebases
-3. Attach grep evidence for each deletion-eligible entry
-4. Deliver catalog for human review
+*Q1 — <short topic>.* <one-line context describing the open question>
 
-## Acceptance Criteria
+* (a) <option a>, or
+* (b) <option b>, or
+* (c) <option c>
 
-1. **AC-1: M2M application catalog with classification**
-   Given the Auth0 tenant has been fully audited
-   When the spike is complete
-   Then a catalog exists listing every Auth0 M2M application
-   And each entry has a status of `deletion-eligible` or `reused-in-supervisr-stack`
-   And each classification is backed by codebase search evidence
+*Q2 — <short topic>.* <one-line context>
 
-2. **AC-2: Reused credentials documented**
-   Given any credential is classified `reused-in-supervisr-stack`
-   When the catalog is reviewed
-   Then the entry names the specific Supervisr service using it
-   And it explains why the credential cannot be removed
+* (a) <option a>, or
+* (b) <option b>
 
-## Definitions
+*Q3 — <short topic>.* <free-form question with no preset options>
 
-**Supervisr stack:** Services in GCP projects with `sprvsr` in the name (sprvsr-core, sprvsr-data, sprvsr-clarif).
+*Q4 — Out-of-scope confirmation.* Not in this ticket: <list>. Confirm these stay out — each is a separate conversation.
 
-**O8-era:** Everything outside `sprvsr-*` projects.
-```
+*Q<N> — <short topic>.* <context>. _This gates AC-<N>._
+
+h2. Figma Prompt
+
+<!-- Include this section ONLY when the ticket has a UI component.
+     Paste-ready prose for Figma Make. Blockquote-indented. -->
+
+> Design a <one-line description of the surface> for the <product name>. <Layout description: panes, grids, modals.>
+> <Header / primary controls description.>
+> <Body / content description: cards, lists, fields.>
+> <Interaction details: buttons, popovers, modals.>
+> Style: <design system, tokens, density>. <No-nos: e.g., no tabs, no breadcrumbs.>
+> Empty states: <list>. Error / success states: <list>.
+
+<!--
+USER STORY (optional)
+=====================
+If the team prefers a user-story opener, place it as the first line ABOVE the
+"h2. Intent (Why)" section, with no header:
+
+  As a <role>, I want <capability> so that <benefit>.
+
+Given/When/Then is supported inside any AC bullet:
+
+  * Given <precondition>
+  * When <trigger>
+  * Then <observable outcome>
+  * And <additional outcome>
+-->

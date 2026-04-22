@@ -1,6 +1,6 @@
 ---
 name: post-comment
-description: "Post externally visible content (PR comments, Jira comments, Slack messages, deploy notices) through a safe pipeline: draft on disk, template render, preview, explicit approval, audit log. Supports editing existing posts. Use when user wants to post a comment, reply to a PR, update Jira, or send any external message."
+description: "Post externally visible content (PR comments, Jira comments, Slack messages, deploy notices) through a safe pipeline: draft on disk, template render, preview, explicit approval, audit log. Supports editing existing posts. Use when user wants to post a comment, reply to a PR, update Jira, or send any external message. Input: target (PR URL, Jira key, or Slack channel). Returns: posted content URL and audit log entry."
 agent: post-comment
 ---
 
@@ -48,6 +48,7 @@ Templates live in `~/.claude-shared-config/skills/templates/`. See `README.md` t
 
 ## Learned Rules
 
+- **Every automated comment must declare a BMAD persona and model.** The `[automated]` tag must always include the persona and the Claude model used. Format: `[automated | {Persona} | {Model}]`. Example: `[automated | Amelia | claude-sonnet-4-6]`. Choose the persona that matches the work: Amelia=code/API/testing, Winston=architecture decisions, Quinn=QA/validation, Leo=AC/product, Mary=strategy/product. Never post a bare `[automated]` tag.
 - **Tag the reporter, not "team".** Jira comments should mention the ticket reporter (or a specific person), not a generic audience. Look up the reporter from the ticket context.
 - **Never reference local ticket folders.** The `tickets/` tree is local-only (not in Jira). Do not mention "documented in the ticket folder" in external posts.
 - **No aggressive deadlines.** Avoid "if I don't hear by EOD I'll proceed" framing. Instead, use warm proactive language: "I'm going to start implementing shortly. Let me know if you disagree or have a better approach."

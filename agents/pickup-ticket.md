@@ -1,6 +1,6 @@
 ---
 name: pickup-ticket
-description: "Ticket pickup agent. Fetches Jira context, identifies target repos, scaffolds the ticket folder, loads codebase context, then runs a spec clarity gate (Leo persona) to surface gaps in intent, spec, and requirements before any design or implementation can begin. Use when starting work on any ticket."
+description: "Ticket pickup agent. Fetches Jira context, identifies target repos, scaffolds the ticket folder, loads codebase context, then runs a spec clarity gate (Leo persona) to surface gaps in intent, spec, and requirements before any design or implementation can begin. Triggers on: 'pick up [ticket]', 'start working on [ticket]', 'let's work on [ticket]', 'continue on [ticket]', 'resume [ticket]', or any mention of starting/resuming a ticket."
 tools: Bash, Read, Write, Edit, Glob, Grep, Skill, AskUserQuestion
 model: sonnet
 ---
@@ -271,10 +271,159 @@ Full analysis: reports/status/spec-analysis-{date}.md
 
 {If NEEDS CLARIFICATION or NEEDS REWRITE, list the blocking questions here}
 
-{If READY FOR DESIGN:}
-Next step: hand off to design agent (TODO: not yet implemented).
-For now, proceed with /estimate or manual design.
+{If READY FOR DESIGN or NEEDS WORK:}
+Proceeding to Phase 8: Sendoff Writer.
+
+{If NEEDS REWRITE:}
+Fix the spec first. Phase 8 will not run until Leo's verdict improves.
 ```
+
+If Leo's verdict is `NEEDS REWRITE`, stop here. Do not proceed to Phase 8.
+
+If Leo's verdict is `SHIP IT` or `NEEDS WORK`, continue to Phase 8.
+
+---
+
+## Phase 8: Sendoff Writer
+
+**Trigger condition:** Only runs when Phase 6 returned `SHIP IT` or `NEEDS WORK`. If `REWRITE`, the Phase 7 terminal message already stopped execution.
+
+### Step 1: Read Spec Analysis
+
+Read `tickets/{TICKET-ID}/reports/status/spec-analysis-{date}.md` (most recent file matching this pattern). Extract:
+- ACs list
+- Leo's verdict
+- Risk flags from the Language Audit and Requirements Gaps sections
+- Complexity rating if stated
+- Scope boundaries (from Codebase Impact section)
+- Codebase context files identified in Phase 5 (affected files, modules)
+
+### Step 2: Synthesize Completion Promise
+
+Write a single plain-English paragraph that describes what will be true when night-crawl succeeds. Derive it directly from the ACs. Do not invent outcomes not grounded in the spec. This becomes the `completion_promise` field.
+
+### Step 3: Map ACs to Objectives
+
+For each AC, produce an `objectives` entry:
+- `title`: short AC name (kebab-friendly label)
+- `severity`: HIGH if Leo flagged a risk for this AC or adjacent area; LOW if Leo rated complexity LOW; MEDIUM in all other cases
+- `why`: from the Jira AC description — the business reason this AC exists
+- `action`: 2-3 concrete implementation steps derived from the Phase 5 codebase analysis (files to touch, patterns to follow, changes to make)
+- `tests`: what test layer covers it (unit, integration, etc.) and what it should assert
+
+### Step 4: Set Model Tiers
+
+Default: `opus` for both `dev-backend` and `adversarial` agents.
+
+Downgrade `dev-backend` to `sonnet` only if **both** conditions are true:
+- Leo rated overall complexity LOW
+- No HIGH severity objectives exist
+
+### Step 5: Calculate Iteration Budget
+
+`iteration_budget = 8 + (2 × count of HIGH severity objectives)`, capped at 15.
+
+### Step 6: Write Sendoff File
+
+Write `tickets/{TICKET-ID}/reports/status/night-crawl-sendoff.yaml` with the following structure. Match the schema exactly as found in the reference sendoff YAML (field names, nesting, YAML style). Set `status: pending`.
+
+```yaml
+status: pending
+ticket: {TICKET-ID}
+date: {today}
+branch: {current branch from Phase 5 git check, or "{TICKET-ID}-impl" if none}
+base: {base branch if known, else omit}
+
+# --- MISSION ---
+completion_promise: >
+  {synthesized completion promise paragraph}
+
+objectives:
+  {AC_KEY}:
+    title: "{short AC name}"
+    severity: {HIGH | MEDIUM | LOW}
+    why: "{AC business reason}"
+    action:
+      - "{implementation step 1}"
+      - "{implementation step 2}"
+      - "{implementation step 3}"
+    tests:
+      - "{test assertion description}"
+  {repeat for each AC}
+
+success_criteria:
+  tests_pass: "All existing + new unit tests pass"
+  no_regressions: "No previously passing tests break"
+  {one entry per HIGH severity objective summarizing its completion condition}
+
+iteration_budget: {calculated value}
+scope_boundaries:
+  - "{primary affected repo path}"
+scope_exclusions:
+  - "Do not modify .env.local files"
+  - "Do not add endpoints not in the spec"
+  - "{any scope exclusions from Leo's Codebase Impact section}"
+
+team:
+  - name: dev-backend
+    type: general-purpose
+    model: {opus | sonnet per Step 4}
+    role: "Implement all objectives. Read existing patterns in affected files before writing. Commit at each objective milestone."
+  - name: adversarial
+    type: general-purpose
+    model: opus
+    role: "After all tests pass, review every changed file. Verify each objective's completion condition is met and tests exercise the claimed code paths."
+
+harness: {org}-local-harness
+verification_command: "{build/test command from Phase 5 repo context, or ask user if unknown}"
+
+# --- REFERENCE DOCS ---
+reference_docs:
+  spec_analysis: "tickets/{TICKET-ID}/reports/status/spec-analysis-{date}.md"
+  {any additional reference files identified in Phase 5}
+```
+
+### Step 7: Human Gate
+
+Present the following to the user (plain text, no YAML):
+
+```
+=== Night-Crawl Sendoff: {TICKET-ID} ===
+
+COMPLETION PROMISE
+{completion promise paragraph}
+
+OBJECTIVES
+{For each objective: "  [{severity}] {title} — {why}"}
+
+SCOPE BOUNDARIES
+{list scope_boundaries and scope_exclusions}
+
+ITERATION BUDGET: {N}
+MODEL TIERS: dev-backend={model}, adversarial=opus
+
+Sendoff file written to:
+  tickets/{TICKET-ID}/reports/status/night-crawl-sendoff.yaml
+
+Review the sendoff file. Reply `approve` to enable night-crawl, or `revise` with specific changes.
+```
+
+Wait for user response before proceeding.
+
+### Step 8: On Approval
+
+When the user replies `approve`:
+1. Update `status: pending` to `status: approved` in the sendoff YAML file.
+2. Print the invocation command:
+
+```
+/ralph-loop:ralph-loop night-crawl {TICKET-ID} --completion-promise "{completion promise}"
+```
+
+When the user replies `revise` with specific changes:
+- Apply the requested changes to the sendoff YAML.
+- Re-present the human gate (Step 7) with updated content.
+- Wait for approval again.
 
 ---
 

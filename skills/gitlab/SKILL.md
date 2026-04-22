@@ -1,83 +1,84 @@
 ---
 name: gitlab
-description: Access and query GitLab repositories. List groups, projects, clone repos, and manage merge requests across your GitLab instance. Supports multiple organizations with secure token storage.
+description: "Access and query GitLab repositories (Klever, Supervisr.AI, Origin8). List groups, projects, clone repos, manage merge requests, read CI/CD pipelines and logs, manage pipeline variables. Klever CI/CD runs on GitLab CI exclusively. Supervisr app repos are on GitHub (use gh CLI for those). Input: --org <org> + command. Returns: repo lists, MR details, pipeline logs."
 ---
 
 # GitLab Skill
 
-## Overview
+## AGENT CONTRACT — READ THIS FIRST
 
-Multi-organization GitLab management with secure macOS Keychain token storage. Configure credentials for multiple organizations (klever, origin8, supervisrai) and work seamlessly across them.
+**`--org` is optional.** The skill auto-detects your org from `$PWD` — same longest-prefix approach as the jira and gcloud skills. Working inside `~/Developer/grp-beklever-com/` resolves to `klever`. Working inside `~/Developer/supervisr-ai/` resolves to `supervisrai`. Falls back to `default_org` in config only when no path matches. Override explicitly with `--org <name>` when running from a neutral directory (e.g. project-management root).
 
-## Initial Setup
+| Ticket prefix | Org flag | GitLab instance |
+|---|---|---|
+| KTP, INS | `--org klever` | cicd.prod.datasophia.com (IAP-protected) |
+| SPV, PER | `--org supervisrai` | gitlab.prod.origin8cares.com |
+| Origin8 infra | `--org origin8` | gitlab.prod.origin8cares.com |
 
-### 1. Configure Your Organizations
+**IAP is self-healing.** If the Klever cookie expires, the skill auto-runs `git fetch` on the configured refresh repo before failing. No manual intervention needed.
 
-First-time setup of GitLab credentials for your organizations:
+**Natural name resolution.** For `pipeline`/`vars`/`pipelines`/`jobs` commands, project names resolve via a local index. If resolution fails, pass the numeric project ID instead (always reliable).
 
-```bash
-# Configure token for each organization (you'll be prompted for your token)
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_config_setup.py configure klever
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_config_setup.py configure origin8
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_config_setup.py configure supervisrai
+**Klever key project IDs** (use when natural names don't resolve yet):
 
-# Set default organization (optional)
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_config_setup.py default supervisrai
+| Project | ID |
+|---|---|
+| app-proximity-report | 577 |
+| app-user-management | 569 |
+| app-front-portal | see index |
+| app-proximity-explorer | see index |
 
-# List all configured organizations
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_config_setup.py list
+Run `--org klever index` once to build the full Klever index for name resolution.
+
+---
+
+## Commands
+
+```
+python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org <ORG> <COMMAND> [args]
 ```
 
-### 2. Token Storage
-
-Tokens are stored securely in **macOS Keychain** under the service `claude-gitlab`. You can safely forget about them after initial configuration.
-
-## Usage
-
-### Skill Commands
-
-**Progressive data discovery**: Use the `--full` flag when you need complete details to avoid wasting tokens.
-
 **Available commands**:
-- `list-groups [--full]` - List all groups and subgroups
-- `list-repos [--group GROUP_ID] [--all] [--full]` - List projects in a group
-- `get-repo ID_OR_PATH [--full]` - Get single repository details
-- `clone [--group GROUP_ID] [--repos REPO1,REPO2] [--output DIR]` - Clone repositories with intelligent path structure
-- `mr [--project PROJECT_ID] [--action create|list|approve] [--title TITLE] [--source SOURCE] [--target TARGET]` - Manage merge requests
-- `search QUERY [--max N]` - Search repositories by name or description
-- `pipeline DAC_NAME [--ref BRANCH] [--var KEY=VALUE ...]` - Trigger CI/CD pipeline (dev by default, prod blocked)
-- `vars DAC_NAME [--action list|get|set] [--key KEY] [--value VALUE] [--scope ENV]` - Manage CI/CD variables
-- `deploy-watch DAC_NAME --pipeline ID [--interval SECONDS]` - Watch deployment pipeline through 3 stages: validate → pass/fail → blocked deploy detection. Polls every 15s by default.
-- `play-job DAC_NAME --job JOB_ID` - Trigger a manual/blocked job (use after deploy-watch reports blocked auto-deploy). **Always requires user confirmation.**
-- `index [--group GROUP_ID]` - Build/rebuild the local project index from GitLab API
+- `list-groups [--full]` — List all groups
+- `list-repos [--group GROUP_ID] [--all] [--full]` — List projects in a group
+- `get-repo ID_OR_PATH [--full]` — Get single repository details
+- `clone [--group GROUP_ID] [--repos REPO1,REPO2] [--output DIR]` — Clone repositories
+- `mr [--project PROJECT_ID] [--action create|list|approve] [--title TITLE] [--source SOURCE] [--target TARGET] [--mr-iid IID]` — Manage merge requests
+- `search QUERY [--max N]` — Search repositories
+- `pipelines PROJECT [--ref BRANCH] [--status STATUS] [--count N]` — List recent pipelines
+- `jobs PROJECT --pipeline ID [--logs]` — Get jobs for a pipeline
+- `trace PROJECT --job ID [--filter KEYWORD]` — Get raw job trace
 
-### Pipeline Log Analysis
+> ⚠️ **CAUTION:** `pipeline` (singular) TRIGGERS a new pipeline. `pipelines` (plural) LISTS existing ones. To check status, use `pipelines` or `jobs --pipeline ID`. Never use `pipeline` to check status.
+
+- `pipeline PROJECT [--ref BRANCH] [--var KEY=VALUE ...]` — Trigger CI/CD pipeline (dev by default, prod blocked)
+- `vars PROJECT [--action list|get|set] [--key KEY] [--value VALUE] [--scope ENV]` — Manage CI/CD variables
+- `deploy-watch PROJECT --pipeline ID [--interval SECONDS]` — Watch deployment pipeline (3-stage)
+- `play-job PROJECT --job JOB_ID` — Trigger a manual/blocked job (requires user confirmation)
+- `index [--group GROUP_ID]` — Build/rebuild the local project index
+
+---
+
+## Pipeline Log Analysis
 
 **Two-step workflow — summary first, full log only if needed:**
 
-1. **Download** full job trace to a local file:
+1. **Download** full job trace:
 ```bash
 python3 ~/.claude-shared-config/skills/gitlab/pipeline_trace_download.py <dac-name> --job <job-id> [--env dev]
 ```
-Output: saves cleaned trace to `{dac_repo}/gitlab-ci/{env}/execution_{image_tag}_{job_id}.log` and prints the path.
+Output: `{dac_repo}/gitlab-ci/{env}/execution_{image_tag}_{job_id}.log`
 
-2. **Summarize** the downloaded trace:
+2. **Summarize**:
 ```bash
 python3 ~/.claude-shared-config/skills/gitlab/pipeline_trace_summarize.py <log-file-path>
 ```
-Output: writes `_summary.yaml` next to the log file and prints the path.
-
-3. **Read the `_summary.yaml` first** (~30 lines). Only drill into the full `.log` if the summary doesn't explain the failure.
+Output: `_summary.yaml` next to the log. Read this first (~30 lines).
 
 **Chained usage:**
 ```bash
 python3 ~/.claude-shared-config/skills/gitlab/pipeline_trace_download.py lead-lifecycle --job 56102 | xargs python3 ~/.claude-shared-config/skills/gitlab/pipeline_trace_summarize.py
 ```
-
-**Error pattern mapping is INCOMPLETE.** When encountering a new failure mode:
-1. Diagnose from full log
-2. Add pattern to `ERROR_PATTERNS` in `pipeline_trace_summarize.py`
-3. Update the Known Error Patterns table in this skill doc
 
 **Known Error Patterns:**
 
@@ -88,171 +89,78 @@ python3 ~/.claude-shared-config/skills/gitlab/pipeline_trace_download.py lead-li
 | `Error 412: At least one of the pre-conditions` | State lock contention | Retry or force-unlock |
 | `stuck_or_timeout_failure` | Job exceeded time limit | Re-trigger, check if lock left behind |
 
-**Note:** The `trace` command on `gitlab_skill.py` remains available for quick interactive inspection. These scripts are the durable, file-based workflow for deeper analysis.
+---
 
-**Project Index & Auto-Resolution**: The skill maintains a cached index (`dac_index.json`) that maps natural names to GitLab project IDs. This index:
-- **Auto-builds on first use** — if no index exists, it fetches all projects from the configured `index_groups` in `gitlab_config.json`
-- **Persists across sessions** — no re-indexing needed, just a JSON file read
-- **Rebuilds on demand** — run `index` command when you add new projects
-- **Gitignored** — each user builds their own index; the skill is shareable
+## Project Index
 
-For `pipeline` and `vars` commands, use natural names:
-- `eqs` → dac-sprvsr-core-eqs (ID: 224)
-- `lead-lifecycle` or `lead lifecycle` → dac-sprvsr-core-lead-lifecycle (ID: 235)
-- `retell-service` or `retell service` → dac-sprvsr-core-retell-service (ID: 227)
-- `compliance-engine` → dac-sprvsr-core-compliance-engine (ID: 226)
-- And all other projects in indexed groups
+The skill maintains `dac_index.json` — a per-org cache of project names → IDs.
 
-**Organization Selection**:
-- Default: Uses the `default_org` setting from configuration
-- Explicit: Use `--org ORGNAME` flag with any command
+- **Auto-builds on first use** when `index_groups` is set in config
+- **Per-org**: `--org klever index` builds Klever's index without touching Supervisr's
+- **Rebuild on demand** when new projects are added
+- **Gitignored** — local to each developer
 
-### Configuration Management
+---
+
+## Supervisr Examples
 
 ```bash
-# Manage credentials
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_config_setup.py configure ORGNAME
+# List recent pipelines for EQS DAC
+python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py pipelines eqs
 
-# View all configurations
+# Watch a deployment
+python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py deploy-watch lead-lifecycle --pipeline 21872
+
+# Update image tag and trigger deploy
+python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py vars "lead-lifecycle" --action set --key TF_VAR_image_tag --value 0.0.4-dev --scope dev
+python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py pipeline "lead-lifecycle" --ref dev
+```
+
+> **Safety:** Pipelines on `main`, `master`, `prod`, `production` are blocked.
+> **Safety:** `play-job` always requires explicit user confirmation.
+
+---
+
+## Klever Examples
+
+```bash
+# List repos in backend microservices group
+python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever list-repos --group 154
+
+# List recent pipelines for proximity-report
+python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever pipelines 577
+
+# List open MRs on proximity-report
+python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever mr --project 577 --action list
+
+# Create MR
+python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever mr --project 577 --action create --title "KTP-XXX: description" --source feature-branch --target dev
+
+# Build name index (run once, then use natural names)
+python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever index
+```
+
+---
+
+## Configuration Management
+
+```bash
+# View all configured orgs
 python3 ~/.claude-shared-config/skills/gitlab/gitlab_config_setup.py list
 
-# Set default organization
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_config_setup.py default ORGNAME
+# Configure token for an org
+python3 ~/.claude-shared-config/skills/gitlab/gitlab_config_setup.py configure klever
 
-# Add new organization
+# Add a new org
 python3 ~/.claude-shared-config/skills/gitlab/gitlab_config_setup.py add ORGNAME URL LOCAL_PATH GITLAB_GROUP
 ```
 
-## Examples
+Config file: `~/.claude-shared-config/skills/gitlab/gitlab_config.json`
+Tokens: macOS Keychain under service `claude-gitlab`
 
-### Working with Default Organization
-
-List all groups (uses default organization):
-```bash
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py list-groups
-```
-
-List all repos under f-r-r-s group:
-```bash
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py list-repos --group f-r-r-s --full
-```
-
-Clone all repos from f-r-r-s group (uses organization's configured local path):
-```bash
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py clone --group f-r-r-s
-```
-
-Clone selected repos only:
-```bash
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py clone --group f-r-r-s --repos repo1,repo2,repo3
-```
-
-### Working with Specific Organization
-
-Clone repos from Klever organization:
-```bash
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever clone --group klever-group
-```
-
-List repos in Origin8 organization:
-```bash
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org origin8 list-repos --group origin8-group --full
-```
-
-Get repository details from Supervisr organization:
-```bash
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org supervisrai get-repo project-path/repo-name --full
-```
-
-### Merge Request Management
-
-Create a merge request:
-```bash
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py mr --project 123 --action create --title "Fix bug" --source feature-branch --target main
-```
-
-List merge requests for a project:
-```bash
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py mr --project 123 --action list
-```
-
-Approve a merge request:
-```bash
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py mr --project 123 --action approve --mr-iid 45
-```
-
-### Search
-
-Search for repositories:
-```bash
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py search "api" --max 20
-```
-
-### Pipeline Trigger
-
-Trigger a pipeline on dev (default) using natural DAC names:
-```bash
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py pipeline eqs
-```
-
-Trigger on a specific branch:
-```bash
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py pipeline "lead-lifecycle" --ref feature-branch
-```
-
-Trigger with CI/CD variables:
-```bash
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py pipeline "retell service" --var TF_VAR_image_tag=v1.2.3 --var DEPLOY_ENV=staging
-```
-
-> **Safety:** Pipelines on `main`, `master`, `prod`, and `production` are blocked. Use the GitLab UI for production deployments.
-
-### Deployment Watch (3-Stage Monitor)
-
-Watch a pipeline through init/validate, pass/fail, and deploy gate:
-```bash
-# After triggering a pipeline, watch it:
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py deploy-watch lead-lifecycle --pipeline 21872
-
-# With custom poll interval (default 15s):
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py deploy-watch eqs --pipeline 21900 --interval 10
-```
-
-**Output stages:**
-- **Stage 1 (validate):** Waits for init/validate/plan jobs to complete, extracts terraform plan summary (add/change/destroy counts)
-- **Stage 2 (result):** Reports pass or fail. If failed, stops here with failure details.
-- **Stage 3 (deploy):** Checks deploy jobs. If auto-deploy is blocked (e.g., destroying resources), reports `blocked_manual` with blocking reasons and the job ID needed for manual apply.
-
-**When auto-deploy is blocked**, manually trigger after review:
-```bash
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py play-job lead-lifecycle --job 56102
-```
-
-> **Safety:** `play-job` triggers a manual pipeline job. **Always require explicit user confirmation before running.** Never auto-play blocked deploy jobs.
-
-### CI/CD Variables
-
-List all variables for a DAC:
-```bash
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py vars eqs --action list
-```
-
-Get a specific variable (optionally scoped):
-```bash
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py vars "lead-lifecycle" --action get --key TF_VAR_image_tag --scope dev
-```
-
-Set/update a variable (creates if missing, updates if exists):
-```bash
-# Update image tag for lead-lifecycle to 0.0.4-dev
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py vars "lead-lifecycle" --action set --key TF_VAR_image_tag --value 0.0.4-dev --scope dev
-```
-
-**Workflow Example - Deploy lead-lifecycle 0.0.4-dev:**
-```bash
-# 1. Update the image tag variable
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py vars "lead-lifecycle" --action set --key TF_VAR_image_tag --value 0.0.4-dev --scope dev
-
-# 2. Trigger the dev pipeline
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py pipeline "lead-lifecycle" --ref dev
-```
+**Per-org config keys:**
+- `gitlab_url` — GitLab instance URL
+- `local_path` — local root for cloning
+- `gitlab_group` — top-level group path
+- `index_groups` — group IDs to index for name resolution
+- `iap_refresh_repo` — (Klever only) git repo path used for IAP cookie auto-refresh

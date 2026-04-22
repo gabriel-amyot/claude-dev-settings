@@ -1,6 +1,6 @@
 ---
 name: ticket-init
-description: "Scaffold a new ticket folder with standard structure: INDEX.md, REPO_MAPPING.yaml, STATUS_SNAPSHOT.yaml, plan/ stubs, jira/ac/ subfolder, reports/ tree, and optional Jira AC fetch. Use when creating a new ticket or epic folder."
+description: "Scaffold a new ticket folder with standard structure: INDEX.md, REPO_MAPPING.yaml, STATUS_SNAPSHOT.yaml, plan/ stubs, jira/ac/ subfolder, reports/ tree, and optional Jira AC fetch. Use when creating a new ticket or epic folder. Input: ticket ID (e.g., KTP-115, SPV-69). Returns: scaffolded folder at tickets/{ID}/ with INDEX.md, ac.yaml, reports/ tree."
 ---
 
 # Ticket Init

@@ -38,25 +38,47 @@ Present as a bulleted list. Tag skill candidates with `[+SKILL]`. All others are
 
 > Every nugget = tribal knowledge. `[+SKILL]` nuggets ALSO produce a skill proposal.
 
-Ask user (multiSelect): "Which nuggets should we persist?"
+**Do NOT ask the user which nuggets to persist. Persist ALL of them immediately.** Show the list for awareness, then proceed to Phase 2 without waiting.
 
 ---
 
 ### Phase 2: Route
 
-**For each selected nugget — write a tribal knowledge entry:**
+**Default target: Bibliothèque inbox.** All tribal knowledge goes to the org's bibliothèque inbox first. A curator agent catalogs, indexes, and promotes entries later. This is progressive disclosure: raw captures land in one place, get sifted later.
 
-Resolve write target using the Knowledge Resolver. Load `context.local.md` if present, else detect org from cwd.
+**Write a single inbox entry per session** (not per nugget) to:
+```
+{org-project-management}/documentation/bibliotheque/inbox/YYYY-MM-DD-{topic-slug}.md
+```
+
+Format:
+```markdown
+# Tribal Knowledge: {topic}
+
+**Source:** {session context} ({date})
+
+---
+
+## 1. {nugget title}
+{content — the rule, gotcha, or procedure}
+
+## 2. {next nugget}
+...
+
+---
+
+**Curator notes:** {optional hints for classification — which section(s) this might belong to}
+```
+
+**Update `inbox/INDEX.md`** with a row per entry (file, date, source, status=pending).
+
+**Exceptions (bypass inbox, write directly):**
 
 | Scope | Write Target | When |
 |-------|-------------|------|
 | Architectural decision | ADR via `/push-adr` | Pattern choice, fundamental decision |
 | Cross-service contract | `documentation/architecture/contracts/` | Interface changes |
-| Repo-local convention | `{repo}/agent-os/` or `{repo}/.claude/CLAUDE.md` | Repo-specific rule |
-| Project context | `documentation/library/` or `tickets/{ID}/reports/` | Project-scoped knowledge |
-| Personal/global | `~/.claude/library/context/` or MEMORY.md | User preference, cross-project |
-
-Show proposed location + content. Write on approval. Update nearest INDEX.md.
+| CLAUDE.md rule (safety, process) | Appropriate CLAUDE.md | Critical guardrail that must be active immediately |
 
 **For `[+SKILL]` nuggets — also write a proposal file:**
 
@@ -76,9 +98,8 @@ Source: {session topic}
 {2-5 step outline}
 ```
 
-Ask: "Run `/skill-creator:skill-creator` now, or accumulate for later?" Default: accumulate.
-- **Now:** hand off to `/skill-creator:skill-creator` with the proposal file as input.
-- **Accumulate:** save to backlog. Show count: "N proposals in `~/.claude/skill-proposals/`."
+Accumulate to backlog by default. Show count: "N proposals in `~/.claude/skill-proposals/`."
+If the user explicitly asks to create the skill now, hand off to `/skill-creator:skill-creator`.
 
 ---
 

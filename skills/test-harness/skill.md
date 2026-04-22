@@ -1,3 +1,9 @@
+---
+name: test-harness
+description: "Manage SPV-3 local test harness for Supervisr.AI integration tests. Build Docker images, start/stop services, run tests, check logs, diagnose failures. For Supervisr services only (lead-lifecycle, EQS, compliance-engine, gateway). Does NOT work with Klever services. Input: harness command (build, start, stop, test, logs). Returns: service status, test results, log output."
+user_invocable: true
+---
+
 # Test Harness Skill
 
 Manage the SPV-3 local test harness: build images, start/stop services, run tests, check logs, and diagnose failures.

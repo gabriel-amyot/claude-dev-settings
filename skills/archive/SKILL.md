@@ -1,6 +1,6 @@
 ---
 name: archive
-description: Archive completed project tickets with intelligent promotion of architecture artifacts (ADRs, contracts) to global documentation. Use when user mentions archiving tickets, closing tickets, cleanup of completed work, or moving finished tickets. Handles the full workflow - scanning for unpromoted ADRs/contracts, merging to global docs, and moving to archive folder.
+description: Archive completed project tickets with intelligent promotion of architecture artifacts (ADRs, contracts) to global documentation. Use when user mentions archiving tickets, closing tickets, cleanup of completed work, or moving finished tickets. Handles the full workflow - scanning for unpromoted ADRs/contracts, merging to global docs, and moving to archive folder. Input: ticket ID or folder path. Returns: list of promoted artifacts and archive location.
 allowed-tools: Read, Glob, Bash, Edit, Write
 ---
 

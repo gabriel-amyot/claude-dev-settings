@@ -1,6 +1,6 @@
 ---
 name: tribal-knowledge
-description: Structured retrieval across all knowledge layers. Searches ADRs, contracts, agent-os specs, MEMORY.md files, and source code in priority order to answer architectural and contextual questions with provenance.
+description: Structured retrieval across all knowledge layers. Searches ADRs, contracts, agent-os specs, MEMORY.md files, and source code in priority order to answer architectural and contextual questions with provenance. Input: natural language question. Returns: answer with source provenance and durability rating (HIGH/MEDIUM/LOW).
 ---
 
 # Tribal Knowledge Skill

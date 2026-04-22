@@ -51,5 +51,18 @@
     ]
   },
   "model": "sonnet",
-  "autoMemoryEnabled": false
+  "autoMemoryEnabled": false,
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CLAUDE_FILE_PATH=\"$CLAUDE_TOOL_INPUT_FILE_PATH\" /Users/gabrielamyot/.claude-shared-config/hooks/auto-index.sh"
+          }
+        ]
+      }
+    ]
+  }
 }

@@ -1,6 +1,6 @@
 ---
 name: dev-crawl
-description: "Autonomous dev environment deploy+diagnose+fix loop. Iteratively deploys, verifies, diagnoses, and fixes services in GCP dev until QA acceptance criteria pass. Runs in ralph-loop for persistence across iterations. For Supervisr dev environment work only."
+description: "Autonomous cloud validation loop. Deploys to GCP dev, verifies via live Cloud Run endpoints, diagnoses failures, fixes code, re-deploys. Supervisr only. Always wrapped by ralph-loop. For local validation, use night-crawl instead. Input: ticket ID + completion promise. Returns: deploy status, test results, fix commits."
 tools: Bash, Read, Write, Edit, Glob, Grep, Task, TeamCreate, TeamDelete, SendMessage, TaskCreate, TaskUpdate, TaskList, Skill, AskUserQuestion
 model: opus
 ---

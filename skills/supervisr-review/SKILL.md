@@ -1,3 +1,9 @@
+---
+name: supervisr-review
+description: "Code review of staged/committed changes in Supervisr.AI repos. Reviews against repo-specific standards (agent-os/standards/) and global CLAUDE.md. Checks code style, test quality, security (OWASP Top 10), API compatibility. Does NOT work with Klever repos (use repo-specific CLAUDE.md standards instead). Input: git diff or file list. Returns: structured review report with severity ratings. Usually orchestrated by supervisr-ship agent. For comprehensive PR-level review (multi-agent), use /pr-review instead. For challenging test validity, use /test-adversarial."
+user_invocable: true
+---
+
 # Supervisr Review Skill
 
 Code review of staged/committed changes against repo-specific standards (`agent-os/standards/`) and global CLAUDE.md standards. Generates a structured review report.

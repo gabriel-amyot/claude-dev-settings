@@ -1,0 +1,434 @@
+#!/usr/bin/env python3
+"""
+Scout Probe: {OPERATION_NAME}
+Ticket: {TICKET_ID}
+Source: {SOURCE_SYSTEM}
+Target: {TARGET_SYSTEM}
+Read path: {READ_PATH_SYSTEM}
+
+Usage:
+  python scout-{operation}-probe.py --env dev
+  python scout-{operation}-probe.py --env dev --dry-run
+  python scout-{operation}-probe.py --env dev --verbose
+"""
+
+import argparse
+import json
+import subprocess
+import sys
+import time
+from datetime import datetime, timezone
+
+# === CONFIGURE: environment base URLs ===
+ENV_CONFIG = {
+    "dev": {
+        "source_base_url": "https://{SOURCE_SYSTEM_HOST_DEV}",
+        "target_base_url": "https://{TARGET_SYSTEM_HOST_DEV}",
+        "read_path_url": "https://{READ_PATH_HOST_DEV}/{READ_PATH_ENDPOINT}",
+        "gateway_url": "https://{GATEWAY_HOST_DEV}/graphql",
+    },
+    "uat": {
+        "source_base_url": "https://{SOURCE_SYSTEM_HOST_UAT}",
+        "target_base_url": "https://{TARGET_SYSTEM_HOST_UAT}",
+        "read_path_url": "https://{READ_PATH_HOST_UAT}/{READ_PATH_ENDPOINT}",
+        "gateway_url": "https://{GATEWAY_HOST_UAT}/graphql",
+    },
+}
+
+# === CONFIGURE: poll settings ===
+POLL_INTERVAL_SECONDS = 5
+POLL_TIMEOUT_SECONDS = 90  # Increase for slow EQS materialization (up to 90s in dev)
+
+
+# ─── Auth ──────────────────────────────────────────────────────────────────────
+
+def get_token(env: str, verbose: bool = False) -> str:
+    """Source auth-helper.sh and return a bearer token for the target environment."""
+    # === CONFIGURE: auth-helper.sh export variable name ===
+    token_env_var = "{AUTH_TOKEN_ENV_VAR}"  # e.g. SUPERVISR_DEV_TOKEN, LLC_DEV_TOKEN
+
+    script = f"source ~/.claude/scripts/auth-helper.sh {env} && echo ${token_env_var}"
+    result = subprocess.run(
+        ["bash", "-c", script],
+        capture_output=True,
+        text=True,
+    )
+    token = result.stdout.strip()
+    if not token:
+        print(f"[ERROR] Failed to provision auth token. stderr: {result.stderr}", file=sys.stderr)
+        sys.exit(1)
+    if verbose:
+        print(f"[AUTH] Token provisioned (last 8 chars): ...{token[-8:]}")
+    return token
+
+
+# ─── Step 1: Extract source record ────────────────────────────────────────────
+
+def extract_source_record(config: dict, token: str, verbose: bool = False) -> dict:
+    """
+    Pull one real record from the source system.
+    Returns a dict with at minimum the key identifiers needed for entity creation
+    and operation execution.
+    """
+    import urllib.request
+
+    # === CONFIGURE: source extraction ===
+    # Replace with the actual query/endpoint to fetch one record from {SOURCE_SYSTEM}.
+    # Prefer fetching by a known stable identifier if you have one.
+    # Otherwise fetch the most recent record and take the first result.
+    #
+    # Example for Retell API:
+    #   url = f"{config['source_base_url']}/v2/list-calls?limit=1"
+    #   ...
+    #   return {"call_id": record["call_id"], "to_number": record["to_number"], ...}
+
+    url = f"{config['source_base_url']}/{SOURCE_EXTRACTION_ENDPOINT}"
+    req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
+    with urllib.request.urlopen(req) as resp:
+        data = json.loads(resp.read())
+
+    # === CONFIGURE: parse the response to extract key identifiers ===
+    record = data["{RECORDS_KEY}"][0]  # e.g. data["calls"][0]
+    extracted = {
+        # === CONFIGURE: map source fields to identifiers ===
+        "{IDENTIFIER_KEY_1}": record["{SOURCE_FIELD_1}"],  # e.g. "call_id": record["call_id"]
+        "{IDENTIFIER_KEY_2}": record["{SOURCE_FIELD_2}"],  # e.g. "phone": record["to_number"]
+    }
+
+    if verbose:
+        print(f"[SOURCE] Extracted record: {json.dumps(extracted, indent=2)}")
+    return extracted
+
+
+# ─── Step 2: Create scout entity in target ────────────────────────────────────
+
+def create_scout_entity(config: dict, token: str, source_record: dict, dry_run: bool = False, verbose: bool = False) -> dict:
+    """
+    Create a minimal entity in the target system using the source record's identifiers.
+    Returns the created entity's identifiers.
+    Skip this step (return empty dict) if the operation itself creates the entity.
+    """
+    import urllib.request
+
+    # === CONFIGURE: entity creation ===
+    # Build the minimum payload required for the target system to accept the entity.
+    # Include all fields the operation will check/filter on (status, partnerId, etc.).
+
+    payload = {
+        # === CONFIGURE: map source identifiers to target entity fields ===
+        "{TARGET_FIELD_1}": source_record["{IDENTIFIER_KEY_1}"],
+        "{TARGET_FIELD_2}": source_record["{IDENTIFIER_KEY_2}"],
+        # Add all required fields here
+    }
+
+    if dry_run:
+        print(f"[DRY-RUN] Would create scout entity: {json.dumps(payload, indent=2)}")
+        return {"scout_id": "dry-run-id"}
+
+    url = f"{config['target_base_url']}/{TARGET_CREATION_ENDPOINT}"
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode(),
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req) as resp:
+        created = json.loads(resp.read())
+
+    # === CONFIGURE: extract the created entity's identifier ===
+    entity = {
+        "scout_id": created["{CREATED_ENTITY_ID_FIELD}"],
+    }
+
+    if verbose:
+        print(f"[TARGET] Created scout entity: {json.dumps(entity, indent=2)}")
+    return entity
+
+
+# ─── Step 3: Read baseline state ──────────────────────────────────────────────
+
+def read_baseline(config: dict, token: str, source_record: dict, scout_entity: dict, verbose: bool = False) -> dict:
+    """
+    Query the read path for the current state of the scout entity.
+    Use the SAME path consumers/UI use. Do not shortcut to Datastore direct.
+    Returns the state dict, or None if not found.
+    """
+    # === CONFIGURE: read path query ===
+    # For EQS via Gateway (GraphQL):
+    #   Use config["gateway_url"] with a GraphQL query.
+    # For LLS REST:
+    #   Use config["read_path_url"] with the entity identifier.
+
+    state = _query_read_path(config, token, source_record, scout_entity, verbose)
+
+    if verbose:
+        print(f"[BASELINE] Current state: {json.dumps(state, indent=2)}")
+    return state
+
+
+def _query_read_path(config: dict, token: str, source_record: dict, scout_entity: dict, verbose: bool = False) -> dict | None:
+    """Execute the read path query and return the state dict. Returns None if not found."""
+    import urllib.request
+
+    # === CONFIGURE: read path query implementation ===
+    # Option A — GraphQL (EQS via Gateway):
+    #
+    #   query = """
+    #     query ScoutProbe($filter: LeadFilter) {
+    #       leads(filter: $filter) {
+    #         id
+    #         {FIELD_1}
+    #         {FIELD_2}
+    #       }
+    #     }
+    #   """
+    #   variables = {"filter": {"{FILTER_FIELD}": source_record["{IDENTIFIER_KEY}"]}}
+    #   payload = json.dumps({"query": query, "variables": variables}).encode()
+    #   req = urllib.request.Request(
+    #       config["gateway_url"],
+    #       data=payload,
+    #       headers={
+    #           "Authorization": f"Bearer {token}",
+    #           "Content-Type": "application/json",
+    #           "userAuthorization": token,  # Required by some services
+    #       },
+    #       method="POST",
+    #   )
+    #   with urllib.request.urlopen(req) as resp:
+    #       data = json.loads(resp.read())
+    #   results = data.get("data", {}).get("{QUERY_NAME}", [])
+    #   return results[0] if results else None
+    #
+    # Option B — REST:
+    #
+    #   url = f"{config['read_path_url']}/{scout_entity['scout_id']}"
+    #   req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
+    #   try:
+    #       with urllib.request.urlopen(req) as resp:
+    #           return json.loads(resp.read())
+    #   except urllib.error.HTTPError as e:
+    #       if e.code == 404:
+    #           return None
+    #       raise
+
+    raise NotImplementedError("Fill in _query_read_path with the actual read path implementation.")
+
+
+# ─── Step 4: Execute the operation ────────────────────────────────────────────
+
+def execute_operation(config: dict, token: str, source_record: dict, scout_entity: dict, dry_run: bool = False, verbose: bool = False) -> dict:
+    """
+    Execute the operation under test for the single scout record.
+    Returns a dict with at least: status_code, response_body.
+    """
+    import urllib.request
+
+    # === CONFIGURE: operation execution ===
+    # This is the operation you are testing. Scope it to the scout record if possible.
+    # Capture the full response — it is evidence but NOT the verdict.
+
+    if dry_run:
+        print(f"[DRY-RUN] Would execute operation against record: {source_record}")
+        return {"status_code": 0, "response_body": "dry-run", "skipped": True}
+
+    # === CONFIGURE: build the operation request ===
+    payload = {
+        # Map scout record identifiers to the operation's expected input format
+        "{OPERATION_FIELD_1}": source_record["{IDENTIFIER_KEY_1}"],
+    }
+
+    url = f"{config['target_base_url']}/{OPERATION_ENDPOINT}"
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode(),
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
+        method="{OPERATION_HTTP_METHOD}",  # POST, PUT, PATCH, etc.
+    )
+
+    try:
+        with urllib.request.urlopen(req) as resp:
+            body = resp.read().decode()
+            result = {"status_code": resp.status, "response_body": body}
+    except urllib.error.HTTPError as e:
+        result = {"status_code": e.code, "response_body": e.read().decode(), "error": True}
+
+    if verbose:
+        print(f"[OPERATION] Response: {json.dumps(result, indent=2)}")
+    return result
+
+
+# ─── Step 5: Poll-retry for materialization ────────────────────────────────────
+
+def poll_for_state_change(config: dict, token: str, source_record: dict, scout_entity: dict, baseline: dict, verbose: bool = False) -> tuple[dict | None, int, float]:
+    """
+    Poll the read path until state changes from baseline or timeout.
+    Returns (final_state, poll_count, elapsed_seconds).
+    """
+    start = time.monotonic()
+    polls = 0
+
+    while True:
+        elapsed = time.monotonic() - start
+        if elapsed >= POLL_TIMEOUT_SECONDS:
+            if verbose:
+                print(f"[POLL] Timeout after {elapsed:.1f}s ({polls} polls)")
+            break
+
+        polls += 1
+        current = _query_read_path(config, token, source_record, scout_entity, verbose=False)
+
+        if verbose:
+            print(f"[POLL #{polls}] {elapsed:.1f}s — state: {json.dumps(current, indent=2)}")
+
+        # === CONFIGURE: change detection ===
+        # Replace with the actual field(s) you expect to change after the operation.
+        # Example: if you expect status to change from "NEW" to "CONTACTED":
+        #   baseline_val = (baseline or {}).get("status")
+        #   current_val = (current or {}).get("status")
+        #   if current_val != baseline_val and current_val == "CONTACTED":
+        #       return current, polls, elapsed
+
+        baseline_val = (baseline or {}).get("{EXPECTED_CHANGE_FIELD}")
+        current_val = (current or {}).get("{EXPECTED_CHANGE_FIELD}")
+        if current_val is not None and current_val != baseline_val:
+            if verbose:
+                print(f"[POLL] State changed at poll #{polls} ({elapsed:.1f}s)")
+            return current, polls, elapsed
+
+        time.sleep(POLL_INTERVAL_SECONDS)
+
+    final = _query_read_path(config, token, source_record, scout_entity, verbose=False)
+    return final, polls, time.monotonic() - start
+
+
+# ─── Step 6: Compare states and emit verdict ──────────────────────────────────
+
+def compare_states(baseline: dict | None, final: dict | None) -> dict:
+    """
+    Compute the diff between baseline and final state.
+    Returns a dict of changed fields: {field: {before, after}}.
+    """
+    if baseline is None and final is None:
+        return {}
+    if baseline is None:
+        return {k: {"before": None, "after": v} for k, v in (final or {}).items()}
+    if final is None:
+        return {k: {"before": v, "after": None} for k, v in (baseline or {}).items()}
+
+    diff = {}
+    all_keys = set(baseline.keys()) | set(final.keys())
+    for key in all_keys:
+        b = baseline.get(key)
+        f = final.get(key)
+        if b != f:
+            diff[key] = {"before": b, "after": f}
+    return diff
+
+
+def is_pass(diff: dict, operation_result: dict) -> bool:
+    """
+    Determine PASS/FAIL based on diff and operation result.
+    A PASS requires:
+      1. The operation did not error (status < 400).
+      2. The expected field(s) changed to the expected value(s).
+    """
+    if operation_result.get("skipped"):
+        return True  # dry-run always passes structurally
+
+    if operation_result.get("error") or operation_result.get("status_code", 0) >= 400:
+        return False
+
+    # === CONFIGURE: PASS condition ===
+    # Replace with the actual field and expected value.
+    # Example: diff must include "status" changing to "CONTACTED"
+    #   return diff.get("status", {}).get("after") == "CONTACTED"
+
+    return "{EXPECTED_CHANGE_FIELD}" in diff and diff["{EXPECTED_CHANGE_FIELD}"]["after"] == "{EXPECTED_VALUE}"
+
+
+# ─── Main ──────────────────────────────────────────────────────────────────────
+
+def main():
+    parser = argparse.ArgumentParser(description="Scout probe for {OPERATION_NAME}")
+    parser.add_argument("--env", choices=["dev", "uat"], default="dev", help="Target environment")
+    parser.add_argument("--dry-run", action="store_true", help="Print what would happen without executing")
+    parser.add_argument("--verbose", action="store_true", help="Print detailed step output")
+    args = parser.parse_args()
+
+    config = ENV_CONFIG[args.env]
+
+    print(f"\n=== Scout Probe: {'{OPERATION_NAME}'} | env={args.env} | {datetime.now(timezone.utc).isoformat()} ===\n")
+
+    # Step 1: Auth
+    token = get_token(args.env, verbose=args.verbose)
+
+    # Step 2: Extract source record
+    print("[1/6] Extracting source record...")
+    source_record = extract_source_record(config, token, verbose=args.verbose)
+
+    # Step 3: Create scout entity
+    print("[2/6] Creating scout entity in target system...")
+    scout_entity = create_scout_entity(config, token, source_record, dry_run=args.dry_run, verbose=args.verbose)
+
+    # Step 4: Establish baseline
+    print("[3/6] Reading baseline state from read path...")
+    baseline = read_baseline(config, token, source_record, scout_entity, verbose=args.verbose)
+
+    # Step 5: Execute operation
+    print("[4/6] Executing operation under test...")
+    operation_result = execute_operation(config, token, source_record, scout_entity, dry_run=args.dry_run, verbose=args.verbose)
+
+    # Step 6: Poll for materialization
+    print(f"[5/6] Polling read path for state change (timeout={POLL_TIMEOUT_SECONDS}s)...")
+    if args.dry_run:
+        final = baseline
+        polls = 0
+        elapsed = 0.0
+    else:
+        final, polls, elapsed = poll_for_state_change(config, token, source_record, scout_entity, baseline, verbose=args.verbose)
+
+    # Step 7: Compare and emit verdict
+    print("[6/6] Comparing before/after state...")
+    diff = compare_states(baseline, final)
+    passed = is_pass(diff, operation_result)
+
+    verdict = {
+        "verdict": "PASS" if passed else "FAIL",
+        "operation": "{OPERATION_NAME}",
+        "environment": args.env,
+        "dry_run": args.dry_run,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "record_identifiers": {
+            **source_record,
+            "scout_id": scout_entity.get("scout_id"),
+        },
+        "baseline": baseline,
+        "final": final,
+        "diff": diff,
+        "evidence": {
+            "operation_status_code": operation_result.get("status_code"),
+            "operation_response_body": operation_result.get("response_body"),
+            "polls": polls,
+            "elapsed_seconds": round(elapsed, 2),
+            "poll_interval_seconds": POLL_INTERVAL_SECONDS,
+            "poll_timeout_seconds": POLL_TIMEOUT_SECONDS,
+        },
+        "note": "Scout entity left in place. Identifier above for manual cleanup if needed.",
+    }
+
+    print("\n" + "=" * 60)
+    print(f"VERDICT: {verdict['verdict']}")
+    print("=" * 60)
+    print(json.dumps(verdict, indent=2))
+
+    sys.exit(0 if passed else 1)
+
+
+if __name__ == "__main__":
+    main()

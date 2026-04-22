@@ -1,6 +1,6 @@
 ---
 name: create-tickets
-description: Create Jira tickets (epics, stories, spikes) with proper formatting, AC quality gate, local scaffolding, and optional Leo review. Use when the user wants to create multiple related tickets, plan an epic with children, or batch-create stories/spikes. Triggers on "create tickets", "create an epic with stories", "plan the tickets", "set up the Jira tickets", "scaffold tickets for this work".
+description: Create Jira tickets (epics, stories, spikes) with proper formatting, AC quality gate, local scaffolding, and optional Leo review. Use when the user wants to create multiple related tickets, plan an epic with children, or batch-create stories/spikes. Triggers on "create tickets", "create an epic with stories", "plan the tickets", "set up the Jira tickets", "scaffold tickets for this work". Input: epic description or list of stories with AC. Returns: created Jira keys and local scaffold paths.
 ---
 
 # Create Tickets

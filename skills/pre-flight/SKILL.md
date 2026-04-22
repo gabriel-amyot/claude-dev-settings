@@ -58,7 +58,9 @@ For each repo in scope (from REPO_MAPPING.yaml or explicit list):
 - **Action:** Show available space. Suggest: `docker system prune`, clear build caches.
 
 ### Check 5: Network Reachability
-1. GitLab: `curl -sf -o /dev/null -w "%{http_code}" --max-time 5 https://gitlab.com`
+1. GitLab: check the org-appropriate instance (read `~/.claude-shared-config/skills/gitlab/gitlab_config.json` for the `gitlab_url` of the detected org):
+   - Supervisr/Origin8: `curl -sf -o /dev/null -w "%{http_code}" --max-time 5 https://gitlab.prod.origin8cares.com`
+   - Klever: `curl -sf -o /dev/null -w "%{http_code}" --max-time 5 https://cicd.prod.datasophia.com` (IAP-protected — a 302 or 200 both mean reachable; 000/timeout means unreachable)
 2. Jira: `curl -sf -o /dev/null -w "%{http_code}" --max-time 5 https://{jira-domain}/rest/api/2/serverInfo`
 3. GCP APIs: `curl -sf -o /dev/null -w "%{http_code}" --max-time 5 https://run.googleapis.com/`
 - **Default severity:** WARN (feeds into fallback matrix)

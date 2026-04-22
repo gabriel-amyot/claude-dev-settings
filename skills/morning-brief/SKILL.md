@@ -1,3 +1,9 @@
+---
+name: morning-brief
+description: "Process daily morning brief from transcript or recording. Cleans up text, extracts tasks, generates standup script, creates execution plan, produces steering assessment. Input: /morning-brief [optional-date]. Returns: structured brief with action items and 3Ps."
+user_invocable: true
+---
+
 # Morning Brief Skill
 
 ## Invocation

@@ -12,6 +12,11 @@ Configurations
 
 When navigating between projects, starting work on a ticket, or when user mentions a specific org/project, read `~/.claude/library/context/workspace-map.yaml` for full paths and conventions.
 
+# Org Isolation
+- **Scope all queries to the current org.** Determine the active org from the current working directory using the Organizations table above. Only pass the matching `--org` flag to Jira, only read repos under that org's root, and only present data from that org. "The company," "big picture," "what's happening" all mean the current org, never all orgs.
+- **Cross-org queries require explicit user request.** If the user says "across all orgs," "including Klever," or switches directories, then and only then expand scope. Never infer cross-org intent from an ambiguous prompt.
+- **Subagent dispatch must include org constraint.** When dispatching subagents for Jira, git, or file operations, explicitly pass the resolved org name and instruct the subagent to query only that org.
+
 # Context Engineering
 - **Progressive disclosure.** Index → metadata → selective read. Never bulk-load.
 - **Recursive INDEX.md.** Every document folder needs one. Read the index, pick selectively, never read all files.
@@ -50,6 +55,8 @@ For the full framework (compaction strategies, note-taking patterns, subagent ar
 	- Check if the branch is clean and up to date
 	- If on a feature branch (not dev/main/master), recommend switching back to the main branch (contextual: some repos use `dev`, most use `main` or `master`)
 	- Propose: switch to main branch → pull origin → create a new branch for the fix/feature
+	- **Mechanical backstop:** `branch-guard.sh` (PreToolUse hook) blocks Edit/Write on protected branches or branches already merged to dev. This is defense-in-depth; still follow the workflow above proactively.
+- **Main worktree stays clean.** All code edits happen in git worktrees, never in the main checkout. When the `worktree-guard.sh` hook blocks an edit: (1) `git fetch origin` in the repo, (2) invoke `superpowers:using-git-worktrees` to create an isolated workspace. The skill handles directory selection. `project-management/` repos are exempt.
 - **Branch naming:** `{TICKET-ID}-short-description` — e.g., `SPV-23-datastore-adapter-lenient-types`. No `fix/`, `feature/`, `chore/` prefixes. No folder-style separators.
 - **Commit messages must contain why and what.** First line: `{TICKET-ID}: {short imperative what}`. Body: why this change exists (problem/ask), then what changed (outcome, not file list). MR descriptions are built from commits, so each commit must be self-explanatory.
 - Assume feature flags will be used for any complex feature implementation — wire up from the start with fallback to legacy behavior when disabled.
@@ -60,6 +67,7 @@ For the full framework (compaction strategies, note-taking patterns, subagent ar
 - **DAC repos: `dev` is the default branch.** Push changes to `dev` only. To promote to `uat` or `main`, create a merge request. Never push directly to `main` or `uat` on DAC repos. Before pushing, verify the default branch with `git branch -r | grep HEAD`. Learned from SPV-165: pushed to `main` but pipeline ran from `dev`, change was not deployed.
 - **Datasophia terraform registry nightly downtime.** `cicd.prod.datasophia.com` goes down ~11 PM to 5 AM ET every night. All DAC pipelines fail with "Error accessing remote module registry" during this window. Do NOT retry in a loop. Schedule DAC deploys before 11 PM or leave for morning. Learned from SPV-165 overnight crawl: wasted 16 iterations retrying a known-down registry.
 - **Long-running agent sessions (>30 min):** Create WIP commits at logical boundaries (per AC or per logical unit). Uncommitted code dies with the context window.
+- **Subagent outputs must be committed immediately.** When a subagent writes files (CLAUDE.md, agent-os/, docs/), verify they exist on disk AND commit them before claiming "done." Untracked files are wiped by `git clean`, `git checkout`, or repo switches. Learned from KTP-130 overnight sprint: two repos had full agent-os onboarding as untracked files, nearly lost.
 - **Scope agent sessions to 2-3 ACs max.** Break larger work into sequential sessions: research/docs first, then code, then review. Each session reads the previous session's distilled output, not raw source material.
 - **Separate research from coding.** Session A produces docs/plans (committed). Session B reads the plan and writes code. Session C reviews. This prevents context explosion from reading large architecture docs AND writing code in the same session.
 
@@ -70,6 +78,9 @@ For the full framework (compaction strategies, note-taking patterns, subagent ar
   - **Headless/overnight mode:** Spawn an Opus architect agent and a contrarian reviewer agent. Spend tokens analyzing the conflict. If their conclusion is "the spec needs to change," park the task with a written rationale in `tickets/{ID}/reports/status/` and move on to the next non-dependent task. Do NOT commit spec changes autonomously.
 - **Hacks for validation are OK, commits are not.** If you need a temporary endpoint to test something (e.g., peek inside an opaque service), you may create it locally and run tests against it. But do NOT commit it. If the hack reveals a real need, document it as a proposal in `tickets/{ID}/reports/architecture/` for user review.
 - **ADR-023** codifies this for the dreampipe pattern specifically: source-of-truth services must not expose search/list queries that duplicate EQS's role.
+
+# Git History Claims (Learned from SPV-72 2026-05-06)
+- **Never assert "X never existed" in external content without `git log -S` proof.** Load `~/.claude/library/context/git-history-verification.md` before writing or reviewing any PR body that makes historical claims about code.
 
 # Autonomous Mode & Crawls
 When the user wants to run autonomously, use the **sprint-crawl** agent. One command, one agent.
@@ -96,6 +107,9 @@ When the user wants to run autonomously, use the **sprint-crawl** agent. One com
 
 # Ralph Loop Multi-Terminal Conflicts
 - `.claude/ralph-loop.local.md` is per-repo, not per-session. Two terminals in the same repo will fight over it. When a stop hook feeds a task from another session (wrong ticket, wrong completion promise), do NOT start working on it. Check the ralph-loop file, confirm it's stale or from another terminal, and `rm .claude/ralph-loop.local.md` to break the cycle. Never delete blindly without reading the file first. Learned from 2026-04-01: KTP-329 loop bled into KTP-430 session via shared file.
+
+# Proven Code Replacement During Crawls
+- **Never replace a working library/pattern with a manual reimplementation based on an unverified hypothesis.** If a code path has production history (e.g., 34K+ successful calls), the default hypothesis for a new failure is "something changed in the calling context" (missing parameters, wrong env vars, stale config), not "the library is broken." Before rewriting, verify the hypothesis with a minimal reproduction. Learned from SPV-165: overnight agent replaced DGS MonoGraphQLClient (proven) with raw WebClient to "fix Content-Type." Real bug was a missing `organizationId` parameter.
 
 # Architecture Discovery During Crawls
 - When a night crawl plan says "implement X" but code investigation reveals the architecture already handles the intent differently, do NOT force the planned change. Instead: (1) document the finding, (2) verify the existing behavior satisfies the AC, (3) create a tentative ADR in `documentation/architecture/adr/` (or the repo's `agent-os/architecture/adr/`) for the user to confirm. The ADR should capture: what the plan said, what the code actually does, why the existing approach is sufficient (or not), and the Phase 2 risk if applicable. The user must confirm the ADR before it's considered accepted. Learned from KTP-430 AC-4: plan said "add OR CHANNEL = 'UNKNOWN' to WHERE clause" but real-data queries already bypass channel filtering entirely.
@@ -126,6 +140,7 @@ This applies to: GitHub PR comments/replies, Jira comments/ticket updates, Slack
 - **IAM/Auth changes require human gate (Learned from EQS permit-all incident 2026-03-16).** Any change to `allUsers`, `permitAll()`, `iam_public_access`, invoker bindings, OAuth security filters, or M2M scope modifications on shared environments (Dev, UAT, Prod) MUST be surfaced to the user as a blocking proposal before committing. Present the exact diff, explain why you believe it's necessary, and wait for explicit approval. Do not proceed until the user reviews and confirms. R&D-BAC1 is exempt (isolated, tear-down-after). Auth failures (403/401) on shared environments are blockers to document and escalate, not obstacles to work around.
 
 - **Every data mutation script must backup before writing (Learned from SPV-141 data loss incident 2026-04-13).** Any script that writes, updates, or deletes datastore/database entities MUST first read and save the affected records to a local backup file (JSON). One line changed = one line backed up. The backup file goes to `tickets/{TICKET-ID}/data/backups/` with a timestamped filename. No exceptions, even for "idempotent" operations. If you cannot back up (e.g., no read access), stop and ask the user.
+- **Datastore upsert drops unlisted fields (Learned from SPV-85 2026-04-26).** A Datastore `upsert` mutation replaces the entire entity. Any property not included in the mutation payload is silently deleted (e.g. `eventMetadata` was lost). Always read the full entity first, include ALL fields in the upsert, or use a `update` (patch) operation instead of upsert when only changing specific fields.
 
 When tagging, shipping, deploying, creating merge requests, or working with CI/CD, read `~/.claude/library/context/shipping-workflow.md` for the full workflow.
 
@@ -133,6 +148,7 @@ When tagging, shipping, deploying, creating merge requests, or working with CI/C
 - When creating a new agent (`~/.claude/agents/`), always: (1) identify the pipeline gap it fills (what feeds in, what it feeds into), (2) read existing templates/formats it must consume or produce, (3) update MEMORY.md with the agent's role and pipeline position, (4) update the skills-and-agents-index if one exists for the project.
 - Agent output format must match what downstream tools expect. Design from the consumer backwards.
 - After creating any skill or agent, check if a decision/design questions document exists and mark questions as answered.
+- **Every new SKILL.md must include a `nav:` block in its YAML frontmatter.** This routes the skill in `/floor-manager`. Bays: `build`, `fix`, `review`, `ship`, `plan`, `know`, `ops`. Include `when:`, `when_not:`, and optionally `personas:` and `org:`. See any existing SKILL.md for the format.
 
 # Ticket Closure & Bug Fix Protocols
 - **Never close a ticket without adversarial review and evidence-backed closing comment.**
@@ -188,3 +204,8 @@ Load these via `Read` when the context calls for it:
 | Granting GCP or GitLab access to a new Klever user | `~/.claude/library/context/klever-infra-access.md` |
 | Writing/reviewing ADRs, placing docs, migrating agent-os/, doc standards | `~/.claude/library/context/documentation-standards-quick-ref.md` |
 | Performance gap local≠production, "fast locally slow on server", AI framework latency, OTEL/tracing timeouts | Project-level `documentation/bibliotheque/stack/debugging-production-perf.md` |
+| Using react-force-graph-2d, ResizeObserver + canvas loops, wikilink parsing | `~/.claude/library/context/react-force-graph-gotchas.md` |
+| Creating/modifying Liquibase changesets, database migrations, changelog XML | Klever project `documentation/bibliotheque/stack/database/liquibase-safety-rules.md` |
+| Writing PR bodies, asserting code history ("X was deleted", "X never existed"), reviewing agent-written PR descriptions | `~/.claude/library/context/git-history-verification.md` |
+| Session management, handoffs, pickup, intent tracking, cross-session continuity | `~/.claude/library/context/session-lifecycle-skills.md` |
+| Writing/reviewing vendor API parsing code, spike completion for vendor endpoints, debugging all-null vendor metrics, onboarding new vendor API | `~/.claude/library/context/vendor-api-contract-validation.md` |

@@ -122,7 +122,7 @@ As Curator:
 Before starting, evaluate the ticket. Do NOT use this agent for:
 
 - **Spikes/research tickets** (type: spike in Jira). Just do the research, write the report.
-- **Quick bug fixes** where you already know the fix. Just fix it directly.
+- **Trivial bug fixes** where the root cause is a genuine one-liner (typo, wrong import, config value, off-by-one visible in a stack trace). Test: "Can I name the exact line and explain why it's wrong without reading any other file?" If yes, fix directly. If no (especially UI rendering, visual layout, component interaction, multi-layer issues), use the investigation-first workflow in `~/.claude/library/context/ticket-quality-standards.md`.
 - **Tickets with no ac.yaml**. Run `/pickup-ticket` first to scaffold.
 - **Tickets that are already done** (all ACs complete in ac.yaml).
 

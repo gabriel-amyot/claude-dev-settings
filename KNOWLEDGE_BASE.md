@@ -1,30 +1,32 @@
 # Knowledge Base
 
-Entry point for the context-engineering master agent's library.
+Entry point for the agent harness library. 95+ documents across 8 sections.
 
-## How to Navigate
+## Start Here
 
-1. **Start here** → read `library/CATALOG.md` for the full floor plan and topic cross-reference
-2. **Know the floor** → read `library/{floor}/INDEX.md` for section-level summaries
-3. **Know the section** → read the specific file by its self-documenting name
-4. **On-demand context** (CLAUDE.md triggers) → read `library/context/INDEX.md`
+**→ [`library/INDEX.md`](library/INDEX.md)** — The main navigational home. Has "I Need to Understand / I Am Blocked / I Need to Do" quick-lookup tables and section catalog.
 
-## Directory Map
+## Navigation Pattern
 
-| Path | Purpose |
-|------|---------|
-| `library/` | The knowledge library. 84 documents + 11 context files across 7 sections. |
-| `library/CATALOG.md` | Master catalog: floor plan, topic cross-references, librarian protocol |
-| `library/context/` | On-demand context files loaded by CLAUDE.md trigger rules |
+1. Read `library/INDEX.md` — find your question in the quick-lookup tables
+2. Follow to a section INDEX — `library/{section}/INDEX.md`
+3. Read the specific file
 
-## Library Sections
+Never bulk-load. Progressive disclosure only.
 
-| Section | Books | Domain |
-|---------|------:|--------|
-| `library/architecture/` | 9 | ADRs, design patterns, vision docs |
-| `library/research/` | 11 | Deep research, strategic analysis, surveys |
-| `library/practices/` | 28 | Development, testing, debugging, writing, quality, standards |
-| `library/process/` | 3 | PRD creation, task generation, task management |
-| `library/operations/` | 4 | Setup, troubleshooting, known issues |
-| `library/archive/` | 29 | Retired agents, plugin snapshots, historical artifacts |
-| `library/context/` | 11 | On-demand context: workspace map, shipping, Java, tickets, tools |
+## Library Sections at a Glance
+
+| Section | What lives here |
+|---------|----------------|
+| `library/architecture/` | ADRs, patterns, north-star vision |
+| `library/research/` | Deep research: memory, agent systems, strategy |
+| `library/practices/` | Dev, testing, debugging, writing, planning, quality |
+| `library/process/` | PRD, task generation, task management |
+| `library/operations/` | Infra reference, Supervisr topology, known issues |
+| `library/context/` | On-demand CLAUDE.md trigger files |
+| `library/archive/` | Retired agents, plugin snapshots, historical audits |
+| `library/inbox/` | Unprocessed nuggets pending promotion |
+
+## Master Catalog
+
+For the full floor plan and topic cross-reference, read [`library/CATALOG.md`](library/CATALOG.md).

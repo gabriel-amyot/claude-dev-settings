@@ -1,6 +1,10 @@
 ---
 name: ticket-from-rca-pipeline
 description: Parses RCA incidental findings into verified Jira tickets. Trigger phrases: "create tickets from RCA", "file the incidental findings", "spin these into tickets", "ticket the parked findings".
+nav:
+  bay: plan
+  when: "Parse RCA incidental findings into verified Jira tickets."
+  when_not: "Creating tickets from scratch (use /create-tickets). Spillover aggregation (use /spillover-scan)."
 ---
 
 # ticket-from-rca-pipeline

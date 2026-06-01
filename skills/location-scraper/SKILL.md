@@ -1,6 +1,10 @@
 ---
 name: location-scraper
 description: "Scrape store/business locations from websites and geocode addresses to lat/long coordinates. Use this skill whenever the user wants to extract location data from any website, geocode a list of addresses, build a CSV of business locations with coordinates, or anything involving store locators, franchise locations, branch finders, or 'find a location near you' pages. Also trigger when the user has a spreadsheet of addresses and wants GPS coordinates added, or asks about bulk geocoding. Even if the user just pastes a URL to a store locator page, this skill applies."
+nav:
+  bay: build
+  when: "Scrape store locations from websites and geocode to lat/long coordinates."
+  when_not: "Locations already in BQ (use /klever-bq-store-lookup). Geocoding existing data (use /geocode-bq-locations)."
 ---
 
 # Location Scraper & Geocoder Skill

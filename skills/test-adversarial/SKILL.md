@@ -1,6 +1,11 @@
 ---
 name: test-adversarial
 description: "Challenge test validity. Asks 'can this test pass with a broken service?' for each test case. Classifies findings by severity (CRITICAL/HIGH/MEDIUM/LOW). Does NOT review implementation quality or design decisions. For challenging work/ideas, use /challenge instead. Input: test file path or ticket with test artifacts. Returns: false-positive findings report with severity classification."
+nav:
+  bay: review
+  when: "Challenge test validity. Can this test pass with a broken service?"
+  when_not: "Code review (use /adversarial-cascade). Challenging ideas (use /challenge)."
+  personas: [quinn]
 ---
 
 # Adversarial Review

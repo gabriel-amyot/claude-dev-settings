@@ -2,6 +2,10 @@
 name: spillover-scan
 description: "Aggregate accepted adversarial findings, warnings, and test gaps from closed tickets into a tracking ticket. Classifies by severity, recommends priority order, and posts to Jira."
 user_invocable: true
+nav:
+  bay: review
+  when: "Aggregate adversarial findings and test gaps from closed tickets into tracking ticket."
+  when_not: "Closing individual tickets (use /sprint-close). Active ticket review."
 ---
 
 # Spillover Scan

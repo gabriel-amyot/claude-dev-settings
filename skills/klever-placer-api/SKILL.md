@@ -1,6 +1,11 @@
 ---
 name: klever-placer-api
 description: "Klever Placer.ai API integration skill. Use whenever the user mentions Placer, CBG data, visitor origins, foot traffic API, store entity IDs, custom POI build, or the visit-metrics/cbgs endpoint. Also triggers when the user wants to: check if a Klever advertiser's locations are registered in Placer, pull store location data from BQ for Placer submission, query visit trends or demographics for a POI, or diagnose a Placer API error. Covers the full lifecycle: auth check → entity lookup → BQ store export → Placer API call → 202 async polling → custom POI build process."
+nav:
+  bay: know
+  when: "Placer.ai API integration. CBG data, visitor origins, foot traffic, entity IDs."
+  when_not: "Matching stores to Placer entities (use /placer-entity-matcher). Onboarding new advertiser (use /placer-onboarding)."
+  org: [klever]
 ---
 
 # Klever — Placer.ai API Integration
@@ -121,8 +126,12 @@ Map Placer `apiId` values → `klever_location_id` in the backend adapter.
 | 404 on `/v1/search` | Not in our tier — use Step 5 instead |
 | Empty `visitsByCBGs` | Chain-level entity or sparse CBG privacy redaction — check entity type |
 
+## ⚠️ Vendor API Search Rule
+
+**Always search Placer by the CONSUMER BRAND NAME on the storefront, not the corporate parent company.** Placer indexes by consumer-facing names. Searching "Artistry Brands" returns 0. Searching "Shrimp Basket" returns 25 venues. See RCA: `tickets/KTP/KTP-115/KTP-130/reports/reviews/rca-b1-false-blocker-2026-04-23.md`
+
 ## Known Advertisers (Klever)
 
-| Brand | Klever Int ID | DSP String ID | Placer Status |
-|-------|---------------|---------------|---------------|
-| The Shrimp Basket (Artistry Brands) | 51 | `la8clii` | Pending custom POI build (KTP-130) |
+| Brand (search by this) | Corporate Parent | Klever Int ID | DSP String ID | Placer Status |
+|------------------------|-----------------|---------------|---------------|---------------|
+| Shrimp Basket | Artistry Brands | 51 | `la8clii` | 25 managed venues (entity prefix: `venue:`). CBG confirmed working 2026-04-23. |

@@ -1,6 +1,10 @@
 ---
 name: ralph-loop-preflight
 description: "Validate prerequisites and configure parameters before launching a ralph-loop. Checks that the target agent exists, state file is well-formed, completion promise is reachable, verification gates are defined, specs/scenarios exist, and scope is clean. Outputs a validated invocation command."
+nav:
+  bay: ops
+  when: "Validate prerequisites before launching a ralph-loop. Checks agents, state, scope."
+  when_not: "Universal pre-flight (use /pre-flight). Already in a ralph-loop."
 ---
 
 # /ralph-loop-preflight

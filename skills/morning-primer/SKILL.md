@@ -2,6 +2,10 @@
 name: morning-primer
 description: "Standalone daily recon. No transcript required. Queries Jira + local state, produces a primer document and mission packs for actionable tickets. Invocation: /morning-primer or /morning-primer --sprint {SPRINT-ID}"
 user_invocable: true
+nav:
+  bay: know
+  when: "Standalone daily recon. Queries Jira + local state for primer and mission packs."
+  when_not: "Processing a transcript (use /morning-brief). On-demand status (use /sitrep)."
 ---
 
 # Morning Primer Skill
@@ -35,7 +39,7 @@ Both outputs land in `daily-brief/` at the project-management root:
 
 ### Phase 1 — Parallel Recon
 
-Spawn **3 Sonnet subagents simultaneously**:
+Spawn **4 Sonnet subagents simultaneously**:
 
 **Subagent A — Jira sprint sweep:**
 Use the `/jira` skill with `--org klever`. Query active sprint tickets. Return: ticket ID, status, assignee, AC count, last comment date. Sort: blocked > in-progress > open. If `--sprint` flag was provided, use that sprint instead of the active one.
@@ -45,6 +49,9 @@ Read `tickets/*/STATUS_SNAPSHOT.yaml` for all non-archived tickets (scan `ticket
 
 **Subagent C — CI sweep (best-effort):**
 Use `/gitlab --org klever` to check pipeline status on active branches. Return: any red/failed pipelines with branch names. If GitLab is unreachable (IAP expired, etc.), return `status: unavailable` and continue. This subagent failing does **not** block Phase 2.
+
+**Subagent D — Harness health (best-effort):**
+Count files in `~/.claude/skill-proposals/` (pending proposals) and `~/.claude/knowledge-capture/` (unprocessed knowledge). Check for skills with `probation:` in frontmatter that have expired. Return: proposal count, knowledge backlog count, expired probation skills. If counts are zero, return `status: clean`. This subagent failing does **not** block Phase 2.
 
 ---
 

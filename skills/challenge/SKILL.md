@@ -2,6 +2,10 @@
 name: challenge
 description: "Challenge recent work, ideas, or design decisions. Frames an adversarial review of implementation choices, architecture, or any work product. Use when you want a critical second opinion on what you just built or decided. Does NOT challenge test validity (use /test-adversarial for that). Input: description of work to challenge, file paths, or 'last N prompts'. Returns: adversarial findings with risk assessment and alternatives."
 user_invocable: true
+nav:
+  bay: review
+  when: "Challenge ideas, decisions, or design choices. Adversarial review of thinking."
+  when_not: "Code review (use /adversarial-cascade). Test validity (use /test-adversarial)."
 ---
 
 # Challenge — Adversarial Work Review

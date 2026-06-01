@@ -12,8 +12,17 @@
         "prod-data": "prj-sprvsr-p-data-n2s076aw4z"
       },
       "safety": {
-        "datastore_dev_allowlist": ["dev-core", "dev-data", "rnd-bac1"],
-        "datastore_blocked_envs": ["uat-core", "uat-data", "prod-core", "prod-data"]
+        "datastore_dev_allowlist": [
+          "dev-core",
+          "dev-data",
+          "rnd-bac1"
+        ],
+        "datastore_blocked_envs": [
+          "uat-core",
+          "uat-data",
+          "prod-core",
+          "prod-data"
+        ]
       }
     },
     "klever": {
@@ -25,7 +34,8 @@
         "dev-pbmod": "prj-d-grid-pbmod-nb9x844rqk",
         "dev-insights": "prj-d-grid-insigt-3vm2fcstbw",
         "dev-pipeline": "prj-d-biz-report-im9q1fvvc7",
-        "dev-vpc": "prj-d-env-main-bmuvo1wgpu"
+        "dev-vpc": "prj-d-env-main-bmuvo1wgpu",
+        "dev-backend": "prj-d-global-back-a7osqvwere"
       },
       "safety": {
         "datastore_dev_allowlist": [],

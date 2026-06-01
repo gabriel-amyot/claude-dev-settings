@@ -2,6 +2,10 @@
 name: pr-review
 description: "Comprehensive PR review with isolation and context. Clones to /tmp for clean review, fetches Jira AC if ticket provided, runs security checks (OWASP), then delegates to pr-review-toolkit agents (code-reviewer, test-analyzer, silent-failure-hunter, type-design-analyzer, comment-analyzer, code-simplifier). Use for reviewing your own PRs/MRs before shipping. Triggers on: 'review my PR', 'check my changes', 'before I push', 'look at my code', 'am I good to merge'. For teammates' PRs, use colleague-review agent instead. Input: PR URL or branch + optional ticket key. Returns: multi-agent review report."
 user_invocable: true
+nav:
+  bay: review
+  when: "Comprehensive PR review with isolation, Jira AC fetch, OWASP security checks."
+  when_not: "Reviewing teammates' PRs (use colleague-review agent). Light code check (use /adversarial-cascade)."
 ---
 
 # PR Review

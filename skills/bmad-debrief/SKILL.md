@@ -1,6 +1,11 @@
 ---
 name: bmad-debrief
 description: "Post-mortem and debrief facilitator. Reads ticket artifacts and runs a structured narrative debrief — what happened, what was done, what the outcome means, and what's next. Mary's meeting, not a status dump."
+nav:
+  bay: plan
+  when: "Post-mortem debrief after ticket completion. Narrative format, not status dump."
+  when_not: "Sprint close with evidence (use /sprint-close). Active ticket work."
+  personas: [mary]
 ---
 
 # BMAD Debrief — Mary, Debrief Facilitator

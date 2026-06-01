@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """GitLab CLI for Claude Code - minimal, token-efficient interface"""
+import fcntl
 import glob
 import os
 import sys
@@ -10,11 +11,15 @@ import re
 import time
 import requests
 
+from trace_utils import strip_ansi, extract_plan_dict, extract_error_lines
+
 # Configuration management
 CONFIG_FILE = os.path.expanduser("~/.claude-shared-config/skills/gitlab/gitlab_config.json")
 IAP_HELPER_BIN = os.path.expanduser("~/bin/git-remote-https+iap")
 IAP_COOKIE_DIR = os.path.expanduser("~/.config/git-gcp-iap")
-BLOCKED_REFS = {"main", "master", "prod", "production"}
+BLOCKED_REFS = {"main", "master", "prod", "production", "uat"}
+BLOCKED_SCOPES = {"production", "prod", "uat", "main", "master"}
+MAX_API_RETRIES = 2
 INDEX_FILE = os.path.join(os.path.dirname(CONFIG_FILE), "dac_index.json")
 
 
@@ -28,9 +33,19 @@ def load_index():
 
 
 def save_index(index_data):
-    """Persist the project index to disk"""
-    with open(INDEX_FILE, "w") as f:
-        json.dump(index_data, f, indent=2)
+    """Persist the project index to disk with file locking to prevent corruption
+    when multiple agents write simultaneously."""
+    lock_path = INDEX_FILE + ".lock"
+    with open(lock_path, "w") as lock_f:
+        try:
+            fcntl.flock(lock_f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            fcntl.flock(lock_f, fcntl.LOCK_EX)
+        try:
+            with open(INDEX_FILE, "w") as f:
+                json.dump(index_data, f, indent=2)
+        finally:
+            fcntl.flock(lock_f, fcntl.LOCK_UN)
 
 
 def build_index_from_api(org_config, group_override=None):
@@ -75,10 +90,12 @@ def build_index_from_api(org_config, group_override=None):
 
         org_index[name] = {"id": pid, "path": full_path}
 
-        # Strip common prefixes to create short aliases
-        # e.g., "dac-sprvsr-core-eqs" → "eqs"
+        # Strip org-configurable prefixes to create short aliases
+        # e.g., "dac-sprvsr-core-eqs" → "eqs", "dac-gcp-back-proxrp" → "proxrp"
         short = name
-        for prefix in ("dac-sprvsr-core-", "dac-sprvsr-", "dac-"):
+        strip_prefixes = org_config.get("strip_prefixes",
+                                        ["dac-sprvsr-core-", "dac-sprvsr-", "dac-"])
+        for prefix in strip_prefixes:
             if short.startswith(prefix):
                 short = short[len(prefix):]
                 break
@@ -298,61 +315,93 @@ def get_org_config(org_name=None):
     }
 
 
-# Parse organization from arguments if present, then remove from sys.argv
-# so all positional-index logic downstream works unchanged
-org_name = None
-if "--org" in sys.argv:
-    idx = sys.argv.index("--org")
-    if idx + 1 < len(sys.argv):
-        org_name = sys.argv[idx + 1]
-        # Strip --org <value> so downstream sys.argv[2] logic stays correct
-        sys.argv = sys.argv[:idx] + sys.argv[idx + 2:]
+# Module-level globals for API calls. Set by _init() at startup or by tests.
+current_org = None
+gitlab_url = None
+gitlab_token = None
+headers = {}
 
-# Load organization config
-current_org = get_org_config(org_name)
-gitlab_url = current_org["url"]
-gitlab_token = current_org["token"]
 
-headers = {
-    "PRIVATE-TOKEN": gitlab_token,
-    "Content-Type": "application/json"
-}
-
-# Add IAP authentication if available
-iap_token = get_iap_token(gitlab_url, iap_refresh_repo=current_org.get("iap_refresh_repo"))
-if iap_token:
-    headers["Authorization"] = f"Bearer {iap_token}"
+def _init(org_override=None):
+    """Initialize module globals from config. Called at startup or by tests."""
+    global current_org, gitlab_url, gitlab_token, headers
+    current_org = get_org_config(org_override)
+    gitlab_url = current_org["url"]
+    gitlab_token = current_org["token"]
+    headers = {
+        "PRIVATE-TOKEN": gitlab_token,
+        "Content-Type": "application/json"
+    }
+    iap_token = get_iap_token(gitlab_url, iap_refresh_repo=current_org.get("iap_refresh_repo"))
+    if iap_token:
+        headers["Authorization"] = f"Bearer {iap_token}"
 
 
 def api_request(endpoint, method="GET", params=None, data=None, raw=False):
-    """Make API request to GitLab"""
+    """Make API request to GitLab with retry on transient failures.
+
+    Retries up to MAX_API_RETRIES times on 5xx errors and connection failures.
+    Never retries on 4xx (client errors) or redirects (IAP auth).
+    """
     url = f"{gitlab_url}/api/v4{endpoint}"
-    try:
-        kwargs = {"headers": headers, "params": params, "allow_redirects": False}
-        if method == "GET":
-            response = requests.get(url, **kwargs)
-        elif method == "POST":
-            response = requests.post(url, json=data, **kwargs)
-        elif method == "PUT":
-            response = requests.put(url, json=data, **kwargs)
+    last_error = None
 
-        if response.status_code in (301, 302, 303, 307, 308):
-            return {"error": "IAP authentication failed (redirect to login). "
-                    "Run: ~/bin/git-remote-https+iap check origin https+iap://"
-                    f"{gitlab_url.replace('https://', '')} to refresh the IAP token."}
-
-        if response.status_code >= 400:
-            return {"error": f"API Error {response.status_code}: {response.text[:500]}"}
-
-        if raw:
-            return response.text
-
+    for attempt in range(1 + MAX_API_RETRIES):
         try:
-            return response.json()
-        except ValueError:
-            return response.text
-    except Exception as e:
-        return {"error": str(e)}
+            kwargs = {"headers": headers, "params": params, "allow_redirects": False}
+            if method == "GET":
+                response = requests.get(url, **kwargs)
+            elif method == "POST":
+                response = requests.post(url, json=data, **kwargs)
+            elif method == "PUT":
+                response = requests.put(url, json=data, **kwargs)
+
+            # IAP redirect: auth problem, not transient. Don't retry.
+            if response.status_code in (301, 302, 303, 307, 308):
+                return {"error": "IAP authentication failed (redirect to login). "
+                        "Run: ~/bin/git-remote-https+iap check origin https+iap://"
+                        f"{gitlab_url.replace('https://', '')} to refresh the IAP token."}
+
+            # 429: rate limited. Respect Retry-After header, then retry.
+            if response.status_code == 429:
+                retry_after = int(response.headers.get("Retry-After", 5))
+                last_error = f"Rate limited (429). Retry-After: {retry_after}s"
+                if attempt < MAX_API_RETRIES:
+                    time.sleep(min(retry_after, 30))
+                    continue
+                return {"error": last_error}
+
+            # 4xx: client error. Don't retry.
+            if 400 <= response.status_code < 500:
+                return {"error": f"API Error {response.status_code}: {response.text[:500]}"}
+
+            # 5xx: server error. Retry if attempts remain.
+            if response.status_code >= 500:
+                last_error = f"API Error {response.status_code}: {response.text[:500]}"
+                if attempt < MAX_API_RETRIES:
+                    time.sleep(1 * (attempt + 1))
+                    continue
+                return {"error": last_error}
+
+            if raw:
+                return response.text
+
+            try:
+                return response.json()
+            except ValueError:
+                return response.text
+
+        except (requests.ConnectionError, requests.Timeout) as e:
+            last_error = str(e)
+            if attempt < MAX_API_RETRIES:
+                time.sleep(1 * (attempt + 1))
+                continue
+            return {"error": last_error}
+
+        except Exception as e:
+            return {"error": str(e)}
+
+    return {"error": last_error or "Unknown error after retries"}
 
 
 def compact_group(group):
@@ -571,7 +620,7 @@ def clone_repos(group_id, repo_list=None, output_dir=None):
     }
 
 
-def manage_merge_request(project_id, action, title=None, source=None, target=None, mr_iid=None):
+def manage_merge_request(project_id, action, title=None, source=None, target=None, mr_iid=None, description=None):
     """Manage merge requests"""
 
     if action == "create":
@@ -583,6 +632,8 @@ def manage_merge_request(project_id, action, title=None, source=None, target=Non
             "source_branch": source,
             "target_branch": target
         }
+        if description:
+            data["description"] = description
 
         response = api_request(f"/projects/{project_id}/merge_requests",
                              method="POST", data=data)
@@ -595,6 +646,63 @@ def manage_merge_request(project_id, action, title=None, source=None, target=Non
             "iid": response.get("iid"),
             "title": response.get("title"),
             "state": response.get("state"),
+            "web_url": response.get("web_url")
+        }
+
+    elif action == "update":
+        if not mr_iid:
+            return {"error": "update action requires --mr-iid"}
+        data = {}
+        if title:
+            data["title"] = title
+        if description:
+            data["description"] = description
+        if not data:
+            return {"error": "update action requires at least --title or --description"}
+
+        response = api_request(f"/projects/{project_id}/merge_requests/{mr_iid}",
+                             method="PUT", data=data)
+
+        if isinstance(response, dict) and "error" in response:
+            return response
+
+        return {
+            "updated": True,
+            "iid": response.get("iid"),
+            "title": response.get("title"),
+            "web_url": response.get("web_url")
+        }
+
+    elif action == "merge":
+        if not mr_iid:
+            return {"error": "merge action requires --mr-iid"}
+
+        response = api_request(f"/projects/{project_id}/merge_requests/{mr_iid}/merge",
+                             method="PUT", data={})
+
+        if isinstance(response, dict) and "error" in response:
+            return response
+
+        return {
+            "merged": True,
+            "iid": response.get("iid"),
+            "state": response.get("state")
+        }
+
+    elif action == "auto-merge":
+        if not mr_iid:
+            return {"error": "auto-merge action requires --mr-iid"}
+
+        response = api_request(f"/projects/{project_id}/merge_requests/{mr_iid}/merge",
+                             method="PUT", data={"merge_when_pipeline_succeeds": True})
+
+        if isinstance(response, dict) and "error" in response:
+            return response
+
+        return {
+            "auto_merge_set": True,
+            "iid": response.get("iid"),
+            "merge_when_pipeline_succeeds": True,
             "web_url": response.get("web_url")
         }
 
@@ -763,27 +871,13 @@ def deploy_watch(project_id, pipeline_id, poll_interval=15, max_polls=80):
             if j.get("status") in ("success", "failed"):
                 log_resp = api_request(f"/projects/{project_id}/jobs/{j['id']}/trace", raw=True)
                 if isinstance(log_resp, str):
-                    clean = re.sub(r'\x1b\[[0-9;]*m', '', log_resp)
-                    plan_match = re.search(
-                        r"Plan:\s*(\d+)\s*to add,\s*(\d+)\s*to change,\s*(\d+)\s*to destroy",
-                        clean
-                    )
-                    if plan_match:
-                        summaries.append({
-                            "job": j.get("name"),
-                            "plan_add": int(plan_match.group(1)),
-                            "plan_change": int(plan_match.group(2)),
-                            "plan_destroy": int(plan_match.group(3)),
-                        })
-                    error_lines = [
-                        l.strip() for l in clean.split("\n")
-                        if re.search(r"\[\s*ERROR\s*\]|Error:|error:", l)
-                    ]
-                    if error_lines:
-                        summaries.append({
-                            "job": j.get("name"),
-                            "errors": error_lines[:10],
-                        })
+                    clean = strip_ansi(log_resp)
+                    plan = extract_plan_dict(j.get("name"), clean)
+                    if plan:
+                        summaries.append(plan)
+                    errors = extract_error_lines(clean)
+                    if errors:
+                        summaries.append({"job": j.get("name"), "errors": errors})
         return summaries
 
     stages_result = {
@@ -922,8 +1016,34 @@ def play_job(project_id, job_id):
     }
 
 
+def get_pipeline_bridges(project_id, pipeline_id):
+    """List bridge/trigger jobs for a pipeline. These are invisible in the /jobs endpoint."""
+    response = api_request(f"/projects/{project_id}/pipelines/{pipeline_id}/bridges",
+                           params={"per_page": 50})
+
+    if isinstance(response, dict) and "error" in response:
+        return response
+
+    return [{
+        "id": b.get("id"),
+        "name": b.get("name"),
+        "stage": b.get("stage"),
+        "status": b.get("status"),
+        "started_at": b.get("started_at"),
+        "finished_at": b.get("finished_at"),
+        "duration": b.get("duration"),
+        "failure_reason": b.get("failure_reason"),
+        "web_url": b.get("web_url"),
+        "downstream_pipeline": b.get("downstream_pipeline", {}).get("id") if b.get("downstream_pipeline") else None,
+    } for b in response]
+
+
 def manage_variables(project_id, action, key=None, value=None, scope=None):
     """Manage CI/CD variables"""
+    if action == "set" and scope and scope.lower() in BLOCKED_SCOPES:
+        return {"error": f"BLOCKED: Setting CI/CD variables on scope '{scope}' is not allowed. "
+                "Only dev scope is permitted from Claude Code."}
+
     scope_filter = {"filter[environment_scope]": scope} if scope else {}
 
     if action == "list":
@@ -993,362 +1113,292 @@ def manage_variables(project_id, action, key=None, value=None, scope=None):
         return {"error": f"Unknown vars action: {action}. Use: list, get, set"}
 
 
-if len(sys.argv) < 2:
-    print(json.dumps({"error": "No command specified"}))
-    sys.exit(1)
+def _resolve_or_error(name_or_id):
+    """Resolve project name/ID via index. Returns (int_id, None) or (None, error_dict)."""
+    pid = resolve_project_id(name_or_id, current_org["name"])
+    if pid is None:
+        return None, {"error": f"Could not resolve project '{name_or_id}'. Run 'index' to rebuild."}
+    return pid, None
 
-command = sys.argv[1]
-result = None
 
-try:
-    if command == "list-groups":
-        full = "--full" in sys.argv
-        result = list_groups(full=full)
+def _build_parser():
+    """Build the argparse parser with all subcommands."""
+    import argparse
 
-    elif command == "list-repos":
-        group_id = None
-        all_repos = False
-        full = False
+    parser = argparse.ArgumentParser(prog="gitlab_skill.py", description="GitLab CLI for Claude Code")
+    parser.add_argument("--org", help="Organization override (auto-detected from $PWD)")
 
-        if "--group" in sys.argv:
-            idx = sys.argv.index("--group")
-            if idx + 1 < len(sys.argv):
-                group_id = sys.argv[idx + 1]
+    sub = parser.add_subparsers(dest="command")
 
-        if "--all" in sys.argv:
-            all_repos = True
+    # list-groups
+    p = sub.add_parser("list-groups")
+    p.add_argument("--full", action="store_true")
 
-        if "--full" in sys.argv:
-            full = True
+    # list-repos
+    p = sub.add_parser("list-repos")
+    p.add_argument("--group", dest="group_id")
+    p.add_argument("--all", action="store_true", dest="all_repos")
+    p.add_argument("--full", action="store_true")
 
-        result = list_repos(group_id=group_id, all_repos=all_repos, full=full)
+    # get-repo (now resolves names)
+    p = sub.add_parser("get-repo")
+    p.add_argument("project", help="Project name or numeric ID")
+    p.add_argument("--full", action="store_true")
 
-    elif command == "get-repo":
-        if len(sys.argv) < 3:
-            result = {"error": "get-repo requires project ID or path"}
-        else:
-            project_id = sys.argv[2]
-            full = "--full" in sys.argv
-            result = get_repo(project_id, full=full)
+    # search
+    p = sub.add_parser("search")
+    p.add_argument("query")
+    p.add_argument("--max", type=int, default=20, dest="max_results")
 
-    elif command == "search":
-        if len(sys.argv) < 3:
-            result = {"error": "search requires query"}
-        else:
-            query = sys.argv[2]
-            max_results = 20
+    # clone
+    p = sub.add_parser("clone")
+    p.add_argument("--group", required=True, dest="group_id")
+    p.add_argument("--repos", dest="repo_list")
+    p.add_argument("--output", dest="output_dir")
 
-            if "--max" in sys.argv:
-                idx = sys.argv.index("--max")
-                if idx + 1 < len(sys.argv):
+    # mr (now resolves project names)
+    p = sub.add_parser("mr")
+    p.add_argument("--project", required=True)
+    p.add_argument("--action", required=True, choices=["create", "list", "approve", "merge", "auto-merge", "update"])
+    p.add_argument("--title")
+    p.add_argument("--source")
+    p.add_argument("--target")
+    p.add_argument("--mr-iid")
+    p.add_argument("--description")
+    p.add_argument("--description-file")
+
+    # pipelines
+    p = sub.add_parser("pipelines")
+    p.add_argument("project", nargs="?")
+    p.add_argument("--project", dest="project_flag")
+    p.add_argument("--ref")
+    p.add_argument("--status")
+    p.add_argument("--count", type=int, default=10)
+
+    # jobs
+    p = sub.add_parser("jobs")
+    p.add_argument("project", nargs="?")
+    p.add_argument("--project", dest="project_flag")
+    p.add_argument("--pipeline", required=True)
+    p.add_argument("--logs", action="store_true")
+
+    # bridges
+    p = sub.add_parser("bridges")
+    p.add_argument("project", nargs="?")
+    p.add_argument("--project", dest="project_flag")
+    p.add_argument("--pipeline", required=True)
+
+    # trace
+    p = sub.add_parser("trace")
+    p.add_argument("project", nargs="?")
+    p.add_argument("--project", dest="project_flag")
+    p.add_argument("--job", required=True)
+    p.add_argument("--filter")
+
+    # pipeline (trigger)
+    p = sub.add_parser("pipeline")
+    p.add_argument("project", nargs="?")
+    p.add_argument("--project", dest="project_flag")
+    p.add_argument("--ref", default="dev")
+    p.add_argument("--var", action="append", default=[])
+
+    # vars
+    p = sub.add_parser("vars")
+    p.add_argument("project", nargs="?")
+    p.add_argument("--project", dest="project_flag")
+    p.add_argument("--action", required=True, choices=["list", "get", "set"])
+    p.add_argument("--key")
+    p.add_argument("--value")
+    p.add_argument("--scope")
+
+    # deploy-watch
+    p = sub.add_parser("deploy-watch")
+    p.add_argument("project", nargs="?")
+    p.add_argument("--project", dest="project_flag")
+    p.add_argument("--pipeline", required=True)
+    p.add_argument("--interval", type=int, default=15)
+
+    # play-job
+    p = sub.add_parser("play-job")
+    p.add_argument("project", nargs="?")
+    p.add_argument("--project", dest="project_flag")
+    p.add_argument("--job", required=True)
+
+    # index
+    p = sub.add_parser("index")
+    p.add_argument("--group", dest="group_override")
+
+    return parser
+
+
+if __name__ == "__main__":
+    parser = _build_parser()
+    args = parser.parse_args()
+
+    if not args.command:
+        print(json.dumps({"error": "No command specified"}))
+        sys.exit(1)
+
+    _init(args.org)
+    result = None
+
+    try:
+        cmd = args.command
+
+        if cmd == "list-groups":
+            result = list_groups(full=args.full)
+
+        elif cmd == "list-repos":
+            result = list_repos(group_id=args.group_id, all_repos=args.all_repos, full=args.full)
+
+        elif cmd == "get-repo":
+            pid, err = _resolve_or_error(args.project)
+            result = err or get_repo(pid, full=args.full)
+
+        elif cmd == "search":
+            result = search_repos(args.query, max_results=args.max_results)
+
+        elif cmd == "clone":
+            result = clone_repos(args.group_id, repo_list=args.repo_list, output_dir=args.output_dir)
+
+        elif cmd == "mr":
+            pid, err = _resolve_or_error(args.project)
+            if err:
+                result = err
+            else:
+                description = None
+                if args.description_file:
                     try:
-                        max_results = int(sys.argv[idx + 1])
-                    except:
-                        pass
+                        with open(args.description_file, "r") as f:
+                            description = f.read()
+                    except FileNotFoundError:
+                        result = {"error": f"Description file not found: {args.description_file}"}
+                        print(json.dumps(result, indent=2))
+                        sys.exit(1)
+                elif args.description:
+                    description = args.description
+                result = manage_merge_request(pid, args.action,
+                                             title=args.title, source=args.source,
+                                             target=args.target, mr_iid=args.mr_iid,
+                                             description=description)
 
-            result = search_repos(query, max_results=max_results)
-
-    elif command == "clone":
-        group_id = None
-        repo_list = None
-        output_dir = "./gitlab-repos"
-
-        if "--group" in sys.argv:
-            idx = sys.argv.index("--group")
-            if idx + 1 < len(sys.argv):
-                group_id = sys.argv[idx + 1]
-
-        if "--repos" in sys.argv:
-            idx = sys.argv.index("--repos")
-            if idx + 1 < len(sys.argv):
-                repo_list = sys.argv[idx + 1]
-
-        if "--output" in sys.argv:
-            idx = sys.argv.index("--output")
-            if idx + 1 < len(sys.argv):
-                output_dir = sys.argv[idx + 1]
-
-        if not group_id:
-            result = {"error": "clone requires --group"}
-        else:
-            result = clone_repos(group_id, repo_list=repo_list, output_dir=output_dir)
-
-    elif command == "mr":
-        if "--project" not in sys.argv or "--action" not in sys.argv:
-            result = {"error": "mr requires --project and --action"}
-        else:
-            project_id = sys.argv[sys.argv.index("--project") + 1]
-            action = sys.argv[sys.argv.index("--action") + 1]
-
-            title = None
-            source = None
-            target = None
-            mr_iid = None
-
-            if "--title" in sys.argv:
-                idx = sys.argv.index("--title")
-                if idx + 1 < len(sys.argv):
-                    title = sys.argv[idx + 1]
-
-            if "--source" in sys.argv:
-                idx = sys.argv.index("--source")
-                if idx + 1 < len(sys.argv):
-                    source = sys.argv[idx + 1]
-
-            if "--target" in sys.argv:
-                idx = sys.argv.index("--target")
-                if idx + 1 < len(sys.argv):
-                    target = sys.argv[idx + 1]
-
-            if "--mr-iid" in sys.argv:
-                idx = sys.argv.index("--mr-iid")
-                if idx + 1 < len(sys.argv):
-                    mr_iid = sys.argv[idx + 1]
-
-            result = manage_merge_request(project_id, action,
-                                         title=title, source=source,
-                                         target=target, mr_iid=mr_iid)
-
-    elif command == "pipelines":
-        # List recent pipelines: pipelines <project> [--ref dev] [--status failed] [--count 10]
-        project_name_or_id = None
-
-        if "--project" in sys.argv:
-            project_name_or_id = sys.argv[sys.argv.index("--project") + 1]
-        elif len(sys.argv) > 2 and not sys.argv[2].startswith("--"):
-            project_name_or_id = sys.argv[2]
-
-        if not project_name_or_id:
-            result = {"error": "pipelines requires project name or ID (e.g., 'pipelines lead-lifecycle')"}
-        else:
-            project_id = resolve_project_id(project_name_or_id, current_org["name"])
-            if not project_id:
-                result = {"error": f"Could not resolve project '{project_name_or_id}'."}
+        elif cmd == "pipelines":
+            name = args.project_flag or args.project
+            if not name:
+                result = {"error": "pipelines requires project name or ID"}
             else:
-                ref = None
-                status = None
-                per_page = 10
+                pid, err = _resolve_or_error(name)
+                result = err or list_pipelines(pid, ref=args.ref, status=args.status, per_page=args.count)
 
-                if "--ref" in sys.argv:
-                    ref = sys.argv[sys.argv.index("--ref") + 1]
-                if "--status" in sys.argv:
-                    status = sys.argv[sys.argv.index("--status") + 1]
-                if "--count" in sys.argv:
-                    per_page = int(sys.argv[sys.argv.index("--count") + 1])
-
-                result = list_pipelines(project_id, ref=ref, status=status, per_page=per_page)
-
-    elif command == "jobs":
-        # Get jobs for a pipeline: jobs <project> --pipeline <id> [--logs]
-        project_name_or_id = None
-
-        if "--project" in sys.argv:
-            project_name_or_id = sys.argv[sys.argv.index("--project") + 1]
-        elif len(sys.argv) > 2 and not sys.argv[2].startswith("--"):
-            project_name_or_id = sys.argv[2]
-
-        if not project_name_or_id:
-            result = {"error": "jobs requires project name or ID (e.g., 'jobs lead-lifecycle --pipeline 21872')"}
-        elif "--pipeline" not in sys.argv:
-            result = {"error": "jobs requires --pipeline <id>"}
-        else:
-            project_id = resolve_project_id(project_name_or_id, current_org["name"])
-            if not project_id:
-                result = {"error": f"Could not resolve project '{project_name_or_id}'."}
+        elif cmd == "jobs":
+            name = args.project_flag or args.project
+            if not name:
+                result = {"error": "jobs requires project name or ID"}
             else:
-                pipeline_id = sys.argv[sys.argv.index("--pipeline") + 1]
-                include_log = "--logs" in sys.argv
-                result = get_pipeline_jobs(project_id, pipeline_id, include_log=include_log)
+                pid, err = _resolve_or_error(name)
+                result = err or get_pipeline_jobs(pid, args.pipeline, include_log=args.logs)
 
-    elif command == "trace":
-        # Get raw job trace: trace <project> --job <id> [--filter ERROR|WARN|etc]
-        project_name_or_id = None
-
-        if "--project" in sys.argv:
-            project_name_or_id = sys.argv[sys.argv.index("--project") + 1]
-        elif len(sys.argv) > 2 and not sys.argv[2].startswith("--"):
-            project_name_or_id = sys.argv[2]
-
-        if not project_name_or_id:
-            result = {"error": "trace requires project name or ID (e.g., 'trace lead-lifecycle --job 56114')"}
-        elif "--job" not in sys.argv:
-            result = {"error": "trace requires --job <id>"}
-        else:
-            project_id = resolve_project_id(project_name_or_id, current_org["name"])
-            if not project_id:
-                result = {"error": f"Could not resolve project '{project_name_or_id}'."}
+        elif cmd == "bridges":
+            name = args.project_flag or args.project
+            if not name:
+                result = {"error": "bridges requires project name or ID"}
             else:
-                import re as _re
-                job_id = sys.argv[sys.argv.index("--job") + 1]
-                log_resp = api_request(f"/projects/{project_id}/jobs/{job_id}/trace", raw=True)
-                if isinstance(log_resp, dict) and "error" in log_resp:
-                    result = log_resp
-                elif isinstance(log_resp, str):
-                    clean = _re.sub(r'\x1b\[[0-9;]*m', '', log_resp)
-                    lines = clean.strip().split("\n")
-                    filter_kw = None
-                    if "--filter" in sys.argv:
-                        filter_kw = sys.argv[sys.argv.index("--filter") + 1].lower()
-                    if filter_kw:
-                        filtered = [f"L{i}: {l.rstrip()}" for i, l in enumerate(lines) if filter_kw in l.lower()]
-                        result = {"job_id": job_id, "total_lines": len(lines), "filter": filter_kw, "matched_lines": len(filtered), "output": "\n".join(filtered[:100])}
-                    else:
-                        result = {"job_id": job_id, "total_lines": len(lines), "output": "\n".join(lines[:500])}
+                pid, err = _resolve_or_error(name)
+                result = err or get_pipeline_bridges(pid, args.pipeline)
+
+        elif cmd == "trace":
+            name = args.project_flag or args.project
+            if not name:
+                result = {"error": "trace requires project name or ID"}
+            else:
+                pid, err = _resolve_or_error(name)
+                if err:
+                    result = err
                 else:
-                    result = {"error": "Unexpected response type from trace endpoint"}
+                    log_resp = api_request(f"/projects/{pid}/jobs/{args.job}/trace", raw=True)
+                    if isinstance(log_resp, dict) and "error" in log_resp:
+                        result = log_resp
+                    elif isinstance(log_resp, str):
+                        clean = re.sub(r'\x1b\[[0-9;]*m', '', log_resp)
+                        lines = clean.strip().split("\n")
+                        if args.filter:
+                            kw = args.filter.lower()
+                            filtered = [f"L{i}: {l.rstrip()}" for i, l in enumerate(lines) if kw in l.lower()]
+                            result = {"job_id": args.job, "total_lines": len(lines),
+                                      "filter": kw, "matched_lines": len(filtered),
+                                      "output": "\n".join(filtered[:100])}
+                        else:
+                            result = {"job_id": args.job, "total_lines": len(lines),
+                                      "output": "\n".join(lines[:500])}
+                    else:
+                        result = {"error": "Unexpected response type from trace endpoint"}
 
-    elif command == "pipeline":
-        # Trigger pipeline: pipeline <project> [--ref dev] [--var KEY=VALUE]
-        project_name_or_id = None
-
-        if "--project" in sys.argv:
-            project_name_or_id = sys.argv[sys.argv.index("--project") + 1]
-        elif len(sys.argv) > 2 and not sys.argv[2].startswith("--"):
-            project_name_or_id = sys.argv[2]
-
-        if not project_name_or_id:
-            result = {"error": "pipeline requires project name or ID (e.g., 'pipeline eqs' or 'pipeline --project 224')"}
-        else:
-            project_id = resolve_project_id(project_name_or_id, current_org["name"])
-
-            if not project_id:
-                result = {"error": f"Could not resolve project '{project_name_or_id}'. Available DACs: eqs, retell-service, lead-lifecycle, etc."}
+        elif cmd == "pipeline":
+            name = args.project_flag or args.project
+            if not name:
+                result = {"error": "pipeline requires project name or ID"}
             else:
-                ref = "dev"
-                variables = []
-
-                if "--ref" in sys.argv:
-                    idx = sys.argv.index("--ref")
-                    if idx + 1 < len(sys.argv):
-                        ref = sys.argv[idx + 1]
-
-                for i, arg in enumerate(sys.argv):
-                    if arg == "--var" and i + 1 < len(sys.argv):
-                        kv = sys.argv[i + 1]
+                pid, err = _resolve_or_error(name)
+                if err:
+                    result = err
+                else:
+                    variables = []
+                    for kv in args.var:
                         if "=" in kv:
                             k, v = kv.split("=", 1)
                             variables.append((k, v))
+                    result = trigger_pipeline(pid, ref=args.ref,
+                                             variables=variables if variables else None)
 
-                result = trigger_pipeline(project_id, ref=ref, variables=variables if variables else None)
-
-    elif command == "vars":
-        # Auto-resolve project from positional arg or --project flag
-        project_name_or_id = None
-
-        if "--project" in sys.argv:
-            project_name_or_id = sys.argv[sys.argv.index("--project") + 1]
-        elif len(sys.argv) > 2 and not sys.argv[2].startswith("--"):
-            project_name_or_id = sys.argv[2]
-
-        if not project_name_or_id:
-            result = {"error": "vars requires project name or ID (e.g., 'vars eqs --action list')"}
-        elif "--action" not in sys.argv:
-            result = {"error": "vars requires --action (list, get, or set)"}
-        else:
-            project_id = resolve_project_id(project_name_or_id, current_org["name"])
-
-            if not project_id:
-                result = {"error": f"Could not resolve project '{project_name_or_id}'. Available DACs: eqs, retell-service, lead-lifecycle, etc."}
+        elif cmd == "vars":
+            name = args.project_flag or args.project
+            if not name:
+                result = {"error": "vars requires project name or ID"}
             else:
-                action = sys.argv[sys.argv.index("--action") + 1]
+                pid, err = _resolve_or_error(name)
+                result = err or manage_variables(pid, args.action,
+                                                key=args.key, value=args.value, scope=args.scope)
 
-                key = None
-                value = None
-                scope = None
-
-                if "--key" in sys.argv:
-                    idx = sys.argv.index("--key")
-                    if idx + 1 < len(sys.argv):
-                        key = sys.argv[idx + 1]
-
-                if "--value" in sys.argv:
-                    idx = sys.argv.index("--value")
-                    if idx + 1 < len(sys.argv):
-                        value = sys.argv[idx + 1]
-
-                if "--scope" in sys.argv:
-                    idx = sys.argv.index("--scope")
-                    if idx + 1 < len(sys.argv):
-                        scope = sys.argv[idx + 1]
-
-                result = manage_variables(project_id, action, key=key, value=value, scope=scope)
-
-    elif command == "deploy-watch":
-        # Watch deployment pipeline: deploy-watch <project> --pipeline <id> [--interval 15]
-        project_name_or_id = None
-        if "--project" in sys.argv:
-            project_name_or_id = sys.argv[sys.argv.index("--project") + 1]
-        elif len(sys.argv) > 2 and not sys.argv[2].startswith("--"):
-            project_name_or_id = sys.argv[2]
-
-        if not project_name_or_id:
-            result = {"error": "deploy-watch requires project name (e.g., 'deploy-watch lead-lifecycle --pipeline 21872')"}
-        elif "--pipeline" not in sys.argv:
-            result = {"error": "deploy-watch requires --pipeline <id>"}
-        else:
-            project_id = resolve_project_id(project_name_or_id, current_org["name"])
-            if not project_id:
-                result = {"error": f"Could not resolve project '{project_name_or_id}'."}
+        elif cmd == "deploy-watch":
+            name = args.project_flag or args.project
+            if not name:
+                result = {"error": "deploy-watch requires project name or ID"}
             else:
-                pipeline_id = sys.argv[sys.argv.index("--pipeline") + 1]
-                interval = 15
-                if "--interval" in sys.argv:
-                    interval = int(sys.argv[sys.argv.index("--interval") + 1])
-                result = deploy_watch(project_id, pipeline_id, poll_interval=interval)
+                pid, err = _resolve_or_error(name)
+                result = err or deploy_watch(pid, args.pipeline, poll_interval=args.interval)
 
-    elif command == "play-job":
-        # Trigger a manual/blocked job: play-job <project> --job <id>
-        project_name_or_id = None
-        if "--project" in sys.argv:
-            project_name_or_id = sys.argv[sys.argv.index("--project") + 1]
-        elif len(sys.argv) > 2 and not sys.argv[2].startswith("--"):
-            project_name_or_id = sys.argv[2]
-
-        if not project_name_or_id:
-            result = {"error": "play-job requires project name (e.g., 'play-job lead-lifecycle --job 56102')"}
-        elif "--job" not in sys.argv:
-            result = {"error": "play-job requires --job <id>"}
-        else:
-            project_id = resolve_project_id(project_name_or_id, current_org["name"])
-            if not project_id:
-                result = {"error": f"Could not resolve project '{project_name_or_id}'."}
+        elif cmd == "play-job":
+            name = args.project_flag or args.project
+            if not name:
+                result = {"error": "play-job requires project name or ID"}
             else:
-                job_id = sys.argv[sys.argv.index("--job") + 1]
-                result = play_job(project_id, job_id)
+                pid, err = _resolve_or_error(name)
+                result = err or play_job(pid, args.job)
 
-    elif command == "index":
-        group_override = None
-        if "--group" in sys.argv:
-            idx = sys.argv.index("--group")
-            if idx + 1 < len(sys.argv):
-                group_override = sys.argv[idx + 1]
+        elif cmd == "index":
+            index_data = run_index(group_override=args.group_override)
+            if isinstance(index_data, dict) and "error" in index_data:
+                result = index_data
+            else:
+                org_name = current_org["name"]
+                org_projects = index_data.get("organizations", {}).get(org_name, {})
+                seen = {}
+                for alias, info in org_projects.items():
+                    pid = info["id"]
+                    if pid not in seen:
+                        seen[pid] = {"id": pid, "name": alias, "path": info["path"]}
+                result = {
+                    "indexed": True,
+                    "organization": org_name,
+                    "project_count": len(seen),
+                    "projects": list(seen.values()),
+                    "index_file": INDEX_FILE
+                }
 
-        index_data = run_index(group_override=group_override)
+        print(json.dumps(result, indent=2))
 
-        if isinstance(index_data, dict) and "error" in index_data:
-            result = index_data
-        else:
-            org_name = current_org["name"]
-            org_projects = index_data.get("organizations", {}).get(org_name, {})
-            # Deduplicate by project ID to show unique projects
-            seen = {}
-            for alias, info in org_projects.items():
-                pid = info["id"]
-                if pid not in seen:
-                    seen[pid] = {"id": pid, "name": alias, "path": info["path"]}
-            result = {
-                "indexed": True,
-                "organization": org_name,
-                "project_count": len(seen),
-                "projects": list(seen.values()),
-                "index_file": INDEX_FILE
-            }
-
-    else:
-        result = {"error": f"Unknown command: {command}"}
-
-    print(json.dumps(result, indent=2))
-
-except Exception as e:
-    print(json.dumps({"error": str(e)}))
-    sys.exit(1)
+    except SystemExit:
+        raise
+    except Exception as e:
+        print(json.dumps({"error": str(e)}))
+        sys.exit(1)

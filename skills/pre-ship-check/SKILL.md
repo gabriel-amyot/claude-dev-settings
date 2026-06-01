@@ -1,6 +1,10 @@
 ---
 name: pre-ship-check
 description: "Pre-shipping readiness check across all services in an epic. Reads REPO_MAPPING.yaml and runs git status on each mapped repo. Reports unpushed commits, dirty files, branch state, and tag history. Use before shipping or deploying."
+nav:
+  bay: ship
+  when: "Pre-shipping readiness check across all services in an epic. Git status per repo."
+  when_not: "Creating the MR itself (use /klever-mr). Deploying (use shipping workflow docs)."
 ---
 
 # Pre-Ship Check

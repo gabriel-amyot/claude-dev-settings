@@ -1,6 +1,10 @@
 ---
 name: index-context
 description: "Recursively generate or update INDEX.md files. Supports --scope architecture (ADRs, design docs) or --scope specs (specifications). Default: full recursive. Use after creating or modifying documents in documentation/ or agent-os/ folders. Input: folder path + optional --scope. Returns: created/updated INDEX.md files."
+nav:
+  bay: know
+  when: "Recursively generate or update INDEX.md files. Scoped to architecture or specs."
+  when_not: "Simple directory index (use /bmad-index-docs)."
 ---
 
 # Index Folder

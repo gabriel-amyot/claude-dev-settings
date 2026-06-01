@@ -3,6 +3,10 @@ name: slack
 description: "Interact with Slack workspace. Search messages, reply to DMs/threads, check unread notifications. Modes: /slack search [query], /slack reply [@person] [message], /slack unread. Supports Slack search syntax (from:, in:, after:, has:). Input: mode + arguments. Returns: messages, confirmation, or notification list."
 user_invocable: true
 allowed-tools: Bash(curl *), Bash(jq *), Bash(date *)
+nav:
+  bay: ops
+  when: "Search Slack messages, reply to DMs/threads, check unread notifications."
+  when_not: "Browser-based Slack automation (use agent-browser:slack)."
 ---
 
 # Slack

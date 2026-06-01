@@ -1,6 +1,10 @@
 ---
 name: scout-probe
 description: Generates single-record probe scripts to validate pipeline operations. Use when an API claims success but state doesn't change, or when debugging multi-service mutations end-to-end.
+nav:
+  bay: fix
+  when: "Generate single-record probe scripts to validate pipeline operations end-to-end."
+  when_not: "Full investigation (use /investigate). HAR file analysis (use /har-diagnostic)."
 ---
 
 # Scout Probe

@@ -1,6 +1,10 @@
 ---
 name: gitlab
 description: "Access and query GitLab repositories (Klever, Supervisr.AI, Origin8). List groups, projects, clone repos, manage merge requests, read CI/CD pipelines and logs, manage pipeline variables. Klever CI/CD runs on GitLab CI exclusively. Supervisr app repos are on GitHub (use gh CLI for those). Input: --org <org> + command. Returns: repo lists, MR details, pipeline logs."
+nav:
+  bay: ops
+  when: "Access GitLab repos. List groups, projects, MRs, CI/CD pipelines, logs."
+  when_not: "Creating a Klever MR (use /klever-mr). Jira operations (use /jira)."
 ---
 
 # GitLab Skill
@@ -17,7 +21,7 @@ description: "Access and query GitLab repositories (Klever, Supervisr.AI, Origin
 
 **IAP is self-healing.** If the Klever cookie expires, the skill auto-runs `git fetch` on the configured refresh repo before failing. No manual intervention needed.
 
-**Natural name resolution.** For `pipeline`/`vars`/`pipelines`/`jobs` commands, project names resolve via a local index. If resolution fails, pass the numeric project ID instead (always reliable).
+**Natural name resolution.** ALL commands that take a project accept names or numeric IDs. Names resolve via a local index (`mr`, `get-repo`, `pipelines`, `jobs`, `trace`, `pipeline`, `vars`, `deploy-watch`, `play-job`). If resolution fails, pass the numeric project ID instead (always reliable).
 
 **Klever key project IDs** (use when natural names don't resolve yet):
 
@@ -116,7 +120,9 @@ python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py vars "lead-lifecyc
 python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py pipeline "lead-lifecycle" --ref dev
 ```
 
-> **Safety:** Pipelines on `main`, `master`, `prod`, `production` are blocked.
+> **Safety:** Pipelines on `main`, `master`, `prod`, `production`, `uat` are blocked.
+> **Safety:** CI/CD variable writes (`vars --action set`) blocked on prod/uat/main/master scopes.
+> **Safety:** API requests retry at most 2 times on server errors (5xx). Never retries on client errors (4xx) or auth redirects.
 > **Safety:** `play-job` always requires explicit user confirmation.
 
 ---
@@ -163,4 +169,5 @@ Tokens: macOS Keychain under service `claude-gitlab`
 - `local_path` — local root for cloning
 - `gitlab_group` — top-level group path
 - `index_groups` — group IDs to index for name resolution
-- `iap_refresh_repo` — (Klever only) git repo path used for IAP cookie auto-refresh
+- `iap_refresh_repo` — git repo path used for IAP cookie auto-refresh (configured for all orgs)
+- `strip_prefixes` — list of prefixes to strip when building short aliases (e.g., `["app-", "dac-"]`)

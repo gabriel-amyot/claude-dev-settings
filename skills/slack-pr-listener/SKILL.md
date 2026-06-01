@@ -4,6 +4,10 @@ description: Poll a Slack PR review channel for new pull request links, then aut
 argument-hint: [#channel-name]
 disable-model-invocation: true
 allowed-tools: Bash(curl *), Bash(jq *), Bash(gh *), Agent
+nav:
+  bay: ops
+  when: "Listen for PR-related Slack messages and route to review workflows."
+  when_not: "General Slack interaction (use /slack). Direct PR review (use /pr-review)."
 ---
 
 # Slack PR Review Channel Listener

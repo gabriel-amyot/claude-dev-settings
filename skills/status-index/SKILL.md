@@ -1,6 +1,10 @@
 ---
 name: status-index
 description: Generate STATUS_SNAPSHOT.yaml for any ticket using acceptance-criteria-weighted completion. Supports recursive indexing from leaf tickets up to epics with progressive disclosure.
+nav:
+  bay: ops
+  when: "Generate STATUS_SNAPSHOT.yaml with acceptance-criteria-weighted completion."
+  when_not: "Full ticket scaffold (use /ticket-init). Sprint-level status (use /klever-sprint-mgmt)."
 ---
 
 # Status Index Skill

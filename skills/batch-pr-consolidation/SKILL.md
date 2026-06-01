@@ -1,6 +1,10 @@
 ---
 name: batch-pr-consolidation
 description: Consolidates multiple approved GitHub PRs into one branch. Trigger: "consolidate these PRs", "make one PR out of these", "batch PRs", "stacked PRs will cause too much rebase pain".
+nav:
+  bay: ship
+  when: "Consolidate multiple approved PRs into one branch to avoid rebase pain."
+  when_not: "Single PR. PRs not yet approved."
 ---
 
 # Batch PR Consolidation

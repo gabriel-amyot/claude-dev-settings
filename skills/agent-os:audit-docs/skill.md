@@ -1,3 +1,11 @@
+---
+name: agent-os:audit-docs
+nav:
+  bay: review
+  when: "Audit agent-os documentation for coverage, staleness, missing sections."
+  when_not: "Creating agent-os scaffold (use /bmad-repo-onboarding)."
+---
+
 # agent-os:audit-docs - Documentation Guardian Agent
 
 ## Purpose

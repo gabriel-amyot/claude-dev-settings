@@ -1,6 +1,10 @@
 ---
 name: vendor-question-escalation
 description: Drafts focused, binary vendor questions when a blocker requires external confirmation. Triggered by "ask the vendor", "email Nick", "check with [external person]", or when a blocker is tagged as "vendor response needed."
+nav:
+  bay: ship
+  when: "Draft focused binary vendor questions when a blocker requires external confirmation."
+  when_not: "Internal team questions. Jira comments (use /post-comment)."
 ---
 
 # Vendor Question Escalation

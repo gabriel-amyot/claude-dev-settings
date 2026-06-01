@@ -1,6 +1,10 @@
 ---
 name: jira
 description: Access and query Jira issues. List issues assigned to you, get issue details, search with JQL, create new issues, and explore subtasks and epics. Use this skill whenever the user mentions Jira tickets, asks about their backlog, wants to fetch or create tickets, check what's assigned to them, look up a ticket key (like KTP-115 or INS-226), search for issues, add comments, transition ticket status, or asks "what's new for me" or "what should I work on". Also trigger when the user says "fetch ticket", "pull in the ticket", "create a story/bug/task", "check comments on", or references any Jira project key.
+nav:
+  bay: ops
+  when: "Access Jira: list issues, get details, search JQL, create issues, explore subtasks."
+  when_not: "Creating tickets with AC quality gate (use /create-tickets). Sprint management (use /klever-sprint-mgmt)."
 ---
 
 # Jira Skill
@@ -72,12 +76,16 @@ Use this skill to interact with Jira issues through simple CLI commands. All com
 - `download-attachment URL FILENAME [--output-dir DIR]` - Download an attachment
 - `upload-attachment KEY FILEPATH` - Upload a local file as an attachment to an issue
 - `search JQL [--max N] [--full]` - Raw JQL search
-- `create --summary SUMMARY --type TYPE --project PROJECT [--description DESC] [--assignee USER] [--labels LABEL1,LABEL2] [--parent KEY]` - Create new issue (use --parent to create sub-tasks)
+- `create --summary SUMMARY --type TYPE --project PROJECT [--description DESC] [--assignee USER] [--labels LABEL1,LABEL2] [--parent KEY] [--sprint SPRINT_ID]` - Create new issue (use --parent for sub-tasks, --sprint for sprint placement)
 - `add-comment KEY --comment "BODY"` - Add a comment to an issue
 - `delete-comment KEY --comment-id ID` - Delete a comment from an issue
 - `transition KEY STATUS` - Transition issue to a new status
 - `transitions KEY` - List available transitions for an issue
-- `update KEY [--description DESC] [--summary SUMMARY] [--assignee USER] [--labels LABEL1,LABEL2] [--parent KEY]` - Update issue fields
+- `update KEY [--description DESC] [--summary SUMMARY] [--assignee USER] [--labels LABEL1,LABEL2] [--parent KEY] [--estimate N] [--sprint SPRINT_ID] [--force]` - Update issue fields (hierarchy-validated)
+- `sprints --project PROJECT [--state active,future]` - List sprints for a project (returns ID, name, state, dates)
+- `link KEY1 KEY2 [--type "Relates"]` - Create a link between two issues (default: Relates)
+- `link-types` - List all available issue link types
+- `retype KEY --type "Story"` - Change an issue's type (e.g., Epic to Story)
 
 ## fetch — Materialize a Ticket to Disk
 

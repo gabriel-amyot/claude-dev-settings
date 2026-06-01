@@ -2,6 +2,11 @@
 name: agent-debate-review
 description: Post PR comments with BMAD persona attribution, then spawn an adversarial agent to counter-check claims and post replies. Creates a visible debate on the PR for the author to read. Use when the user wants to surface findings on a PR with built-in self-correction.
 user_invocable: true
+nav:
+  bay: review
+  when: "Post PR comments with persona attribution and adversarial counter-check debate."
+  when_not: "Standard code review without debate format (use /adversarial-cascade)."
+  personas: [quinn, winston]
 ---
 
 # Agent Debate Review

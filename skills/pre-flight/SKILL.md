@@ -1,6 +1,10 @@
 ---
 name: pre-flight
 description: "Universal infrastructure pre-flight checks. Validates repo cleanliness, Docker health, credential freshness, disk space, network reachability, and agent definition well-formedness. Severity levels can be overridden by crawl profiles."
+nav:
+  bay: ops
+  when: "Universal infra pre-flight: repo cleanliness, Docker, credentials, disk, network."
+  when_not: "Klever-specific MR gates (use /klever-mr). Ralph-loop preflight (use /ralph-loop-preflight)."
 ---
 
 # /pre-flight

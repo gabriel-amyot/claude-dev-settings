@@ -49,6 +49,62 @@
         "Claude specifically surfaces comments, especially any unacknowledged ones",
         "Claude provides a summary of changes or developments, not raw data"
       ]
+    },
+    {
+      "id": 5,
+      "prompt": "Link KTP-647 to KTP-648 as related tickets",
+      "expected_output": "Claude uses the link command to create a Relates link between the two tickets",
+      "files": [],
+      "assertions": [
+        {"text": "Uses jira_skill.py link command (not curl or REST API)", "type": "behavior"},
+        {"text": "Link type defaults to or explicitly uses Relates", "type": "correctness"},
+        {"text": "Reports success with both ticket URLs", "type": "output"}
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "What link types are available in our Jira project?",
+      "expected_output": "Claude uses link-types to list available types and presents them readably",
+      "files": [],
+      "assertions": [
+        {"text": "Uses jira_skill.py link-types command", "type": "behavior"},
+        {"text": "Output includes Relates, Blocks, and other standard types", "type": "correctness"},
+        {"text": "Presents as a readable list, not raw JSON dump", "type": "output"}
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Change KTP-648 from a Story to a Task",
+      "expected_output": "Claude uses retype command. May succeed or fail depending on project config, but uses the right tool.",
+      "files": [],
+      "assertions": [
+        {"text": "Uses jira_skill.py retype command (not manual Jira UI suggestion)", "type": "behavior"},
+        {"text": "Passes --type flag with the target type", "type": "correctness"},
+        {"text": "Reports success with old and new type, or a clear error message", "type": "output"}
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "Move KTP-611 under KTP-647 as a child ticket",
+      "expected_output": "Claude attempts update --parent but the hierarchy check catches Story-under-Story and explains the constraint",
+      "files": [],
+      "assertions": [
+        {"text": "Uses jira_skill.py update with --parent flag", "type": "behavior"},
+        {"text": "Hierarchy validation fires before hitting Jira API", "type": "correctness"},
+        {"text": "Error message explains the constraint (Stories can only go under Epics)", "type": "output"},
+        {"text": "Suggests alternatives (use Epic as parent, or retype)", "type": "helpfulness"}
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "I need to reorganize: make KTP-558 a child of KTP-646",
+      "expected_output": "Claude detects Epic-under-Epic constraint and explains that Jira doesn't support nesting Epics",
+      "files": [],
+      "assertions": [
+        {"text": "Hierarchy check catches Epic under Epic before API call", "type": "correctness"},
+        {"text": "Error message mentions demoting to Story as an option", "type": "helpfulness"},
+        {"text": "Does not blindly send the request to Jira and return a cryptic 400", "type": "ux"}
+      ]
     }
   ]
 }

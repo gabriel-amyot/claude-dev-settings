@@ -1,3 +1,12 @@
+---
+name: push-adr
+nav:
+  bay: know
+  when: "Push architectural decisions to agent-os folders with cross-references."
+  when_not: "Drafting an ADR (write it first). Reading existing ADRs (just read the files)."
+  personas: [winston]
+---
+
 # push-adr — Push Architectural Decisions to agent-os
 
 Formalize an architectural decision by creating an ADR and updating all related specifications in a repository's `agent-os/` tree.

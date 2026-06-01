@@ -1,6 +1,11 @@
 ---
 name: mb-doc-housekeeping
 description: Mother Base Documentation Housekeeping — checks CLAUDE.md coverage, staleness, infrastructure sync, and required sections across DAC repos
+nav:
+  bay: ops
+  when: "Check CLAUDE.md coverage, staleness, infrastructure sync across DAC repos."
+  when_not: "Supervisr repos (use mother-base-housekeeper agent). Full harness audit (use /harness-audit)."
+  org: [klever]
 ---
 
 # Mother Base Documentation Housekeeping

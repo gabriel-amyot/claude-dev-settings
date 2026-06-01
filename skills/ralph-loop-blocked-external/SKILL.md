@@ -1,6 +1,10 @@
 ---
 name: ralph-loop-blocked-external
 description: "Detects external infrastructure blockers during a ralph-loop session and declares BLOCKED_EXTERNAL state. Use when CI/CD pipelines fail repeatedly, registry is down, or infrastructure is unavailable and retrying is futile."
+nav:
+  bay: ops
+  when: "Detect external infrastructure blockers during ralph-loop. Declare BLOCKED_EXTERNAL."
+  when_not: "Loop preflight (use /ralph-loop-preflight). Non-ralph sessions."
 ---
 
 # /ralph-loop-blocked-external

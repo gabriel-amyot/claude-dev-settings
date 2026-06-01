@@ -1,6 +1,10 @@
 ---
 name: validate-repo-links
 description: Validate .repo-links.yaml integrity and manage repo graph index
+nav:
+  bay: ops
+  when: "Validate .repo-links.yaml integrity and manage repo graph index."
+  when_not: "General repo audit (use /harness-audit)."
 ---
 
 # Validate Repo Links

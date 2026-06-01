@@ -2,6 +2,10 @@
 name: post-comment
 description: "Post externally visible content (PR comments, Jira comments, Slack messages, deploy notices) through a safe pipeline: draft on disk, template render, preview, explicit approval, audit log. Supports editing existing posts. Use when user wants to post a comment, reply to a PR, update Jira, or send any external message. Input: target (PR URL, Jira key, or Slack channel). Returns: posted content URL and audit log entry."
 agent: post-comment
+nav:
+  bay: ship
+  when: "Post externally visible content (PR comments, Jira comments, Slack) through safe pipeline."
+  when_not: "Internal notes. Local file writes. This is for external-facing posts only."
 ---
 
 # /post-comment

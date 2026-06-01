@@ -1,6 +1,10 @@
 ---
 name: operationalize
 description: Extract repeatable procedures and tribal knowledge from conversation, then codify as skills or persistent knowledge at the correct scope level.
+nav:
+  bay: ops
+  when: "Extract repeatable procedures and tribal knowledge from conversation into skills."
+  when_not: "Reviewing existing proposals (use /operationalize-audit). Batch creating (use /batch-skill-pipeline)."
 ---
 
 # Operationalize
@@ -16,6 +20,8 @@ Turn ad-hoc sessions into permanent knowledge. Every extracted nugget is **triba
 
 **Local context:** If `context.local.md` exists beside this skill, load it for org-specific path resolution. Otherwise detect from environment (cwd git remote, CLAUDE.md org markers).
 
+**Session manifest:** This skill may run several times in one session. Before mining and after routing, reconcile against the active session's `knowledge-manifest.yaml` so nuggets are never re-extracted and `/session:check` close has deterministic proof that capture ran. See "Session Manifest" below. If no active session folder exists, skip manifest handling (legacy mode) and proceed normally.
+
 **Examples:**
 
 *Simple:* After figuring out Cloud Run deploy requires `--no-traffic` first, `/operationalize "deploy flow"` extracts `[KNOWLEDGE]` "never direct-deploy Cloud Run" → writes to CLAUDE.md, and `[+SKILL]` "full deploy pipeline" → writes proposal to `~/.claude/skill-proposals/`.
@@ -24,11 +30,34 @@ Turn ad-hoc sessions into permanent knowledge. Every extracted nugget is **triba
 
 ---
 
+## Session Manifest
+
+The manifest is the session's in-session memory of what has already been captured. It makes repeat runs cheap (no duplicate nuggets) and gives the close gate a deterministic signal.
+
+**Locate it.** Find the active session folder under `{org-project-management}/sessions/active/`. If exactly one exists, use it. If several, pick the one whose `state.yaml` `last_activity` is newest. The manifest is `sessions/active/{slug}/knowledge-manifest.yaml`.
+- If the folder exists but the manifest file does not (a session created before v2), **create it** now per schema `knowledge_manifest_format` (`last_run: null`, empty `nuggets`/`skills`/`runs`), then proceed.
+- If no active session folder exists at all, you are in legacy mode — skip every manifest step below and run the skill normally.
+
+**Read before mining (feeds Phase 1).** Load `nuggets[].subject` from the manifest. These subjects are already persisted to the inbox. They are still in your context, but **do not re-extract them.** Mine only for subjects that are NOT already on that list. Dedup is **by subject**, never by timestamp — you cannot filter your own context by "what arrived after the last run", so the manifest's subject list is the only reliable dedup key.
+
+**Write after routing (follows Phase 2).** For each new nugget you persisted this run:
+- Append `{subject, inbox_file, captured}` to `nuggets`.
+For each new skill proposal: append `{name, proposal_file, captured}` to `skills`.
+Then, **on every run without exception** — including runs that found zero new nuggets:
+- Append a `runs` entry: `{at: <now>, mode: <checkpoint|close>, nuggets_added: [...], skills_added: [...]}`.
+- Set `last_run` to now and increment `run_count`.
+
+`mode` is `checkpoint` unless `/session:check --close` invoked you (it passes `--mode close`); default to `checkpoint`. **The `last_run` stamp is mandatory even on a zero-nugget run** — it is the proof-of-capture the close gate reads. A run that genuinely finds nothing new still stamps `last_run` and appends a `runs` entry with `nuggets_added: []`. This is what lets the "I already captured everything" case pass the gate instead of false-blocking.
+
+---
+
 ## Standard Mode
 
 ### Phase 1: Mine
 
-Review conversation (or hinted topic). Extract:
+**First, read the session manifest (above) and load the already-captured subjects.** Skip anything on that list.
+
+Review conversation (or hinted topic). Extract NEW nuggets only:
 - **Procedures** — step-by-step sequences with a trigger
 - **Rules/constraints** — guardrails ("never do X")
 - **Decisions** — choices made and why
@@ -46,10 +75,11 @@ Present as a bulleted list. Tag skill candidates with `[+SKILL]`. All others are
 
 **Default target: Bibliothèque inbox.** All tribal knowledge goes to the org's bibliothèque inbox first. A curator agent catalogs, indexes, and promotes entries later. This is progressive disclosure: raw captures land in one place, get sifted later.
 
-**Write a single inbox entry per session** (not per nugget) to:
+**Write nuggets THROUGH to the inbox immediately** — the instant a nugget is extracted it is persisted, so it survives even if the session never closes cleanly. One inbox file per session (not per nugget):
 ```
 {org-project-management}/documentation/bibliotheque/inbox/YYYY-MM-DD-{topic-slug}.md
 ```
+On the first run this file is created; record its path in the manifest as the session's `inbox_file`. On later runs in the same session, **append** the new `## N. {subject}` sections to that same recorded file rather than creating a new one. After writing, update the manifest per "Session Manifest" above.
 
 Format:
 ```markdown

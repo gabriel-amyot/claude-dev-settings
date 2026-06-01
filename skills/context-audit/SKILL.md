@@ -1,6 +1,10 @@
 ---
 name: context-audit
 description: Audits context engineering health across memory files, library links, and MEMORY.md entries. Run monthly or when token usage feels high, or when onboarding a new org.
+nav:
+  bay: ops
+  when: "Audit context engineering health: memory files, library links, MEMORY.md entries."
+  when_not: "Skill/agent audit (use /harness-audit). Wiki health (use /wiki-lint)."
 ---
 
 # Context Audit

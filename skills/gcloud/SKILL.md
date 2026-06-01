@@ -1,6 +1,10 @@
 ---
 name: gcloud
 description: "Query GCP resources for Supervisr.AI and Klever. Check Cloud Run logs, query Datastore, debug deployments, inspect service errors. Project aliases: dev-core, dev-data, uat-core, uat-data, prod-core, prod-data (Supervisr); dev-frontend, dev-proximity, dev-pbmod, dev-insights, dev-pipeline, dev-vpc (Klever). Triggers on: 'check logs', 'what is failing in dev', 'query datastore', or any known project alias. Does NOT manage infrastructure (use Terraform/DAC repos for that). Does NOT run terraform plan/apply. Input: project alias or service name. Returns: logs, entity data, service status."
+nav:
+  bay: ops
+  when: "Query GCP resources. Cloud Run logs, Datastore, deployments, service errors."
+  when_not: "BQ schema checks (use /bq-schema-preflight). Dev status quick check (use /dev-status)."
 ---
 
 # GCloud Skill

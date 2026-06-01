@@ -204,7 +204,7 @@ def full_issue(issue):
         "reporter": get_assignee_name(safe_get(issue.fields.reporter)),
         "created": str(safe_get(issue.fields.created)) or "",
         "updated": str(safe_get(issue.fields.updated)) or "",
-        "estimate": safe_get(issue.fields.customfield_10016),
+        "estimate": safe_get(issue.fields.customfield_10028) or safe_get(issue.fields.customfield_10016),
         "sprint": sprint_str,
         "epic_key": safe_get(issue.fields.customfield_10014),
         "url": f"{url}/browse/{issue.key}"
@@ -410,7 +410,7 @@ def get_all_metadata(key):
             "components": [c.name for c in issue.fields.components] if issue.fields.components else [],
             "fix_versions": [v.name for v in issue.fields.fixVersions] if issue.fields.fixVersions else [],
             "affects_versions": [v.name for v in issue.fields.versions] if issue.fields.versions else [],
-            "estimate": safe_get(issue.fields.customfield_10016),
+            "estimate": safe_get(issue.fields.customfield_10028) or safe_get(issue.fields.customfield_10016),
             "time_spent": safe_get(issue.fields.timespent),
             "time_estimate": safe_get(issue.fields.timeestimate),
             "sprint": _sprint_name(safe_get(issue.fields.customfield_10020)),
@@ -460,8 +460,9 @@ def search(jql, max_results=20, full=False):
         return {"error": str(e)}
 
 
-def create_issue(summary, issue_type, project=None, description=None, assignee=None, labels=None, parent=None):
-    """Create a new issue. Use --parent KEY to create a sub-task linked to a parent."""
+def create_issue(summary, issue_type, project=None, description=None, assignee=None, labels=None, parent=None, sprint=None):
+    """Create a new issue. Use --parent KEY to create a sub-task linked to a parent.
+    Use --sprint SPRINT_ID to place the issue in a sprint."""
     if not project:
         return {"error": "project is required"}
 
@@ -476,13 +477,24 @@ def create_issue(summary, issue_type, project=None, description=None, assignee=N
             fields["description"] = markdown_to_jira_wiki(description)
 
         if assignee:
-            fields["assignee"] = {"name": assignee}
+            # Jira Cloud requires accountId. Look up by email if an email is provided.
+            try:
+                users = jira.search_users(query=assignee, maxResults=1)
+                if users:
+                    fields["assignee"] = {"accountId": users[0].accountId}
+                else:
+                    fields["assignee"] = {"name": assignee}  # fallback for Server
+            except Exception:
+                fields["assignee"] = {"name": assignee}  # fallback for Server
 
         if labels:
             fields["labels"] = labels if isinstance(labels, list) else [labels]
 
         if parent:
             fields["parent"] = {"key": parent}
+
+        if sprint is not None:
+            fields["customfield_10020"] = int(sprint)
 
         issue = jira.create_issue(fields=fields)
         result = {
@@ -494,7 +506,46 @@ def create_issue(summary, issue_type, project=None, description=None, assignee=N
         }
         if parent:
             result["parent"] = parent
+        if sprint is not None:
+            result["sprint_id"] = int(sprint)
         return result
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def list_sprints(project=None, state="active,future"):
+    """List sprints for a project. Returns sprint ID, name, state, and dates.
+    State can be: active, future, closed, or comma-separated combo."""
+    try:
+        # Find the board for this project
+        boards = jira.boards(projectKeyOrID=project, maxResults=10) if project else jira.boards(maxResults=10)
+        if not boards:
+            return {"error": f"No board found for project '{project}'. Sprints require a Scrum or Kanban board."}
+
+        all_sprints = []
+        for board in boards:
+            try:
+                sprints = jira.sprints(board.id, state=state, maxResults=50)
+                for s in sprints:
+                    sprint_info = {
+                        "id": s.id,
+                        "name": s.name,
+                        "state": s.state,
+                        "board_id": board.id,
+                        "board_name": board.name,
+                    }
+                    if hasattr(s, 'startDate') and s.startDate:
+                        sprint_info["start_date"] = str(s.startDate)
+                    if hasattr(s, 'endDate') and s.endDate:
+                        sprint_info["end_date"] = str(s.endDate)
+                    all_sprints.append(sprint_info)
+            except Exception:
+                continue  # board may not support sprints (e.g., Kanban)
+
+        if not all_sprints:
+            return {"error": f"No sprints found with state '{state}' for project '{project}'."}
+
+        return all_sprints
     except Exception as e:
         return {"error": str(e)}
 
@@ -556,9 +607,109 @@ def _check_ownership(issue, force=False):
     }
 
 
-def update_issue(key, description=None, summary=None, assignee=None, labels=None, parent=None, force=False):
-    """Update issue fields (description, summary, assignee, labels, parent).
+def _validate_hierarchy(child_issue, parent_key):
+    """Check if child can be parented under parent_key.
+    Returns None if valid, or an error dict explaining the constraint."""
+    try:
+        parent_issue = jira.issue(parent_key)
+        child_type = safe_get(child_issue.fields.issuetype, "name") or "Unknown"
+        parent_type = safe_get(parent_issue.fields.issuetype, "name") or "Unknown"
+
+        # Epics can only be top-level
+        if child_type == "Epic":
+            return {
+                "error": f"HIERARCHY: {child_issue.key} is an Epic. Epics cannot have parents in company-managed projects. "
+                         f"Demote to Story first (use: retype {child_issue.key} --type Story), then re-parent.",
+                "child_type": child_type,
+                "parent_type": parent_type,
+                "hint": "retype"
+            }
+
+        # Stories/Bugs/Spikes can only go under Epics
+        if child_type != "Sub-task" and parent_type != "Epic":
+            return {
+                "error": f"HIERARCHY: {child_issue.key} ({child_type}) cannot be parented under {parent_key} ({parent_type}). "
+                         f"Stories/Bugs/Spikes can only go under Epics. Sub-tasks can go under Stories.",
+                "child_type": child_type,
+                "parent_type": parent_type,
+                "valid_parents": "Epic" if child_type != "Sub-task" else "Story"
+            }
+
+        # Sub-tasks can only go under Stories (not Epics directly via parent field)
+        if child_type == "Sub-task" and parent_type == "Epic":
+            # This actually works in some projects, so just warn
+            pass
+
+        return None
+    except Exception as e:
+        # If we can't fetch the parent, let the update try and Jira will reject if invalid
+        return None
+
+
+def link_issues(key1, key2, link_type="Relates"):
+    """Create a link between two issues."""
+    try:
+        jira.create_issue_link(link_type, key1, key2)
+        return {
+            "success": True,
+            "link_type": link_type,
+            "inward": key1,
+            "outward": key2,
+            "url_inward": f"{url}/browse/{key1}",
+            "url_outward": f"{url}/browse/{key2}"
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def list_link_types():
+    """List all available issue link types."""
+    try:
+        link_types = jira.issue_link_types()
+        return [
+            {
+                "name": lt.name,
+                "inward": lt.inward,
+                "outward": lt.outward
+            }
+            for lt in link_types
+        ]
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def retype_issue(key, new_type):
+    """Change an issue's type (e.g., Epic to Story)."""
+    try:
+        issue = jira.issue(key)
+        old_type = safe_get(issue.fields.issuetype, "name") or "Unknown"
+
+        if old_type == new_type:
+            return {"error": f"{key} is already type '{new_type}'"}
+
+        issue.update(fields={"issuetype": {"name": new_type}})
+
+        updated = jira.issue(key)
+        return {
+            "success": True,
+            "key": key,
+            "old_type": old_type,
+            "new_type": safe_get(updated.fields.issuetype, "name"),
+            "url": f"{url}/browse/{key}"
+        }
+    except Exception as e:
+        error_str = str(e)
+        # Provide a helpful message for common failures
+        if "valid issue type" in error_str.lower() or "issuetype" in error_str.lower():
+            return {"error": f"Cannot retype {key} to '{new_type}'. The type may not exist or the transition is not allowed. "
+                             f"Check available types in the KTP project. Original error: {error_str}"}
+        return {"error": error_str}
+
+
+def update_issue(key, description=None, summary=None, assignee=None, labels=None, parent=None, estimate=None, sprint=None, force=False):
+    """Update issue fields (description, summary, assignee, labels, parent, estimate/story_points, sprint).
     Ownership gate: blocks description updates on tickets not reported by the current user.
+    Hierarchy gate: validates parent/child type compatibility before attempting the update.
     Pass force=True or --force to override."""
     try:
         issue = jira.issue(key)
@@ -569,6 +720,12 @@ def update_issue(key, description=None, summary=None, assignee=None, labels=None
             if ownership_error:
                 return ownership_error
 
+        # Hierarchy gate: validate parent/child compatibility
+        if parent is not None and not force:
+            hierarchy_error = _validate_hierarchy(issue, parent)
+            if hierarchy_error:
+                return hierarchy_error
+
         fields = {}
 
         if description is not None:
@@ -578,7 +735,15 @@ def update_issue(key, description=None, summary=None, assignee=None, labels=None
             fields["summary"] = summary
 
         if assignee is not None:
-            fields["assignee"] = assignee
+            # Jira Cloud requires accountId. Look up by email if an email is provided.
+            try:
+                users = jira.search_users(query=assignee, maxResults=1)
+                if users:
+                    fields["assignee"] = {"accountId": users[0].accountId}
+                else:
+                    fields["assignee"] = assignee  # fallback
+            except Exception:
+                fields["assignee"] = assignee  # fallback
 
         if labels is not None:
             fields["labels"] = labels if isinstance(labels, list) else [labels]
@@ -586,8 +751,14 @@ def update_issue(key, description=None, summary=None, assignee=None, labels=None
         if parent is not None:
             fields["parent"] = {"key": parent}
 
+        if estimate is not None:
+            fields["customfield_10028"] = float(estimate)
+
+        if sprint is not None:
+            fields["customfield_10020"] = int(sprint)
+
         if not fields:
-            return {"error": "No fields to update. Provide --description, --summary, --assignee, --labels, or --parent"}
+            return {"error": "No fields to update. Provide --description, --summary, --assignee, --labels, --parent, --estimate, or --sprint"}
 
         issue.update(fields=fields)
 
@@ -923,7 +1094,75 @@ def fetch_ticket(key, output_dir, depth=1, _visited=None):
             index.append(entry)
         _write_yaml(os.path.join(comments_dir, "index.yaml"), {"ticket": key, "comments": index})
 
-    # ── 10. Recurse into children ─────────────────────────────────────────────
+    # ── 10. INDEX.md — human-readable relationship index ─────────────────────
+    from datetime import date as _date
+    _base_url = meta.get("url", "").rsplit("/browse/", 1)[0]
+
+    def _jira_url(k):
+        return f"{_base_url}/browse/{k}" if _base_url and k else ""
+
+    idx = [f"# {meta['key']}: {meta['summary']}\n"]
+
+    # Status / meta line
+    _parts = [f"**Status:** {meta['status']}", f"**Type:** {meta['type']}"]
+    if meta.get("priority"):
+        _parts.append(f"**Priority:** {meta['priority']}")
+    if meta.get("assignee"):
+        _parts.append(f"**Assignee:** {meta['assignee']}")
+    idx.append("  |  ".join(_parts))
+    idx.append(f"**Jira:** [{meta['key']}]({meta.get('url', '')})\n")
+
+    # Epic / parent
+    _epic = meta.get("epic_key") or meta.get("parent_key")
+    if _epic:
+        idx.append(f"**Epic/Parent:** [{_epic}]({_jira_url(_epic)})\n")
+
+    idx.append("---\n")
+
+    # Jira issue links
+    _links = meta.get("links", [])
+    if _links:
+        idx.append("## Jira Links\n")
+        for _lnk in _links:
+            _lk = _lnk.get("key", "")
+            _lt = _lnk.get("type", "")
+            _ld = _lnk.get("direction", "")
+            _ls = _lnk.get("summary", "")
+            _label = f"{_lt} ({_ld})"
+            if _lk:
+                idx.append(f"- **{_label}** [{_lk}]({_jira_url(_lk)}) — {_ls}")
+            else:
+                idx.append(f"- **{_label}**")
+        idx.append("")
+
+    # Children
+    if children:
+        idx.append(f"## Children ({len(children)})\n")
+        for _c in children:
+            _ck = _c.get("key", "")
+            _cs = _c.get("summary", "")
+            _cst = _c.get("status", "")
+            idx.append(f"- [{_ck}](./{_ck}/) — {_cs} — **{_cst}**")
+        idx.append("")
+
+    # Local files footer
+    idx.append("## Local Files\n")
+    idx.append("- `jira/ticket.yaml` — full Jira metadata + links")
+    idx.append("- `jira/description.md` — ticket description")
+    if criteria:
+        idx.append("- `jira/ac/` — acceptance criteria")
+    if technical_text:
+        idx.append("- `jira/technical.md` — implementation notes")
+    if isinstance(comments, list) and comments:
+        idx.append("- `jira/comments/` — comments")
+    idx.append("")
+    idx.append("---")
+    idx.append(f"*Generated by jira fetch — {_date.today().isoformat()}*")
+
+    with open(os.path.join(ticket_dir, "INDEX.md"), "w", encoding="utf-8") as _f:
+        _f.write("\n".join(idx) + "\n")
+
+    # ── 11. Recurse into children ─────────────────────────────────────────────
     fetched_children = []
     if depth > 1 and children:
         for child in children:
@@ -1117,7 +1356,13 @@ try:
                 if idx + 1 < len(sys.argv):
                     parent = sys.argv[idx + 1]
 
-            result = create_issue(summary, issue_type, project, description, assignee, labels, parent)
+            sprint = None
+            if "--sprint" in sys.argv:
+                idx = sys.argv.index("--sprint")
+                if idx + 1 < len(sys.argv):
+                    sprint = sys.argv[idx + 1]
+
+            result = create_issue(summary, issue_type, project, description, assignee, labels, parent, sprint=sprint)
 
     elif command == "transition":
         if len(sys.argv) < 4:
@@ -1170,8 +1415,20 @@ try:
                 if idx + 1 < len(sys.argv):
                     parent = sys.argv[idx + 1]
 
+            estimate = None
+            if "--estimate" in sys.argv:
+                idx = sys.argv.index("--estimate")
+                if idx + 1 < len(sys.argv):
+                    estimate = sys.argv[idx + 1]
+
+            sprint = None
+            if "--sprint" in sys.argv:
+                idx = sys.argv.index("--sprint")
+                if idx + 1 < len(sys.argv):
+                    sprint = sys.argv[idx + 1]
+
             force = "--force" in sys.argv
-            result = update_issue(key, description=description, summary=summary, assignee=assignee, labels=labels, parent=parent, force=force)
+            result = update_issue(key, description=description, summary=summary, assignee=assignee, labels=labels, parent=parent, estimate=estimate, sprint=sprint, force=force)
 
     elif command == "add-comment":
         if len(sys.argv) < 4:
@@ -1202,6 +1459,53 @@ try:
                 result = {"error": "add-comment requires --comment parameter"}
             else:
                 result = add_comment(key, comment_body)
+
+    elif command == "link":
+        if len(sys.argv) < 4:
+            result = {"error": "link requires two issue keys. Usage: link KEY1 KEY2 [--type 'Relates']"}
+        else:
+            key1 = sys.argv[2]
+            key2 = sys.argv[3]
+            link_type = "Relates"
+            if "--type" in sys.argv:
+                idx = sys.argv.index("--type")
+                if idx + 1 < len(sys.argv):
+                    link_type = sys.argv[idx + 1]
+            result = link_issues(key1, key2, link_type)
+
+    elif command == "sprints":
+        project = None
+        state = "active,future"
+        if "--project" in sys.argv:
+            idx = sys.argv.index("--project")
+            if idx + 1 < len(sys.argv):
+                project = sys.argv[idx + 1]
+        if "--state" in sys.argv:
+            idx = sys.argv.index("--state")
+            if idx + 1 < len(sys.argv):
+                state = sys.argv[idx + 1]
+        if not project:
+            result = {"error": "sprints requires --project. Usage: sprints --project KTP [--state active,future]"}
+        else:
+            result = list_sprints(project=project, state=state)
+
+    elif command == "link-types":
+        result = list_link_types()
+
+    elif command == "retype":
+        if len(sys.argv) < 3:
+            result = {"error": "retype requires issue key. Usage: retype KEY --type Story"}
+        else:
+            key = sys.argv[2]
+            new_type = None
+            if "--type" in sys.argv:
+                idx = sys.argv.index("--type")
+                if idx + 1 < len(sys.argv):
+                    new_type = sys.argv[idx + 1]
+            if not new_type:
+                result = {"error": "retype requires --type parameter. Usage: retype KEY --type Story"}
+            else:
+                result = retype_issue(key, new_type)
 
     elif command == "delete-comment":
         if len(sys.argv) < 4:

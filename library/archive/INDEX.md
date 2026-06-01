@@ -18,6 +18,14 @@ Code-reviewer variants superseded by `pr-review-toolkit` plugin agents. The orch
 | `code-reviewer-team-orchestrator.md` | Meta-reviewer: dispatches to all specialized reviewers above |
 | `typescript-error-fixer-systematic.md` | TypeScript compiler and ESLint systematic resolution |
 
+### audits/ — Point-in-time audits and analyses
+Snapshot reports. Kept for baseline reference, not active use.
+
+| File | Summary |
+|------|---------|
+| `tool-description-audit-2026-04-03.md` | Audit of 45 skills, 16 agents, 11 plugins — description quality and routing accuracy baseline |
+| `tool-misuse-analysis-session-history-2026-04-03.md` | 7-day session history analysis (2026-03-27 to 2026-04-03): tool misuse patterns, routing errors |
+
 ### superpowers-plugin/ — Snapshot of the superpowers Claude Code plugin
 Plugin config, hooks, scripts, test cases, and tutorials. The skill content has been extracted to `practices/`.
 

@@ -1,0 +1,36 @@
+# Wiki Registry — Global Cross-Wiki Resolution
+#
+# Used by Claude to resolve cross-wiki links: [[wiki-id::page-name]]
+# Each wiki follows the LLM Wiki pattern (Lütke, 2026):
+#   raw sources → LLM-maintained wiki pages → schema
+#
+# Updated: 2026-05-01
+
+wikis:
+  harness:
+    root: /Users/gabrielamyot/.claude-shared-config/library
+    catalog: CATALOG.md
+    schema: CATALOG.md  # serves dual purpose (schema + catalog)
+    description: Cross-org harness, agent architecture, development practices, context engineering
+    sections: [architecture, research, practices, process, operations, context, archive]
+
+  klever:
+    root: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/documentation/bibliotheque
+    catalog: INDEX.md
+    schema: SCHEMA.md
+    description: Klever ad-tech domain, vendors (Placer, Goldfish), BigQuery, proximity map, operations
+    sections: [domain, vendors, product, stack, operations, people, maps-proximity, sops]
+
+  supervisr:
+    root: /Users/gabrielamyot/Developer/supervisr-ai/project-management/documentation/bibliotheque
+    catalog: INDEX.md
+    schema: SCHEMA.md
+    description: Supervisr insurance lead lifecycle, EQS, compliance, gateway, dreampipe
+    sections: [domain, stack, operations, people, vendors, product, sops]
+
+  personal:
+    root: /Users/gabrielamyot/Developer/gabriel-amyot/project-management/documentation/bibliotheque
+    catalog: INDEX.md
+    schema: SCHEMA.md
+    description: Personal projects, Mission Control, side projects, compostelaguide
+    sections: [domain, stack, operations, people, product, sops]

@@ -1,9 +1,11 @@
 # Library Catalog
 
 Master index for the context-engineering knowledge base.
-95 documents across 7 sections. Every filename is self-documenting: domain, purpose, and key concepts are encoded in the name.
+97 documents across 8 sections. Every filename is self-documenting: domain, purpose, and key concepts are encoded in the name.
 
-**Navigation pattern:** Read this catalog, pick a floor, read its INDEX.md, then selectively read individual files. Never bulk-load.
+Last updated: 2026-05-02
+
+**Navigation pattern:** Start with `INDEX.md` for quick-lookup tables, then read this catalog for the full floor plan and topic cross-reference. Never bulk-load.
 
 ---
 
@@ -16,8 +18,9 @@ Master index for the context-engineering knowledge base.
 | **practices/** | development, testing, debugging, collaboration, writing, planning, quality, standards, workflows | 28 | How-to guides, methodologies, checklists, workflow definitions |
 | **process/** | — | 3 | PRD creation, task generation, task management protocols |
 | **operations/** | troubleshooting, known-issues | 8 | Supervisr infra topology (Datastore, Auth0, services), guardrails, test harness, troubleshooting |
-| **archive/** | retired-agents, superpowers-plugin | 29 | Retired agents, plugin snapshots, test cases, historical artifacts |
+| **archive/** | retired-agents, superpowers-plugin, audits | 31 | Retired agents, plugin snapshots, test cases, historical audits |
 | **context/** | — | 11 | On-demand context files loaded by CLAUDE.md triggers (workspace map, shipping, Java, tickets, tools) |
+| **inbox/** | — | 0 | Unprocessed nuggets pending promotion via `/bibliotheque-librarian` |
 
 ---
 
@@ -107,11 +110,42 @@ Key files:
 
 ---
 
+## Library Meta Files
+
+| File | Purpose |
+|------|---------|
+| `INDEX.md` | Navigational home — "I Need to Understand / I Am Blocked / I Need to Do" tables |
+| `CATALOG.md` | This file — floor plan, topic cross-reference, librarian protocol |
+| `SCHEMA.md` | LLM Wiki metadata conventions, frontmatter spec, wikilink format |
+| `ALIASES.md` | Wikilink disambiguation table — short aliases to file paths |
+| `WIKI_REGISTRY.yaml` | Cross-wiki registry — IDs, locations, domains for all four wikis |
+| `LOG.md` | Append-only wiki operations log |
+
+---
+
+## Cross-Wiki Network
+
+This library is one of four wikis following the LLM Wiki pattern. Cross-wiki links use `[[wiki-id::page-name]]`.
+
+**Registry:** `WIKI_REGISTRY.yaml` (in this directory)
+
+| Wiki ID | Location | Domain |
+|---------|----------|--------|
+| `harness` | This library | Cross-org harness, agent architecture, development practices |
+| `klever` | `~/Developer/grp-beklever-com/project-management/documentation/bibliotheque/` | Klever ad-tech, vendors, BigQuery, proximity map |
+| `supervisr` | `~/Developer/supervisr-ai/project-management/documentation/bibliotheque/` | Supervisr insurance, lead lifecycle, compliance |
+| `personal` | `~/Developer/gabriel-amyot/project-management/documentation/bibliotheque/` | Personal projects, Mission Control |
+
+---
+
 ## Librarian Protocol
 
-When adding new books:
+**Fast path for raw nuggets:** Drop into `inbox/` first. Name it anything. Add a row to `inbox/INDEX.md`. Run `/bibliotheque-librarian` to promote.
+
+**Full protocol for deliberate additions:**
 1. Choose the correct floor and section based on content type
-2. Name the file: `{domain}-{purpose}-{key-concepts}.md` (lowercase, hyphens)
+2. Name the file: `{domain}-{purpose}-{key-concepts}.md` (lowercase, hyphens, no dates)
 3. Update the section's `INDEX.md` with a one-liner
-4. If cross-cutting, add to the Topic Cross-Reference above
-5. Run `/index-context library/` to regenerate indexes if bulk additions were made
+4. If it answers a common question, add a row to `INDEX.md` quick-lookup tables
+5. If cross-cutting, add to the Topic Cross-Reference above
+6. Update "Last updated" date at the top of this file

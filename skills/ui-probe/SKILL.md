@@ -52,7 +52,15 @@ Load the Chrome MCP tools first — they are deferred and must be fetched before
 ToolSearch: select:mcp__claude-in-chrome__tabs_context_mcp,mcp__claude-in-chrome__computer,mcp__claude-in-chrome__javascript_tool,mcp__claude-in-chrome__read_console_messages,mcp__claude-in-chrome__read_network_requests,mcp__claude-in-chrome__browser_batch,mcp__claude-in-chrome__navigate
 ```
 
-Then **always call `tabs_context_mcp` first** — it is required before any other browser action and tells you which Chrome and which tabs are live. If multiple Chromes are connected you will be forced into a `switch_browser`/`select_browser` step; see `references/gotchas.md` for the fast path.
+Then **always call `tabs_context_mcp` first** — it is required before any other browser action and returns every live tab with its URL. Use it to lock onto the **target tab deterministically**:
+
+1. **Match by URL, not by guesswork.** The Klever portal tab is the one whose URL host is `portal.dev.beklever.com`, `portal.beklever.com`, or `localhost:300x`. Pick that tab's `tabId` and pass it to **every** subsequent `javascript_tool` / `computer` / `read_*` call. Other tabs in the group (Google Maps, docs, Jira…) are noise — never operate on them.
+2. **Exactly one portal tab → use it.** Pin that `tabId` for the whole session; don't re-resolve per action.
+3. **Multiple portal tabs → ask which one.** Don't assume. Show the user the matching URLs/titles and have them pick; then pin it.
+4. **Zero portal tabs → ask the user to open/focus the portal.** Do **not** `tabs_create_mcp` a fresh tab — a new tab won't share the authenticated, already-navigated view you need (and may land on the Auth0 wall). The whole value of this skill is reusing the user's live session.
+5. **Confirm before driving.** After pinning the tab, do one cheap read (a sanitized `javascript_tool` returning `location.pathname` + a key element count) to confirm you're on the expected screen and not a login wall — before any input.
+
+If multiple Chromes are connected you'll also be forced into a `switch_browser`/`select_browser` step; see `references/gotchas.md` for that fast path.
 
 ### 2. Let the user steer to the screen
 

@@ -1,0 +1,43 @@
+ticket: [TICKET_ID]
+title: [TICKET_TITLE]
+status: in_progress
+mode: autonomous_overnight
+started: [ISO_DATETIME]
+last_updated: [DATE]
+operator: claude-code-agent
+
+completion:
+  ac_total: 0
+  ac_done: 0
+  ac_in_progress: 0
+  ac_todo: 0
+  ac_skipped: 0
+  percent: 0
+
+branches:
+  # Per-repo branch state, mirrors ac-tracking.yaml branches_pushed.
+  # backend:
+  #   path: [REPO_PATH]
+  #   branch: [BRANCH_NAME]
+  #   head: null
+  #   pushed: false
+  # frontend:
+  #   path: [REPO_PATH]
+  #   branch: [BRANCH_NAME]
+  #   head: null
+  #   pushed: false
+  #   worktree: false
+
+next_action: |
+  [Updated at end of session. Typically: "Gabriel creates MRs manually via
+  GitLab web UI (URLs in ac-tracking.yaml). Ship [order] first."]
+
+verification_gaps:
+  # Items that could not be verified during the run.
+  # - "Local maven verify blocked on gcloud auth (see ACTIONS in GABRIEL_INBOX)"
+
+artifacts:
+  ac_tracking: tickets/[PREFIX]/[TICKET_ID]/jira/ac.yaml
+  repo_map: tickets/[PREFIX]/[TICKET_ID]/REPO_MAPPING.yaml
+  session_state: tickets/[PREFIX]/[TICKET_ID]/SESSION_STATE.md
+  # Add implementation plans, spike findings, design refs as created.

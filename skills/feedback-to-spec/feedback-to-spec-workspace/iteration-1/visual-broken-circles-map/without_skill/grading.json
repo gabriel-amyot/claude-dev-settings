@@ -1,0 +1,26 @@
+{
+  "eval_id": 3,
+  "variant": "without_skill",
+  "expectations": [
+    {
+      "text": "Extracts 1-2 focused findings — does not inflate to 5+ findings from a single observation",
+      "passed": false,
+      "evidence": "5 distinct findings are extracted: Finding 1 (wrong circle type — competitor circles), Finding 2 (metrics circles have no visible label), Finding 3 (competitors show as large empty circles at low zoom), Finding 4 (no zoom-aware suppression for competitors at country scope), Finding 5 (marker image generation uses black fill, not green). This inflates one user observation into 5 code-archaeology findings, most of which go well beyond the user's stated concern."
+    },
+    {
+      "text": "SBE proposes concrete visual behavior — zoom threshold, store count display, or specific sizing — not vague 'should look better'",
+      "passed": true,
+      "evidence": "AC-1 specifies: 'COMPETITORS_CIRCLES layer must not be rendered' at GeographicScope.COUNTRY. AC-4 specifies: 'each circle shows its formattedCount label (e.g. \"1.2K\", \"450\")'. AC-5 enumerates exactly what should be visible at country zoom: colored state fills, small red location dots, black metrics circles with count labels. The implementation note provides a concrete code snippet with a scope guard. All are concrete, not vague."
+    },
+    {
+      "text": "Captures the first-impression business rationale — user said 'first thing users see when they open the map'",
+      "passed": true,
+      "evidence": "The spec header states: 'Priority: High — this is the first-impression view (default zoom on map open)'. AC-5 is titled 'No empty circles appear at country zoom as first impression' and its Given clause starts with 'the user opens the Measurement Map for the first time (default zoom ~3.75)'. The first-impression business rationale is present and prominent."
+    },
+    {
+      "text": "Does NOT scope into other map issues (flow lines, choropleth colors, panel layout)",
+      "passed": false,
+      "evidence": "The findings analysis identifies the green circles as competitor circles rather than the circles the user was actually describing, which drives the entire spec toward suppressing COMPETITORS_CIRCLES. This reinterpretation is based on code analysis ('competitorsCircles.strokeColor = \"#0eac1c\" — matches the green in the screenshot exactly') rather than user narration. The user described circles that 'look broken' — the without_skill output invents a cause (wrong layer type appearing) and specifies a fix (suppress COMPETITORS_CIRCLES) that may not match the actual issue. The findings section also addresses 'competitor data' rendering at all zoom levels — a scope the user never raised."
+    }
+  ]
+}

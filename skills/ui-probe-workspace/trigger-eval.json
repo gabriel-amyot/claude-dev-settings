@@ -1,0 +1,22 @@
+[
+  {"query": "the send button on the service area chat at portal.dev.beklever.com just does nothing when i click it, can you check whats actually happening in the running app", "should_trigger": true},
+  {"query": "validate the UI for KTP-720 on dev — i need to know if the choropleth actually highlights the zips when the chatbot returns them", "should_trigger": true},
+  {"query": "the spinner on the planning page keeps spinning forever and the code looks fine, can you look at the live runtime state", "should_trigger": true},
+  {"query": "i want to QA the proximity map frontend before the demo tomorrow, check the live state not just read the code", "should_trigger": true},
+  {"query": "why arent the conversion circles updating on the map when i change the date range? read the actual react state in the browser", "should_trigger": true},
+  {"query": "something is rendering blank on the planning map, read the live DOM and console on dev for me", "should_trigger": true},
+  {"query": "frontend validation on localhost:3001 — the metrics popup shows NaN and i cant tell why from the source", "should_trigger": true},
+  {"query": "check the UI on dev, is the isLoading prop even reaching the ChatSidebar component or is it coming through undefined", "should_trigger": true},
+  {"query": "the dashboard numbers look wrong in the browser, inspect what props the component is actually getting at runtime", "should_trigger": true},
+  {"query": "im looking at the portal right now and the filters arent applying, can you probe whats happening live and tell me the dom and network", "should_trigger": true},
+  {"query": "run the playwright e2e regression suite for the portal with npm run test:e2e", "should_trigger": false},
+  {"query": "run the backend api tests for proximity-report, the 22 python assertion tests", "should_trigger": false},
+  {"query": "here are 4 screenshots of the dashboard i took, triage whats wrong and turn it into tickets", "should_trigger": false},
+  {"query": "do a UX dogfood pass on the portal as a first-time user and give me a severity-rated report", "should_trigger": false},
+  {"query": "open google.com and fill out the contact form then take a screenshot for me", "should_trigger": false},
+  {"query": "review my PR for the planning map changes before i merge it to dev", "should_trigger": false},
+  {"query": "generate the sprint proof artifacts for KTP-680 in jira wiki markup", "should_trigger": false},
+  {"query": "the proximity-report backend is returning 500s on /api/map, check the cloud run logs in dev", "should_trigger": false},
+  {"query": "polish the UX on the reports tab and implement the feedback i pasted below", "should_trigger": false},
+  {"query": "write a unit test for the normalizeCountyGeoid helper function", "should_trigger": false}
+]

@@ -1,0 +1,32 @@
+{
+  "eval_id": 1,
+  "eval_name": "multi-issue-layout-ux",
+  "prompt": "Multi-issue feedback: panel width, search overlap, raw campaign IDs, hero cards N/A, timeline dashes. Two screenshots.",
+  "assertions": [
+    {
+      "id": "A1",
+      "text": "Extracts 4 or more distinct findings (panel width, search overlap, raw campaign IDs, hero cards N/A, timeline visual)",
+      "type": "structural"
+    },
+    {
+      "id": "A2",
+      "text": "Each finding includes a code trace attempt — either a file:line reference or explicit TRACE_PENDING marker",
+      "type": "structural"
+    },
+    {
+      "id": "A3",
+      "text": "SBEs use Given/When/Then format with concrete values (not placeholders like 'appropriate width')",
+      "type": "format"
+    },
+    {
+      "id": "A4",
+      "text": "User's feedback is quoted or precisely paraphrased — 'raw campaign IDs' intent preserved, not reinterpreted",
+      "type": "fidelity"
+    },
+    {
+      "id": "A5",
+      "text": "No invented issues beyond what the user described — no scope creep into unmentioned areas",
+      "type": "discipline"
+    }
+  ]
+}

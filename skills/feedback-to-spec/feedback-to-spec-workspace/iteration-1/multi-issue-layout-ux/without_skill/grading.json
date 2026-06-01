@@ -1,0 +1,31 @@
+{
+  "eval_id": 1,
+  "variant": "without_skill",
+  "expectations": [
+    {
+      "text": "Extracts 4 or more distinct findings (panel width, search overlap, raw campaign IDs, hero cards N/A, timeline visual)",
+      "passed": true,
+      "evidence": "6 distinct issues extracted: Issue 1 (left panel too wide), Issue 2 (search results overlapping metrics), Issue 3 (campaign names showing raw IDs), Issue 4 (top bar controls drifting), Issue 5 (hero cards all N/A), Issue 6 (timeline dashed lines). All 5 user-mentioned concerns are covered."
+    },
+    {
+      "text": "Each finding includes a code trace attempt — either a file:line reference or explicit TRACE_PENDING marker",
+      "passed": true,
+      "evidence": "All 6 issues include file paths with line references. Issue 1: 'components/map/components/panel.tsx — hardcoded to w-72 (288px)'. Issue 3: 'components/map/components/store-detail-panel.tsx — shortenConversionName() function (lines 53–81)'. Issue 6: 'components/map/controls/timeline-slider.tsx lines 100–110'. No TRACE_PENDING markers used, but concrete file:line references present throughout."
+    },
+    {
+      "text": "SBEs use Given/When/Then format with concrete values (not placeholders like 'appropriate width')",
+      "passed": false,
+      "evidence": "The output produces SPEC documents with AC-style Given/When/Then blocks, not SBE format. More critically, several ACs use vague language: AC-1.1 says 'at most 256px (w-64) so the map retains at least 75% of the viewport' — the 75% figure is invented, not from user feedback. AC-3.1 says label must be 'at most 22 characters (with … truncation)' — the 22-char limit is from an existing code comment, not the user's specification. AC-4.1 through AC-4.3 address button height alignment and overlap, not the user's actual concern (visual anchoring/grouping), making them misaligned with the user's intent even if concrete."
+    },
+    {
+      "text": "User's feedback is quoted or precisely paraphrased — 'raw campaign IDs' intent preserved, not reinterpreted",
+      "passed": false,
+      "evidence": "Issue 3 (SPEC-3) reinterprets the user's intent. The user said 'human-readable, like just Shrimp Basket — May-Jun 2025' — a specific '{Brand} — {Mon}-{Mon} YYYY' format. But SPEC-3 AC-3.4 specifies only that the label reads 'Shrimp Basket' (max 22 chars), losing the date-range formatting the user explicitly described. The 'Mon-Mon YYYY' format in the user's quote is not captured as a requirement."
+    },
+    {
+      "text": "No invented issues beyond what the user described — no scope creep into unmentioned areas",
+      "passed": false,
+      "evidence": "SPEC-1 adds AC-1.3 about StoreDetailPanel right-side chrome (w-80 = 320px) and total left+right chrome constraints. The user's complaint was specifically about the left panel being 'too wide' and 'eating into the map area' — not about the right-side StoreDetailPanel width. AC-1.3 and the implementation note 'store-detail-panel.tsx: Reduce w-80 to w-72' go beyond what was described. SPEC-5 also introduces per-metric sub-labels ('No Placer.ai data for this period', 'Requires InMarket integration') that the user never mentioned — the user only said the N/A cards provide no value."
+    }
+  ]
+}

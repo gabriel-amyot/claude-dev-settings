@@ -1,0 +1,31 @@
+{
+  "eval_id": 1,
+  "variant": "with_skill",
+  "expectations": [
+    {
+      "text": "Extracts 4 or more distinct findings (panel width, search overlap, raw campaign IDs, hero cards N/A, timeline visual)",
+      "passed": true,
+      "evidence": "7 distinct findings extracted: FINDING-1 (panel width), FINDING-2 (search overlap), FINDING-3 (raw campaign names), FINDING-4 (controls drift), FINDING-5 (hero cards N/A), FINDING-6 (timeline dashed lines), FINDING-7 (top bar polish). All 5 user-mentioned issues are covered plus 2 related composite ones."
+    },
+    {
+      "text": "Each finding includes a code trace attempt — either a file:line reference or explicit TRACE_PENDING marker",
+      "passed": true,
+      "evidence": "All 7 findings have code traces. FINDING-3 has partial trace with explicit 'TRACE_PENDING' for ConversionsTypeSelect ('file2: components/map/controls/conversions-type-select.tsx (TRACE_PENDING — not read but inferred)'). All others have file:line references, e.g., FINDING-1: 'file: components/map/components/panel.tsx, lines: 11-13'."
+    },
+    {
+      "text": "SBEs use Given/When/Then format with concrete values (not placeholders like 'appropriate width')",
+      "passed": true,
+      "evidence": "All SBEs use Given/When/Then with concrete values. SBE-1: 'left filter panel width must not exceed 240px (w-60)'. SBE-3: format '{Brand Name} — {MonthAbbr}-{MonthAbbr} {YYYY}' with concrete example 'Shrimp Basket — May-Jun 2025'. SBE-6: 'weekly intervals (every 7 days) when N ≤ 60', 'monthly intervals (every 30 days) when N > 60'. No vague placeholders found."
+    },
+    {
+      "text": "User's feedback is quoted or precisely paraphrased — 'raw campaign IDs' intent preserved, not reinterpreted",
+      "passed": true,
+      "evidence": "FINDING-3 directly quotes: 'The campaign names are showing raw IDs like BeKlever, Inc. CA_US_Shrimp Basket US_2025-05-19_2025-06-30. Nobody wants to see that. It needs to be human-readable, like just Shrimp Basket — May-Jun 2025.' The intent — make campaign names human-readable — is preserved precisely in SBE-3's example transformation."
+    },
+    {
+      "text": "No invented issues beyond what the user described — no scope creep into unmentioned areas",
+      "passed": true,
+      "evidence": "All 7 findings map to user quotes from the screenshots. FINDING-7 ('this whole top bar area needs polish') is explicitly attributed to a user quote. The cross-cutting notes in the SBE catalog include clarification questions rather than new requirements. No findings about store name formatting, address display, or other unmentioned concerns."
+    }
+  ]
+}

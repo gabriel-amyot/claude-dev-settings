@@ -1,0 +1,101 @@
+{
+  "skill_name": "harness-audit",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "audit my skills",
+      "expected_output": "Full harness audit report with metrics table (global skills count, agents count, hook entries, proposal backlog, days since audit), findings by severity (CRITICAL/HIGH/MEDIUM/LOW), gap analysis section, and ranked proposals table. Should detect current harness state accurately — skill count should match actual directory count, org should be detected as Klever from cwd.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "produces_metrics_table",
+          "type": "contains",
+          "expected": "Metric",
+          "description": "Report contains a metrics summary table"
+        },
+        {
+          "name": "accurate_skill_count",
+          "type": "script",
+          "script": "count=$(ls -d ~/.claude/skills/*/SKILL.md 2>/dev/null | wc -l | tr -d ' '); echo \"Expected ~$count global skills\"; grep -oP 'Global skills\\s*\\|\\s*\\K[0-9]+' output.md | head -1",
+          "description": "Reported global skill count matches actual directory count"
+        },
+        {
+          "name": "detects_org_as_klever",
+          "type": "contains",
+          "expected": "klever",
+          "description": "Detects current org as Klever from working directory"
+        },
+        {
+          "name": "has_findings_section",
+          "type": "contains",
+          "expected": "Findings",
+          "description": "Report includes findings organized by severity"
+        },
+        {
+          "name": "has_proposals_section",
+          "type": "contains",
+          "expected": "Proposals",
+          "description": "Report includes ranked improvement proposals"
+        },
+        {
+          "name": "checks_proposal_backlog",
+          "type": "contains",
+          "expected": "Proposal backlog",
+          "description": "Reports on skill proposal backlog status"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I feel like my setup is getting bloated, can you do a quick check on my skills and hooks? don't need the full analysis, just the numbers and any red flags",
+      "expected_output": "Quick-mode report: metrics table and drift detection only. No gap analysis section. Should be noticeably shorter than the full report. Should still catch broken hooks and org bleeding.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "produces_metrics",
+          "type": "contains",
+          "expected": "Metric",
+          "description": "Still produces metrics even in quick mode"
+        },
+        {
+          "name": "no_gap_analysis",
+          "type": "not_contains",
+          "expected": "Uncovered Workflows",
+          "description": "Quick mode skips the gap analysis section"
+        },
+        {
+          "name": "has_findings",
+          "type": "contains",
+          "expected": "Findings",
+          "description": "Still includes drift findings"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "run a harness audit and fix anything that's obviously broken — like dead hooks or skills pointing to missing files",
+      "expected_output": "Full report followed by interactive apply mode. For each proposed fix, should present what will change, ask for confirmation (apply/skip/stop). Should identify any broken hooks (scripts that don't exist on disk) as CRITICAL and propose removing them first.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "enters_apply_mode",
+          "type": "contains_any",
+          "expected": ["apply", "skip", "stop"],
+          "description": "Enters interactive apply mode after the report"
+        },
+        {
+          "name": "checks_hook_scripts_exist",
+          "type": "contains",
+          "expected": "hook",
+          "description": "Audits hook script file existence"
+        },
+        {
+          "name": "asks_before_acting",
+          "type": "contains_any",
+          "expected": ["confirm", "approve", "apply"],
+          "description": "Does not auto-apply fixes without user confirmation"
+        }
+      ]
+    }
+  ]
+}

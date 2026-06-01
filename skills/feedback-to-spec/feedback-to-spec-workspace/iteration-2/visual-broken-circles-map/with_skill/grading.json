@@ -1,0 +1,34 @@
+{
+  "eval_id": 3,
+  "eval_name": "visual-broken-circles-map",
+  "iteration": 2,
+  "variant": "with_skill",
+  "assertions": [
+    {
+      "id": "A1",
+      "text": "Extracts 1-2 focused findings — does not inflate to 5+ findings from a single observation",
+      "passed": true,
+      "evidence": "Exactly 1 finding (FINDING-1) and 1 SBE (SBE-1) extracted. findings.md explicitly states: 'One finding, one SBE. Discipline check passed. The user described one distinct problem with multiple proposed alternatives; these alternatives become options within a single SBE.' The three user-suggested remedies (number, icon, smaller dots) are correctly treated as alternatives within one SBE rather than separate findings."
+    },
+    {
+      "id": "A2",
+      "text": "SBE proposes concrete visual behavior — zoom threshold, store count display, or specific sizing — not vague 'should look better'",
+      "passed": true,
+      "evidence": "SBE-1 provides a concrete fix options table: Option A specifies 'text-size: 18 at zoom 3, scaling up to 13 at zoom 7+'; Option B specifies 'radius 4-6px at zoom < 5, expand to 16px at zoom >= 5'; Option C specifies 'icon at zoom < 5'. Acceptance criteria detail states 'minimum font size proportional to circle radius (e.g., text-size = circle-radius x 0.6 minimum)'. No vague language — all thresholds and ratios are concrete."
+    },
+    {
+      "id": "A3",
+      "text": "Captures the first-impression business rationale — user said 'first thing users see when they open the map'",
+      "passed": true,
+      "evidence": "findings.md step 2 code trace notes: '[SEVERITY_NOTE] This is the first-impression view users see after clicking a store. Broken appearance at state zoom could undermine trust in the data product.' The raw quote 'This is what users see when they first open the map before zooming in, so its the first impression and it looks wrong' is captured verbatim in FINDING-1. Business rationale is explicitly preserved."
+    },
+    {
+      "id": "A4",
+      "text": "Does NOT scope into other map issues (flow lines, choropleth colors, panel layout)",
+      "passed": true,
+      "evidence": "sbe-catalog.md contains a dedicated 'Non-SBE Notes' section explicitly labeling code trace observations as NOT SBEs: 'These observations were made during code trace. They are NOT SBEs — they were not reported by the user.' The config labelSize inconsistency and the strokeColor/color naming swap are documented there, not promoted to findings. No findings about flow lines, choropleth, panel layout, or any other unmentioned areas."
+    }
+  ],
+  "pass_count": 4,
+  "total": 4
+}

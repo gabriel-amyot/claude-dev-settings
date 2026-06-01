@@ -1,0 +1,64 @@
+Split: 12 train, 8 test (holdout=0.4)
+
+============================================================
+Iteration 1/5
+Description: Live runtime inspection of the Klever frontend (portal.dev.beklever.com or localhost) via the user's own authenticated Chrome. THE skill for testing, validating, QA-ing, or debugging the UI when you need ground truth from a running app — not code reading, not the Playwright regression suite. Use whenever the user says 'test the UI', 'validate the UI', 'QA the frontend', 'frontend validation', 'check the UI', 'is the UI working', 'why isn't the UI updating', 'the button/spinner does nothing', 'inspect the live state', 'read the React props/state', 'what's the DOM/console/network doing', or describes a visual/runtime bug they're looking at. It attaches to the user's real Chrome session (inherits Klever IAP + Auth0 — no auth dance), installs a non-blocking DOM sampler, reads React fiber for live props/state, drives a reproduction, and returns a compact, sanitized timeline of DOM + props/state + console + network timing. Pure executor: it reports observable ground truth, it does NOT judge ACs or give UX opinions. Prefer this over klever-test's agent-browser/Playwright-MCP modes for any live UI inspection — those bail on auth; ui-probe reuses the session that already works.
+============================================================
+Train: 18/36 correct, precision=100% recall=0% accuracy=50% (68.9s)
+  [FAIL] rate=0/3 expected=True: frontend validation on localhost:3001 — the metrics popup sh
+  [FAIL] rate=0/3 expected=True: im looking at the portal right now and the filters arent app
+  [FAIL] rate=0/3 expected=True: why arent the conversion circles updating on the map when i 
+  [FAIL] rate=0/3 expected=True: something is rendering blank on the planning map, read the l
+  [FAIL] rate=0/3 expected=True: the send button on the service area chat at portal.dev.bekle
+  [FAIL] rate=0/3 expected=True: validate the UI for KTP-720 on dev — i need to know if the c
+  [PASS] rate=0/3 expected=False: run the backend api tests for proximity-report, the 22 pytho
+  [PASS] rate=0/3 expected=False: the proximity-report backend is returning 500s on /api/map, 
+  [PASS] rate=0/3 expected=False: polish the UX on the reports tab and implement the feedback 
+  [PASS] rate=0/3 expected=False: generate the sprint proof artifacts for KTP-680 in jira wiki
+  [PASS] rate=0/3 expected=False: run the playwright e2e regression suite for the portal with 
+  [PASS] rate=0/3 expected=False: write a unit test for the normalizeCountyGeoid helper functi
+Test : 12/24 correct, precision=100% recall=0% accuracy=50% (0.0s)
+  [FAIL] rate=0/3 expected=True: the spinner on the planning page keeps spinning forever and 
+  [FAIL] rate=0/3 expected=True: i want to QA the proximity map frontend before the demo tomo
+  [FAIL] rate=0/3 expected=True: check the UI on dev, is the isLoading prop even reaching the
+  [FAIL] rate=0/3 expected=True: the dashboard numbers look wrong in the browser, inspect wha
+  [PASS] rate=0/3 expected=False: do a UX dogfood pass on the portal as a first-time user and 
+  [PASS] rate=0/3 expected=False: review my PR for the planning map changes before i merge it 
+  [PASS] rate=0/3 expected=False: here are 4 screenshots of the dashboard i took, triage whats
+  [PASS] rate=0/3 expected=False: open google.com and fill out the contact form then take a sc
+
+Improving description...
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/gabrielamyot/.claude/plugins/cache/claude-plugins-official/skill-creator/b36fd4b75301/skills/skill-creator/scripts/run_loop.py", line 332, in <module>
+    main()
+  File "/Users/gabrielamyot/.claude/plugins/cache/claude-plugins-official/skill-creator/b36fd4b75301/skills/skill-creator/scripts/run_loop.py", line 297, in main
+    output = run_loop(
+             ^^^^^^^^^
+  File "/Users/gabrielamyot/.claude/plugins/cache/claude-plugins-official/skill-creator/b36fd4b75301/skills/skill-creator/scripts/run_loop.py", line 202, in run_loop
+    new_description = improve_description(
+                      ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/gabrielamyot/.claude/plugins/cache/claude-plugins-official/skill-creator/b36fd4b75301/skills/skill-creator/scripts/improve_description.py", line 114, in improve_description
+    response = client.messages.create(
+               ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/anthropic/_utils/_utils.py", line 294, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/anthropic/resources/messages/messages.py", line 1003, in create
+    return self._post(
+           ^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/anthropic/_base_client.py", line 1374, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/anthropic/_base_client.py", line 1064, in request
+    request = self._build_request(options, retries_taken=retries_taken)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/anthropic/_base_client.py", line 522, in _build_request
+    headers = self._build_headers(options, retries_taken=retries_taken)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/anthropic/_base_client.py", line 452, in _build_headers
+    self._validate_headers(headers_dict, custom_headers)
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/anthropic/_client.py", line 385, in _validate_headers
+    raise TypeError(
+TypeError: "Could not resolve authentication method. Expected one of api_key, auth_token, or credentials to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted"

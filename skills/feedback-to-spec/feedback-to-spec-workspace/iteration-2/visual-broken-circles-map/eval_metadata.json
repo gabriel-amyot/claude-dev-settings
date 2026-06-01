@@ -1,0 +1,27 @@
+{
+  "eval_id": 3,
+  "eval_name": "visual-broken-circles-map",
+  "prompt": "Focused single-issue feedback: empty map circles look broken at low zoom. First-impression concern. One screenshot.",
+  "assertions": [
+    {
+      "id": "A1",
+      "text": "Extracts 1-2 focused findings — does not inflate to 5+ findings from a single observation",
+      "type": "discipline"
+    },
+    {
+      "id": "A2",
+      "text": "SBE proposes concrete visual behavior — zoom threshold, store count display, or specific sizing — not vague 'should look better'",
+      "type": "format"
+    },
+    {
+      "id": "A3",
+      "text": "Captures the first-impression business rationale — user said 'first thing users see when they open the map'",
+      "type": "fidelity"
+    },
+    {
+      "id": "A4",
+      "text": "Does NOT scope into other map issues (flow lines, choropleth colors, panel layout)",
+      "type": "discipline"
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "skill_name": "feedback-to-spec",
+  "iteration": 1,
+  "date": "2026-05-05",
+  "configurations": [
+    {
+      "name": "with_skill",
+      "results": [
+        {
+          "eval_name": "multi-issue-layout-ux",
+          "pass_rate": 1.0,
+          "passed": 5,
+          "total": 5,
+          "tokens": 90885,
+          "duration_seconds": 250.7
+        },
+        {
+          "eval_name": "data-content-unmapped-stores",
+          "pass_rate": 1.0,
+          "passed": 4,
+          "total": 4,
+          "tokens": 62829,
+          "duration_seconds": 125.9
+        },
+        {
+          "eval_name": "visual-broken-circles-map",
+          "pass_rate": 0.5,
+          "passed": 2,
+          "total": 4,
+          "tokens": 109279,
+          "duration_seconds": 322.1
+        }
+      ],
+      "aggregate": {
+        "mean_pass_rate": 0.846,
+        "total_passed": 11,
+        "total_assertions": 13,
+        "mean_tokens": 87664,
+        "mean_duration_seconds": 232.9
+      }
+    },
+    {
+      "name": "without_skill",
+      "results": [
+        {
+          "eval_name": "multi-issue-layout-ux",
+          "pass_rate": 0.4,
+          "passed": 2,
+          "total": 5,
+          "tokens": 80188,
+          "duration_seconds": 208.1
+        },
+        {
+          "eval_name": "data-content-unmapped-stores",
+          "pass_rate": 0.75,
+          "passed": 3,
+          "total": 4,
+          "tokens": 65123,
+          "duration_seconds": 143.3
+        },
+        {
+          "eval_name": "visual-broken-circles-map",
+          "pass_rate": 0.5,
+          "passed": 2,
+          "total": 4,
+          "tokens": 94008,
+          "duration_seconds": 138.6
+        }
+      ],
+      "aggregate": {
+        "mean_pass_rate": 0.538,
+        "total_passed": 7,
+        "total_assertions": 13,
+        "mean_tokens": 79773,
+        "mean_duration_seconds": 163.3
+      }
+    }
+  ],
+  "delta": {
+    "pass_rate": "+30.8pp",
+    "tokens": "+9.9%",
+    "duration": "+42.6%"
+  },
+  "analyst_observations": [
+    "The skill's biggest win is on fidelity and discipline assertions (evals 1-2). It preserved user quotes, proposed exact replacement text, and avoided inventing extra findings.",
+    "Eval 3 is the shared failure. Both variants over-decompose a single user observation into 4-5 technical sub-findings. The skill's 'no scope creep' instruction isn't strong enough to prevent code-archaeology inflation.",
+    "The baseline never produced [CLARIFY] tags. The skill did in all 3 runs. This is the unique structural advantage — flagging ambiguity for user confirmation rather than guessing.",
+    "Token cost is ~10% higher with the skill. Time cost is ~43% higher, driven primarily by Eval 3 (322s vs 139s). Single-issue feedback should be the cheapest case, not the most expensive.",
+    "Non-discriminating assertion: A2 (code trace present) passed for both variants in all evals. Code tracing is a commodity capability — the skill doesn't improve it."
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "skill_name": "feedback-to-spec",
+  "iteration": 2,
+  "date": "2026-05-06",
+  "configurations": [
+    {
+      "name": "with_skill (iter 2)",
+      "results": [
+        {"eval_name": "multi-issue-layout-ux", "pass_rate": 1.0, "passed": 5, "total": 5, "tokens": 79986, "duration_seconds": 224.9},
+        {"eval_name": "data-content-unmapped-stores", "pass_rate": 1.0, "passed": 4, "total": 4, "tokens": 56820, "duration_seconds": 121.6},
+        {"eval_name": "visual-broken-circles-map", "pass_rate": 1.0, "passed": 4, "total": 4, "tokens": 104403, "duration_seconds": 382.5},
+        {"eval_name": "ambiguous-contradictory", "pass_rate": 1.0, "passed": 4, "total": 4, "tokens": 70742, "duration_seconds": 139.0},
+        {"eval_name": "non-visual-narration", "pass_rate": 1.0, "passed": 4, "total": 4, "tokens": 88912, "duration_seconds": 280.6}
+      ],
+      "aggregate": {
+        "mean_pass_rate": 1.0,
+        "total_passed": 21,
+        "total_assertions": 21,
+        "mean_tokens": 80173,
+        "mean_duration_seconds": 229.7
+      }
+    },
+    {
+      "name": "with_skill (iter 1)",
+      "results": [
+        {"eval_name": "multi-issue-layout-ux", "pass_rate": 1.0, "passed": 5, "total": 5, "tokens": 90885, "duration_seconds": 250.7},
+        {"eval_name": "data-content-unmapped-stores", "pass_rate": 1.0, "passed": 4, "total": 4, "tokens": 62829, "duration_seconds": 125.9},
+        {"eval_name": "visual-broken-circles-map", "pass_rate": 0.5, "passed": 2, "total": 4, "tokens": 109279, "duration_seconds": 322.1}
+      ],
+      "aggregate": {
+        "mean_pass_rate": 0.846,
+        "total_passed": 11,
+        "total_assertions": 13,
+        "mean_tokens": 87664,
+        "mean_duration_seconds": 232.9
+      }
+    }
+  ],
+  "delta": {
+    "pass_rate_iter1_to_iter2": "+15.4pp (84.6% → 100%)",
+    "tokens_iter1_to_iter2": "-8.5% (87.6K → 80.2K avg)",
+    "eval3_findings": "4 → 1 (-75%)",
+    "eval3_sbes": "5 → 1 (-80%)",
+    "new_evals_added": 2,
+    "new_evals_pass_rate": "100% (8/8)"
+  },
+  "analyst_observations": [
+    "Counting guard fixed the #1 problem: eval 3 collapsed from 4 findings + 5 SBEs to 1 finding + 1 SBE.",
+    "Mary's discipline checkpoint is explicitly referenced in every run's output. She audits finding count against observation count before SBE drafting begins.",
+    "Severity calibration shifted: eval 3 iter-1 assigned P0 to 'first impression'. Iter-2 assigns P1_HIGH, matching the user's tone ('looks wrong' not 'blocker').",
+    "Token efficiency improved across the board: mean dropped from 87.6K to 80.2K (-8.5%) despite the skill being longer (new discipline instructions).",
+    "The Non-SBE Notes pattern (quarantining code archaeology) emerged organically in eval 3 — the skill didn't prescribe it, the agent invented it to satisfy the counting constraint. Worth codifying.",
+    "Borderline fidelity issue in eval 4: contradictory quote paraphrased rather than quoted verbatim. Not a failure but a signal to strengthen quote-preservation instructions."
+  ]
+}

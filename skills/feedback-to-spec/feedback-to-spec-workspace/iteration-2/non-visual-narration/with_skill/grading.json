@@ -1,0 +1,34 @@
+{
+  "eval_id": 5,
+  "eval_name": "non-visual-narration",
+  "iteration": 2,
+  "variant": "with_skill",
+  "assertions": [
+    {
+      "id": "A1",
+      "text": "Extracts exactly 2 findings matching user's 2 described bugs (filter reset, location count stale)",
+      "passed": true,
+      "evidence": "Exactly 2 findings extracted: FINDING-1 (channel filter resets to 'All channels' when switching advertisers) and FINDING-2 (location count in header does not update after clearing filters until map pan). Summary table confirms 'Total findings: 2 (matches user observation count exactly).' Mary's audit: 'Gabriel described 2 distinct issues -> 2 findings. Ratio is 1:1.'"
+    },
+    {
+      "id": "A2",
+      "text": "Handles missing screenshots gracefully — no error, still produces findings and code traces",
+      "passed": true,
+      "evidence": "The ingestion note explicitly acknowledges: 'No screenshots provided. Observations are drawn entirely from Gabriel's verbal narration.' Both findings use 'screenshot: <none>' in their structured blocks. Both findings still include full code traces with specific file:line references (map-store.tsx:325-341 for FINDING-1, map-updater.tsx:233 + poi-search-panel.tsx:141-143 for FINDING-2). The sbe-catalog.md also produces 2 complete SBEs with Given/When/Then format. No error or degraded output."
+    },
+    {
+      "id": "A3",
+      "text": "Uses [CLARIFY] where narration is ambiguous (e.g., which specific filter, which count display)",
+      "passed": true,
+      "evidence": "FINDING-1 contains: '[CLARIFY] Does Online refer to the Channel filter or the Conversions (Online Conversions) filter?' with explanation of why it matters for the fix. FINDING-2 contains two separate clarification tags: '[CLARIFY-A] What specific action is clear all filters?' (with 3 options) and '[CLARIFY-B] Which location count display is Gabriel referring to?' (with 2 candidate components). All ambiguities from the narration are flagged rather than resolved unilaterally."
+    },
+    {
+      "id": "A4",
+      "text": "Does NOT fabricate visual observations it couldn't have seen (no screenshot references)",
+      "passed": true,
+      "evidence": "Both findings use 'observation: <not available — narration only>' in their structured blocks. The header declares 'Input Mode: Narration only (no screenshots)'. No finding includes language like 'the screenshot shows', 'visible on screen', or 'the panel appears to display'. The one reference to 'visual state' appears inside code_trace.notes as a description of a React re-render hypothesis, not a fabricated observation of a screenshot. The sbe-catalog.md similarly makes no visual claims that would require a screenshot to verify."
+    }
+  ],
+  "pass_count": 4,
+  "total": 4
+}

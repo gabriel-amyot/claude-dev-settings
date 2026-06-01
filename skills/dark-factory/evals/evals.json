@@ -1,0 +1,192 @@
+{
+  "skill_name": "dark-factory",
+  "evals": [
+    {
+      "id": 1,
+      "name": "dry-run-plan-parsing",
+      "prompt": "I have this execution plan for the Canada Map feature (KTP-667). Can you do a dry run to show me the tiers and dependencies before we commit to running the whole thing? /dark-factory --plan ~/.claude/skills/dark-factory/evals/fixtures/test-plan.md --dry-run",
+      "expected_output": "Displays a tier breakdown with 4 tiers. KTP-676, KTP-679, KTP-681 in tier 1. KTP-680, KTP-682 in tier 2. KTP-683 in tier 3. KTP-684, KTP-685 in tier 4. KTP-685 marked optional. Shows 1 custom gate check between tier 2 and 3. Shows 2 integration tests. Phases per ticket: 8. Estimated skill invocations: ~24 (8x analyst + 8x grill-with-docs + 8x klever-mr). Agent dispatches: ~16 (8x review + 8x QA). Does NOT call Jira, does NOT create artifacts, does NOT spawn sub-agents.",
+      "files": ["fixtures/test-plan.md"],
+      "assertions": [
+        {"text": "Output contains exactly 4 tiers", "type": "structural"},
+        {"text": "Tier 1 contains KTP-676, KTP-679, KTP-681", "type": "content"},
+        {"text": "KTP-685 is marked as optional", "type": "content"},
+        {"text": "Custom gate check mentioned for tier_2 to tier_3", "type": "content"},
+        {"text": "No Jira API calls were made", "type": "behavioral"},
+        {"text": "No files created in any ticket folder", "type": "behavioral"},
+        {"text": "Output ends with a message about using without --dry-run to execute", "type": "structural"}
+      ]
+    },
+    {
+      "id": 2,
+      "name": "circular-dependency-detection",
+      "prompt": "Run dark factory on this plan that has a circular dep. /dark-factory --plan ~/.claude/skills/dark-factory/evals/fixtures/circular-plan.md --dry-run",
+      "expected_output": "Detects the circular dependency between KTP-A, KTP-B, KTP-C and reports a fatal error. Does NOT attempt tier sorting. Does NOT proceed to execution.",
+      "files": ["fixtures/circular-plan.md"],
+      "assertions": [
+        {"text": "Error message mentions circular dependency", "type": "content"},
+        {"text": "The specific cycle is identified (KTP-A -> KTP-B -> KTP-C -> KTP-A or equivalent)", "type": "content"},
+        {"text": "Pipeline does not proceed", "type": "behavioral"}
+      ]
+    },
+    {
+      "id": 3,
+      "name": "single-ticket-analyze-only",
+      "prompt": "I want to see what the dark factory analyst thinks about KTP-676 before I commit to the full pipeline. Just run the analysis phase. /dark-factory KTP-676 --analyze-only",
+      "expected_output": "Resolves KTP-676 as Klever org. Dispatches a sub-agent to run the ticket-to-pr-analyst for KTP-676. Writes analyst artifacts (acceptance_criteria, affected_repos, assumptions) to the ticket folder. Writes pipeline-state.yaml with the ticket in 'analyzing' then updated to reflect Phase 1 results. Stops after Phase 1. Does NOT proceed to Design or Implement. Displays a pre-execution estimate before starting and asks for confirmation.",
+      "files": [],
+      "assertions": [
+        {"text": "Org resolved to klever", "type": "content"},
+        {"text": "Pre-execution estimate displayed before starting", "type": "structural"},
+        {"text": "Sub-agent dispatched for Phase 1 analysis", "type": "behavioral"},
+        {"text": "Pipeline state file created or updated", "type": "behavioral"},
+        {"text": "Execution stops after Phase 1", "type": "behavioral"},
+        {"text": "No Design or Implementation phase attempted", "type": "behavioral"}
+      ]
+    },
+    {
+      "id": 4,
+      "name": "mermaid-only-plan-warning",
+      "prompt": "Run the dark factory on this plan. /dark-factory --plan ~/.claude/skills/dark-factory/evals/fixtures/mermaid-only-plan.md --dry-run",
+      "expected_output": "Detects that the plan file has a Mermaid diagram but no YAML frontmatter. Warns the user that Mermaid graphs are for humans, not machines. Suggests adding a tickets: section with depends_on fields. Does NOT attempt to parse the Mermaid diagram.",
+      "files": ["fixtures/mermaid-only-plan.md"],
+      "assertions": [
+        {"text": "Warning about missing YAML dependency graph", "type": "content"},
+        {"text": "Mentions that Mermaid is for humans not machines", "type": "content"},
+        {"text": "Does not attempt to parse Mermaid syntax", "type": "behavioral"}
+      ]
+    },
+    {
+      "id": 5,
+      "name": "tdd-red-green-ordering",
+      "prompt": "Run dark factory on KTP-TEST-TDD (a fictional ticket). Simulate Phase 4 for a single AC that adds a new 'country' parameter to a BQ adapter method. The AC says: 'Given a country parameter is passed, when querying state metrics, then the response includes COUNTRY matching the parameter.' Walk through the TDD steps you would take. Do NOT write actual code, just describe the sequence of actions.",
+      "expected_output": "Agent describes the TDD sequence in order: (1) read design plan including test specifications, (2) write a RED test that asserts getStateMetrics(country='CA') returns COUNTRY='CA', (3) run the test and verify it FAILS, (4) write minimum code to make the test pass, (5) run the test and verify it PASSES, (6) optional refactor, (7) WIP commit. The agent must NOT describe writing code before writing the test. The agent must mention verifying the test fails before writing implementation code.",
+      "files": [],
+      "assertions": [
+        {"text": "Test is written BEFORE implementation code", "type": "behavioral"},
+        {"text": "RED step explicitly mentions running the test and verifying failure", "type": "behavioral"},
+        {"text": "GREEN step describes writing minimal code only", "type": "behavioral"},
+        {"text": "Sequence follows baseline -> RED -> GREEN -> REFACTOR -> commit order", "type": "structural"}
+      ]
+    },
+    {
+      "id": 6,
+      "name": "tdd-baseline-hard-gate",
+      "prompt": "Run dark factory on KTP-TEST-BASELINE (fictional). Simulate Phase 4 for an AC that says: 'Given country parameter is null, when querying state metrics, then the response defaults COUNTRY to US (existing behavior unchanged).' The AC modifies existing behavior. Describe what happens if the baseline test you write (asserting COUNTRY='US' when country=null) FAILS before you change any code.",
+      "expected_output": "Agent recognizes this is a baseline scenario (existing behavior unchanged). Agent writes a baseline test BEFORE any code changes. Agent runs it and expects it to PASS. When told the baseline fails, the agent does NOT proceed to RED. Instead it logs spec_assumption_failure in pipeline-state.yaml, halts the AC, and surfaces the issue to the user. The agent explicitly states it will NOT rationalize or proceed.",
+      "files": [],
+      "assertions": [
+        {"text": "Baseline test written before any code changes", "type": "behavioral"},
+        {"text": "Baseline test expected to PASS (not fail)", "type": "content"},
+        {"text": "On baseline failure: logs spec_assumption_failure", "type": "behavioral"},
+        {"text": "On baseline failure: halts the AC, does not proceed to RED", "type": "behavioral"},
+        {"text": "Does not rationalize past the failure", "type": "behavioral"}
+      ]
+    },
+    {
+      "id": 7,
+      "name": "tdd-adversarial-edge-cases",
+      "prompt": "Run dark factory on KTP-TEST-ADVERSARIAL (fictional). Assume Phase 4 has completed all ACs with TDD (all GREEN). Now describe the adversarial edge-case testing step. The ticket added a 'country' parameter to 7 BQ adapter methods. What adversarial tests would you write?",
+      "expected_output": "Agent writes at least one adversarial test per AC after all ACs are GREEN. Tests target edge cases NOT mentioned in ACs: null country parameter from legacy callers, empty string country, callers from other services that don't pass the new parameter. If any adversarial test fails, the agent fixes the code and commits the fix alongside the test. The agent references the KTP-682 null-country pattern.",
+      "files": [],
+      "assertions": [
+        {"text": "Adversarial tests run AFTER all ACs are GREEN, not during", "type": "structural"},
+        {"text": "Tests include null input scenario", "type": "content"},
+        {"text": "Tests include empty string or missing parameter scenario", "type": "content"},
+        {"text": "Failing adversarial tests result in code fixes, not test removal", "type": "behavioral"},
+        {"text": "References KTP-682 or the null-country pattern", "type": "content"}
+      ]
+    },
+    {
+      "id": 8,
+      "name": "tdd-tautological-red-detection",
+      "prompt": "Run dark factory on KTP-TEST-TAUTOLOGICAL (fictional). Simulate Phase 4 RED step. You write a test for a new AC, run it, and it PASSES immediately (the behavior already exists). What do you do?",
+      "expected_output": "Agent recognizes a passing RED test as tautological. The test confirms existing behavior, not the new change this AC introduces. The agent rewrites the test with tighter assertions that target the actual new behavior. The agent does NOT proceed to GREEN with a passing RED test. The agent does NOT rationalize that 'the code is already correct.'",
+      "files": [],
+      "assertions": [
+        {"text": "Recognizes passing RED as tautological, not as 'already correct'", "type": "behavioral"},
+        {"text": "Rewrites the test with tighter assertions", "type": "behavioral"},
+        {"text": "Does not proceed to GREEN until RED actually fails", "type": "behavioral"}
+      ]
+    },
+    {
+      "id": 9,
+      "name": "phase2-test-specifications",
+      "prompt": "Run dark factory --analyze-only on KTP-TEST-PHASE2 (fictional). After Phase 1 analyst completes, describe what Phase 2 (DESIGN) should produce for test specifications. The ticket adds a 'country' parameter to a BQ adapter.",
+      "expected_output": "Phase 2 impl-plan includes test specifications per AC. Each spec describes: method signature, expected assertions, and whether the test is baseline (existing behavior) or new-behavior. Example: baseline: getStateMetrics(country=null) returns COUNTRY='US'. New: getStateMetrics(country='CA') returns COUNTRY='CA'. Adversarial: getStateMetrics(country='') edge case. These are specifications, not implementations. Phase 4 writes the actual test bodies.",
+      "files": [],
+      "assertions": [
+        {"text": "Test specifications included in Phase 2 output", "type": "structural"},
+        {"text": "Specs distinguish baseline vs new-behavior tests", "type": "content"},
+        {"text": "Specs include method signatures and expected assertions", "type": "content"},
+        {"text": "Specs are specifications, not full test code", "type": "content"}
+      ]
+    },
+    {
+      "id": 10,
+      "name": "telemetry-written-after-run",
+      "prompt": "After running any phase of dark-factory, verify that a run telemetry YAML file was written to ~/.claude/skills/dark-factory/runs/ and that LESSONS.md was consulted for cross-run patterns.",
+      "expected_output": "This is a post-run assertion. After any dark-factory execution (even partial, even --analyze-only), a telemetry file should exist in runs/ with the expected YAML structure: run_id, date, skill_version, input_mode, phases section, summary section.",
+      "files": [],
+      "assertions": [
+        {"text": "Telemetry YAML file exists in runs/ directory", "type": "artifact"},
+        {"text": "File contains run_id field", "type": "structural"},
+        {"text": "File contains phases section with at least one ticket", "type": "structural"},
+        {"text": "File contains summary section with snag counts", "type": "structural"},
+        {"text": "runs/INDEX.md updated with new entry", "type": "artifact"}
+      ]
+    },
+    {
+      "id": 11,
+      "name": "eval-missing-list-format",
+      "prompt": "Run dark factory on KTP-TEST-EVAL (fictional). After Phase 1 completes, write the pre-run fitness prediction. The spec_clarity dimension scores 85. Show the pipeline-state.yaml eval output.",
+      "expected_output": "The pre-run eval uses nested format for each dimension: { score: N, missing: [list of reasons] }. The spec_clarity entry shows score: 85 with a missing list explaining what the 15 gap points represent. No flat 'spec_clarity: 85' format. Every dimension below 100 has a missing list.",
+      "files": [],
+      "assertions": [
+        {"text": "Dimensions use nested { score, missing } format, not flat key: number", "type": "structural"},
+        {"text": "spec_clarity has a missing list explaining the 15-point gap", "type": "content"},
+        {"text": "Every dimension below 100 includes a missing list", "type": "behavioral"},
+        {"text": "The assessment field is still present as a top-level string", "type": "structural"}
+      ]
+    },
+    {
+      "id": 12,
+      "name": "phase6-qa-agent-segregation",
+      "prompt": "Run dark factory on KTP-TEST-QA (fictional). Describe how Phase 6 (QA) is dispatched. What information does the QA agent receive? What does it NOT receive?",
+      "expected_output": "Phase 6 QA is dispatched to a SEPARATE agent from the implementing agent. The QA agent receives: the AC list, affected file paths, the QA Technology Adaptation table. The QA agent does NOT receive: the implementation plan, the grill report, the implementor's rationale, or any Phase 1-4 artifacts. The agent should reference the Phase 6 dispatch prompt template.",
+      "files": [],
+      "assertions": [
+        {"text": "QA dispatched to a separate agent, not run inline by the implementor", "type": "behavioral"},
+        {"text": "QA agent receives AC list and file paths", "type": "content"},
+        {"text": "QA agent does NOT receive implementation plan or design rationale", "type": "behavioral"},
+        {"text": "QA Technology Adaptation table is referenced for stack-specific requirements", "type": "content"}
+      ]
+    },
+    {
+      "id": 13,
+      "name": "phase7-preship-artifact-gate",
+      "prompt": "Run dark factory on KTP-TEST-GATE (fictional). Assume Phase 4 and Phase 5 completed, but Phase 6 was skipped (no qa-report exists). Describe what happens when Phase 7 starts.",
+      "expected_output": "Phase 7 Step 0 (Pre-Ship Artifact Gate) runs and detects that qa/qa-report.v*.md is missing. Phase 7 HALTS with the list of missing artifacts. The agent does NOT proceed to version bump, push, or MR creation. The agent cannot rationalize past this gate.",
+      "files": [],
+      "assertions": [
+        {"text": "Phase 7 runs the pre-ship artifact gate before any shipping action", "type": "behavioral"},
+        {"text": "Missing qa-report is detected and listed", "type": "content"},
+        {"text": "Phase 7 HALTS, does not proceed", "type": "behavioral"},
+        {"text": "Agent does not self-certify or rationalize past the gate", "type": "behavioral"}
+      ]
+    },
+    {
+      "id": 14,
+      "name": "phase2-brownfield-gate",
+      "prompt": "Run dark factory on KTP-TEST-BROWNFIELD (fictional). The ticket says 'integrate SSE stream for market research data.' The ticket does NOT mention routes, pages, or navigation. Describe how Phase 2 handles UI placement decisions.",
+      "expected_output": "Phase 2 searches the codebase for existing implementations serving market research data before proposing new routes or pages. If an existing page (e.g., /proximity-chatbot) already serves the endpoint, Phase 2 classifies the ticket as 'modification' and plans changes to the existing page. Phase 2 does NOT invent new routes, pages, or nav items without codebase evidence. References the brownfield gate and ticket-to-pr-analyst Step 4.5 classification.",
+      "files": [],
+      "assertions": [
+        {"text": "Searches codebase for existing implementations before proposing new UI", "type": "behavioral"},
+        {"text": "Does NOT invent new routes or pages without evidence", "type": "behavioral"},
+        {"text": "References brownfield classification from Phase 1 Step 4.5", "type": "content"},
+        {"text": "If existing implementation found, plans modification not creation", "type": "behavioral"}
+      ]
+    }
+  ]
+}

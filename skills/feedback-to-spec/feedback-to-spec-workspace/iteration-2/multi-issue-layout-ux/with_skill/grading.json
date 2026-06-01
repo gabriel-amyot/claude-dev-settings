@@ -1,0 +1,40 @@
+{
+  "eval_id": 1,
+  "eval_name": "multi-issue-layout-ux",
+  "iteration": 2,
+  "variant": "with_skill",
+  "assertions": [
+    {
+      "id": "A1",
+      "text": "Extracts 4 or more distinct findings (panel width, search overlap, raw campaign IDs, hero cards N/A, timeline visual)",
+      "passed": true,
+      "evidence": "6 findings extracted — FINDING-1 (panel width), FINDING-2 (search results overlap), FINDING-3 (raw campaign IDs/conversion names), FINDING-4 (controls drift), FINDING-5 (hero cards N/A), FINDING-6 (timeline dashed lines). All 5 user-mentioned issues are covered. Count threshold easily met."
+    },
+    {
+      "id": "A2",
+      "text": "Each finding includes a code trace attempt — either a file:line reference or explicit TRACE_PENDING marker",
+      "passed": true,
+      "evidence": "All 6 findings include code_trace blocks with file:line references. FINDING-6 uses 'Root cause: TRACE_PENDING' in sbe-catalog.md while still providing two candidate source files. FINDING-1 through FINDING-5 all have specific file + line numbers (e.g., panel.tsx:11, poi-search-panel.tsx:110-117, store-detail-panel.tsx:53-81, proximity-map.tsx:216-232, store-hero-bar.tsx:76-131)."
+    },
+    {
+      "id": "A3",
+      "text": "SBEs use Given/When/Then format with concrete values (not placeholders like 'appropriate width')",
+      "passed": true,
+      "evidence": "All SBEs use Given/When/Then with concrete values. SBE-1: 'must not exceed 240px wide', 'total left-side panel footprint must not exceed 480px at 1280px viewport'. SBE-3: 'reformatted as Mon-Mon YYYY (e.g., May-Jun 2025)', 'label must not exceed 30 characters visible'. SBE-5: 'card must display — instead of N/A'. No vague placeholders found."
+    },
+    {
+      "id": "A4",
+      "text": "User's feedback is quoted or precisely paraphrased — 'raw campaign IDs' intent preserved, not reinterpreted",
+      "passed": true,
+      "evidence": "FINDING-3 directly quotes: 'The campaign names are showing raw IDs like BeKlever, Inc. CA_US_Shrimp Basket US_2025-05-19_2025-06-30. Nobody wants to see that.' Gabriel's example 'Shrimp Basket — May-Jun 2025' is reproduced verbatim. The SBE correctly names the issue as human-readable labels, matching the user's stated intent. No reinterpretation detected."
+    },
+    {
+      "id": "A5",
+      "text": "No invented issues beyond what the user described — no scope creep into unmentioned areas",
+      "passed": true,
+      "evidence": "Mary's Discipline Audit in findings.md explicitly counts 6 user observations and 6 findings (ratio 1.0x). All findings map to direct quotes. No findings about store name formatting, address display, colors, fonts, or other unmentioned areas. FINDING-2's severity note and FINDING-5's data-gap analysis are placed in code_trace.notes rather than promoted to separate findings."
+    }
+  ],
+  "pass_count": 5,
+  "total": 5
+}

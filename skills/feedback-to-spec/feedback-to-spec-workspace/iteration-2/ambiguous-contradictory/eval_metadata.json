@@ -1,0 +1,27 @@
+{
+  "eval_id": 4,
+  "eval_name": "ambiguous-contradictory",
+  "prompt": "Feedback with internal contradiction: user wants the right panel 'wider but not taking so much space'. Also mentions cramped text and hard-to-hit close button. One screenshot.",
+  "assertions": [
+    {
+      "id": "A1",
+      "text": "Extracts 2-3 findings matching user's distinct observations (cramped text, map displacement, close button)",
+      "type": "structural"
+    },
+    {
+      "id": "A2",
+      "text": "Uses [CLARIFY] tag on contradictory feedback ('wider but not taking so much space') rather than picking a side",
+      "type": "fidelity"
+    },
+    {
+      "id": "A3",
+      "text": "Proposes concrete options for the contradictory requirement (overlay vs resize vs other)",
+      "type": "format"
+    },
+    {
+      "id": "A4",
+      "text": "Does NOT add findings about issues the user didn't mention (colors, fonts, data content)",
+      "type": "discipline"
+    }
+  ]
+}

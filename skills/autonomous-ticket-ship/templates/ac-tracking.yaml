@@ -1,0 +1,51 @@
+ticket: [TICKET_ID]
+last_updated: [DATE]
+autonomous_run: true
+run_status: in_progress
+
+acceptance_criteria:
+  # Populate from Jira ACs. One entry per AC.
+  # - id: AC-1
+  #   title: Short description from Jira
+  #   status: todo          # todo | in_progress | done | skipped
+  #   commit: null           # SHA after commit
+  #   stack: null             # backend | frontend | both | validation
+  #   notes: |
+  #     Implementation notes, deviations from plan, or skip reason.
+
+blockers_defaults_applied:
+  # Record every PO/design question where a default was applied.
+  # Format: Q{N}: "Description of the default chosen"
+  # Example:
+  # Q1: "Invite-email notice shown in New User modal"
+  # Q2: "isAdmin() only for v1. No UserManagement component registry change."
+
+blockers_hit_during_run:
+  # Runtime blockers encountered during execution (not pre-existing design questions).
+  # Example:
+  # - "Backend maven local verify blocked: klever-parent-pom download 403 (gcloud auth expired)"
+
+scope_cuts:
+  # Features from mockups or spec that were intentionally cut to AC scope.
+  # Example:
+  # - "Roles tab (role CRUD)"
+  # - "Audit Logs tab"
+
+verification_pending:
+  # Items that could not be verified locally and are deferred to CI or post-merge.
+  # Example:
+  # - "Maven compile + unit tests on backend (CI will run on MR creation)"
+
+branches_pushed:
+  # Per-repo branch info, populated after push.
+  # backend:
+  #   branch: [TICKET_ID]-description
+  #   head: null              # SHA after push
+  #   commits: []             # List of {sha: message} pairs
+  #   mr_url: null            # Captured from git push remote: output
+  # frontend:
+  #   branch: [TICKET_ID]-description
+  #   head: null
+  #   worktree: null          # Path if worktree used
+  #   commits: []
+  #   mr_url: null

@@ -1,0 +1,26 @@
+{
+  "eval_id": 2,
+  "variant": "with_skill",
+  "expectations": [
+    {
+      "text": "Extracts 2-3 findings: dead-end UX (no action), overly technical language, missing permission-gated action link",
+      "passed": true,
+      "evidence": "Exactly 3 findings extracted: FINDING-1 (jargon-heavy copy — 'a normal user doesn't know what POI means'), FINDING-2 (dead end — 'there's no button to actually request the POI'), FINDING-3 (permission gate missing — 'if they have permission'). All three match the expected categories precisely."
+    },
+    {
+      "text": "Proposes concrete replacement text — user suggested 'No foot traffic data yet' with 'Request data' link",
+      "passed": true,
+      "evidence": "SBE-1 specifies exactly: 'the panel displays a single, plain-language message: \"No foot traffic data yet.\"'. SBE-2 specifies: 'a \"Request data\" link is displayed below the \"No foot traffic data yet.\" message'. Both match the user's suggested phrasing verbatim."
+    },
+    {
+      "text": "SBE includes permission-gating consideration — user explicitly said 'if they have permission'",
+      "passed": true,
+      "evidence": "SBE-2 has two explicit Given/When/Then branches: one for users WITH permission ('a \"Request data\" link is displayed') and one for users WITHOUT permission ('only the \"No foot traffic data yet.\" message is shown, AND no CTA is rendered'). CLARIFY-A explicitly discusses three permission-gating options and proposes a default."
+    },
+    {
+      "text": "Does NOT add findings about issues the user did not mention (e.g., store name formatting, address display)",
+      "passed": true,
+      "evidence": "All 3 findings trace directly to user quotes. The store header (name, address) is mentioned only in the screenshot observation context, not as a finding. No findings about store name formatting, address display, panel layout, loading states, or other unmentioned areas. The implementation sketch is clearly labeled 'not spec, for reference'."
+    }
+  ]
+}

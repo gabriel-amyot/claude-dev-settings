@@ -1,0 +1,27 @@
+{
+  "eval_id": 2,
+  "eval_name": "data-content-unmapped-stores",
+  "prompt": "Single-area feedback: unmapped store message is dead end, too technical, no action button. One screenshot.",
+  "assertions": [
+    {
+      "id": "A1",
+      "text": "Extracts 2-3 findings: dead-end UX (no action), overly technical language, missing permission-gated action link",
+      "type": "structural"
+    },
+    {
+      "id": "A2",
+      "text": "Proposes concrete replacement text — user suggested 'No foot traffic data yet' with 'Request data' link",
+      "type": "fidelity"
+    },
+    {
+      "id": "A3",
+      "text": "SBE includes permission-gating consideration — user explicitly said 'if they have permission'",
+      "type": "fidelity"
+    },
+    {
+      "id": "A4",
+      "text": "Does NOT add findings about issues the user did not mention (e.g., store name formatting, address display)",
+      "type": "discipline"
+    }
+  ]
+}

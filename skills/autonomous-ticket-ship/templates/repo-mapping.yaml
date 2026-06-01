@@ -1,0 +1,21 @@
+ticket: [TICKET_ID]
+summary: [TICKET_TITLE]
+
+repos:
+  # One entry per repo touched by this ticket.
+  # backend:
+  #   path: [FULL_REPO_PATH]
+  #   branch: [TICKET_ID]-short-description
+  #   base: dev                # Branch to base off (usually dev for Klever, main for Supervisr)
+  #   worktree: false          # true if using a dedicated git worktree
+  #   notes: |
+  #     Context: why this repo, what's already on dev, other active branches to avoid.
+  #
+  # frontend:
+  #   path: [FULL_REPO_PATH]
+  #   branch: [TICKET_ID]-short-description
+  #   base: origin/dev
+  #   worktree: false
+  #   notes: |
+  #     If worktree: record the worktree path, not the main checkout path.
+  #     Note any other active worktrees to avoid collision.

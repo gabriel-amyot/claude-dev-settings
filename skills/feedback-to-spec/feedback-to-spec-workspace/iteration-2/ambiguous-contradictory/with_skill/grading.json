@@ -1,0 +1,34 @@
+{
+  "eval_id": 4,
+  "eval_name": "ambiguous-contradictory",
+  "iteration": 2,
+  "variant": "with_skill",
+  "assertions": [
+    {
+      "id": "A1",
+      "text": "Extracts 2-3 findings matching user's distinct observations (cramped text, map displacement, close button)",
+      "passed": true,
+      "evidence": "Exactly 3 findings extracted: FINDING-1 (panel text cramped, too narrow), FINDING-2 (opening panel loses map context / map displacement), FINDING-3 (close button hard to hit). This is a 1:1 match with the user's 3 distinct observations. Mary's pre-extraction audit count check explicitly states '3 observations, 3 findings' and passes."
+    },
+    {
+      "id": "A2",
+      "text": "Uses [CLARIFY] tag on contradictory feedback ('wider but not taking so much space') rather than picking a side",
+      "passed": true,
+      "evidence": "FINDING-2 contains in the `expected` field: '[CLARIFY — see below] The user expressed two contradictory solutions: (A) a slide-over / overlay that does NOT take space from the map, OR (B) the map resizing gracefully to accommodate the panel. These are mutually exclusive patterns.' The code_trace.notes ends with '[CLARIFY] tag required in SBE. Do not implement until Gabriel resolves.' SBE-2 in sbe-catalog.md contains a full [CLARIFY] block with the explicit note 'This SBE is blocked for implementation until Gabriel answers.'"
+    },
+    {
+      "id": "A3",
+      "text": "Proposes concrete options for the contradictory requirement (overlay vs resize vs other)",
+      "passed": true,
+      "evidence": "SBE-2 [CLARIFY] block defines two named options with concrete implementation descriptions: 'Option A — True overlay with viewport padding: add map.easeTo({ padding: { right: 320 }, around: clickedStoreCoords }) when panel opens.' and 'Option B — Flex-row layout resize: Restructure ProximityMap to use a flex-row container. Map column shrinks when panel is open.' Each option includes pros/cons. A third 'Something else?' option is offered as an open escape hatch."
+    },
+    {
+      "id": "A4",
+      "text": "Does NOT add findings about issues the user didn't mention (colors, fonts, data content)",
+      "passed": true,
+      "evidence": "Mary's Post-Extraction Audit table confirms: 'All findings from user's words — Yes. No screenshot-inferred extras.' The 3 findings map strictly to the 3 quoted user observations. The sbe-catalog.md contains no findings about colors, fonts, data content, metric card accuracy, or any other unmentioned concerns. Code trace observations (e.g., WCAG sizing notes, layout complexity notes) are placed in Notes/code_trace sections and not promoted to findings."
+    }
+  ],
+  "pass_count": 4,
+  "total": 4
+}

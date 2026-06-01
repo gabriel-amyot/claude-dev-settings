@@ -1,0 +1,36 @@
+{
+  "skill_name": "feedback-to-spec",
+  "evals": [
+    {
+      "id": 1,
+      "name": "multi-issue-layout-ux",
+      "prompt": "/feedback-to-spec KTP-130\n\nOk look at this. I'm on the measurement map for Shrimp Basket.\n\n[screenshot: sbe9-panel-width.png]\nThe left panel is way too wide, it's eating into the map area. The search results are overlapping with the metrics section. And look at the conversions section — the campaign names are showing raw IDs like 'BeKlever, Inc. CA_US_Shrimp Basket US_2025-05-19_2025-06-30'. Nobody wants to see that. It needs to be human-readable, like just 'Shrimp Basket — May-Jun 2025'.\n\n[screenshot: sbe1-controls-drift.png]\nAnd these controls up top — the 'Distribution in time' and 'Summary' tabs, they're drifting. The hero cards all show N/A. The timeline at the bottom has some weird dashed lines. This whole top bar area needs polish.",
+      "expected_output": "Should extract 4-5 distinct findings: (1) panel width too wide, (2) search results overlap, (3) raw campaign IDs in conversions, (4) hero cards showing N/A, (5) timeline visual issues. Each should have a code trace attempt and an SBE in Given/When/Then format. Should present confirmation loop before any autonomous action.",
+      "files": [
+        "tickets/KTP/KTP-130/design/screenshots/ux-feedback-2026-05-04/sbe9-panel-width.png",
+        "tickets/KTP/KTP-130/design/screenshots/ux-feedback-2026-05-04/sbe1-controls-drift.png"
+      ],
+      "assertions": []
+    },
+    {
+      "id": 2,
+      "name": "data-content-unmapped-stores",
+      "prompt": "/feedback-to-spec KTP-130\n\nHere's a problem I noticed when clicking through stores.\n\n[screenshot: sbe2-unmapped-locations.png]\nWhen I click on Shrimp Basket Gulf Breeze, it says 'This location is not yet mapped in Placer.ai. Foot traffic data will appear once the location is onboarded via the Request POI process.' That message is technically correct but it's a dead end for the user. There's no button to actually request the POI. And the message is way too long and technical. A normal user doesn't know what POI means. This should just say something like 'No foot traffic data yet' with a small 'Request data' link if they have permission.\n\nFor the epic context, this is KTP-130 Phase 2 — the store detail panel work.",
+      "expected_output": "Should extract 2-3 findings: (1) unmapped store message is a dead end (no action button), (2) message is too technical/long, (3) missing permission-gated action link. SBEs should include the user perspective and propose concrete replacement text. Should NOT invent additional issues not mentioned.",
+      "files": [
+        "tickets/KTP/KTP-130/design/screenshots/ux-feedback-2026-05-04/sbe2-unmapped-locations.png"
+      ],
+      "assertions": []
+    },
+    {
+      "id": 3,
+      "name": "visual-broken-circles-map",
+      "prompt": "/feedback-to-spec KTP-130\n\n[screenshot: sbe7-empty-circles.png]\nSee these circles on the map? They're completely empty. Just white circles with green borders floating over the states. At this zoom level they should either show the store count number inside them, or have some kind of icon, or maybe just be smaller dots. Right now they look broken, like the data didn't load. This is what users see when they first open the map before zooming in, so it's the first impression and it looks wrong.",
+      "expected_output": "Should extract 1-2 focused findings: (1) empty circles at low zoom look broken/unfinished, (2) optional — first-impression UX concern. SBE should propose concrete threshold (zoom level where circles switch to dots vs numbered clusters). Should NOT scope-creep into other map issues.",
+      "files": [
+        "tickets/KTP/KTP-130/design/screenshots/ux-feedback-2026-05-04/sbe7-empty-circles.png"
+      ],
+      "assertions": []
+    }
+  ]
+}

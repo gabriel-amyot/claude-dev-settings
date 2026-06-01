@@ -1,0 +1,59 @@
+{
+  "skill": "jira",
+  "org": "klever",
+  "total": 10,
+  "passed": 10,
+  "failed": 0,
+  "tests": [
+    {
+      "name": "link-types returns available types",
+      "passed": true,
+      "message": "9 link types, includes Relates"
+    },
+    {
+      "name": "link creates Relates between KTP-647 and KTP-648",
+      "passed": true,
+      "message": "Link created: Relates"
+    },
+    {
+      "name": "link rejects invalid link type",
+      "passed": true,
+      "message": "Rejected: JiraError HTTP 404 url: https://beklever.atlassian.net/rest/api/2/issueLink\n\ttex"
+    },
+    {
+      "name": "link shows usage when args missing",
+      "passed": true,
+      "message": "Usage message shown"
+    },
+    {
+      "name": "retype same type is no-op",
+      "passed": true,
+      "message": "Correctly detected same type"
+    },
+    {
+      "name": "retype requires --type flag",
+      "passed": true,
+      "message": "Usage message shown"
+    },
+    {
+      "name": "hierarchy blocks Story under Story",
+      "passed": true,
+      "message": "Blocked: Story under Story"
+    },
+    {
+      "name": "hierarchy allows Story under Epic",
+      "passed": true,
+      "message": "Story under Epic accepted"
+    },
+    {
+      "name": "--force bypasses hierarchy check",
+      "passed": true,
+      "message": "Hierarchy pre-check was bypassed (Jira may still reject)"
+    },
+    {
+      "name": "hierarchy blocks Epic under Epic",
+      "passed": true,
+      "message": "Epic under Epic correctly blocked"
+    }
+  ]
+}

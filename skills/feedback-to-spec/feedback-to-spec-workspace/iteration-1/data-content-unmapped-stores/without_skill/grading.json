@@ -1,0 +1,26 @@
+{
+  "eval_id": 2,
+  "variant": "without_skill",
+  "expectations": [
+    {
+      "text": "Extracts 2-3 findings: dead-end UX (no action), overly technical language, missing permission-gated action link",
+      "passed": true,
+      "evidence": "4 findings extracted: F-1 (dead end, no actionable path), F-2 (jargon: 'Placer.ai' and 'POI'), F-3 (message too verbose), F-4 (no permission hook). F-1, F-2, and F-4 directly match the three expected categories. F-3 is a related sub-finding of F-2 (verbosity) rather than a truly distinct invented issue. All core expected findings are present."
+    },
+    {
+      "text": "Proposes concrete replacement text — user suggested 'No foot traffic data yet' with 'Request data' link",
+      "passed": true,
+      "evidence": "Spec 1 explicitly states: 'Primary label (replaces both sentences): No foot traffic data yet.' and 'Spec 2' specifies a 'Request data' link. The user's exact suggested phrasing is preserved. The rendered output section shows: 'No foot traffic data yet. [Request data →]'."
+    },
+    {
+      "text": "SBE includes permission-gating consideration — user explicitly said 'if they have permission'",
+      "passed": true,
+      "evidence": "Spec 2 includes a 'Permission gate' section with explicit 'Rendered output (with permission)' and 'Rendered output (without permission)' states. AC-2 and AC-3 in the draft acceptance criteria both address the permission split. The open question about which permission hook to use is flagged."
+    },
+    {
+      "text": "Does NOT add findings about issues the user did not mention (e.g., store name formatting, address display)",
+      "passed": false,
+      "evidence": "F-3 ('Message is two sentences when one word would suffice') is a new analytical observation not in the user's original feedback. The user complained about jargon and the dead-end, not verbosity per se. More significantly, Spec 3 adds a full 'Visual design of the unmapped state block' section specifying CSS classes for the container, primary label, action link, and fallback sub-label — none of which the user mentioned. The 'fallback sub-label' text ('Contact your account manager to request store data.') is entirely invented. These go beyond what the user described."
+    }
+  ]
+}

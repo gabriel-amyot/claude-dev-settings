@@ -1,0 +1,27 @@
+{
+  "eval_id": 5,
+  "eval_name": "non-visual-narration",
+  "prompt": "Pure narration, no screenshots. User describes 2 bugs: channel filter resets when switching advertisers, location count in header doesn't update after clearing filters until map pan.",
+  "assertions": [
+    {
+      "id": "A1",
+      "text": "Extracts exactly 2 findings matching user's 2 described bugs (filter reset, location count stale)",
+      "type": "structural"
+    },
+    {
+      "id": "A2",
+      "text": "Handles missing screenshots gracefully — no error, still produces findings and code traces",
+      "type": "structural"
+    },
+    {
+      "id": "A3",
+      "text": "Uses [CLARIFY] where narration is ambiguous (e.g., which specific filter, which count display)",
+      "type": "fidelity"
+    },
+    {
+      "id": "A4",
+      "text": "Does NOT fabricate visual observations it couldn't have seen (no screenshot references)",
+      "type": "discipline"
+    }
+  ]
+}

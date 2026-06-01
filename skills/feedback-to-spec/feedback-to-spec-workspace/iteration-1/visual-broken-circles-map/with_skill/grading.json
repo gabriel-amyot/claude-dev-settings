@@ -1,0 +1,26 @@
+{
+  "eval_id": 3,
+  "variant": "with_skill",
+  "expectations": [
+    {
+      "text": "Extracts 1-2 focused findings — does not inflate to 5+ findings from a single observation",
+      "passed": false,
+      "evidence": "5 SBEs are generated from a single user observation. SBE-1 (circles must display count label), SBE-2 (zero-data circles must not look broken), SBE-3 (circles must not appear until data ready — a timing issue the user never mentioned), SBE-4 (first impression must look intentional — a restatement of the original concern), SBE-5 (visitor flow circles must not appear at country zoom — a separate bug inferred from screenshot analysis). The user made one focused observation about empty circles looking broken. Generating 5 SBEs, including one the user never mentioned (SBE-3: progressive tile loading) and one that is purely inferred (SBE-5: flow circle state persistence), inflates scope beyond the single observation."
+    },
+    {
+      "text": "SBE proposes concrete visual behavior — zoom threshold, store count display, or specific sizing — not vague 'should look better'",
+      "passed": true,
+      "evidence": "SBE-1 specifies: 'text-size' must be zoom-responsive, with fix direction referencing 'FONT_SIZE_LOOKUP' pattern scaling from ~8px at zoom 2 to ~14px at zoom 6+. SBE-2 specifies: option A 'icon-opacity: 0 for count=0' or option B 'raise metricsCircles.minZoom to 5 or 6'. SBE-3 specifies: defer rendering until 'isSourceLoaded(US_STATES_CENTERS_TILESET_SOURCE) returns true'. All have concrete values, not vague language."
+    },
+    {
+      "text": "Captures the first-impression business rationale — user said 'first thing users see when they open the map'",
+      "passed": true,
+      "evidence": "FINDING-4 directly quotes: 'This is what users see when they first open the map before zooming in, so it's the first impression and it looks wrong.' SBE-4 explicitly titles itself 'First Impression View Must Look Intentional at Country Zoom' and its context states 'Country zoom (3.75) is the default initial state of the map. This is the view that 100% of users see before any interaction.' Priority Matrix marks SBE-4 as P0_BLOCKER."
+    },
+    {
+      "text": "Does NOT scope into other map issues (flow lines, choropleth colors, panel layout)",
+      "passed": false,
+      "evidence": "SBE-5 explicitly scopes into the visitor flow circles and flow lines issue: 'Visitor Flow Circles Must Not Appear at Country Zoom Without User Action'. The user's comment was about the empty-looking circles — they did not mention flow lines as a separate concern to fix. SBE-5 is derived from screenshot analysis ('green dashed lines connecting the circles are definitively the visitor-flow-lines-layer') rather than user narration, constituting scope creep into an unmentioned area."
+    }
+  ]
+}

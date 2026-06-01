@@ -1,0 +1,82 @@
+[
+  {
+    "query": "ok so I left this session open overnight while I was working on KTP-505, the store detail panel metrics. I think we finished AC-1 and AC-2 but I'm not sure if we got to the BigQuery adapter wiring. Can you tell me where I am and whether I should keep going or start fresh?",
+    "should_trigger": true
+  },
+  {
+    "query": "wrap up",
+    "should_trigger": true
+  },
+  {
+    "query": "I've been going back and forth on this proximity report bug for like 2 hours now and honestly I think the context is getting polluted. We started trying to fix the channel normalization but then went down a rabbit hole with the Placer API. Should I just restart?",
+    "should_trigger": true
+  },
+  {
+    "query": "session check",
+    "should_trigger": true
+  },
+  {
+    "query": "hey so I came back to this tab after lunch and I have no idea what we were doing. Something about liquibase changesets? Can you catch me up and tell me if this session is still useful or if I should clear and start over",
+    "should_trigger": true
+  },
+  {
+    "query": "I think we're done here. Can you persist everything, run operationalize, and shut this down cleanly?",
+    "should_trigger": true
+  },
+  {
+    "query": "this session has been running for a while and I keep having to re-explain context. Is the context window shot? Should I bail?",
+    "should_trigger": true
+  },
+  {
+    "query": "can we close?",
+    "should_trigger": true
+  },
+  {
+    "query": "wait what was I doing before I got pulled into that meeting? I think there were uncommitted changes somewhere",
+    "should_trigger": true
+  },
+  {
+    "query": "are we done?",
+    "should_trigger": true
+  },
+  {
+    "query": "I need to fix the BigQuery adapter in app-proximity-report. The channel filter is dropping rows where channel is null. The test in StatePerformanceBigQueryAdapterTest is failing with 'expected 5 but got 3'. Can you help debug this?",
+    "should_trigger": false
+  },
+  {
+    "query": "check the status of KTP-130 in Jira and tell me what ACs are still open",
+    "should_trigger": false
+  },
+  {
+    "query": "I want to review the overnight crawl results. Walk me through what the agents did on KTP-505 and KTP-607",
+    "should_trigger": false
+  },
+  {
+    "query": "can you run the Playwright regression tests against the local frontend? I think KTP-458 broke the nav",
+    "should_trigger": false
+  },
+  {
+    "query": "give me a sitrep on what's happening across all my Klever tickets this sprint",
+    "should_trigger": false
+  },
+  {
+    "query": "check if the dev environment is up. I'm getting 502s from the frontend and I don't know if it's the nightly shutdown or an actual problem",
+    "should_trigger": false
+  },
+  {
+    "query": "create a new ticket under KTP-646 for adding multi-advertiser support to the flow lines component. Leo should review the ACs before we push it.",
+    "should_trigger": false
+  },
+  {
+    "query": "I need to commit my changes on the KTP-499 branch and create a merge request. Can you help with that?",
+    "should_trigger": false
+  },
+  {
+    "query": "what's the current state of the store detail panel tickets? Which ones are done and which are still in progress?",
+    "should_trigger": false
+  },
+  {
+    "query": "WTF im doing?",
+    "should_trigger": true
+  }
+]

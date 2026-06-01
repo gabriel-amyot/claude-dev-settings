@@ -1,0 +1,34 @@
+{
+  "eval_id": 2,
+  "eval_name": "data-content-unmapped-stores",
+  "iteration": 2,
+  "variant": "with_skill",
+  "assertions": [
+    {
+      "id": "A1",
+      "text": "Extracts 2-3 findings: dead-end UX (no action), overly technical language, missing permission-gated action link",
+      "passed": true,
+      "evidence": "2 findings extracted: FINDING-1 (dead-end UX, no CTA) and FINDING-2 (jargon-heavy copy). Both map directly to user's distinct observations. The permission-gating aspect is handled inside FINDING-1/SBE-1 as a [CLARIFY] annotation rather than a separate finding — which is disciplined extraction, not a miss. 2 findings from 2 user observations is the correct count."
+    },
+    {
+      "id": "A2",
+      "text": "Proposes concrete replacement text — user suggested 'No foot traffic data yet' with 'Request data' link",
+      "passed": true,
+      "evidence": "SBE-2 specifies exact replacement: 'the primary message reads: No foot traffic data yet'. FINDING-2 notes field explicitly states: 'Gabriel's suggested copy maps directly to a replacement for line 961.' The 'Request data' link is captured in SBE-1. Both elements from the user's suggestion are represented with their exact wording."
+    },
+    {
+      "id": "A3",
+      "text": "SBE includes permission-gating consideration — user explicitly said 'if they have permission'",
+      "passed": true,
+      "evidence": "SBE-1 contains explicit [CLARIFY] on permission gating: 'the CTA is either always visible or gated behind a role check (Gabriel said if they have permission — confirm which roles see it and which do not)'. FINDING-1 code_trace.notes also explains that no role prop exists on StoreDetailPanel today and that the permission system does have a role field that could be threaded through. The consideration is present and well-handled."
+    },
+    {
+      "id": "A4",
+      "text": "Does NOT add findings about issues the user did not mention (e.g., store name formatting, address display)",
+      "passed": true,
+      "evidence": "Mary's Discipline Audit explicitly notes: 'Finding count check: Gabriel described 2 distinct problems (dead end / no action, jargon-heavy copy). 2 findings extracted. Count matches. No collapse needed.' The sbe-catalog.md contains only 2 SBEs. No findings about store name formatting, address display, metric card layout, or any other unmentioned elements."
+    }
+  ],
+  "pass_count": 4,
+  "total": 4
+}

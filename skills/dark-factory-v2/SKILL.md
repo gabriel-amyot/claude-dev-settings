@@ -1,12 +1,12 @@
 ---
 name: dark-factory-v2
-version: "0.3.0"
-description: "EXPERIMENTAL v2 of the ticket-to-dev factory, orchestrated by the Workflow tool instead of prose. Gates are code (un-skippable), with a human concierge gate at the front. Seed scope: backend/Java floor only, single-pass review + QA. The workflow does code work and pushes the branch (terminal state READY_TO_SHIP); the main loop creates the MR + Jira comment and runs post-merge validate. Triggers on: '/dark-factory-v2', 'dark factory v2', 'factory v2'. Klever."
+version: "0.4.0"
+description: "EXPERIMENTAL v2 of the ticket-to-dev factory, orchestrated by the Workflow tool instead of prose. Gates are code (un-skippable), with a human concierge gate at the front. The concierge proposes a tool belt from the crib (java or scripting); the build + tester sockets are equipped from that belt, so the same line handles multiple work-types without duplication. Single-pass review + QA. The workflow does code work and pushes the branch (terminal state READY_TO_SHIP); the main loop creates the MR + Jira comment and runs post-merge validate. Triggers on: '/dark-factory-v2', 'dark factory v2', 'factory v2'. Klever."
 user_invocable: true
 nav:
   bay: build
-  when: "Run a backend/Java Klever ticket through the v2 (workflow-orchestrated) factory. Code gates, front human gate."
-  when_not: "Frontend/SQL/scripting tickets (not built yet - use v1 /dark-factory). Multi-ticket epics (use v1). Quick ship (use /autonomous-ticket-ship)."
+  when: "Run a Java-service OR scripting/side-effect Klever ticket through the v2 (workflow-orchestrated) factory. Code gates, front human gate, tool belt per work-type."
+  when_not: "Frontend/SQL tickets (no belt racked yet - rack one in toolcrib/ first, or use v1). Multi-ticket epics (use v1). Quick ship (use /autonomous-ticket-ship)."
   personas: [amelia, quinn, winston]
   org: [klever]
 ---
@@ -42,10 +42,22 @@ every lost point, lists red flags, and **writes telemetry (`runs/`) + a next-run
 So each run makes the next better. Future (roadmap): low scores trigger retry / divergent strategy /
 trickle work back to an earlier phase.
 
+## Tool belts (multi-work-type, one line)
+
+The line (the "blueprint" / workflow spine) is single. Only two sockets are work-type-specific — the
+**build station** (Implement) and the **tester station** (execution-verify + QA). The **concierge
+proposes a tool belt** from the crib; the build/tester steps equip it. Racked belts:
+`java` (running Java/Spring service) and `scripting` (a script whose value is its output/side-effect —
+make tiles, populate BQ, transform data, change state). Unknown work-type → honest
+`BLOCKED_UNSUPPORTED_FLOOR` halt (rack a belt first). Rule (ADR-002): a belt swaps **tools only**; a
+work-type needing different room *logic* is a rare new floor, not a belt. Refining-phase ideas
+(dispatcher, spec/architect personas in the loop) are parked in `docs/second-floor-refining-notes.md`.
+
 ## Files
 
-- `dark-factory-v2.workflow.js` — the orchestrator (steps + JS gates + Retro).
-- `contracts/*.md` — per-phase instructions the worker agents read and execute (1-8 + 9-retro).
+- `dark-factory-v2.workflow.js` — the orchestrator (steps + JS gates + tool-belt routing + Retro).
+- `contracts/*.md` — per-phase instructions worker agents read and execute (1-8 + 9-retro).
+- `toolcrib/*.md` — tool belts (build/tester loadouts per work-type): `java`, `scripting`.
 
 ## Invocation
 
@@ -96,6 +108,6 @@ results and cost. See `docs/seed-spec-v1.md` → "Optional post-v1 validation".
 
 ## Status
 
-`0.3.0` — seed, reviewed (adversarial-cascade + prompt specialist) and fixed, instrumented (per-phase
-confidence + Retro phase writing telemetry + improvement handoff), **not yet run on a real ticket**.
-First run target: KTP-728 (read its handoff only at run time, per the anti-overfitting rule).
+`0.4.0` — seed, reviewed + fixed + instrumented, now multi-work-type via tool belts (java + scripting),
+**not yet run on a real ticket**. First run target: KTP-728 (a scripting/side-effect ticket — the
+scripting belt was added for exactly this class; read its handoff only at run time).

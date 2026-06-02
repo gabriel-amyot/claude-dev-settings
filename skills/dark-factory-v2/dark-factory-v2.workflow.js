@@ -29,6 +29,8 @@ export const meta = {
 
 const CONTRACTS = '/Users/gabrielamyot/.claude/skills/dark-factory-v2/contracts'
 const RUNS = '/Users/gabrielamyot/.claude/skills/dark-factory-v2/runs'
+const TOOLCRIB = '/Users/gabrielamyot/.claude/skills/dark-factory-v2/toolcrib'
+const SUPPORTED_BELTS = ['java', 'scripting'] // tool belts racked in the crib; concierge proposes one
 
 const ticket = (args && args.ticket) || null
 const org = (args && args.org) || 'klever'
@@ -39,7 +41,7 @@ if (!ticket) throw new Error('dark-factory-v2 requires args.ticket (e.g. "KTP-72
 
 const CONCIERGE_SCHEMA = {
   type: 'object',
-  required: ['spec_quality', 'needs_human', 'ac_count', 'repos', 'prereqs_ok', 'open_questions', 'ticket_folder', 'summary'],
+  required: ['spec_quality', 'needs_human', 'ac_count', 'repos', 'prereqs_ok', 'open_questions', 'ticket_folder', 'tool_belt', 'summary'],
   properties: {
     spec_quality: { type: 'string', enum: ['PASS', 'FAIL'] },
     needs_human: { type: 'boolean' },
@@ -47,6 +49,7 @@ const CONCIERGE_SCHEMA = {
     repos: { type: 'array', items: { type: 'string' } },
     prereqs_ok: { type: 'boolean' },
     ticket_folder: { type: 'string', minLength: 1 },
+    tool_belt: { type: 'string' }, // proposed work-type belt: 'java' | 'scripting' | (else => unsupported halt)
     open_questions: {
       type: 'array',
       items: {
@@ -206,8 +209,9 @@ const CONFIDENCE_BLURB = `
 Also return two SOFT signal fields (not a gate): "confidence" (integer 0-100 = how confident you are this phase is correct and complete) and "confidence_deductions" (array of { points, reason } accounting for EVERY point below 100). Be honest — this feeds the run eval.`
 
 let _tf = null
+let _belt = null
 const readContract = (name) =>
-  `Read ${CONTRACTS}/${name}.md and execute it exactly for ticket ${ticket} (org: ${org}). Ticket folder (absolute): ${_tf || '(resolved by concierge)'}.${CONFIDENCE_BLURB}`
+  `Read ${CONTRACTS}/${name}.md and execute it exactly for ticket ${ticket} (org: ${org}). Ticket folder (absolute): ${_tf || '(resolved by concierge)'}. Tool belt for this run: ${_belt || '(proposed by concierge)'} — equip it from ${TOOLCRIB}/${_belt || '<belt>'}.md (read it for the build / execute-verify / proof tooling; do NOT assume a stack).${CONFIDENCE_BLURB}`
 
 // Trace of phase outcomes for the Retro phase.
 const trace = []
@@ -224,7 +228,11 @@ You are the concierge: validate spec quality, gather context, extract ACs, check
 RESOLVE the absolute ticket-folder path (return it as ticket_folder). This is the front gate. If
 anything needs a human decision (ambiguous spec, missing/unknown repo or stack, a greenfield infra
 choice, an unmet prerequisite), set needs_human=true and list each as a specific open_question.
-Do NOT guess past these.${CONFIDENCE_BLURB}`,
+Do NOT guess past these.
+Also CLASSIFY the work-type and PROPOSE a tool_belt from the crib (${TOOLCRIB}/): 'java' (a change to a
+running Java/Spring service) or 'scripting' (a script whose value is its output/side-effect — make
+tiles, populate BQ, transform data, change state). If neither fits, return your best-guess string
+(the run will halt as unsupported rather than fake a proof).${CONFIDENCE_BLURB}`,
     { schema: CONCIERGE_SCHEMA, label: 'concierge', phase: 'Concierge' }
   )
   if (!concierge) return { status: 'HALT_AGENT_SKIPPED', phase: 'Concierge', ticket }
@@ -240,6 +248,13 @@ Do NOT guess past these.${CONFIDENCE_BLURB}`,
   }
 
   _tf = concierge.ticket_folder
+  _belt = concierge.tool_belt
+  // Honest halt: no tool belt racked for this work-type. Rack one in toolcrib/ before running.
+  if (!SUPPORTED_BELTS.includes(_belt)) {
+    return { status: 'BLOCKED_UNSUPPORTED_FLOOR', ticket, tool_belt: _belt, ticket_folder: _tf, concierge,
+      note: `No tool belt for work-type "${_belt}". Supported: ${SUPPORTED_BELTS.join(', ')}. Rack a belt in toolcrib/ (and confirm with the human) before running this ticket.` }
+  }
+  log(`Tool belt: ${_belt}`)
   const decisions = humanDecisions || {}
   const decisionsNote = Object.keys(decisions).length
     ? `Human decisions to honor (apply these): ${JSON.stringify(decisions)}`

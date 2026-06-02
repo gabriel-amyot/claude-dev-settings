@@ -15,9 +15,11 @@ your prompt): `git fetch origin <branch> && git checkout <branch>`.
 
 ## Steps
 
-1. **Version bump + CHANGELOG.** Bump the version file for the repo type (e.g. `pom.xml` for
-   Java/Maven) and add a CHANGELOG entry with the why/what. CI fails on tag collision, so check the
-   current dev version first and bump above it.
+1. **Version bump + CHANGELOG.** Check your tool belt's `has_version_file`. If yes (e.g. `pom.xml` for
+   Java/Maven), bump the version file above dev's current version (CI fails on tag collision) and add a
+   CHANGELOG entry with the why/what. **If `has_version_file: no`** (many scripting repos), SKIP the
+   version bump — `/klever-mr` skips that gate for repos without a version file — but still add a
+   CHANGELOG entry if the repo keeps one.
 2. **Commit:** `<TICKET>: version bump + changelog`.
 3. **Push:** `git push origin <branch>`. Set `pushed: true`. (Feature branch only — never dev/main.
    DAC repos: dev only.)

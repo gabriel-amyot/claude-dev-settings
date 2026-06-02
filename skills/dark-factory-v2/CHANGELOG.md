@@ -2,6 +2,28 @@
 
 Every SKILL.md / workflow.js / contract change bumps the version and adds an entry.
 
+## 0.4.0 (2026-06-02)
+
+**Multi-work-type via tool belts (ADR-002). Scripting floor added so the factory can run side-effect
+script tickets, not just Java services.**
+
+Triggered by the first live trial (KTP-728): a scripting ticket halted honestly at the concierge
+because validation was hardwired to `mvn spring-boot:run`. That halt = the anti-fake design working.
+
+- ADR-002: one **blueprint** (the spine) + swappable **tool belts** from a **tool crib**, NOT
+  duplicated floors. Corrected vocabulary against the Minions source (blueprint = the state machine;
+  tool crib = curated tools per task). Concierge stays; dispatcher + spec/architect-persona loop
+  parked to the refining phase (`docs/second-floor-refining-notes.md`).
+- `toolcrib/java.md` + `toolcrib/scripting.md`: per-work-type build/tester loadouts.
+- Concierge (contract 1 + schema) classifies the work-type and returns `tool_belt`; workflow halts
+  `BLOCKED_UNSUPPORTED_FLOOR` when no belt is racked (then rack one + confirm with human).
+- Implement (contract 4) + QA (contract 6) rewritten belt-aware: they read the run's tool belt for
+  compile/execute-verify/proof instead of assuming Java/Maven. Generalized proof of work =
+  "run the deliverable on declared inputs, assert the declared expected output."
+- Ship-prep (contract 7) honors the belt's `has_version_file` (skips version bump for repos without
+  one). Workflow `readContract` injects the belt path into every phase prompt.
+- SKILL.md updated (no longer "backend/Java only"). Syntax verified.
+
 ## 0.3.0 (2026-06-02)
 
 **Instrumentation migrated from v1: per-phase confidence + a Retro auto-improve phase.**

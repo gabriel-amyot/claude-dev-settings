@@ -2,6 +2,19 @@
 
 Every SKILL.md / workflow.js / contract change bumps the version and adds an entry.
 
+## 0.3.0 (2026-06-02)
+
+**Instrumentation migrated from v1: per-phase confidence + a Retro auto-improve phase.**
+
+- Every phase now returns soft `confidence` (0-100) + `confidence_deductions` (signal, not a gate),
+  injected via a shared blurb appended to every phase prompt. Schemas allow the fields.
+- New final **Retro** phase (`contracts/9-retro.md`): runs on every terminal outcome (success or
+  halt), scores the run twice /100 (task_confidence + factory_fitness) with every lost point
+  accounted for, lists red flags, proposes concrete next-run improvements, and writes telemetry to
+  `runs/` plus a next-run improvement handoff. AWAITING_HUMAN pauses skip Retro (they resume).
+- Pipeline refactored into `runPipeline()` + a `trace` of per-phase status/confidence fed to Retro.
+- Added `runs/` directory. Bumped to 0.3.0.
+
 ## 0.2.0 (2026-06-02)
 
 **Adversarial-cascade + prompt-specialist fixes; back-half restructure from verified Workflow API.**

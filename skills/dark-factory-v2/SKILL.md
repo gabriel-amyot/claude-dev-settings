@@ -1,6 +1,6 @@
 ---
 name: dark-factory-v2
-version: "0.2.0"
+version: "0.3.0"
 description: "EXPERIMENTAL v2 of the ticket-to-dev factory, orchestrated by the Workflow tool instead of prose. Gates are code (un-skippable), with a human concierge gate at the front. Seed scope: backend/Java floor only, single-pass review + QA. The workflow does code work and pushes the branch (terminal state READY_TO_SHIP); the main loop creates the MR + Jira comment and runs post-merge validate. Triggers on: '/dark-factory-v2', 'dark factory v2', 'factory v2'. Klever."
 user_invocable: true
 nav:
@@ -33,10 +33,19 @@ can't safely do: create the MR (`/klever-mr`), post the Jira comment (`/post-com
 ticket, and — after the human merges — run post-merge validate (contract 8). This split is forced by
 verified Workflow-API limits (skills aren't reliably callable inside an agent; no native wait).
 
+## Instrumentation (auto-improve loop)
+
+Every phase returns a soft `confidence` (0-100) + `confidence_deductions` (signal, not a gate). A final
+**Retro** phase runs on every terminal outcome (success or halt): it scores the run twice out of 100
+(`task_confidence` = is the task done; `factory_fitness` = did the factory perform well), accounts for
+every lost point, lists red flags, and **writes telemetry (`runs/`) + a next-run improvement handoff**.
+So each run makes the next better. Future (roadmap): low scores trigger retry / divergent strategy /
+trickle work back to an earlier phase.
+
 ## Files
 
-- `dark-factory-v2.workflow.js` — the orchestrator (steps + JS gates).
-- `contracts/*.md` — per-phase instructions the worker agents read and execute.
+- `dark-factory-v2.workflow.js` — the orchestrator (steps + JS gates + Retro).
+- `contracts/*.md` — per-phase instructions the worker agents read and execute (1-8 + 9-retro).
 
 ## Invocation
 
@@ -87,5 +96,6 @@ results and cost. See `docs/seed-spec-v1.md` → "Optional post-v1 validation".
 
 ## Status
 
-`0.2.0` — seed, reviewed (adversarial-cascade + prompt specialist) and fixed, **not yet run on a real
-ticket**. First run target: KTP-728 (read its handoff only at run time, per the anti-overfitting rule).
+`0.3.0` — seed, reviewed (adversarial-cascade + prompt specialist) and fixed, instrumented (per-phase
+confidence + Retro phase writing telemetry + improvement handoff), **not yet run on a real ticket**.
+First run target: KTP-728 (read its handoff only at run time, per the anti-overfitting rule).

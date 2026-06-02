@@ -66,9 +66,14 @@ fi
 
 WINDOW_MIN="${OPERATIONALIZE_GATE_WINDOW_MIN:-15}"
 
-# Freshest last_run across all session manifests (active first; archive/done covers a
-# manifest already moved). Returns minutes-since-last_run, or empty if none parseable.
-AGE_MIN=$(PM_ROOT="$PM_ROOT" python3 - <<'PY' 2>/dev/null
+# Freshest manifest by last_run. Emits two tokens: "<age_min> <inbox_ok>".
+#   age_min  = minutes since that manifest's last_run (empty if none parseable)
+#   inbox_ok = 1 if the freshest manifest references a bibliothèque inbox file that
+#              EXISTS on disk (proof gab-operationalize routed knowledge this session),
+#              OR if this PM has no bibliothèque inbox dir (org doesn't use it → don't block).
+#              0 means a stamp exists but no real inbox capture is referenced — e.g. a
+#              hand-stamped manifest or operationalize-audit (which writes no inbox file).
+RESULT=$(PM_ROOT="$PM_ROOT" python3 - <<'PY' 2>/dev/null
 import os, glob, datetime, re, sys
 
 pm = os.environ['PM_ROOT']
@@ -77,6 +82,7 @@ patterns = [
     os.path.join(pm, 'sessions', 'archive', 'done', '*', 'knowledge-manifest.yaml'),
 ]
 best = None
+best_txt = ''
 for pat in patterns:
     for f in glob.glob(pat):
         try:
@@ -99,38 +105,58 @@ for pat in patterns:
             dt = dt.replace(tzinfo=datetime.timezone.utc)
         if best is None or dt > best:
             best = dt
+            best_txt = txt
 if best is None:
     sys.exit(0)
+
+# Does the freshest manifest reference a real bibliothèque inbox file?
+inbox_dir = os.path.join(pm, 'documentation', 'bibliotheque', 'inbox')
+if not os.path.isdir(inbox_dir):
+    inbox_ok = 1   # org doesn't use the inbox — don't enforce
+else:
+    existing = {os.path.basename(p) for p in glob.glob(os.path.join(inbox_dir, '*.md'))
+                if os.path.basename(p) != 'INDEX.md'}
+    inbox_ok = 1 if any(name and name in best_txt for name in existing) else 0
+
 now = datetime.datetime.now(datetime.timezone.utc)
 mins = (now - best).total_seconds() / 60.0
-print('%.1f' % mins)
+print('%.1f %d' % (mins, inbox_ok))
 PY
 )
 
-# Fresh enough → capture ran as part of this close → allow.
+AGE_MIN=$(printf '%s' "$RESULT" | awk '{print $1}')
+INBOX_OK=$(printf '%s' "$RESULT" | awk '{print $2}')
+
+# Allow only when BOTH: capture is fresh AND it routed to a real inbox file.
 if [ -n "$AGE_MIN" ]; then
-  if awk -v a="$AGE_MIN" -v w="$WINDOW_MIN" 'BEGIN{exit !(a <= w)}'; then
+  FRESH=$(awk -v a="$AGE_MIN" -v w="$WINDOW_MIN" 'BEGIN{print (a <= w) ? 1 : 0}')
+  if [ "$FRESH" = "1" ] && [ "$INBOX_OK" = "1" ]; then
     exit 0
   fi
 fi
 
-echo "BLOCKED: Cannot close this session — capture (/operationalize) has not run for this close."
+echo "BLOCKED: Cannot close this session — real capture (gab-operationalize) has not run for this close."
 echo ""
-if [ -n "$AGE_MIN" ]; then
-  echo "Most recent knowledge-manifest.yaml last_run was ${AGE_MIN} min ago (window: ${WINDOW_MIN} min)."
+if [ -z "$AGE_MIN" ]; then
+  echo "No knowledge-manifest.yaml with a valid last_run was found. Capture has never run for this session."
+elif [ "$(awk -v a="$AGE_MIN" -v w="$WINDOW_MIN" 'BEGIN{print (a <= w) ? 1 : 0}')" != "1" ]; then
+  echo "Most recent manifest last_run was ${AGE_MIN} min ago (window: ${WINDOW_MIN} min)."
   echo "That capture is stale — work has likely happened since. Capture again before closing."
 else
-  echo "No knowledge-manifest.yaml with a valid last_run was found under sessions/active/."
-  echo "Capture has never run for this session."
+  echo "Manifest last_run is fresh, but it does NOT reference a bibliothèque inbox file that exists."
+  echo "That means knowledge was not routed to the inbox this session — a fresh stamp alone is not"
+  echo "proof of capture. Common cause: 'operationalize-audit' (the backlog reviewer) was run by"
+  echo "mistake, or last_run was stamped without a real capture. Run the CAPTURE skill, not the audit."
 fi
 echo ""
 echo "session:check Phase S-2 (Capture) is mandatory and runs FIRST in the shutdown."
-echo "It mines the session for tribal knowledge and writes it through to the bibliotheque"
-echo "inbox before the session is torn down. Every session produces learnings."
+echo "Use the gab-operationalize skill (the /operationalize command), NOT /operationalize-audit."
+echo "It mines THIS session and writes nuggets through to the bibliotheque inbox."
 echo ""
 echo "Recovery:"
-echo "  1. Invoke /operationalize (or re-run /session:check --close, which captures first)."
-echo "  2. Confirm it stamped last_run in sessions/active/{slug}/knowledge-manifest.yaml."
+echo "  1. Invoke the gab-operationalize skill (or re-run /session:check --close, which captures first)."
+echo "  2. Confirm it wrote an inbox file under documentation/bibliotheque/inbox/ AND stamped"
+echo "     last_run in sessions/active/{slug}/knowledge-manifest.yaml (recording that inbox file)."
 echo "  3. Retry this ledger write."
 echo ""
 echo "Genuine override (capture truly cannot run — rare):"

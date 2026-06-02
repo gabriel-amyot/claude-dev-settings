@@ -32,6 +32,19 @@ hardening the routing/persona layer.
 - "Don't see the factory as a physical thing — see it as a quest for an agent." Map + tool belt +
   dispatcher guiding equipment and direction.
 
+## Context & repos as part of the tool belt (PARKED — Gab, 2026-06-02)
+
+- **Progressive disclosure of context.** The context-gathering step should know WHERE to fetch the
+  right context, not carry it all. Point it at the **library of knowledge** (bibliothèque SOPs /
+  use-cases). E.g. a run that touches mapping should pull the mapping SOP/use-case. Merge that
+  library lookup into the concierge/context phase so the factory equips the right *knowledge* the way
+  it equips the right *tools*.
+- **Repos are part of the tool belt (context).** Which repos a run touches is known upfront (concierge
+  or dispatcher) and is itself context the belt carries. Repo signals help INFER the work-type, but
+  not 1:1 — a frontend repo can hold TypeScript AND Python scripts. So belt selection keys off the
+  *deliverable*, not just repo file types; the repo list is context, the belt is the loadout.
+- These argue for a clearer **context phase** (what to gather + where from) feeding belt selection.
+
 ## What the FAST path (now) deliberately does instead
 
 One concierge (no separate dispatcher), it classifies the work-type and proposes a tool belt from the

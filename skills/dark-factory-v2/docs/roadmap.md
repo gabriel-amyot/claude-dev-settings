@@ -79,6 +79,25 @@ feed the corpus to Supervisr.ai for analysis and future mitigation.
 **Why later:** Known accepted gap (see ADR-001). Needs the factory running first to generate the
 failure corpus worth analyzing.
 
+## R8 — Abilities: skills-as-loadouts, plugins-as-crib, use-case library
+
+**What:** a SECOND loadout layer alongside the mandatory build/tester belt — *optional* domain skills
+("abilities" ⚑) the concierge/dispatcher curates at the start of a run. Full concept in
+`docs/tooling.md`. Components:
+- **Plugins as the crib's stock:** box scattered skills into plugins — `mapping` (geocode, tileset,
+  mapbox, crosswalk, location-scrape), `adtech`/vendors (placer, goldfish), loose `klever-data`
+  (bq-store-lookup, geocode-bq-locations), plus existing `session` + `floor-manager`.
+- **Use-case library** (bibliothèque ⚑ `use-cases/`): goal → composed skills + context bridges + SOP
+  steps; concierge consults it to assemble the ability loadout. Seed page: KTP-755 store onboarding.
+- **Explicit loadout map:** curated ability-per-use-case map; deliberate + visible selection at the
+  front, complementing Claude Code's native discovery.
+
+**Why later:** needs the plugins + library to exist first, and the mandatory belt layer proven first.
+**Hard rule:** an optional ability can NEVER weaken a mandatory proof gate — keep the two loadouts
+separate (see tooling.md). Relates to R5 (floor-manager as dispatcher/tool-crib).
+**Migration discipline:** new plugins/skills up → use-case-library bridge → retire old scattered
+skills last. (Plan + naming owned by a parallel planning session, not here.)
+
 ---
 
 ## Brainstorm hooks (future sessions)

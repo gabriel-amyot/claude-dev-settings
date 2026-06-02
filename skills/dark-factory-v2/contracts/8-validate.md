@@ -1,26 +1,29 @@
-# Contract 8 — Validate
+# Contract 8 — Validate (post-merge; run by the MAIN LOOP, not the workflow)
 
-Post-merge verification on dev. This is what makes the run "ticket to dev," not "ticket to MR."
+Post-merge verification on dev. This makes the run "ticket to dev," not "ticket to MR."
+
+**Not part of the auto-run.** The workflow ends at `READY_TO_SHIP`; the main loop creates the MR and,
+once the human merges it, invokes this contract as a separate step. (Reason: a workflow agent has no
+native wait primitive and the merge depends on a human — see docs/review-findings-v0.1.0.md V4.)
 
 Adapted from the old skill's Phase 8 (VALIDATE). Backend/Java floor.
 
 ## Steps
 
-1. **Check for the merge.** `git fetch origin` then `git branch --contains <pushed_sha> origin/dev`.
-   If the SHA is in `origin/dev`, the MR is merged. Poll at ~60s intervals, but do NOT busy-loop
-   indefinitely — if it is not merged within a reasonable window, return `status: partial` noting
-   "awaiting human merge" and stop. (A future version can background this wait; the seed does not.)
-2. **Verify on dev (backend/Java).** Once merged, curl the key endpoints on dev and verify the
+1. **Confirm the merge.** `git fetch origin` then `git branch --contains <pushed_sha> origin/dev`.
+   If the SHA is in `origin/dev`, it merged. Poll at ~60s intervals up to a **hard ceiling of 5 polls
+   (~5 minutes)**. If still not merged, return `status: partial` ("awaiting human merge") and stop —
+   do not block longer.
+2. **Verify on dev (backend/Java).** Once merged, curl the key endpoints on dev and check the
    response shapes match the ACs.
-3. **Human gate.** If the ticket touches frontend, or no automated check exists, return
-   `status: partial` and flag that a human must verify on dev.
+3. **Human gate.** Frontend, or no automated check available → `status: partial` + flag a human must
+   verify on dev.
 4. **On failure:** log findings. Do NOT reopen the ticket.
 
 ## Nightly dev schedule
 
-Klever dev shuts down after ~20:00 ET. If dev returns 000/503 during that window, that is the
-schedule, not a failure — return `status: partial` noting the schedule and that verification should
-be re-run in the morning.
+Klever dev shuts down ~20:00 ET. If dev returns 000/503 in that window, that is the schedule, not a
+failure — return `status: partial` noting it and that verification should be re-run in the morning.
 
 ## Return
 

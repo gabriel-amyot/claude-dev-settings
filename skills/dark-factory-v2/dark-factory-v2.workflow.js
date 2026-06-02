@@ -1,32 +1,38 @@
 export const meta = {
   name: 'dark-factory-v2',
-  description: 'Ticket-to-dev factory v2 (seed). Deterministic Workflow orchestration of the backend/Java floor. Gates are JS code, not prose, so no phase can be skipped or self-certified past. Human concierge gate at the front via two-stage split. Ticket-agnostic: any backend/Java ticket in, mergeable MR out.',
+  description: 'Ticket-to-dev factory v2 (seed). Deterministic Workflow orchestration of the backend/Java floor. Gates are JS code, not prose, so no phase can be skipped or self-certified past. Human concierge gate at the front via two-stage split. Terminal state READY_TO_SHIP: the workflow does code work + pushes the branch; the main loop runs the MR + Jira (skills) and post-merge validate. Ticket-agnostic.',
   phases: [
     { title: 'Concierge', detail: 'analyze + context + prereqs; surface decisions for the human' },
     { title: 'Design',    detail: 'tactical impl plan + test specs' },
     { title: 'Grill',     detail: 'interrogate the plan against the codebase' },
-    { title: 'Implement', detail: 'TDD per AC, in a worktree; attempt execution' },
-    { title: 'Review',    detail: 'fresh adversarial agent, diff + ACs only' },
-    { title: 'QA',        detail: 'fresh agent proves each AC; verdict capped by execution_verified' },
-    { title: 'Ship',      detail: 'pre-ship gate, then MR + Jira (human merges)' },
-    { title: 'Validate',  detail: 'post-merge dev check / human gate for frontend' },
+    { title: 'Implement', detail: 'TDD per AC in a worktree; attempt execution; push branch' },
+    { title: 'Review',    detail: 'fresh adversarial agent in its own worktree on the pushed branch' },
+    { title: 'QA',        detail: 'fresh agent proves each AC; verdict capped by execution_verified + evidence' },
+    { title: 'ShipPrep',  detail: 'version bump + CHANGELOG + commit + push (no MR/Jira — main loop does those)' },
   ],
 }
 
 // ---------------------------------------------------------------------------
 // Seed scope: ONE floor (backend/Java), single-pass review + QA, like-for-like
-// with v1. No rigor (blind-impl, deliberation, multi-gate, model diversity) —
-// those are roadmap R1-R3. Built BLIND to any specific ticket: the ticket is a
-// black-box arg. If a conditional ever names a ticket, that is overfitting.
+// with v1. Built BLIND to any specific ticket: the ticket is a black-box arg.
 //
-// The MUSCLE (per-phase reasoning) lives in contracts/*.md, harvested from v1's
-// proven backend phases. Each phase agent reads its contract and executes it.
-// This file is only the SKELETON: order, gates, the human-gate split.
+// Verified Workflow-API constraints driving this design (claude-code-guide, 2026-06-02):
+//  - Skills (/klever-mr, /post-comment) are NOT safely callable inside a workflow
+//    agent -> Ship here is code-prep only; the MAIN LOOP runs MR + Jira + validate.
+//  - A later agent cannot see an earlier agent's worktree unless the branch is pushed
+//    -> Implement PUSHES the feature branch; Review/QA/ShipPrep run with
+//    isolation:'worktree' and fetch+checkout that branch.
+//  - No built-in loop guard -> explicit resume guard on the human gate.
+//  - No native wait primitive -> Validate is NOT in this workflow; the main loop
+//    runs it post-merge.
+//
+// The MUSCLE (per-phase reasoning) lives in contracts/*.md. Each phase agent reads
+// its contract and executes it. This file is only the SKELETON: order + gates.
 // ---------------------------------------------------------------------------
 
-const CONTRACTS = '~/.claude/skills/dark-factory-v2/contracts'
+const CONTRACTS = '/Users/gabrielamyot/.claude/skills/dark-factory-v2/contracts' // absolute: '~' may not expand inside an agent prompt
 
-// args: { ticket: 'KTP-XXX', org: 'klever', humanDecisions?: {...}, ticketFolder?: '...' }
+// args: { ticket: 'KTP-XXX', org: 'klever', humanDecisions?: {<id>: <answer>} }
 const ticket = (args && args.ticket) || null
 const org = (args && args.org) || 'klever'
 const humanDecisions = (args && args.humanDecisions) || null
@@ -36,13 +42,14 @@ if (!ticket) throw new Error('dark-factory-v2 requires args.ticket (e.g. "KTP-72
 
 const CONCIERGE_SCHEMA = {
   type: 'object',
-  required: ['spec_quality', 'needs_human', 'ac_count', 'prereqs_ok', 'open_questions', 'summary'],
+  required: ['spec_quality', 'needs_human', 'ac_count', 'repos', 'prereqs_ok', 'open_questions', 'ticket_folder', 'summary'],
   properties: {
     spec_quality: { type: 'string', enum: ['PASS', 'FAIL'] },
     needs_human: { type: 'boolean' },
-    ac_count: { type: 'integer' },
+    ac_count: { type: 'integer', minimum: 0 },
     repos: { type: 'array', items: { type: 'string' } },
     prereqs_ok: { type: 'boolean' },
+    ticket_folder: { type: 'string', minLength: 1 }, // absolute path; downstream agents read/write artifacts here
     open_questions: {
       type: 'array',
       items: {
@@ -73,13 +80,15 @@ const PHASE_SCHEMA = {
 
 const IMPLEMENT_SCHEMA = {
   type: 'object',
-  required: ['status', 'execution_verified', 'ac_progress', 'branch'],
+  required: ['status', 'execution_verified', 'ac_progress', 'branch', 'pushed', 'diff_artifact'],
   properties: {
     status: { type: 'string', enum: ['pass', 'partial', 'stuck'] },
-    // true | "infra_blocked(reason)" | "not_applicable(reason)" | "false"
-    execution_verified: { type: 'string' },
+    // "true" | "infra_blocked(reason)" | "not_applicable(reason)" | "false"
+    execution_verified: { type: 'string', pattern: '^(true|false|infra_blocked\\(.*\\)|not_applicable\\(.*\\))$' },
     ac_progress: { type: 'object' },
-    branch: { type: 'string' },
+    branch: { type: 'string', minLength: 1 },
+    pushed: { type: 'boolean' }, // did the feature branch get pushed to origin?
+    diff_artifact: { type: 'string' }, // absolute path to the written diff (backup channel for review/qa)
     summary: { type: 'string' },
   },
 }
@@ -88,7 +97,7 @@ const REVIEW_SCHEMA = {
   type: 'object',
   required: ['criticals_open', 'findings'],
   properties: {
-    criticals_open: { type: 'integer' },
+    criticals_open: { type: 'integer', minimum: 0 },
     findings: {
       type: 'array',
       items: {
@@ -98,7 +107,7 @@ const REVIEW_SCHEMA = {
           severity: { type: 'string', enum: ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] },
           title: { type: 'string' },
           file: { type: 'string' },
-          demonstrated: { type: 'boolean' }, // a test was written and it failed
+          demonstrated: { type: 'boolean' }, // true iff a test was written, run, and FAILED
         },
       },
     },
@@ -128,52 +137,84 @@ const QA_SCHEMA = {
   },
 }
 
+const SHIPPREP_SCHEMA = {
+  type: 'object',
+  required: ['status', 'branch', 'pushed'],
+  properties: {
+    status: { type: 'string', enum: ['pass', 'partial', 'stuck'] },
+    branch: { type: 'string', minLength: 1 },
+    version: { type: 'string' },
+    pushed: { type: 'boolean' },
+    summary: { type: 'string' },
+  },
+}
+
 // ---- Gates: deterministic JS. The agent cannot reason past these. ----
 
 function capQaVerdict(execVerified, rawOverall) {
   const v = String(execVerified)
-  if (execVerified === true || v === 'true') return rawOverall
+  if (v === 'true') return rawOverall
   if (v.indexOf('not_applicable') === 0) return rawOverall
   if (v.indexOf('infra_blocked') === 0) return 'PARTIAL' // cannot exceed PARTIAL
-  return 'INCOMPLETE' // false or missing: cannot exceed INCOMPLETE
+  if (v !== 'false') log(`WARN: unrecognised execution_verified="${v}" -> capping QA to INCOMPLETE`)
+  return 'INCOMPLETE' // false or unrecognised: cannot exceed INCOMPLETE
+}
+
+// "Code review alone is NEVER a PASS": a PASS AC with no code_ref+test_ref is unsupported.
+function evidenceCappedOverall(qa) {
+  const unsupported = (qa.per_ac || []).some((a) => a.verdict === 'PASS' && (!a.code_ref || !a.test_ref))
+  if (qa.raw_overall === 'ALL_PASS' && unsupported) {
+    log('WARN: a PASS AC lacks code_ref/test_ref -> capping QA to PARTIAL (code review is not evidence of function)')
+    return 'PARTIAL'
+  }
+  return qa.raw_overall
+}
+
+function executionOk(ev) {
+  const v = String(ev)
+  return v === 'true' || v.indexOf('not_applicable') === 0
 }
 
 function preShipBlockers(impl, review, qaCapped) {
   const blockers = []
-  if (!impl || !impl.execution_verified || String(impl.execution_verified) === 'false')
-    blockers.push('execution not verified (Phase 4 step 5)')
+  if (!impl || !executionOk(impl.execution_verified))
+    blockers.push(`execution not verified (${impl ? impl.execution_verified : 'no impl'})`)
+  if (!impl || impl.pushed !== true) blockers.push('feature branch was not pushed (review/QA could not see the code)')
   if (!review) blockers.push('no review artifact')
   else if (review.criticals_open > 0) blockers.push(`${review.criticals_open} open CRITICAL finding(s)`)
   if (qaCapped !== 'ALL_PASS') blockers.push(`QA verdict is ${qaCapped}, not ALL_PASS`)
   return blockers
 }
 
-// ---- Per-phase prompts: each agent reads its contract and executes it. ----
+const readContract = (name) =>
+  `Read ${CONTRACTS}/${name}.md and execute it exactly for ticket ${ticket} (org: ${org}). Ticket folder (absolute): ${ticketFolderRef()}.`
 
-const readContract = (name) => `Read ${CONTRACTS}/${name}.md and execute it exactly for ticket ${ticket} (org: ${org}).`
+let _tf = null
+function ticketFolderRef() {
+  return _tf || '(resolved by concierge — see concierge.ticket_folder)'
+}
 
 // =================== ORCHESTRATION ===================
 
 phase('Concierge')
 log(`Dark Factory v2 (seed) — ${ticket}`)
 const concierge = await agent(
-  `${readContract('1-concierge')}
-You are the concierge: validate spec quality, gather context, extract ACs, and check prerequisites.
-This is the front gate. If anything requires a human decision (ambiguous spec, missing/unknown repo
-or stack, a greenfield infra choice, an unmet prerequisite), set needs_human=true and list each as a
-specific open_question with why it blocks. Do NOT guess past these.`,
+  `Read ${CONTRACTS}/1-concierge.md and execute it for ticket ${ticket} (org: ${org}).
+You are the concierge: validate spec quality, gather context, extract ACs, check prerequisites, and
+RESOLVE the absolute ticket-folder path (return it as ticket_folder). This is the front gate. If
+anything needs a human decision (ambiguous spec, missing/unknown repo or stack, a greenfield infra
+choice, an unmet prerequisite), set needs_human=true and list each as a specific open_question with
+why it blocks. Do NOT guess past these.`,
   { schema: CONCIERGE_SCHEMA, label: 'concierge', phase: 'Concierge' }
 )
+if (!concierge) return { status: 'HALT_AGENT_SKIPPED', phase: 'Concierge', ticket }
 
-// Gate: spec quality (JS, un-skippable)
+// Gate: spec quality (un-skippable)
 if (concierge.spec_quality === 'FAIL') {
   return { status: 'BLOCKED_SPEC_QUALITY', ticket, concierge }
 }
 
-// Front human gate (two-stage split): if a human decision is needed and we don't
-// yet have answers, STOP and hand the decision packet back to the main loop.
-// The main loop asks the user, then re-invokes with resumeFromRunId + args.humanDecisions
-// (the concierge agent() above returns cached on resume, so this is cheap).
+// Front human gate (two-stage split) + resume loop guard.
 if (concierge.needs_human && !humanDecisions) {
   log(`Concierge needs ${concierge.open_questions.length} human decision(s) before Design.`)
   return {
@@ -184,26 +225,56 @@ if (concierge.needs_human && !humanDecisions) {
     resume_hint: 'Re-invoke Workflow with resumeFromRunId and args.humanDecisions = {<id>: <answer>}',
   }
 }
+if (concierge.needs_human && humanDecisions) {
+  // Decisions were provided but the concierge still reports it needs a human. Do NOT loop.
+  return {
+    status: 'BLOCKED_NEEDS_HUMAN_AGAIN',
+    ticket,
+    decision_packet: concierge.open_questions,
+    concierge,
+    note: 'Human decisions were supplied but concierge still needs_human. Refine the answers or the spec; not re-looping automatically.',
+  }
+}
+
+_tf = concierge.ticket_folder
 const decisions = humanDecisions || {}
 const decisionsNote = Object.keys(decisions).length
-  ? `Human decisions to honor: ${JSON.stringify(decisions)}`
+  ? `Human decisions to honor (apply these in your work): ${JSON.stringify(decisions)}`
   : 'No human decisions were required.'
 
+phase('Design')
 const design = await agent(`${readContract('2-design')}\n${decisionsNote}`,
   { schema: PHASE_SCHEMA, label: 'design', phase: 'Design' })
+if (!design) return { status: 'HALT_AGENT_SKIPPED', phase: 'Design', ticket }
+if (design.status === 'stuck') return { status: 'HALT_DESIGN_STUCK', ticket, design }
 
 phase('Grill')
 const grill = await agent(`${readContract('3-grill')}\nInterrogate the design plan against the actual codebase (use git, not just local files). ${decisionsNote}`,
   { schema: PHASE_SCHEMA, label: 'grill', phase: 'Grill' })
+if (!grill) return { status: 'HALT_AGENT_SKIPPED', phase: 'Grill', ticket }
+if (grill.status === 'stuck') return { status: 'HALT_GRILL_UNWORKABLE', ticket, design, grill }
 
 phase('Implement')
-const impl = await agent(`${readContract('4-implement')}\nTDD per AC in a worktree. After all ACs are green, ATTEMPT to run the artifact and record execution_verified honestly (true | infra_blocked(reason) | not_applicable(reason) | false). Never skip the attempt.`,
+const impl = await agent(`${readContract('4-implement')}
+The Workflow runtime has given you your OWN git worktree — do NOT run 'git worktree add'. TDD per AC.
+After all ACs are green, ATTEMPT to run the artifact and record execution_verified honestly
+(true | infra_blocked(reason) | not_applicable(reason) | false) — never skip the attempt. Then PUSH
+the feature branch to origin (so Review/QA can see it) and write 'git diff origin/dev..HEAD' to a
+file in the ticket folder; return its path as diff_artifact and set pushed=true. ${decisionsNote}`,
   { schema: IMPLEMENT_SCHEMA, label: 'implement', phase: 'Implement', isolation: 'worktree' })
+if (!impl) return { status: 'HALT_AGENT_SKIPPED', phase: 'Implement', ticket }
+if (impl.status === 'stuck') return { status: 'HALT_IMPLEMENT_STUCK', ticket, branch: impl.branch, impl }
 
 phase('Review')
-// Fresh agent, no implementation context (segregation): diff + ACs + repo conventions only.
-const review = await agent(`${readContract('5-review')}\nYou did NOT write this code and have no design context. You receive only the diff (git diff origin/dev..HEAD in the worktree), the acceptance criteria, and the repo CLAUDE.md. Find bugs that reach users. For each finding, write a test and run it; retract if it passes. Branch: ${impl.branch}.`,
-  { schema: REVIEW_SCHEMA, label: 'review', phase: 'Review' })
+// Fresh agent, own worktree, no implementation context (segregation).
+const review = await agent(`${readContract('5-review')}
+You did NOT write this code and have no design context. The Workflow runtime gave you your own
+worktree: run 'git fetch origin ${impl.branch}' then 'git checkout ${impl.branch}'. Review only the
+diff 'git diff origin/dev..HEAD' against the acceptance criteria and the repo CLAUDE.md. Find bugs
+that reach users; for each, write a test and run it; retract if it passes. Diff artifact (backup):
+${impl.diff_artifact}.`,
+  { schema: REVIEW_SCHEMA, label: 'review', phase: 'Review', isolation: 'worktree' })
+if (!review) return { status: 'HALT_AGENT_SKIPPED', phase: 'Review', ticket, branch: impl.branch }
 
 // Gate: zero open CRITICALs before QA
 if (review.criticals_open > 0) {
@@ -211,32 +282,52 @@ if (review.criticals_open > 0) {
 }
 
 phase('QA')
-// Fresh agent, separate from implementor: AC list + file paths + tech table only.
-const qa = await agent(`${readContract('6-qa')}\nYou did NOT write this code or its plan. Prove each AC with concrete evidence (code ref + passing test ref; for any runnable behavior, run it). Return raw verdicts; do not self-assign the verification level.`,
-  { schema: QA_SCHEMA, label: 'qa', phase: 'QA' })
+const qa = await agent(`${readContract('6-qa')}
+You did NOT write this code or its plan. The Workflow runtime gave you your own worktree: run
+'git fetch origin ${impl.branch}' then 'git checkout ${impl.branch}'. Prove each AC with concrete
+evidence (code_ref + a passing test_ref; for runnable behaviour, run it). Return raw verdicts; do
+NOT self-assign the verification level.`,
+  { schema: QA_SCHEMA, label: 'qa', phase: 'QA', isolation: 'worktree' })
+if (!qa) return { status: 'HALT_AGENT_SKIPPED', phase: 'QA', ticket, branch: impl.branch }
 
-// Gate: verdict cap from execution_verified (JS clamps; agent cannot override)
-const qaCapped = capQaVerdict(impl.execution_verified, qa.raw_overall)
+// Gate: evidence cap, then execution-verified cap (JS clamps; agent cannot override)
+const qaEvidence = evidenceCappedOverall(qa)
+const qaCapped = capQaVerdict(impl.execution_verified, qaEvidence)
 
-// Gate: pre-ship artifact + quality gate (JS). Halts before any ship action.
+// Gate: pre-ship blockers (JS). Halts before any ship action.
 const blockers = preShipBlockers(impl, review, qaCapped)
 if (blockers.length) {
   return { status: 'HALT_PRESHIP', ticket, branch: impl.branch, blockers, qa_capped: qaCapped, impl, review, qa }
 }
 
-phase('Ship')
-const ship = await agent(`${readContract('7-ship')}\nVersion bump + CHANGELOG, push branch ${impl.branch}, create the MR via /klever-mr (NO auto-merge), post the Jira comment via /post-comment, transition the ticket no higher than In Review/Testing.`,
-  { schema: PHASE_SCHEMA, label: 'ship', phase: 'Ship' })
+phase('ShipPrep')
+// Code-prep only: version bump + CHANGELOG + commit + push. NO MR, NO Jira (skills unsafe in-agent).
+const shipPrep = await agent(`${readContract('7-ship')}
+The Workflow runtime gave you your own worktree: 'git fetch origin ${impl.branch}' then
+'git checkout ${impl.branch}'. Do version bump + CHANGELOG, commit, and push the branch with git.
+Do NOT invoke /klever-mr, /post-comment, or any Jira transition — the main loop does those. Return
+the branch, the new version, and pushed=true.`,
+  { schema: SHIPPREP_SCHEMA, label: 'ship-prep', phase: 'ShipPrep', isolation: 'worktree' })
+if (!shipPrep) return { status: 'HALT_AGENT_SKIPPED', phase: 'ShipPrep', ticket, branch: impl.branch }
+if (shipPrep.status === 'stuck' || shipPrep.pushed !== true) {
+  return { status: 'HALT_SHIPPREP_FAILED', ticket, branch: impl.branch, shipPrep, impl, review, qa }
+}
 
-phase('Validate')
-const validate = await agent(`${readContract('8-validate')}\nPost-merge dev verification. For backend: smoke the key endpoints once merged. If frontend or no automated check exists, return status:partial and flag a human gate.`,
-  { schema: PHASE_SCHEMA, label: 'validate', phase: 'Validate' })
-
+// Terminal: code is done, reviewed, QA'd, version-bumped, pushed. Main loop creates the MR + Jira,
+// then runs post-merge validate (contract 8) once the human merges.
 return {
-  status: 'COMPLETE',
+  status: 'READY_TO_SHIP',
   ticket,
-  branch: impl.branch,
+  branch: shipPrep.branch,
+  version: shipPrep.version,
   execution_verified: impl.execution_verified,
   qa_capped: qaCapped,
-  phases: { concierge, design, grill, impl, review, qa, ship, validate },
+  ticket_folder: _tf,
+  next_steps_for_main_loop: [
+    'Invoke /klever-mr (no auto-merge) to create the MR for branch ' + shipPrep.branch,
+    'Invoke /post-comment to post the Jira comment (MR link + AC summary + QA evidence)',
+    'Transition the ticket to In Review/Testing (ceiling)',
+    'After the human merges: run contract 8 (validate) as a post-merge step',
+  ],
+  phases: { concierge, design, grill, impl, review, qa, shipPrep },
 }

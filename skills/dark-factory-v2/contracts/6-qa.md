@@ -1,28 +1,30 @@
 # Contract 6 — QA (evidence, segregated)
 
-Prove each acceptance criterion is met with **concrete evidence**. This is not test execution
-(Phase 4 did that) — it is proving each AC is satisfied. You run in a separate context from the
-implementor so the builder cannot self-certify its own work.
+Prove each acceptance criterion is met with **concrete evidence**. Not test execution (Phase 4 did
+that) — proof that each AC is satisfied. You run separately from the implementor so the builder
+cannot self-certify.
 
 Adapted from the old skill's Phase 6 (QA). Backend/Java floor.
 
-## What you receive
+## Inputs (get them yourself)
 
-- The AC list.
-- The changed file paths.
-- This contract (the backend tech-adaptation guidance below).
+- The Workflow runtime gave you your own worktree. Fetch + check out the pushed branch (name in your
+  prompt): `git fetch origin <branch> && git checkout <branch>`.
+- AC list: read `<ticket_folder>/analyst/` (path in your prompt).
+- Changed files: `git diff --name-only origin/dev..HEAD`.
 
-You do NOT receive the implementation plan or the implementor's rationale. Judge by what the code
-does.
+You do NOT get the implementation plan or the implementor's rationale. Judge by what the code does.
 
 ## Per-AC evidence
 
 For each AC, collect:
-- `code_ref`: file path + line range of the code that satisfies it.
-- `test_ref`: the test name + its pass output that proves the behavior.
-- A verdict: PASS | PARTIAL | FAIL, with evidence.
+- `code_ref`: file path + line range that satisfies it.
+- `test_ref`: the test name + its pass output proving the behavior.
+- A verdict: PASS | PARTIAL | FAIL.
 
-**Code review alone is NEVER a PASS.** Code review is evidence of understanding, not of function.
+**Code review alone is NEVER a PASS.** A `PASS` with no `test_ref` is a contradiction — the
+orchestrator will cap it to PARTIAL. So only mark PASS when you have both a `code_ref` and a passing
+`test_ref`.
 
 ## Backend/Java tech-adaptation
 
@@ -32,10 +34,12 @@ response shapes. If you cannot run integration tests or hit the endpoints, the v
 
 ## Return
 
-- `raw_overall`: ALL_PASS | PARTIAL | FAIL  (your raw assessment from the evidence)
-- `per_ac`: list of `{ ac, verdict, code_ref, test_ref }`
+- `raw_overall`: ALL_PASS | PARTIAL | FAIL  (your raw read of the evidence)
+- `per_ac`: array of `{ ac, verdict, code_ref, test_ref }`
 - `summary`: 1-3 sentences
 
-**Return raw verdicts only.** Do NOT set the verification level yourself. The orchestrator clamps
-the overall result based on `execution_verified` from Phase 4 (if execution was not verified, your
-ALL_PASS is capped to INCOMPLETE or PARTIAL in code). That cap is not yours to override.
+**Example per_ac row:**
+`{ "ac": "AC-1", "verdict": "PASS", "code_ref": "src/main/java/.../ProximityValidator.java:42-55", "test_ref": "ProximityValidatorTest#shouldRejectNullCountry — PASS" }`
+
+Return RAW verdicts only. The orchestrator clamps the overall level based on evidence and on
+`execution_verified` from Phase 4 — that cap is not yours to set.

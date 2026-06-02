@@ -1,6 +1,6 @@
 ---
 name: dark-factory-v2
-version: "0.4.0"
+version: "0.4.1"
 description: "EXPERIMENTAL v2 of the ticket-to-dev factory, orchestrated by the Workflow tool instead of prose. Gates are code (un-skippable), with a human concierge gate at the front. The concierge proposes a tool belt from the crib (java or scripting); the build + tester sockets are equipped from that belt, so the same line handles multiple work-types without duplication. Single-pass review + QA. The workflow does code work and pushes the branch (terminal state READY_TO_SHIP); the main loop creates the MR + Jira comment and runs post-merge validate. Triggers on: '/dark-factory-v2', 'dark factory v2', 'factory v2'. Klever."
 user_invocable: true
 nav:
@@ -17,9 +17,9 @@ Ticket-to-dev factory, rebuilt on the **Workflow tool**. Orchestration is a dete
 phase gates are JavaScript, not prose, so no step can be skipped or self-certified past. A human
 concierge gate at the front stops for the engineer on spec/context/prereq/infra decisions.
 
-**Seed scope:** one **backend/Java** floor, single-pass review + QA, one ticket at a time. Other floors
-and added rigor are on the roadmap (`docs/roadmap.md`). v1 (`/dark-factory`) stays the fallback and the
-benchmark baseline.
+**Seed scope:** single-pass review + QA, one ticket at a time; work-types via tool belts in the crib
+(see below). Added rigor and more belts are on the roadmap (`docs/roadmap.md`). v1 (`/dark-factory`)
+stays the fallback and the benchmark baseline.
 
 **Design:** `docs/seed-spec-v1.md` · **Decision:** `docs/adr/ADR-001-...md` · **Why/limits:**
 `docs/grounding-and-decisions.md` · **Review fixes:** `docs/review-findings-v0.1.0.md`
@@ -62,7 +62,7 @@ work-type needing different room *logic* is a rare new floor, not a belt. Refini
 ## Invocation
 
 ```
-/dark-factory-v2 <TICKET>      # e.g. /dark-factory-v2 KTP-728
+/dark-factory-v2 <TICKET>      # e.g. /dark-factory-v2 ABC-123
 ```
 
 ## How to run it
@@ -109,5 +109,4 @@ results and cost. See `docs/seed-spec-v1.md` → "Optional post-v1 validation".
 ## Status
 
 `0.4.0` — seed, reviewed + fixed + instrumented, now multi-work-type via tool belts (java + scripting),
-**not yet run on a real ticket**. First run target: KTP-728 (a scripting/side-effect ticket — the
-scripting belt was added for exactly this class; read its handoff only at run time).
+**not yet run on a real ticket.** Belts racked: `java`, `scripting`.

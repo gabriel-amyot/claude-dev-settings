@@ -2,12 +2,26 @@
 
 Every SKILL.md / workflow.js / contract change bumps the version and adds an entry.
 
+## 0.4.1 (2026-06-02)
+
+**Stack-agnostic hardening — no Java or ticket specifics in the factory itself.**
+
+- Removed all Java/Spring/Maven specifics from the spine (concierge prompt) and the shared contracts
+  (1 concierge, 2 design, 6 QA, 7 ship, 8 validate, 9 retro). They now defer to the run's tool belt.
+  Java build/test/execute tooling lives only in `toolcrib/java.md` (multi-module Maven note moved there).
+- Concierge now **discovers** belts by reading the new `toolcrib/INDEX.md` + each belt's `detect` rule,
+  instead of the spine naming/​describing belts.
+- Removed every KTP-728 mention from the operational files (spine, contracts, toolcrib, SKILL, CHANGELOG).
+  Only `docs/` (the design archive that documents the build-blind rule) retains historical references.
+- Belt ids (`java`, `scripting`) remain named in the registry/catalog — that's the rack's contents, not
+  stack logic in a shared room.
+
 ## 0.4.0 (2026-06-02)
 
 **Multi-work-type via tool belts (ADR-002). Scripting floor added so the factory can run side-effect
 script tickets, not just Java services.**
 
-Triggered by the first live trial (KTP-728): a scripting ticket halted honestly at the concierge
+Triggered by the first live trial (a scripting ticket): it halted honestly at the concierge
 because validation was hardwired to `mvn spring-boot:run`. That halt = the anti-fake design working.
 
 - ADR-002: one **blueprint** (the spine) + swappable **tool belts** from a **tool crib**, NOT

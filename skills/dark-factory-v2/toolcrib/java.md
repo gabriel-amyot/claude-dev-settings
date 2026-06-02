@@ -16,3 +16,5 @@ station (Implement) and tester station (execution-verify + QA).
 - **proof (QA):** run integration tests OR curl the affected endpoints with expected response shapes.
   No endpoint/integration verification → `PARTIAL`, never `PASS`.
 - **has_version_file:** yes (`pom.xml`).
+- **multi-module:** if `pom.xml` has `<modules>`, pick the target module(s) from the AC file paths and
+  scope all `mvn` commands to those modules (`mvn compile -pl <module>`).

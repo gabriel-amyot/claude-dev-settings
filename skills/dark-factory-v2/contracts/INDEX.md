@@ -1,10 +1,11 @@
 # Dark Factory v2 — Phase Contracts (the "muscle")
 
 Each phase agent in `dark-factory-v2.workflow.js` reads its contract here and executes it.
-Contracts are the reasoning instructions, **harvested from v1's proven backend/Java phases** —
-NOT written from KTP-728. The workflow spine (gates, order, human-gate split) lives in the `.js`.
+Contracts are the reasoning instructions, **harvested from v1's proven phases** — NOT written from
+any specific ticket. The workflow spine (gates, order, human-gate split) lives in the `.js`. Stack
+tooling lives in `toolcrib/` belts, never in these shared contracts.
 
-**Status: WRITTEN** (2026-06-01, copied + adapted from v1, blind to KTP-728). Pending Gabriel's review.
+**Status: WRITTEN** (copied + adapted from v1, blind to any specific ticket).
 Source = `~/.claude/skills/dark-factory/SKILL.md` (v1), proven across KTP-681/682.
 
 | # | Contract file | Harvest from v1 SKILL.md | Returns (schema) |
@@ -21,8 +22,10 @@ Source = `~/.claude/skills/dark-factory/SKILL.md` (v1), proven across KTP-681/68
 ## Harvest rules
 - Carry over the **anti-patterns** verbatim (synthetic-data, rationalize-skip, advocacy-bias) —
   they are the hard-won part.
-- Keep the **TDD discipline** and the **tech-adaptation Java row** in contract 4.
-- **Backend/Java floor only** for the seed. Other floors (frontend/SQL/scripting) = roadmap R4.
+- Keep the **TDD discipline** in contract 4; stack tooling (build/test/execute) lives in `toolcrib/`
+  belts, not the contract.
+- Shared contracts stay **stack-agnostic**; work-type tooling lives in `toolcrib/` belts (`java`,
+  `scripting` racked). A belt swaps tools only (ADR-002).
 - The JS gates in the spine ALREADY enforce: spec-quality halt, zero-open-CRITICAL, QA verdict cap
   from execution_verified, pre-ship blockers. Contracts describe the *work*; the spine enforces the
   *gates*. Do not duplicate gate logic as prose in the contracts.

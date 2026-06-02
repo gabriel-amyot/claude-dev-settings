@@ -18,11 +18,10 @@ Merges the old skill's Phase 1 (ANALYZE) and Phase 2 prerequisites/escalation in
    contradictory, or incomplete to implement safely → `spec_quality: FAIL`.
 4. **Repo + stack.** Identify affected repo(s) and stack (Klever repo map in `project-management/CLAUDE.md`).
    Unknown/ambiguous repo or unclear stack → a **human decision** (open_question; set needs_human).
-4b. **Classify the tool belt.** Propose which belt from the crib this work needs: `java` (a change to a
-   running Java/Spring service) or `scripting` (a script whose value is its output/side-effect — make
-   tiles, populate BQ, transform data, change state). Return it as `tool_belt`. If neither fits, return
-   your best-guess label — the run will HALT as unsupported rather than fake a proof (that's correct;
-   it means a new belt must be racked first).
+4b. **Classify the tool belt.** Read the tool crib (`toolcrib/INDEX.md`, then each belt file's `detect`
+   rule) and return, as `tool_belt`, the id of the belt whose detect rule matches this ticket's
+   deliverable. If none match, return your best-guess label — the run will HALT as unsupported rather
+   than fake a proof (that's correct; it means a new belt must be racked first).
 5. **Brownfield check.** Modifying existing behavior or creating new? Search the codebase for existing
    implementations of the same data path/behavior. **If found:** record it in the analyst artifacts
    AND mention it in `summary`, so Design does not reinvent a parallel artifact.
@@ -48,12 +47,12 @@ Merges the old skill's Phase 1 (ANALYZE) and Phase 2 prerequisites/escalation in
 - `repos`: array of affected repo identifiers (required — return `[]` only if genuinely none)
 - `prereqs_ok`: boolean
 - `ticket_folder`: absolute path you resolved in step 2
-- `tool_belt`: proposed belt label from step 4b (`java` | `scripting` | best-guess)
+- `tool_belt`: proposed belt id from step 4b (a belt id racked in `toolcrib/`, or best-guess)
 - `open_questions`: array of `{ id, question, why_blocking, options? }`
 - `summary`: 1-3 sentences (include any brownfield finding from step 5)
 
 **Example open_question:**
-`{ "id": "Q1", "question": "Which Maven module owns the new endpoint?", "why_blocking": "Design cannot map ACs to files without the target module.", "options": ["app-proximity-report", "app-user-management"] }`
+`{ "id": "Q1", "question": "Which repo/module owns this deliverable?", "why_blocking": "Design cannot map ACs to files without the target.", "options": ["repo-a", "repo-b"] }`
 
 The orchestrator halts if `spec_quality == FAIL`, stops for the human if `needs_human` and no answers
 were provided, and will NOT auto-loop if answers were provided but you still report `needs_human`.

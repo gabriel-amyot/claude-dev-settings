@@ -15,8 +15,8 @@ your prompt): `git fetch origin <branch> && git checkout <branch>`.
 
 ## Steps
 
-1. **Version bump + CHANGELOG.** Check your tool belt's `has_version_file`. If yes (e.g. `pom.xml` for
-   Java/Maven), bump the version file above dev's current version (CI fails on tag collision) and add a
+1. **Version bump + CHANGELOG.** Check your tool belt's `has_version_file`. If yes, bump the version
+   file the belt names, above dev's current version (CI fails on tag collision), and add a
    CHANGELOG entry with the why/what. **If `has_version_file: no`** (many scripting repos), SKIP the
    version bump — `/klever-mr` skips that gate for repos without a version file — but still add a
    CHANGELOG entry if the repo keeps one.

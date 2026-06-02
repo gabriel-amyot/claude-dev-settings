@@ -22,7 +22,7 @@ gaps. (This is the v1 principle: account for each lost point.)
 ## Red flags
 
 List concrete `red_flags` — small problems, near-misses, smells observed during the run (e.g. "QA
-returned PASS with no test_ref", "implement retried 3x on Spring wiring", "concierge confidence 60 on
+returned PASS with no test_ref", "implement retried 3x on a wiring/setup error", "concierge confidence 60 on
 repo resolution"). These are the seeds of next-run improvements.
 
 ## Improvements (actionable, for the next run)

@@ -33,9 +33,7 @@ proof method cannot be run (e.g. no endpoint, no real input), the verdict is `PA
 - `per_ac`: array of `{ ac, verdict, code_ref, test_ref }`
 - `summary`: 1-3 sentences
 
-**Example per_ac row (java belt):**
-`{ "ac": "AC-1", "verdict": "PASS", "code_ref": "src/main/java/.../Validator.java:42-55", "test_ref": "ValidatorTest#rejectsNull — PASS" }`
-**Example per_ac row (scripting belt):**
-`{ "ac": "AC-1", "verdict": "PASS", "code_ref": "scripts/build_tiles.py:30-88", "test_ref": "ran on fixtures/sample.geojson → tiles/out.mbtiles exists, 1.2k features (expected ~1.2k)" }`
+**Example per_ac row (shape — `test_ref` is whatever proof your belt defines):**
+`{ "ac": "AC-1", "verdict": "PASS", "code_ref": "<file>:<lines>", "test_ref": "<a passing test name + output, an endpoint response shape, a fixture run + matched output, or a BQ assertion result>" }`
 
 Return RAW verdicts only. The orchestrator clamps the level by evidence and by `execution_verified`.

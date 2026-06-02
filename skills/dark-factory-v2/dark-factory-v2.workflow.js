@@ -1,6 +1,6 @@
 export const meta = {
   name: 'dark-factory-v2',
-  description: 'Ticket-to-dev factory v2 (seed). Deterministic Workflow orchestration of the backend/Java floor. Gates are JS code, not prose, so no phase can be skipped or self-certified past. Human concierge gate at the front. Every phase returns a soft confidence (0-100). A final Retro phase scores the run, captures red flags, and writes telemetry + a next-run improvement handoff. Terminal state READY_TO_SHIP: the workflow does code work + pushes the branch; the main loop runs the MR + Jira + post-merge validate.',
+  description: 'Ticket-to-dev factory v2 (seed). Deterministic Workflow orchestration, work-type-agnostic: the concierge proposes a tool belt from the crib and the build + tester sockets equip it. Gates are JS code, not prose, so no phase can be skipped or self-certified past. Human concierge gate at the front. Every phase returns a soft confidence (0-100). A final Retro phase scores the run, captures red flags, and writes telemetry + a next-run improvement handoff. Terminal state READY_TO_SHIP: the workflow does code work + pushes the branch; the main loop runs the MR + Jira + post-merge validate.',
   phases: [
     { title: 'Concierge', detail: 'analyze + context + prereqs; surface decisions for the human' },
     { title: 'Design',    detail: 'tactical impl plan + test specs' },
@@ -14,7 +14,8 @@ export const meta = {
 }
 
 // ---------------------------------------------------------------------------
-// Seed scope: ONE floor (backend/Java), single-pass review + QA, like-for-like.
+// Seed scope: single-pass review + QA, like-for-like with v1. Work-type tooling comes from a tool
+// belt the concierge selects from the crib (no stack baked into the spine or shared contracts).
 // Built BLIND to any specific ticket: the ticket is a black-box arg.
 // Verified Workflow-API constraints: skills unsafe in-agent (Ship = code-prep
 // only; main loop does MR+Jira+validate); sibling agents can't see each other's
@@ -35,7 +36,7 @@ const SUPPORTED_BELTS = ['java', 'scripting'] // tool belts racked in the crib; 
 const ticket = (args && args.ticket) || null
 const org = (args && args.org) || 'klever'
 const humanDecisions = (args && args.humanDecisions) || null
-if (!ticket) throw new Error('dark-factory-v2 requires args.ticket (e.g. "KTP-728")')
+if (!ticket) throw new Error('dark-factory-v2 requires args.ticket (e.g. "ABC-123")')
 
 // ---- Schemas (handoffs are validated objects, not parsed text) ----
 
@@ -49,7 +50,7 @@ const CONCIERGE_SCHEMA = {
     repos: { type: 'array', items: { type: 'string' } },
     prereqs_ok: { type: 'boolean' },
     ticket_folder: { type: 'string', minLength: 1 },
-    tool_belt: { type: 'string' }, // proposed work-type belt: 'java' | 'scripting' | (else => unsupported halt)
+    tool_belt: { type: 'string' }, // proposed belt id from the crib; unknown id => unsupported halt
     open_questions: {
       type: 'array',
       items: {
@@ -229,10 +230,10 @@ RESOLVE the absolute ticket-folder path (return it as ticket_folder). This is th
 anything needs a human decision (ambiguous spec, missing/unknown repo or stack, a greenfield infra
 choice, an unmet prerequisite), set needs_human=true and list each as a specific open_question.
 Do NOT guess past these.
-Also CLASSIFY the work-type and PROPOSE a tool_belt from the crib (${TOOLCRIB}/): 'java' (a change to a
-running Java/Spring service) or 'scripting' (a script whose value is its output/side-effect — make
-tiles, populate BQ, transform data, change state). If neither fits, return your best-guess string
-(the run will halt as unsupported rather than fake a proof).${CONFIDENCE_BLURB}`,
+Also CLASSIFY the work-type and PROPOSE a tool_belt: read the tool crib at ${TOOLCRIB}/ (start with its
+INDEX.md, then each belt file's "detect" rule) and return the id of the belt whose detect rule matches
+this ticket's deliverable. If none match, return your best-guess label (the run halts as unsupported
+rather than fake a proof — that means a new belt must be racked first).${CONFIDENCE_BLURB}`,
     { schema: CONCIERGE_SCHEMA, label: 'concierge', phase: 'Concierge' }
   )
   if (!concierge) return { status: 'HALT_AGENT_SKIPPED', phase: 'Concierge', ticket }

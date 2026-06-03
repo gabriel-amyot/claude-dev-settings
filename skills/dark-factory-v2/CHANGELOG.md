@@ -2,6 +2,41 @@
 
 Every SKILL.md / workflow.js / contract change bumps the version and adds an entry.
 
+## 0.5.0 (2026-06-03)
+
+**Hardened from the first live trial (KTP-728 + KTP-699 retros). Front gate's relationship to truth is
+the headline — see `docs/hardening-spec-0.5.0.md` and ADR-003.**
+
+The trial proved the JS gates work (`HALT_PRESHIP`, `BLOCKED_SPEC_QUALITY` both fired correctly). The
+dominant cost was upstream: a concierge **false data-layer blocker** from a stale local checkout (two
+abandoned runs) — a reasoning/staleness failure the substrate cannot catch. 0.5.0 fixes that, and
+promotes two patterns flagged in BOTH retros (schema preflight; structured findings). Built blind —
+generic rules only, no KTP-728/699 specifics in the spine or shared contracts (ADR-002 boundary holds).
+
+- **Concierge live-verifies every data-layer claim (ADR-003)** [contract 1]: any blocker asserting a
+  table/view/column/count/serving-path is verified live (`bq show --schema`/`bq ls`/`bq query`;
+  `git show origin/dev:<path>`) before it is emitted; a stale local tree is not evidence. Every blocker
+  carries a one-line assumption audit. No live access → mark `unverified` + flag, never assert.
+- **Live-schema preflight** [contract 1 writes → contract 2 reads]: concierge pins exact column
+  count + names into `analyst/assumptions.json` marked `VERIFIED`; design reads those rather than
+  re-deriving from a checkout. Kills the F4 "no COUNTRY column" / "22-vs-20 columns" errors.
+- **New brand ⇒ new advertiser id** [contract 1]: a fabricated/new brand must not reuse an existing
+  demo-advertiser entity; the id must be unused in BOTH the perf tables AND the demo-agency registry.
+- **Backend-gated sub-ACs flagged/split at the gate** [contract 1]: a sub-criterion depending on
+  un-landed backend work is named as deferred (or the AC is split) at the concierge, not discovered at
+  HALT_PRESHIP.
+- **Structured artifacts on disk** [contracts 5 + 6]: review writes `review/findings.json` on every run
+  (even at `criticals:0`); QA writes `qa/result.yaml` with a real `test_ref` (command + output path).
+  A PARTIAL is now auditable without re-deriving from a raw diff.
+- **Resume path fixed** [workflow.js + SKILL.md]: on `resumeFromRunId` with `humanDecisions`, the
+  decisions are folded into the concierge prompt — busting the resume cache so the concierge **re-runs
+  live** and re-reads the ticket, instead of replaying its stale needs_human verdict.
+  `BLOCKED_NEEDS_HUMAN_AGAIN` now means a genuinely new/unanswered blocker remains.
+- **Bucketed ticket-folder guard** [contract 1]: `ticket_folder` must resolve under
+  `<PM_ROOT>/tickets/<PREFIX>/<EPIC-or-no-epic>/<TICKET>/` and never the PM root; stop and fix if it
+  would land at root or a non-`tickets/` child.
+- SKILL.md version → 0.5.0; references ADR-003 + the hardening spec. `node --check` clean.
+
 ## 0.4.1 (2026-06-02)
 
 **Stack-agnostic hardening — no Java or ticket specifics in the factory itself.**

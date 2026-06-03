@@ -223,6 +223,14 @@ const rec = (name, r, extra) => { trace.push({ phase: name, status: (r && (r.sta
 async function runPipeline() {
   phase('Concierge')
   log(`Dark Factory v2 (seed) — ${ticket}`)
+  // Resume path (ADR-003 / 0.5.0 #6): when a human supplied decisions, fold them into the concierge
+  // prompt. This (a) busts the resume cache so the concierge RE-RUNS instead of replaying its stale
+  // needs_human verdict, and (b) forces a LIVE re-read of the ticket where the human may have resolved
+  // an open_question. Without this, resumeFromRunId replays the byte-identical prompt -> cached verdict
+  // -> BLOCKED_NEEDS_HUMAN_AGAIN even though the blocker was answered.
+  const resumeNote = humanDecisions
+    ? `\n\nRESUME CONTEXT: a human supplied decisions/answers since the prior run: ${JSON.stringify(humanDecisions)}. Re-read the ticket LIVE now (the human may also have resolved an open_question in the ticket itself) and incorporate these answers. Only set needs_human=true if a NEW, still-unresolved blocker remains — do NOT re-raise a question these answers resolve.`
+    : ''
   const concierge = await agent(
     `Read ${CONTRACTS}/1-concierge.md and execute it for ticket ${ticket} (org: ${org}).
 You are the concierge: validate spec quality, gather context, extract ACs, check prerequisites, and
@@ -233,7 +241,7 @@ Do NOT guess past these.
 Also CLASSIFY the work-type and PROPOSE a tool_belt: read the tool crib at ${TOOLCRIB}/ (start with its
 INDEX.md, then each belt file's "detect" rule) and return the id of the belt whose detect rule matches
 this ticket's deliverable. If none match, return your best-guess label (the run halts as unsupported
-rather than fake a proof — that means a new belt must be racked first).${CONFIDENCE_BLURB}`,
+rather than fake a proof — that means a new belt must be racked first).${resumeNote}${CONFIDENCE_BLURB}`,
     { schema: CONCIERGE_SCHEMA, label: 'concierge', phase: 'Concierge' }
   )
   if (!concierge) return { status: 'HALT_AGENT_SKIPPED', phase: 'Concierge', ticket }
@@ -245,7 +253,7 @@ rather than fake a proof — that means a new belt must be racked first).${CONFI
   }
   if (concierge.needs_human && humanDecisions) {
     return { status: 'BLOCKED_NEEDS_HUMAN_AGAIN', ticket, decision_packet: concierge.open_questions, concierge,
-      note: 'Answers supplied but concierge still needs_human. Not re-looping automatically.' }
+      note: 'Answers were supplied AND the concierge re-ran live, yet a still-unresolved blocker remains (see decision_packet). This is a genuinely NEW/unanswered question, not a replayed verdict. Resolve it in the ticket and re-invoke with the additional answer, or run fresh.' }
   }
 
   _tf = concierge.ticket_folder

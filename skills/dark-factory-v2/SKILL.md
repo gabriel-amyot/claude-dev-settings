@@ -1,6 +1,6 @@
 ---
 name: dark-factory-v2
-version: "0.4.1"
+version: "0.5.0"
 description: "EXPERIMENTAL v2 of the ticket-to-dev factory, orchestrated by the Workflow tool instead of prose. Gates are code (un-skippable), with a human concierge gate at the front. The concierge proposes a tool belt from the crib (java or scripting); the build + tester sockets are equipped from that belt, so the same line handles multiple work-types without duplication. Single-pass review + QA. The workflow does code work and pushes the branch (terminal state READY_TO_SHIP); the main loop creates the MR + Jira comment and runs post-merge validate. Triggers on: '/dark-factory-v2', 'dark factory v2', 'factory v2'. Klever."
 user_invocable: true
 nav:
@@ -23,6 +23,7 @@ stays the fallback and the benchmark baseline.
 
 **Design:** `docs/seed-spec-v1.md` · **Decision:** `docs/adr/ADR-001-...md` · **Why/limits:**
 `docs/grounding-and-decisions.md` · **Review fixes:** `docs/review-findings-v0.1.0.md`
+**0.5.0 hardening:** `docs/hardening-spec-0.5.0.md` · **Live-verify decision:** `docs/adr/ADR-003-live-verify-data-claims.md`
 
 ## Division of labor (important)
 
@@ -76,9 +77,13 @@ work-type needing different room *logic* is a rare new floor, not a belt. Refini
 3. **Handle the workflow's return `status`:**
    - `AWAITING_HUMAN` → present each item in `decision_packet` via `AskUserQuestion`. Collect answers.
      **Re-invoke the Workflow** with `resumeFromRunId: <runId>` and
-     `args: { ticket, org, humanDecisions: { <id>: <answer>, ... } }`.
-   - `BLOCKED_NEEDS_HUMAN_AGAIN` → answers were supplied but the concierge still needs a human. Do NOT
-     re-loop blindly; show the open questions, refine with the user, and only then resume.
+     `args: { ticket, org, humanDecisions: { <id>: <answer>, ... } }`. On resume the concierge **re-runs
+     live** (the `humanDecisions` are folded into its prompt, which busts the resume cache) and re-reads
+     the ticket — so a ticket-side resolution is picked up, not the stale needs_human verdict (0.5.0 #6).
+   - `BLOCKED_NEEDS_HUMAN_AGAIN` → the concierge already re-ran live with the supplied answers and a
+     **genuinely new/unanswered blocker** still remains (it is NOT a replayed cached verdict). Show the
+     open questions, resolve them in the ticket or refine with the user, then resume with the added
+     answer (or run fresh).
    - `BLOCKED_SPEC_QUALITY` → report the concierge findings; suggest a Jira clarification (don't post
      automatically).
    - `HALT_DESIGN_STUCK` / `HALT_GRILL_UNWORKABLE` / `HALT_IMPLEMENT_STUCK` → report the reason; the
@@ -108,5 +113,9 @@ results and cost. See `docs/seed-spec-v1.md` → "Optional post-v1 validation".
 
 ## Status
 
-`0.4.0` — seed, reviewed + fixed + instrumented, now multi-work-type via tool belts (java + scripting),
-**not yet run on a real ticket.** Belts racked: `java`, `scripting`.
+`0.5.0` — hardened from the first live trial (KTP-728 + KTP-699 retros). Front gate now live-verifies
+every data-layer claim (ADR-003): schema preflight pins VERIFIED columns, new brands get a fresh
+advertiser id, backend-gated sub-ACs are flagged/split at the gate, and the ticket folder is bucketed
+under `tickets/...` (never PM root). Review/QA now persist structured `review/findings.json` +
+`qa/result.yaml` (with `test_ref`). Resume re-runs the concierge live so a ticket-side resolution is
+read instead of a stale needs_human verdict. Belts racked: `java`, `scripting`.

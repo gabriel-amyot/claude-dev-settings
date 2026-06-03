@@ -27,6 +27,23 @@ For each AC, collect:
 caps it to PARTIAL. Only mark PASS with both a `code_ref` and a real proof in `test_ref`. If the belt's
 proof method cannot be run (e.g. no endpoint, no real input), the verdict is `PARTIAL`, never `PASS`.
 
+## Output (write to disk)
+
+Write `<ticket_folder>/qa/result.yaml` (path in your prompt). Each `per_ac` row carries a real
+`test_ref` — the **command run plus the path to its captured output** — not a raw diff. Persist on
+every run so a PARTIAL/FAIL is auditable after the fact. Shape:
+```yaml
+raw_overall: PARTIAL
+per_ac:
+  - ac: AC-1
+    verdict: PASS
+    code_ref: "<file>:<lines>"
+    test_ref:
+      command: "<the proof command per your belt>"
+      output_path: "<ticket_folder>/qa/AC-1.out"
+summary: "..."
+```
+
 ## Return
 
 - `raw_overall`: ALL_PASS | PARTIAL | FAIL  (your raw read of the evidence)

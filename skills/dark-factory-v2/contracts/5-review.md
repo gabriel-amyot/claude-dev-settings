@@ -42,6 +42,22 @@ handle.
 - **HIGH** = wrong output a user sees.
 - **MEDIUM/LOW** = edge case or non-user-visible.
 
+## Output (write to disk — always, even at zero criticals)
+
+Write `<ticket_folder>/review/findings.json` (path in your prompt; this is a write, not a read of the
+withheld design context). Persist it on EVERY run, including `criticals_open: 0`, so a later PARTIAL or
+audit can be reconstructed without re-deriving from a raw diff. Shape:
+```json
+{
+  "criticals_open": 0,
+  "findings": [
+    { "severity": "HIGH", "title": "...", "file": "<path>:<lines>", "demonstrated": true,
+      "test_ref": "<test name + command + observed failure>" }
+  ],
+  "summary": "..."
+}
+```
+
 ## Return
 
 - `criticals_open`: integer ≥ 0 — count of CRITICAL findings you DEMONSTRATED with a failing test and

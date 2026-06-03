@@ -1,0 +1,95 @@
+run_id: run-2026-06-02-KTP-699
+ticket: KTP-699
+ticket_summary: "Visitor flow lines for Blinds To Go using campaign data"
+epic: KTP-747
+org: klever
+date: 2026-06-02
+terminal_status: BLOCKED_SPEC_QUALITY
+ticket_folder: tickets/KTP/KTP-747/KTP-699
+tool_belt: java
+primary_repo: grp-app/grp-backend/grp-ms/app-proximity-report
+
+phases:
+  - phase: concierge
+    status: FAIL
+    confidence: 82
+    note: >
+      Spec-quality front gate. Correctly FAILED with needs_human=TRUE on three
+      concrete blockers (advertiser identity contradiction, no real BQ data,
+      underspecified attribution mechanism). Factory halted before design — no
+      code work attempted. This is the gate working as designed.
+
+# Phases not reached (gate halted at the front concierge gate):
+#   design, grill, implement, review, qa, ship, retro(this) — only concierge ran.
+
+scores:
+  task_confidence: 18
+  factory_fitness: 88
+
+deductions:
+  # task_confidence (start 100 -> 18): the task is NOT done/deployable. Blocked at spec gate.
+  - points: 40
+    reason: "task_confidence: Terminal status BLOCKED_SPEC_QUALITY — zero ACs implemented, nothing deployable. Hard halt at the front gate."
+  - points: 18
+    reason: "task_confidence: B2 — no real campaign-geo rows exist in BQ for advertiser 357 or 835 (keen-hawk 2026-05-29 reports ZERO performance rows). AC-1 requires real data; synthetic is forbidden, so even past the spec gate, java execute-verify could only reach infra_blocked."
+
+  - points: 12
+    reason: "task_confidence: B1 — live Jira binds Blinds To Go to advertiser 357, but verified entity data + KTP-755 correction say 357 = Hema-Quebec and Blinds To Go = 835. Source-of-truth ticket is wrong; cannot build until corrected in Jira."
+  - points: 8
+    reason: "task_confidence: B3 — attribution mechanism underspecified: no FSA-centroid coordinate source, no named BQ campaign-geo table, unresolved adsquare_poi_id -> Klever store join key (open KTP-601 spike questions)."
+  - points: 4
+    reason: "task_confidence: AC-2/AC-3 are frontend-reuse but unverified — whether the existing frontend resolves Canadian FSA centroids to draw flow lines was never confirmed (ticket claims frontend out of scope without proof)."
+  # factory_fitness (start 100 -> 88): the factory itself performed well; it caught the
+  # problems at the cheapest possible point. Minor deductions for what could be sharper.
+  - points: 6
+    reason: "factory_fitness: Concierge soft confidence landed at 82 on a FAIL — the gate fired correctly, but a clean blocker-on-source-of-truth FAIL should read with higher certainty. Confidence calibration on FAIL outcomes is fuzzy."
+  - points: 4
+    reason: "factory_fitness: B1 (identity contradiction) and B2 (missing data) are dependency/upstream-readiness facts that an automated prereq probe could have surfaced before a human-facing concierge phase, saving a manual gate pass."
+  - points: 2
+    reason: "factory_fitness: A corrected description (advertiser 835) was already staged locally in jira/description-corrected-2026-06-02.txt but the live ticket was never updated — the factory had the fix in hand and could not self-apply or escalate it cleanly."
+
+red_flags:
+  - "Source-of-truth contradiction: live Jira ticket assigns the wrong advertiser (357 = Hema-Quebec, not Blinds To Go = 835). Building on the live spec would have produced flow lines for the wrong brand."
+  - "AC-1 marked 'ambiguous' with 4 unresolved gaps (no BQ table named, no FSA centroid source, unresolved join key, zero real rows). A spec this thin should never have reached a build floor."
+  - "Declared blockers KTP-675/KTP-692/KTP-755 show 'Done' in Jira but carry no landed table name, schema, or confirmed rows — 'Done' status did not mean 'data available'."
+  - "Frontend declared out of scope by the ticket but unverified (AC-2 gap) — a reuse assumption that could break on Canadian FSA geometry."
+  - "Concierge confidence 82 on a definitive FAIL — confidence number does not clearly distinguish 'clean correct halt' from 'uncertain'."
+
+improvements:
+  - title: "Add an automated prereq/data-readiness probe before the concierge gate"
+    detail: >
+      A pre-concierge step should query BQ for actual row counts on the named consumption
+      tables and verify advertiser identity against klever_core_entities.advertiser. B1
+      (identity) and B2 (zero rows) are mechanically checkable facts. Surfacing them
+      automatically would let the concierge FAIL faster and with hard evidence attached,
+      rather than relying on prose findings.
+  - title: "Concierge gate must treat unverified source-of-truth as a blocking FAIL, not a soft confidence"
+    detail: >
+      When the live Jira ticket contradicts verified entity data (advertiser 357 vs 835),
+      the gate should hard-FAIL with needs_human and emit the exact correction to apply,
+      rather than producing an 82-confidence outcome. Codify: any source-of-truth conflict
+      => spec_quality FAIL, confidence reported as low, with the staged correction file path
+      in the output.
+  - title: "Require named BQ tables + schema for any data-sourcing AC before the spec gate passes"
+    detail: >
+      Contract 1 (concierge) should reject data-sourcing ACs (like AC-1) that name no concrete
+      table/schema/join-key. Add a checklist: every 'reads from BQ' AC must cite a table name,
+      a column-level schema reference, and the join key. Missing any => ambiguous => FAIL.
+  - title: "Calibrate concierge confidence semantics for FAIL outcomes"
+    detail: >
+      Define confidence on a FAIL as 'certainty that the FAIL is correct', not 'how close to
+      passing'. A FAIL backed by verified contradicting data should report HIGH confidence
+      (e.g. 90+) that halting was right. Document this in contract 1 so retro telemetry is
+      comparable across runs.
+  - title: "Escalate staged-but-unapplied Jira corrections through the human-gate output"
+    detail: >
+      When the factory has already staged a corrected ticket description on disk, the concierge
+      output should explicitly list it as an actionable human task (update Jira #34347 / apply
+      description-corrected-2026-06-02.txt) so the blocker has a one-step resolution path.
+
+summary: >
+  KTP-699 halted at the dark-factory-v2 concierge front gate (BLOCKED_SPEC_QUALITY) on three
+  real blockers: a wrong-advertiser source-of-truth contradiction, zero real campaign-geo rows
+  in BQ, and an underspecified attribution mechanism. The factory performed well (fitness 88) by
+  catching all three at the cheapest point before any code work; the task itself is far from
+  deployable (confidence 18) and stays blocked pending human fixes upstream.

@@ -1,0 +1,159 @@
+run_id: run-2026-06-02-KTP-728
+ticket: KTP-728
+ticket_summary: "Seed Canadian demo data for Measurement Map — Lumberjack Pastries (choropleth/region-performance)"
+epic: KTP-559
+org: klever
+date: 2026-06-02
+terminal_status: HALT_PRESHIP
+ticket_folder: tickets/KTP/KTP-559/KTP-728
+tool_belt: scripting
+primary_target: "BigQuery dataset prj-d-biz-report-im9q1fvvc7.klever_proximity_data (data seed, no code repo)"
+session: bright-otter
+workflow_run_id: wf_5a664e71-dd9
+prior_run_ids:
+  - wf_94947f22-f07  # Run 1: pre-refactor, paused AWAITING_HUMAN (no scripting floor). abandoned.
+  - wf_309b5725-8d6  # Run 2: scripting belt OK, paused AWAITING_HUMAN on FALSE missing-view blocker. abandoned.
+
+phases:
+  - phase: concierge
+    status: PASS
+    confidence: 88
+    note: >
+      Spec-quality front gate PASSED (needs_human=false, ac_count=1, prereqs_ok=true) after Gabriel's
+      two Jira comments (34346, 34350) resolved both prior-run open questions: Q1 advertiser identity
+      (new "Lumberjack Pastries" demo advertiser) and Q2 the false v_prox_state_performance "missing
+      view" blocker. Tool belt correctly classified as `scripting`. This was the THIRD attempt; runs 1
+      and 2 both PAUSED on the now-disproven view blocker (see factory-feedback report).
+  - phase: design
+    status: pass
+    confidence: 83
+    note: >
+      Design grounded plan against origin/dev + live BQ. Confirmed the state path (province choropleth)
+      gate is buildable end-to-end via the ZIP base table with STATE full-name filter (verified by live
+      adv 835). Chose to mirror real adv 835 CD shape rather than fabricate FIPS.
+  - phase: grill
+    status: partial
+    confidence: 86
+    note: >
+      Winston interrogation verdict PARTIAL. Verified 6 decisions (R1-R6) against origin/dev + live BQ.
+      Caught a plan factual error (G1: country table is 20 cols not 22) and corrected stale analyst fact
+      F4 (zip table DOES have COUNTRY, 17 cols). Flagged G2: AC-1 CD-layer sub-criteria (#2 colored
+      census divisions, #3 CD popup) CANNOT fully pass on the deployed backend because
+      CountyPerformanceBigQueryAdapter filters COUNTY_FIPS and never reads CDUID — a known, deferred,
+      backend-wiring limit (KTP-754 family), not a design defect.
+  - phase: implement
+    status: pass
+    confidence: 82
+    note: >
+      Produced a Python seed generator (generate_canada_demo_seed.py + geography.py), 12 unit tests,
+      and staged artifacts (zip + country ndjson, locations CSV, idempotent DELETE+LOAD runbook SQL,
+      README). Script does NOT write to BQ; Gabriel loads manually after his backup step. Carried G1-G4
+      forward (20-col country list, CHANNEL canonical-value test, recent date window).
+  - phase: review
+    status: "criticals:0"
+    confidence: 82
+    note: >
+      Single-pass review found zero criticals. Diff is +1372/-8 across 8 files, all under the ticket
+      folder (scripts/ + scripts/staged/ + scripts/tests/). No backend/frontend code touched (in-scope:
+      data-seed only). Data-mutation backup correctly delegated to the manual load runbook per CLAUDE.md.
+  - phase: qa
+    status: PARTIAL
+    confidence: 86
+    note: >
+      QA PARTIAL, consistent with the grill G2 finding. AC-1 item #1 (>=5 provinces colored) and the FSA
+      layer are satisfiable by the staged seed; AC-1 items #2/#3 (CD-layer coloring + popup) remain
+      backend-blocked and deferred. Verification is by BQ row-count/shape + CA-only API calls; on-screen
+      cross-border render is gated by the separately-ticketed mixed US/CA 400 validator fix.
+
+# Terminal status HALT_PRESHIP: the workflow did the code work and ran tests, then halted at the
+# pre-ship gate (this trial's ceiling) before pushing the branch / creating the MR. Retro runs anyway.
+
+scores:
+  task_confidence: 74
+  factory_fitness: 81
+
+deductions:
+  # task_confidence (start 100 -> 74): build is solid and the primary AC gate is reachable, but it is
+  # NOT yet deployed/verified-on-dev, and one AC sub-layer is backend-blocked.
+  - points: 8
+    reason: "task_confidence: HALT_PRESHIP — branch not pushed, MR not created, seed not loaded to dev. Deliverable is staged-on-disk only; nothing is live or end-to-end verified on the running portal yet. This is the trial's intended ceiling, but the task is not 'done'."
+  - points: 8
+    reason: "task_confidence: AC-1 PARTIAL (QA + grill G2) — CD-layer sub-criteria #2 (colored census divisions) and #3 (CD-click popup) cannot pass on deployed backend because CountyPerformanceBigQueryAdapter filters COUNTY_FIPS and never reads CDUID. Known, deferred backend limit; AC cannot be fully closed by this ticket alone."
+  - points: 4
+    reason: "task_confidence: cross-border on-screen render still gated by the mixed US/CA HTTP 400 validator (MapStateDataValidator), a separately-ticketed fix. CA-only verification is valid but the full mixed-render demo is not achievable until that lands."
+  - points: 3
+    reason: "task_confidence: advertiser identity smell — staged files use --advertiser-id 827. 827 is the FitConnect demo advertiser (existing demo-agency entity), reused here for a differently-named brand ('Lumberjack Pastries'). Grill R4 verified 827 has 0 perf rows so it is technically free, but the concierge specified a NEW dedicated advertiser; binding a fabricated brand to a pre-existing demo-advertiser ID risks a later identity collision (cf. KTP-699/KTP-755 advertiser-identity lesson)."
+  - points: 3
+    reason: "task_confidence: lowest per-phase confidences sit at implement/review (82). The build and the review both ran at the floor of the trace band, reflecting residual uncertainty (no execution against live BQ, single-pass review)."
+
+  # factory_fitness (start 100 -> 81): the factory ultimately performed well on the third pass, but the
+  # path to a passing concierge cost two abandoned runs on a false blocker.
+  - points: 8
+    reason: "factory_fitness: concierge raised the SAME false 'v_prox_state_performance missing view' blocker on Runs 1 AND 2, pausing AWAITING_HUMAN both times, before live-BQ verification disproved it on Run 3. The blocker came from a STALE LOCAL CHECKOUT despite the KTP-754 wiring map's explicit stale-checkout warning. Two human gate passes burned on a premise that a live `bq ls`/`git show origin/dev:` would have falsified. (Captured in factory-feedback-concierge-false-blocker.md.)"
+  - points: 4
+    reason: "factory_fitness: resume path is brittle — resumeFromRunId + humanDecisions returns BLOCKED_NEEDS_HUMAN_AGAIN because the cached concierge still reports needs_human; the de-facto unblock is 'resolve in Jira, run fresh.' Three workflow_run_ids for one ticket is the symptom."
+  - points: 4
+    reason: "factory_fitness: analyst F4 was stale/wrong (claimed zip table has NO COUNTRY column; live schema = 17 cols WITH COUNTRY) and the plan carried a 22-vs-20 country-column factual error. Grill caught both, but the analyst/design steps emitted schema facts not verified against live `bq show --schema`."
+  - points: 3
+    reason: "factory_fitness: scoring inputs are thin for a HALT_PRESHIP outcome — the review phase left only a diff.patch (no structured findings file) and QA left no test_ref artifact in the ticket folder; the PARTIAL verdict had to be reconstructed from the grill G2 reasoning rather than a QA evidence record."
+
+red_flags:
+  - "Concierge raised an identical FALSE blocker (v_prox_state_performance 'missing view') on two consecutive runs before live-BQ verification disproved it on the third. The premise came from a stale local checkout; live adv 835 colors Ontario+Quebec from base tables with no view."
+  - "analyst assumptions.json F4 was wrong about live schema (said zip table has no COUNTRY column; it has 17 cols incl. COUNTRY) and the design plan stated 22 country columns vs the live 20. Schema facts were not checked against live `bq show --schema` until grill."
+  - "Staged seed binds a fabricated brand ('Lumberjack Pastries') to advertiser-id 827, which is the existing FitConnect demo advertiser. Reusing a pre-existing demo-advertiser ID for a new brand name is the same identity-collision class that bit KTP-699/KTP-755."
+  - "AC-1 reached QA as PARTIAL (CD-layer sub-criteria backend-blocked). A single-AC ticket whose own acceptance criteria cannot fully pass on the deployed backend should arguably have been split (province/FSA seed vs CD-wiring fix) at the concierge stage."
+  - "HALT_PRESHIP with all phases green but no execution against live BQ — the script was unit-tested but never run end-to-end (load + render), so confidence rests on tests + code reads, not observed behavior."
+  - "Review phase produced only a 293KB diff.patch and no structured findings; QA produced no test_ref artifact in the ticket folder. Retro had to reconstruct the PARTIAL rationale from the grill report."
+  - "Resume path returns BLOCKED_NEEDS_HUMAN_AGAIN on a cached concierge verdict; the only reliable unblock was to resolve in Jira and start a fresh run (three run IDs for one ticket)."
+
+improvements:
+  - title: "Concierge must live-verify any data-layer blocker before emitting it"
+    detail: >
+      Contract 1: when an open_question or blocker asserts a data-layer fact (a BQ table/view exists or
+      is missing, a column is present/absent, a serving path), the gate MUST verify against the live
+      source (`bq ls` / `bq show --schema` / `bq query`, or `git show origin/dev:<path>` for code)
+      before raising it as needs_human. Stale local working trees are explicitly NOT evidence. This run
+      burned two human gate passes on a view that does not gate the path. Add an assumption-audit line to
+      every blocker: "what established this, and could the premise be false?" (mirrors the project
+      CLAUDE.md adversarial assumption-audit rule).
+  - title: "Add a live-schema preflight that feeds the analyst/design schema facts"
+    detail: >
+      Before design writes column lists, run `bq show --schema` on every table named in affected-repos.json
+      and pin the exact column count + names into assumptions.json as VERIFIED facts. F4 (no COUNTRY
+      column) and the 22-vs-20 country-column error would both have been caught mechanically instead of
+      relying on the grill to find them. This is the data analogue of the prereq probe proposed in the
+      KTP-699 retro.
+  - title: "Concierge must allocate a NEW advertiser ID for fabricated demo brands, never reuse an existing demo-advertiser entity"
+    detail: >
+      When the spec calls for a new dedicated demo advertiser, the concierge/design must mint an ID that
+      is unused in BOTH the perf tables AND the user-management/demo-agency advertiser registry — not
+      just one that currently has 0 perf rows. 827 = FitConnect already exists as a demo entity; binding
+      'Lumberjack Pastries' to 827 invites an identity collision. Add an advertiser-identity check
+      against klever demo-agency entities to the concierge, citing the KTP-699/KTP-755 lesson."
+  - title: "Split single-AC tickets whose AC cannot fully pass on the deployed backend"
+    detail: >
+      The concierge should detect when an AC's sub-criteria depend on an un-landed backend change (here:
+      CD-layer coloring needs CountyPerformanceBigQueryAdapter to read CDUID) and either (a) flag the AC
+      as partially-deferred with the exact backend dependency named, or (b) recommend splitting the
+      seedable portion (province + FSA) from the backend-gated portion. Avoid carrying a partially-
+      unachievable AC all the way to a PARTIAL QA.
+  - title: "Require a structured review-findings file and a QA test_ref artifact in the ticket folder"
+    detail: >
+      Contracts 5/6 should write review/findings.json (even if criticals:0) and qa/result.yaml with a
+      test_ref (command + output path) into the ticket folder, not just a raw diff.patch. The retro had
+      to reconstruct the PARTIAL verdict from the grill report; a PARTIAL QA with no test evidence record
+      is a telemetry gap. (Mirrors the KTP-699 retro 'require test_ref before PASS' improvement.)"
+  - title: "Fix the resume path or document run-fresh as the canonical unblock"
+    detail: >
+      resumeFromRunId + humanDecisions returns BLOCKED_NEEDS_HUMAN_AGAIN because the cached concierge
+      still reports needs_human. Either re-run the concierge gate on resume (so a Jira-side resolution is
+      re-read) or document in the workflow that the supported unblock is 'resolve in the ticket, start a
+      fresh run' and have the orchestrator say so explicitly instead of looping on a stale verdict.
+
+summary: >
+  KTP-728 (third attempt, run wf_5a664e71-dd9) drove the scripting belt cleanly to HALT_PRESHIP: a
+  Python Canadian demo-seed generator with 12 tests and staged load artifacts, zero review criticals,
+  AC-1 QA PARTIAL (province + FSA layers seedable; CD layer backend-blocked, deferred). Task confidence
+  74 (staged-not-deployed, one AC sub-layer backend-gated, 827 advertiser-ID reuse smell); factory
+  fitness 81, docked mainly because the concierge raised the same false missing-view blocker on two
+  prior runs from a stale checkout before live verification disproved it.

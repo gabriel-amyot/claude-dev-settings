@@ -48,6 +48,15 @@ verdict; the only reliable unblock was resolve-in-Jira + run-fresh. Either RE-RU
 resume (so a ticket-side resolution is re-read) or have the orchestrator explicitly instruct
 "resolve in the ticket + run fresh" instead of looping on a cached needs_human verdict.
 
+### 7. Concierge ticket-folder must use the bucketed path, never root  [Contract 1]
+Evidence: the 728 trial created `project-management/KTP-728/` at the REPO ROOT (README + jira/ +
+ticket-overview, 2026-06-02 16:16) — a placement-rule violation (root holds only core dirs). The
+concierge's `ticket_folder` resolution (Contract 1 step 2) must produce
+`<PM_ROOT>/tickets/<PREFIX>/<EPIC-or-no-epic>/<TICKET>/` per project-management/CLAUDE.md, and must
+never write to the PM root. Add a guard: if the resolved path is the PM root or a direct child that
+isn't `tickets/...`, stop and fix. (The stray `KTP-728/` folder from the trial should be relocated to
+its bucketed path or removed — human call.)
+
 ## Cross-run pattern (promote, don't re-propose)
 Improvements #2 (live prereq/schema probe before the gate) and #5 (structured findings + test_ref
 before PASS) appear in BOTH the 699 and 728 retros. Two hits → bake into the contracts now.

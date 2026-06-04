@@ -2,6 +2,28 @@
 
 Every SKILL.md / workflow.js / contract change bumps the version and adds an entry.
 
+## 0.6.0 (2026-06-03)
+
+**Bounded fix loop — per-AC resilience harvested from v1 + sprint-crawl.**
+
+Before: a review CRITICAL terminated the run (`BLOCKED_REVIEW_CRITICAL`) on the first pass. Now the
+workflow bounces back to a targeted fix and re-reviews, up to 2 rounds, before halting. This brings v2
+in line with v1's "Quinn attacks → Amelia fixes" loop and sprint-crawl's review→implement revert,
+without breaking the segregated-review or ADR-002 spine boundaries.
+
+- New `Fix` phase in the workflow + meta: on `review.criticals_open > 0`, dispatch a fix agent
+  (`readContract('4-implement')` in FIX MODE) scoped to ONLY the open CRITICAL findings — no new scope,
+  no unrelated refactors — in its own worktree; it fixes, re-runs affected tests, and pushes the branch.
+  A fresh segregated reviewer then re-reviews the updated branch.
+- Bounded at `MAX_FIX_ROUNDS = 2`. A CRITICAL that survives both rounds still returns
+  `BLOCKED_REVIEW_CRITICAL` (now carrying `fix_rounds`). A round that fails to push returns the new
+  `HALT_FIX_NOT_PUSHED`.
+- Review prompt factored into a reused `reviewPrompt` const (identical fresh reviewer each round; the
+  branch differs because the fix pushed). `node --check` clean.
+- Design context: harvested from the sprint-crawl analysis (`docs/harvest-from-sprint-crawl.md`). The
+  full per-AC restructure (iterate implement→review→QA per AC with persisted per-AC verdicts) remains a
+  roadmap item; this is the spine-safe increment.
+
 ## 0.5.0 (2026-06-03)
 
 **Hardened from the first live trial (KTP-728 + KTP-699 retros). Front gate's relationship to truth is

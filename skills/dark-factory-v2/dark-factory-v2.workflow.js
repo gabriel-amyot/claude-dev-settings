@@ -7,6 +7,7 @@ export const meta = {
     { title: 'Grill',     detail: 'interrogate the plan against the codebase' },
     { title: 'Implement', detail: 'TDD per AC in a worktree; attempt execution; push branch' },
     { title: 'Review',    detail: 'fresh adversarial agent in its own worktree on the pushed branch' },
+    { title: 'Fix',       detail: 'bounded loop: on a CRITICAL, targeted fix + re-review (max 2 rounds) before halting' },
     { title: 'QA',        detail: 'fresh agent proves each AC; verdict capped by execution_verified + evidence' },
     { title: 'ShipPrep',  detail: 'version bump + CHANGELOG + commit + push (no MR/Jira)' },
     { title: 'Retro',     detail: 'score the run, capture red flags, write telemetry + improvement handoff' },
@@ -292,16 +293,45 @@ folder; return its path as diff_artifact and set pushed=true. ${decisionsNote}`,
   rec('implement', impl)
   if (impl.status === 'stuck') return { status: 'HALT_IMPLEMENT_STUCK', ticket, branch: impl.branch, impl }
 
-  phase('Review')
-  const review = await agent(`${readContract('5-review')}
+  // Review prompt reused across the bounded fix loop (each round is a fresh, segregated reviewer).
+  const reviewPrompt = `${readContract('5-review')}
 You did NOT write this code and have no design context. The runtime gave you your own worktree: run
 'git fetch origin ${impl.branch}' then 'git checkout ${impl.branch}'. Review only 'git diff
 origin/dev..HEAD' against the ACs and the repo CLAUDE.md. Find bugs that reach users; for each, write a
-test and run it; retract if it passes. Diff artifact (backup): ${impl.diff_artifact}.`,
-    { schema: REVIEW_SCHEMA, label: 'review', phase: 'Review', isolation: 'worktree' })
+test and run it; retract if it passes. Diff artifact (backup): ${impl.diff_artifact}.`
+
+  phase('Review')
+  let review = await agent(reviewPrompt, { schema: REVIEW_SCHEMA, label: 'review', phase: 'Review', isolation: 'worktree' })
   if (!review) return { status: 'HALT_AGENT_SKIPPED', phase: 'Review', ticket, branch: impl.branch }
   rec('review', review, 'criticals:' + review.criticals_open)
-  if (review.criticals_open > 0) return { status: 'BLOCKED_REVIEW_CRITICAL', ticket, branch: impl.branch, review, impl }
+
+  // Bounded fix loop (0.6.0): on a CRITICAL, bounce back to a targeted fix + re-review instead of
+  // halting on the first pass. Harvested from v1's Quinn-attacks/Amelia-fixes loop and sprint-crawl's
+  // review->implement revert. Bounded so a persistent critical still HALTs rather than looping forever.
+  const MAX_FIX_ROUNDS = 2
+  let fixRounds = 0
+  while (review.criticals_open > 0 && fixRounds < MAX_FIX_ROUNDS) {
+    fixRounds++
+    const criticals = (review.findings || []).filter((f) => f.severity === 'CRITICAL')
+    phase('Fix')
+    const fix = await agent(`${readContract('4-implement')}
+FIX MODE (round ${fixRounds}/${MAX_FIX_ROUNDS}). You are addressing ONLY the open CRITICAL review findings
+below — do NOT add scope, refactor unrelated code, or touch ACs that already pass. The runtime gave you
+your own worktree: 'git fetch origin ${impl.branch}' then 'git checkout ${impl.branch}'. For each finding:
+write/keep a test that demonstrates the bug, fix the code minimally, re-run the affected tests, then PUSH
+the branch. Return execution_verified honestly and pushed=true.
+OPEN CRITICAL FINDINGS: ${JSON.stringify(criticals)}`,
+      { schema: IMPLEMENT_SCHEMA, label: `fix-round-${fixRounds}`, phase: 'Fix', isolation: 'worktree' })
+    if (!fix) return { status: 'HALT_AGENT_SKIPPED', phase: 'Fix', ticket, branch: impl.branch }
+    rec(`fix-${fixRounds}`, fix)
+    if (fix.pushed !== true) return { status: 'HALT_FIX_NOT_PUSHED', ticket, branch: impl.branch, fix, review }
+
+    phase('Review')
+    review = await agent(reviewPrompt, { schema: REVIEW_SCHEMA, label: `review-r${fixRounds + 1}`, phase: 'Review', isolation: 'worktree' })
+    if (!review) return { status: 'HALT_AGENT_SKIPPED', phase: 'Review', ticket, branch: impl.branch }
+    rec(`review-${fixRounds + 1}`, review, 'criticals:' + review.criticals_open)
+  }
+  if (review.criticals_open > 0) return { status: 'BLOCKED_REVIEW_CRITICAL', ticket, branch: impl.branch, review, impl, fix_rounds: fixRounds }
 
   phase('QA')
   const qa = await agent(`${readContract('6-qa')}

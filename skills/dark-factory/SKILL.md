@@ -1,17 +1,28 @@
 ---
 name: dark-factory
-version: "1.6.0"
-description: "Full ticket-to-dev pipeline. Takes Jira ticket(s) through 8 phases: analyze, design, grill (Winston interrogates the plan), implement, review (Quinn attacks, Amelia fixes), QA, ship, validate. Supports single ticket, flat list (auto-dep-checked), or plan-file with YAML dependency graph for multi-ticket orchestration with tiered parallelism. Klever-first. Triggers on: '/dark-factory', 'dark factory', 'ticket to dev', 'full pipeline'."
+version: "1.7.0"
+description: "Sprint Factory (multi-ticket conductor; formerly 'dark-factory v1'). Takes a set of Jira tickets with dependencies (flat list auto-dep-checked, or plan-file with a YAML dependency graph), computes topological tiers, and drives each ticket to dev. Role is being reframed: the per-ticket lifecycle now belongs to dark-factory-v2; Sprint Factory orchestrates the multi-ticket DAG and (target model) conducts each ticket THROUGH v2 via handoffs. Idempotent + rerunnable: reconciles from Jira ticket status + the handoff ledger, so a rerun skips in-progress handoffs and unlocks children of closed tickets. For a single ticket, use /dark-factory-v2. Klever-first. Triggers on: '/dark-factory', 'sprint factory', 'multi-ticket', 'epic to dev', 'dependency graph'."
 user_invocable: true
 nav:
   bay: build
-  when: "Full ticket-to-dev pipeline. 8 phases: analyze, design, grill, implement, review, QA, ship, validate."
-  when_not: "Quick ship without ceremony (use /autonomous-ticket-ship). Overnight (use sprint-crawl)."
+  when: "Multi-ticket / epic with dependencies: tiered parallel orchestration via a YAML dependency graph. Conducts tickets through dark-factory-v2. Idempotent rerun per sprint."
+  when_not: "Single ticket (use /dark-factory-v2). Overnight per-AC autonomous (use sprint-crawl). Quick ship (use /autonomous-ticket-ship)."
   personas: [amelia, quinn, winston]
   org: [klever]
 ---
 
-# Dark Factory
+> **⚠ Reframe in progress (2026-06-03).** This skill is becoming **Sprint Factory** — the multi-ticket
+> *conductor*, not a per-ticket lifecycle engine. The single-ticket 8-phase lifecycle now lives in
+> **dark-factory-v2**. Target model: Sprint Factory computes the dependency DAG, fans out one handoff per
+> startable ticket (each runs through `/dark-factory-v2`), and unlocks the next tier on report-back. It
+> is **idempotent and rerunnable** — on rerun it reconciles from Jira ticket status + the handoff ledger
+> (skip in-progress handoffs, unlock children of closed tickets), so you run it once per sprint and can
+> safely re-run if the session closes. The 8-phase prose below is **legacy reference** until the
+> orchestration rewrite lands. Design + build order:
+> [`docs/sprint-factory-orchestration-model.md`](docs/sprint-factory-orchestration-model.md). The hard
+> rename (skill id + dir) and the Mode-1 orchestration rewrite are a scoped follow-up.
+
+# Dark Factory  →  Sprint Factory (multi-ticket conductor)
 
 Full autonomous pipeline: Jira ticket through deployed and verified on dev. 8 phases per ticket, tiered parallelism for multi-ticket runs, YAML dependency graphs, gate verification between tiers.
 

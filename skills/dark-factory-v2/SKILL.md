@@ -1,6 +1,6 @@
 ---
 name: dark-factory-v2
-version: "0.5.0"
+version: "0.6.0"
 description: "EXPERIMENTAL v2 of the ticket-to-dev factory, orchestrated by the Workflow tool instead of prose. Gates are code (un-skippable), with a human concierge gate at the front. The concierge proposes a tool belt from the crib (java or scripting); the build + tester sockets are equipped from that belt, so the same line handles multiple work-types without duplication. Single-pass review + QA. The workflow does code work and pushes the branch (terminal state READY_TO_SHIP); the main loop creates the MR + Jira comment and runs post-merge validate. Triggers on: '/dark-factory-v2', 'dark factory v2', 'factory v2'. Klever."
 user_invocable: true
 nav:
@@ -28,8 +28,8 @@ stays the fallback and the benchmark baseline.
 ## Division of labor (important)
 
 The **workflow** does the code work: concierge → design → grill → implement (TDD, execution check,
-**pushes the feature branch**) → review → QA → ship-prep (version bump + push). It ends at
-`READY_TO_SHIP`. The **main loop** (this conversational context) does the things a workflow agent
+**pushes the feature branch**) → review → **fix loop** (on a CRITICAL: targeted fix + re-review, max 2
+rounds) → QA → ship-prep (version bump + push). It ends at `READY_TO_SHIP`. The **main loop** (this conversational context) does the things a workflow agent
 can't safely do: create the MR (`/klever-mr`), post the Jira comment (`/post-comment`), transition the
 ticket, and — after the human merges — run post-merge validate (contract 8). This split is forced by
 verified Workflow-API limits (skills aren't reliably callable inside an agent; no native wait).
@@ -88,7 +88,9 @@ work-type needing different room *logic* is a rare new floor, not a belt. Refini
      automatically).
    - `HALT_DESIGN_STUCK` / `HALT_GRILL_UNWORKABLE` / `HALT_IMPLEMENT_STUCK` → report the reason; the
      code (if any) stays on its branch. Operator decides.
-   - `BLOCKED_REVIEW_CRITICAL` → report the open CRITICAL finding(s); unshipped.
+   - `BLOCKED_REVIEW_CRITICAL` → a CRITICAL survived the bounded fix loop (up to 2 fix+re-review rounds);
+     report the open finding(s) and `fix_rounds`; unshipped.
+   - `HALT_FIX_NOT_PUSHED` → a fix-loop round did not push its branch; report and stop.
    - `HALT_PRESHIP` → report `blockers` (execution not verified / branch not pushed / open CRITICAL /
      QA not green); do not ship.
    - `HALT_SHIPPREP_FAILED` / `HALT_AGENT_SKIPPED` → report; nothing shipped.
@@ -112,6 +114,10 @@ v1 and v2 are separate skills so the same ticket can run through both (two termi
 results and cost. See `docs/seed-spec-v1.md` → "Optional post-v1 validation".
 
 ## Status
+
+`0.6.0` — added the bounded fix loop (per-AC resilience harvested from v1 + sprint-crawl): a review
+CRITICAL now bounces to a targeted fix + re-review (max 2 rounds) before `BLOCKED_REVIEW_CRITICAL`,
+instead of halting on first pass. See `docs/harvest-from-sprint-crawl.md`.
 
 `0.5.0` — hardened from the first live trial (KTP-728 + KTP-699 retros). Front gate now live-verifies
 every data-layer claim (ADR-003): schema preflight pins VERIFIED columns, new brands get a fresh

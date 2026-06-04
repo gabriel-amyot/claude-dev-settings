@@ -9,6 +9,27 @@ Versioning: `MAJOR.MINOR.PATCH`
 
 ---
 
+## 1.7.0 (2026-06-03)
+
+**Reframe begins: Dark Factory v1 → "Sprint Factory" (multi-ticket conductor).**
+
+Now that dark-factory-v2 owns the single-ticket lifecycle, v1's role is being reframed to the multi-ticket
+*conductor*: compute the dependency DAG, fan out one handoff per startable ticket (each runs through
+`/dark-factory-v2`), unlock the next tier on report-back. Idempotent + rerunnable: reconciles from Jira
+ticket status + the handoff ledger so a re-run skips in-flight handoffs and unlocks children of closed
+tickets; persists a board to `tickets/sprints/{Sprint}/`.
+
+- Frontmatter: description + nav reframed to multi-ticket conductor; `when` = multi-ticket/epic,
+  `when_not` = single ticket (→ v2) / overnight per-AC (→ sprint-crawl). Version 1.6.0 → 1.7.0.
+- Added a reframe banner at the top of SKILL.md; the 8-phase prose is now **legacy reference** until the
+  orchestration rewrite lands.
+- New design doc: `docs/sprint-factory-orchestration-model.md` — Mode 1 (handoff orchestration, build now),
+  Mode 2 (autonomous concierge question-packs, future), idempotency/rerun via Jira+ledger reconcile, and
+  the caveman question-pack format (per doubt: 2-3 assumptions → pick best → propose action).
+- **Not yet done (scoped follow-up):** the hard rename (skill id `dark-factory` → `sprint-factory` + dir +
+  reference sweep) and the actual orchestration-section rewrite to the handoff model. Kept `/dark-factory`
+  working for now to avoid breaking references.
+
 ## 1.6.0 (2026-05-28)
 
 **QA enforcement, pre-ship artifact gate, brownfield awareness, eval reasoning.**

@@ -45,6 +45,10 @@ For the full framework (compaction strategies, note-taking patterns, subagent ar
 - **No dashes as separators.** Never use em-dash, hyphens, or double-hyphens to join sentences. Use periods, commas, or conjunctions instead.
 - **Never rewrite git history.** No `git push --force`, `git rebase` on shared branches, `git reset --hard` to before pushed commits, `git commit --amend` on pushed commits, or any other history-rewriting operation. This is absolute, even if the user approves it. If the user insists, provide the exact command with full context (branch, remote, paths) for them to run manually. You will not execute it.
 
+# Inline Review with Crit
+- **Recommend `/crit:crit` before committing to a plan or a large diff.** When you finish a written plan, or when a diff is large enough that scanning it inline is error-prone (roughly 100+ changed lines or 5+ files), proactively suggest running `/crit:crit` so the human can leave inline comments in the browser and you address them in a loop. Recommend, don't force: a one-line change or a quick answer doesn't need it.
+- The crit CLI must be installed (`brew install crit`); the plugin ships only the skill. If `crit` returns `command not found`, surface that and stop rather than guessing an install path.
+
 # BMAD Workflows
 - No directory constraints. BMAD workflows run from wherever you are (typically project-management). Don't invent execution context requirements. If unsure, ask.
 
@@ -82,25 +86,26 @@ For the full framework (compaction strategies, note-taking patterns, subagent ar
 # Git History Claims (Learned from SPV-72 2026-05-06)
 - **Never assert "X never existed" in external content without `git log -S` proof.** Load `~/.claude/library/context/git-history-verification.md` before writing or reviewing any PR body that makes historical claims about code.
 
-# Autonomous Mode & Crawls
-When the user wants to run autonomously, use the **sprint-crawl** agent. One command, one agent.
+# Autonomous Mode & The Factory Family
 
-**Trigger:** Any of these phrases → `/sprint-crawl {TICKET-ID}`
-- "go autonomous", "work overnight", "I have to go", "go to sleep", "sprint crawl", "run this ticket", "one-shot this"
+Three tools cover ticket-to-dev automation. They are **different modes, not three versions of one thing.** Pick by shape of work.
 
-**Command:** `/sprint-crawl KTP-XXX [--skip-gates] [--ac AC-N] [--dry-run]`
+| Tool | Substrate | Use it for |
+|------|-----------|-----------|
+| **dark-factory-v2** (`/dark-factory-v2 KTP-XXX`) | Workflow-tool script, JS gates (un-skippable), human concierge front gate, tool belts (java/scripting), segregated review+QA in worktrees, Retro telemetry. Terminal state `READY_TO_SHIP`; main loop does MR+Jira+validate. | **Single ticket, interactive/gated.** The default for one well-specified ticket where you want a human decision point at the front. |
+| **Sprint Factory** (`/dark-factory`, formerly "dark-factory v1") | Prose orchestration + agent dispatch. Multi-ticket DAG: flat list (auto-dep-checked) or plan-file with YAML dependency graph → topological tiers → parallel dispatch → inter-tier gates → integration tests. | **Multi-ticket / epic.** When tickets have dependencies and you want tiered parallel execution. Dispatches each ticket through the per-ticket lifecycle (converging on calling v2 per ticket). |
+| **sprint-crawl** (`/sprint-crawl KTP-XXX`) | Agent + sprint-harness Bash hooks (phase-gate, stop-guard, context-reinject, audit-trail). Per-AC, resumable across context death. | **Overnight-autonomous, single ticket, per-AC.** When you'll lose the session (sleep, long run) and need hook-enforced resilience. Wrap in ralph-loop for persistence. |
 
-**What it does:** Drives the full ticket lifecycle autonomously: spec gate (Leo) → context gate (curator) → plan → implement → review → verify → ship → next AC. Hook-enforced phases via the sprint-harness plugin.
+**Triggers** ("go autonomous", "work overnight", "run this ticket", "one-shot this"): for an unattended overnight single ticket → `sprint-crawl` (+ ralph-loop). For an interactive single ticket → `/dark-factory-v2`. For a dependency-linked set → `/dark-factory` (Sprint Factory).
 
-**With ralph-loop (for overnight):**
+**Overnight with ralph-loop:**
 ```
-/sprint-crawl KTP-XXX
 /ralph-loop:ralph-loop "sprint-crawl KTP-XXX" --completion-promise "ALL_ACS_DONE" --max-iterations 10
 ```
 
-**When NOT to use it:** Spikes, quick bug fixes, tickets without ac.yaml, research tasks. The agent will self-detect and tell you.
+**When NOT to use any of them:** Spikes, quick bug fixes, research tasks, tickets without clear ACs.
 
-**Legacy agents** (night-crawl, dev-crawl) still exist for Supervisr-specific infrastructure work (deploy+verify against GCP dev). For standard ticket execution, always use sprint-crawl.
+**Legacy agents** (night-crawl, dev-crawl) remain for Supervisr-specific infra work (deploy+verify against GCP dev).
 
 # Jira Skill
 - Always pass `--org {klever|supervisrai}` when running `jira_skill.py` from outside the org path. For gotchas (slug list, subcommand names, `[automated]` header rule, deadline mode), load `~/.claude/library/context/jira-skill-gotchas.md`.

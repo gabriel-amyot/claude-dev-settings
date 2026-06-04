@@ -1,5 +1,5 @@
 export const meta = {
-  name: 'dark-factory-v2',
+  name: 'dark-factory',
   description: 'Ticket-to-dev factory v2 (seed). Deterministic Workflow orchestration, work-type-agnostic: the concierge proposes a tool belt from the crib and the build + tester sockets equip it. Gates are JS code, not prose, so no phase can be skipped or self-certified past. Human concierge gate at the front. Every phase returns a soft confidence (0-100). A final Retro phase scores the run, captures red flags, and writes telemetry + a next-run improvement handoff. Terminal state READY_TO_SHIP: the workflow does code work + pushes the branch; the main loop runs the MR + Jira + post-merge validate.',
   phases: [
     { title: 'Concierge', detail: 'analyze + context + prereqs; surface decisions for the human' },
@@ -29,15 +29,15 @@ export const meta = {
 // improvement handoff so each run makes the next one better.
 // ---------------------------------------------------------------------------
 
-const CONTRACTS = '/Users/gabrielamyot/.claude/skills/dark-factory-v2/contracts'
-const RUNS = '/Users/gabrielamyot/.claude/skills/dark-factory-v2/runs'
-const TOOLCRIB = '/Users/gabrielamyot/.claude/skills/dark-factory-v2/toolcrib'
+const CONTRACTS = '/Users/gabrielamyot/.claude/skills/dark-factory/contracts'
+const RUNS = '/Users/gabrielamyot/.claude/skills/dark-factory/runs'
+const TOOLCRIB = '/Users/gabrielamyot/.claude/skills/dark-factory/toolcrib'
 const SUPPORTED_BELTS = ['java', 'scripting'] // tool belts racked in the crib; concierge proposes one
 
 const ticket = (args && args.ticket) || null
 const org = (args && args.org) || 'klever'
 const humanDecisions = (args && args.humanDecisions) || null
-if (!ticket) throw new Error('dark-factory-v2 requires args.ticket (e.g. "ABC-123")')
+if (!ticket) throw new Error('dark-factory requires args.ticket (e.g. "ABC-123")')
 
 // ---- Schemas (handoffs are validated objects, not parsed text) ----
 

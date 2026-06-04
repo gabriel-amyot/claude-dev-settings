@@ -10,7 +10,7 @@ Ties to roadmap R5 (floor-manager as dispatcher/tool-crib).
 
 ## Context
 
-dark-factory-v2 0.3.0 hardwired its build + validation to a Java/Spring service (`mvn spring-boot:run`).
+dark-factory 0.3.0 hardwired its build + validation to a Java/Spring service (`mvn spring-boot:run`).
 The first live trial (KTP-728) halted **honestly** at the concierge because the ticket is a *scripting
 / side-effect* deliverable, not a service — the Java boot gate could only be skipped or faked, and the
 factory refused. We need more work-types without duplicating the pipeline or letting copies drift.
@@ -18,7 +18,7 @@ factory refused. We need more work-types without duplicating the pipeline or let
 ## Vocabulary (corrected against the source — the analogy is the maintenance surface)
 
 - **Blueprint** = the workflow spine itself (the deterministic+agentic state machine). The *class*; a
-  run is the instantiated *quest*. **Already built** (`dark-factory-v2.workflow.js`). There is one.
+  run is the instantiated *quest*. **Already built** (`dark-factory.workflow.js`). There is one.
 - **Tool belt** = the per-run tool loadout an agent equips for the two work-type-specific sockets:
   the **build station** (Implement) and the **tester station** (execution-verify + QA).
 - **Tool crib** (`toolcrib/`) = the rack of tool belts; one file per work-type (`java`, `scripting`).

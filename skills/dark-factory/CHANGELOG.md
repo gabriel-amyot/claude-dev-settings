@@ -1,117 +1,148 @@
-# Dark Factory — Changelog
+# Dark Factory v2 — Changelog
 
-Every SKILL.md modification bumps the version in frontmatter and adds an entry here.
+Every SKILL.md / workflow.js / contract change bumps the version and adds an entry.
 
-Versioning: `MAJOR.MINOR.PATCH`
-- **MAJOR**: New phases, mode changes, or breaking behavioral shifts
-- **MINOR**: New enforcement rules, anti-patterns, sections, or structural changes
-- **PATCH**: Wording fixes, table updates, reference corrections
+## 0.6.0 (2026-06-03)
 
----
+**Bounded fix loop — per-AC resilience harvested from v1 + sprint-crawl.**
 
-## 1.7.0 (2026-06-03)
+Before: a review CRITICAL terminated the run (`BLOCKED_REVIEW_CRITICAL`) on the first pass. Now the
+workflow bounces back to a targeted fix and re-reviews, up to 2 rounds, before halting. This brings v2
+in line with v1's "Quinn attacks → Amelia fixes" loop and sprint-crawl's review→implement revert,
+without breaking the segregated-review or ADR-002 spine boundaries.
 
-**Reframe begins: Dark Factory v1 → "Sprint Factory" (multi-ticket conductor).**
+- New `Fix` phase in the workflow + meta: on `review.criticals_open > 0`, dispatch a fix agent
+  (`readContract('4-implement')` in FIX MODE) scoped to ONLY the open CRITICAL findings — no new scope,
+  no unrelated refactors — in its own worktree; it fixes, re-runs affected tests, and pushes the branch.
+  A fresh segregated reviewer then re-reviews the updated branch.
+- Bounded at `MAX_FIX_ROUNDS = 2`. A CRITICAL that survives both rounds still returns
+  `BLOCKED_REVIEW_CRITICAL` (now carrying `fix_rounds`). A round that fails to push returns the new
+  `HALT_FIX_NOT_PUSHED`.
+- Review prompt factored into a reused `reviewPrompt` const (identical fresh reviewer each round; the
+  branch differs because the fix pushed). `node --check` clean.
+- Design context: harvested from the sprint-crawl analysis (`docs/harvest-from-sprint-crawl.md`). The
+  full per-AC restructure (iterate implement→review→QA per AC with persisted per-AC verdicts) remains a
+  roadmap item; this is the spine-safe increment.
 
-Now that dark-factory-v2 owns the single-ticket lifecycle, v1's role is being reframed to the multi-ticket
-*conductor*: compute the dependency DAG, fan out one handoff per startable ticket (each runs through
-`/dark-factory-v2`), unlock the next tier on report-back. Idempotent + rerunnable: reconciles from Jira
-ticket status + the handoff ledger so a re-run skips in-flight handoffs and unlocks children of closed
-tickets; persists a board to `tickets/sprints/{Sprint}/`.
+## 0.5.0 (2026-06-03)
 
-- Frontmatter: description + nav reframed to multi-ticket conductor; `when` = multi-ticket/epic,
-  `when_not` = single ticket (→ v2) / overnight per-AC (→ sprint-crawl). Version 1.6.0 → 1.7.0.
-- Added a reframe banner at the top of SKILL.md; the 8-phase prose is now **legacy reference** until the
-  orchestration rewrite lands.
-- New design doc: `docs/sprint-factory-orchestration-model.md` — Mode 1 (handoff orchestration, build now),
-  Mode 2 (autonomous concierge question-packs, future), idempotency/rerun via Jira+ledger reconcile, and
-  the caveman question-pack format (per doubt: 2-3 assumptions → pick best → propose action).
-- **Not yet done (scoped follow-up):** the hard rename (skill id `dark-factory` → `sprint-factory` + dir +
-  reference sweep) and the actual orchestration-section rewrite to the handoff model. Kept `/dark-factory`
-  working for now to avoid breaking references.
+**Hardened from the first live trial (KTP-728 + KTP-699 retros). Front gate's relationship to truth is
+the headline — see `docs/hardening-spec-0.5.0.md` and ADR-003.**
 
-## 1.6.0 (2026-05-28)
+The trial proved the JS gates work (`HALT_PRESHIP`, `BLOCKED_SPEC_QUALITY` both fired correctly). The
+dominant cost was upstream: a concierge **false data-layer blocker** from a stale local checkout (two
+abandoned runs) — a reasoning/staleness failure the substrate cannot catch. 0.5.0 fixes that, and
+promotes two patterns flagged in BOTH retros (schema preflight; structured findings). Built blind —
+generic rules only, no KTP-728/699 specifics in the spine or shared contracts (ADR-002 boundary holds).
 
-**QA enforcement, pre-ship artifact gate, brownfield awareness, eval reasoning.**
+- **Concierge live-verifies every data-layer claim (ADR-003)** [contract 1]: any blocker asserting a
+  table/view/column/count/serving-path is verified live (`bq show --schema`/`bq ls`/`bq query`;
+  `git show origin/dev:<path>`) before it is emitted; a stale local tree is not evidence. Every blocker
+  carries a one-line assumption audit. No live access → mark `unverified` + flag, never assert.
+- **Live-schema preflight** [contract 1 writes → contract 2 reads]: concierge pins exact column
+  count + names into `analyst/assumptions.json` marked `VERIFIED`; design reads those rather than
+  re-deriving from a checkout. Kills the F4 "no COUNTRY column" / "22-vs-20 columns" errors.
+- **New brand ⇒ new advertiser id** [contract 1]: a fabricated/new brand must not reuse an existing
+  demo-advertiser entity; the id must be unused in BOTH the perf tables AND the demo-agency registry.
+- **Backend-gated sub-ACs flagged/split at the gate** [contract 1]: a sub-criterion depending on
+  un-landed backend work is named as deferred (or the AC is split) at the concierge, not discovered at
+  HALT_PRESHIP.
+- **Structured artifacts on disk** [contracts 5 + 6]: review writes `review/findings.json` on every run
+  (even at `criticals:0`); QA writes `qa/result.yaml` with a real `test_ref` (command + output path).
+  A PARTIAL is now auditable without re-deriving from a raw diff.
+- **Resume path fixed** [workflow.js + SKILL.md]: on `resumeFromRunId` with `humanDecisions`, the
+  decisions are folded into the concierge prompt — busting the resume cache so the concierge **re-runs
+  live** and re-reads the ticket, instead of replaying its stale needs_human verdict.
+  `BLOCKED_NEEDS_HUMAN_AGAIN` now means a genuinely new/unanswered blocker remains.
+- **Bucketed ticket-folder guard** [contract 1]: `ticket_folder` must resolve under
+  `<PM_ROOT>/tickets/<PREFIX>/<EPIC-or-no-epic>/<TICKET>/` and never the PM root; stop and fix if it
+  would land at root or a non-`tickets/` child.
+- SKILL.md version → 0.5.0; references ADR-003 + the hardening spec. `node --check` clean.
 
-- Eval schema: all dimension scores now require a `missing` list explaining what the gap points represent. Applies to both pre-run fitness prediction and post-run confidence assessment. Every prediction and every point should have a reasons list. (Gabriel's feedback from KTP-685)
-- Phase 2: added brownfield gate. Before proposing new routes/pages/endpoints, search codebase for existing implementations. Ties into ticket-to-pr-analyst Step 4.5 `modification` vs `creation` classification.
-- Phase 6: QA agent segregation. QA now dispatched to a separate agent (same pattern as Phase 5 review). QA agent receives AC list + file paths + tech adaptation table. Does NOT receive implementation plan or rationale.
-- Phase 6: QA Technology Adaptation table. Per-stack QA requirements (browser verification for frontend, integration tests for backend, BQ assertions for SQL). Removed "if browser tools available" conditional. Missing verification = `PARTIAL`, never `PASS`.
-- Phase 7: Pre-Ship Artifact Gate. Mandatory checks before any shipping action: qa-report exists, review artifacts exist, execution_verified populated, frontend screenshots present (if frontend ticket). Agent cannot self-certify past this gate.
-- Guardrail #11: No phase collapsing. Each phase is a separate task. Merging phases removes enforcement points. (KTP-713 lesson)
-- Skill Delegation Map: Phase 6 changed from inline to external QA agent dispatch.
-- ticket-to-pr-analyst v1.1: Step 4.5 Existing Implementation Audit (brownfield awareness). Assumption schema gains `evidence_searched` and `classification` fields. (KTP-713 RCA Fix 6)
-- Lessons 8-10 shelved: grill catches React hook timing bugs (KTP-684), adversarial false positive on ref tracking (KTP-684), AC referencing non-existent data fields (KTP-684).
-- Lesson 11: QA self-certification (KTP-713). Adding more instructional text to a self-certified pipeline does not improve compliance. Fixed by Phase 6 agent segregation + Phase 7 pre-ship artifact gate.
-- Lesson 12: Greenfield bias in spec (KTP-713). Analyst invents scope when ticket describes behavior without specifying UI placement. Fixed by ticket-to-pr-analyst Step 4.5 + Phase 2 brownfield gate.
+## 0.4.1 (2026-06-02)
 
-## 1.5.0 (2026-05-27)
+**Stack-agnostic hardening — no Java or ticket specifics in the factory itself.**
 
-**Execution verification enforcement + external adversarial review + confidence eval bookends.**
+- Removed all Java/Spring/Maven specifics from the spine (concierge prompt) and the shared contracts
+  (1 concierge, 2 design, 6 QA, 7 ship, 8 validate, 9 retro). They now defer to the run's tool belt.
+  Java build/test/execute tooling lives only in `toolcrib/java.md` (multi-module Maven note moved there).
+- Concierge now **discovers** belts by reading the new `toolcrib/INDEX.md` + each belt's `detect` rule,
+  instead of the spine naming/​describing belts.
+- Removed every KTP-728 mention from the operational files (spine, contracts, toolcrib, SKILL, CHANGELOG).
+  Only `docs/` (the design archive that documents the build-blind rule) retains historical references.
+- Belt ids (`java`, `scripting`) remain named in the registry/catalog — that's the rack's contents, not
+  stack logic in a shared room.
 
-- Phase 4 step 5: removed rationalization escape hatches. Execution attempt is now unconditional for Java/Maven and Node/NPM. Infra failures are logged as `infra_blocked({reason})`, not skipped. Only Terraform qualifies for `not_applicable`.
-- Phase 6: hard enforcement via pipeline-state.yaml `execution_verified` field. Missing/false = INCOMPLETE cap. `infra_blocked` = PARTIAL cap. Advisory language replaced with structural gate table.
-- Phase 5: review dispatched to a fresh Agent with no implementation context. Receives diff + ACs + repo CLAUDE.md only. "Try to break it" framing with mandatory test-your-findings. Produces `review/external-adversarial-report.vN.md`.
-- Confidence Eval Bookends: pre-run fitness prediction (after Phase 1, logged to pipeline-state.yaml, non-blocking) + post-run assessment (after Phase 8, before retrospective). Same 5 dimensions scored before and after. Delta analysis detects over/under-confidence. Post-run proposes `/handoff` for low-scoring dimensions.
-- Pipeline-state.yaml schema: added `execution_verified` per-ticket field (required), `eval.pre_run` and `eval.post_run` sections.
-- Failure Handling: execution verification row updated from advisory to structural gate.
-- Skill Delegation Map: Phase 5 changed from `/adversarial-cascade` Skill invocation to Agent tool dispatch.
-- Lesson 8: Same agent cannot build and review. Advocacy bias missed null-country regression in 10 adapters (KTP-682).
-- Lesson 9: "Mandatory" without structural enforcement is advisory. Agent rationalizes around escape hatches (KTP-682).
+## 0.4.0 (2026-06-02)
 
-## 1.4.0 (2026-05-27)
+**Multi-work-type via tool belts (ADR-002). Scripting floor added so the factory can run side-effect
+script tickets, not just Java services.**
 
-**TDD integration into Phase 4 from KTP-682 null-country bug.**
+Triggered by the first live trial (a scripting ticket): it halted honestly at the concierge
+because validation was hardwired to `mvn spring-boot:run`. That halt = the anti-fake design working.
 
-- Phase 4 rewritten with TDD: baseline tests (hard gate on failure), RED-GREEN-REFACTOR per AC, adversarial edge-case tests as final sub-step
-- Phase 2 extended with mandatory test specifications in impl-plan output (method signatures, expected assertions, baseline vs new-behavior classification)
-- Added 3 Failure Handling rows: baseline test failure, tautological RED test, adversarial edge-case failure
-- ADR-001: TDD as inline steps, not sub-phases (baseline interleaving constraint prevents separation)
-- Lesson 7: Tests after code confirm, they don't specify (KTP-682)
+- ADR-002: one **blueprint** (the spine) + swappable **tool belts** from a **tool crib**, NOT
+  duplicated floors. Corrected vocabulary against the Minions source (blueprint = the state machine;
+  tool crib = curated tools per task). Concierge stays; dispatcher + spec/architect-persona loop
+  parked to the refining phase (`docs/second-floor-refining-notes.md`).
+- `toolcrib/java.md` + `toolcrib/scripting.md`: per-work-type build/tester loadouts.
+- Concierge (contract 1 + schema) classifies the work-type and returns `tool_belt`; workflow halts
+  `BLOCKED_UNSUPPORTED_FLOOR` when no belt is racked (then rack one + confirm with human).
+- Implement (contract 4) + QA (contract 6) rewritten belt-aware: they read the run's tool belt for
+  compile/execute-verify/proof instead of assuming Java/Maven. Generalized proof of work =
+  "run the deliverable on declared inputs, assert the declared expected output."
+- Ship-prep (contract 7) honors the belt's `has_version_file` (skips version bump for repos without
+  one). Workflow `readContract` injects the belt path into every phase prompt.
+- SKILL.md updated (no longer "backend/Java only"). Syntax verified.
 
-## 1.3.0 (2026-05-26)
+## 0.3.0 (2026-06-02)
 
-**Convergence escalation and advocacy bias guard.**
+**Instrumentation migrated from v1: per-phase confidence + a Retro auto-improve phase.**
 
-- Added Phase 5b: Convergence Escalation (cross-reference grill gaps with review findings, invalidate prior "accepted" labels, require resolution)
-- Added preamble behavioral rule: "analysis over advocacy" with pointer to Phase 5b
-- Added anti-pattern block for 4 advocacy behaviors
-- Added Failure Handling row for convergence signals
-- Added versioning system (this file) and `version` field in frontmatter
-- Lesson 6: Accepted risk becomes inertia (KTP-681 post-merge review)
+- Every phase now returns soft `confidence` (0-100) + `confidence_deductions` (signal, not a gate),
+  injected via a shared blurb appended to every phase prompt. Schemas allow the fields.
+- New final **Retro** phase (`contracts/9-retro.md`): runs on every terminal outcome (success or
+  halt), scores the run twice /100 (task_confidence + factory_fitness) with every lost point
+  accounted for, lists red flags, proposes concrete next-run improvements, and writes telemetry to
+  `runs/` plus a next-run improvement handoff. AWAITING_HUMAN pauses skip Retro (they resume).
+- Pipeline refactored into `runPipeline()` + a `trace` of per-phase status/confidence fed to Retro.
+- Added `runs/` directory. Bumped to 0.3.0.
 
-## 1.2.0 (2026-05-26)
+## 0.2.0 (2026-06-02)
 
-**Testing depth enforcement from KTP-681 gap closure.**
+**Adversarial-cascade + prompt-specialist fixes; back-half restructure from verified Workflow API.**
 
-- Added Phase 4 step 5: Mandatory execution verification checkpoint (stack-specific commands, success signals, timeouts, infra vs code error classification)
-- Added Phase 4 step 6: Mandatory integration test requirements (MockMvc/Supertest/TestClient when validators/DTOs/controllers change)
-- Added Phase 6 verification level enforcement (COMPILE_ONLY requires attempted execution, 3 valid exemptions only)
-- Added anti-pattern block for 4 execution-skip rationalizations
-- Added 2 Failure Handling rows (execution skipped, integration tests missing)
-- Lesson 5: Unit tests alone insufficient (KTP-681)
+Reviews: adversarial-cascade (Quinn + Codex-framed) and an independent prompt-engineering specialist.
+API behavior verified via claude-code-guide. Full triage in `docs/review-findings-v0.1.0.md`.
 
-## 1.1.0 (2026-05-25)
+Code (workflow.js):
+- Null-guard every `agent()` return (skip → `HALT_AGENT_SKIPPED`).
+- Enforce `status:'stuck'` halts for design, grill, implement, ship-prep (previously swallowed).
+- Add missing `phase('Design')`.
+- `capQaVerdict`: canonicalize `execution_verified` to string, drop dead boolean check, warn on
+  unrecognised values. Add `evidenceCappedOverall` (a PASS AC with no code_ref+test_ref caps to PARTIAL).
+- `preShipBlockers`: execution gate now explicitly rejects `infra_blocked`/`false`/missing, and
+  requires the branch to have been pushed.
+- Resume loop guard: `BLOCKED_NEEDS_HUMAN_AGAIN` instead of re-looping the concierge.
+- Schema tightening: required `repos`, `ticket_folder`, `summary` (concierge); `minimum:0` on
+  `criticals_open`/`ac_count`; `minLength:1` on `branch`; pattern on `execution_verified`; `notes` added
+  to PHASE_SCHEMA.
+- Remove unused `ticketFolder` arg; concierge now RESOLVES and returns `ticket_folder`; absolute
+  contracts path (no `~`).
 
-**Prerequisite integrity and verdict propagation from KTP-676 v2.**
+Structure (from verified API limits):
+- Skills not callable inside a workflow agent → **Ship is code-prep only**; MR + Jira + transition move
+  to the main loop. New terminal state `READY_TO_SHIP`.
+- Sibling agents can't see each other's worktree → **Implement pushes the feature branch**; Review/QA/
+  Ship-prep run with `isolation:'worktree'` and fetch+checkout it; Implement also writes a diff artifact.
+- Single worktree owner: removed `git worktree add` from contract 4 (runtime owns it).
+- No native wait → **Validate removed from the auto-run**; main loop runs it post-merge.
 
-- Added Phase 2 data prerequisite escalation ladder (search → download → HALT)
-- Added anti-pattern block for 5 synthetic data workaround behaviors
-- Added Verdict Propagation section (taint rules between Phase 2 and Phase 3)
-- Added Failure Handling row for blocked_prerequisites
-- Replaced /grill-me with /grill-with-docs across all 5 references
-- Restructured lessons: monolith LESSONS.md → individual files in bibliothèque + catalog pointer
-- Lesson 4 status: Open → Fixed
+Contracts: all 8 updated — concierge returns `ticket_folder` + example open_question; design/grill add
+reason-before-file + artifact paths; implement pushes branch + writes diff + dependent-AC stuck;
+review defines `demonstrated` + severity rubric + fetch/checkout; qa adds Inputs + example row +
+evidence rule; ship-prep is prep-only; validate is a post-merge main-loop step.
 
-## 1.0.0 (2026-05-22)
+## 0.1.0 (2026-06-01)
 
-**Initial release with execution verification from KTP-676 v1.**
-
-- 8-phase pipeline: analyze, design, grill, implement, review, QA, ship, validate
-- Single ticket, flat list, and plan-file modes
-- Technology Adaptation table with Local Exec column
-- Prerequisites gate in Phase 2
-- /klever-mr auto-merge changed to opt-in
-- Observability protocol with telemetry and run journals
-- Lessons 1-3: Syntax checks, URL rot, spec assumptions
+Initial seed build: workflow spine + 8 backend-floor contracts + SKILL.md. Never run.

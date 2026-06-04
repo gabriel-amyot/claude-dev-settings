@@ -33,14 +33,14 @@ test_ref before allowing PASS").
 
 ## Write two files
 
-1. **Telemetry YAML** → `/Users/gabrielamyot/.claude/skills/dark-factory-v2/runs/run-<DATE>-<TICKET>.yaml`
+1. **Telemetry YAML** → `/Users/gabrielamyot/.claude/skills/dark-factory/runs/run-<DATE>-<TICKET>.yaml`
    (use the date from the environment; if unknown, ask — do not invent). Include: run id, ticket,
    terminal status, per-phase status + confidence (from the trace), the two scores + deductions, red
    flags, improvements. Update `runs/INDEX.md` with a one-line entry if it exists.
 2. **Next-run improvement handoff** → the current session's prompts folder
    (`~/Developer/grp-beklever-com/project-management/sessions/active/<current-session>/prompts/` — or
    if you cannot resolve the active session, write to the ticket folder under `reports/`). Title it
-   `dark-factory-v2-improvements-<TICKET>.md`. Content: the red flags + the ranked improvements, framed
+   `dark-factory-improvements-<TICKET>.md`. Content: the red flags + the ranked improvements, framed
    as a prompt a future session can pick up to harden the factory. Keep it short and actionable.
 
 ## Return

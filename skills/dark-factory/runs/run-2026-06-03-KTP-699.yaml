@@ -1,0 +1,98 @@
+run_id: run-2026-06-03-KTP-699
+ticket: KTP-699
+ticket_summary: "Visitor flow lines for Blinds To Go using campaign data"
+epic: KTP-747
+org: klever
+date: 2026-06-03
+terminal_status: BLOCKED_SPEC_QUALITY
+ticket_folder: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-747/KTP-699
+tool_belt: java
+primary_repo: grp-app/grp-backend/grp-ms/app-proximity-report
+prior_run: run-2026-06-02-KTP-699  # same ticket, same terminal status; this run cleared B1+B2
+
+phases:
+  - phase: concierge
+    status: FAIL
+    confidence: 82
+    note: >
+      Spec-quality front gate, second pass. Materially better than the 2026-06-02 run: two of the
+      three prior blockers are now RESOLVED with live BQ verification (advertiser identity 835, and
+      real campaign+conversion data present). The gate still correctly FAILED with needs_human=TRUE
+      on the single remaining blocker (Q1: no FSA-centroid lat/lon source for distance attribution or
+      flow-line rendering) plus the AC-2 frontend-scope contradiction. Halted before design — no code
+      attempted. Gate working as designed.
+
+# Phases not reached (halted at the front concierge gate):
+#   design, grill, implement, review, qa, ship, retro(this) — only concierge ran.
+
+scores:
+  task_confidence: 30
+  factory_fitness: 90
+
+deductions:
+  # task_confidence (start 100 -> 30): the task is NOT done/deployable. Blocked at the spec gate on Q1.
+  - points: 35
+    reason: "task_confidence: Terminal status BLOCKED_SPEC_QUALITY — zero ACs implemented, nothing deployable. Hard halt at the front gate on the unresolved FSA-centroid question (Q1)."
+  - points: 18
+    reason: "task_confidence: Q1/B3 unresolved — no FSA-centroid lat/lon source exists anywhere (F5: third_party_data.fsa_to_cd_crosswalk has no lat/lon; frontend loads only US county/ZIP centroids). Both the AC-1 nearest-store distance calc AND the AC-2 line-origin coordinate are blocked on it. Three options (A/B/C) need a human/data-owner (Mo) / PO (Amal) decision."
+  - points: 12
+    reason: "task_confidence: AC-2 frontend-scope contradiction — the ticket states 'frontend: no changes expected' but origin/dev buildFlowLineFeatures silently skips Canadian FSA origins (F6). A Canadian FSA flow line will NOT render without a new fsa-centroids source/endpoint or backend-returned coords. The stated scope is false; the ticket must be re-scoped before build."
+  - points: 5
+    reason: "task_confidence: AC-1 traffic-measure ambiguity — which column is the flow-line volume (zip_performance.VISITS vs conversions.CONVERSION_VALUE) is not pinned; comment 34355 set the nearest-store-on-foot-traffic model but Design must still confirm the measure."
+  # factory_fitness (start 100 -> 90): the factory performed very well on the re-run; it cleared two
+  # blockers with live evidence and pinned the last one to hard data. Minor deductions remain.
+  - points: 5
+    reason: "factory_fitness: Concierge soft confidence landed at 82 on a FAIL. The FAIL is correct and backed by verified data (F5), so a clean source-of-truth-clear / single-open-question halt should read with HIGHER certainty. Confidence calibration on FAIL outcomes is still fuzzy (carried over from the 2026-06-02 run; improvement not yet codified)."
+  - points: 3
+    reason: "factory_fitness: F5 (no FSA-centroid source) and F6 (frontend drops unknown origins) are mechanically checkable facts — an automated pre-concierge geo/centroid-readiness probe could have surfaced Q1 before the human-facing gate, the same way a row-count probe would have. The factory found them, but via prose investigation rather than a reusable probe."
+  - points: 2
+    reason: "factory_fitness: The AC-2 scope contradiction ('no frontend changes' is false) was caught here but is the kind of ticket-spec defect a pre-gate spec linter could flag (any 'no X changes' claim against an AC that observably needs X)."
+
+red_flags:
+  - "Same ticket halted BLOCKED_SPEC_QUALITY two runs in a row (06-02 then 06-03). Progress was real (B1+B2 cleared) but the ticket re-entered the factory before the remaining human decision (Q1) was made — the gate is doing its job, but a ticket should not be re-run until its open_questions are answered."
+  - "AC-2 ships a false scope claim: ticket says 'frontend: no changes expected'; origin/dev proves Canadian FSA origins are silently dropped (F6). Building on the ticket's word would have produced zero rendered flow lines with no error."
+  - "Campaign geo rows carry the FSA code but LATITUDE/LONGITUDE/LOCATION_ID are ALL NULL for advertiser 835 (F2 note) — the data is present but not coordinate-bearing, which is exactly why Q1 (FSA centroid source) is unavoidable. 'Data present' did not mean 'attribution computable'."
+  - "Concierge confidence 82 on a definitive FAIL — the number still does not distinguish 'clean correct halt, one open question' from 'uncertain'. Unchanged from the 06-02 run; the calibration improvement was proposed but not codified."
+  - "Q1 carries three viable options (BQ FSA-centroid table / frontend fsa-centroids endpoint / defer with proxy) — a genuine architecture fork that needs the data owner (Mo) and PO (Amal), not something the factory should self-resolve."
+
+improvements:
+  - title: "Block re-running a ticket whose prior run halted needs_human until the open_questions are answered"
+    detail: >
+      The workflow.js front gate should read the latest runs/run-*-<TICKET>.yaml (or the ticket's
+      analyst/ac-list.json open_questions). If the prior terminal status was BLOCKED_SPEC_QUALITY /
+      needs_human and the open_questions are still unanswered, refuse to start a fresh run and instead
+      point at the pending decision. KTP-699 ran the concierge gate twice; the second pass cleared B1+B2
+      (good) but the human-decision blocker (Q1) was still open, so it was always going to halt again.
+  - title: "Add a pre-concierge geo/centroid-readiness probe for any map-rendering AC"
+    detail: >
+      Mirror the data-readiness probe idea but for geometry: when an AC renders origins on a map, the
+      probe should check that a centroid/coordinate source exists for the origin geography (US ZIP/county
+      vs Canadian FSA). For KTP-699 it would mechanically surface F5 (no FSA centroid in BQ) and F6
+      (frontend loads only US centroids) before the human-facing gate, attaching hard evidence to Q1.
+  - title: "Spec linter: flag any 'no <layer> changes expected' claim that an AC observably contradicts"
+    detail: >
+      Contract 1 should cross-check scope claims against the ACs. KTP-699 says 'frontend: no changes
+      expected' while AC-2 requires Canadian FSA flow lines to render, and origin/dev proves the frontend
+      drops unknown origins. Any 'no X changes' assertion that an AC needs X => raise it as an
+      open_question (re-scope), not a silent assumption."
+  - title: "Calibrate concierge confidence semantics for FAIL outcomes (still open from 06-02)"
+    detail: >
+      Define confidence on a FAIL as 'certainty that halting was correct', not 'how close to passing'.
+      A FAIL where source-of-truth is now CLEAR and exactly one human decision remains (KTP-699 Q1)
+      should report HIGH confidence (90+) that the halt is right. This was proposed in the 06-02 retro
+      and is NOT yet codified — the 06-03 run again landed 82 on a clean halt. Codify in contract 1."
+  - title: "Pin the data-derived AC facts into ac-list.json on every re-run (this run did it well — make it the standard)"
+    detail: >
+      The 06-03 concierge correctly added a `concierge_revision` line and VERIFIED facts (F1-F6) to
+      assumptions.json showing what changed since the prior run. Make this the required shape: every
+      re-run must diff its findings against the prior run's telemetry and record resolved vs still-open
+      blockers explicitly, so retro can score progress, not just absolute state."
+
+summary: >
+  KTP-699 re-ran the dark-factory concierge front gate (BLOCKED_SPEC_QUALITY again) but made real
+  progress over 06-02: advertiser identity (835) and real campaign+conversion data are now live-verified
+  (B1+B2 cleared), leaving one architecture-fork open question — no FSA-centroid coordinate source exists
+  for distance attribution or flow-line rendering (Q1), plus a false 'no frontend changes' scope claim
+  (AC-2). The factory performed well (fitness 90) by clearing two blockers with hard evidence and pinning
+  the last to verified data; the task is still not deployable (confidence 30) pending a human/data-owner
+  decision on Q1.

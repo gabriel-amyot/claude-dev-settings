@@ -88,7 +88,7 @@ improvements:
       description-corrected-2026-06-02.txt) so the blocker has a one-step resolution path.
 
 summary: >
-  KTP-699 halted at the dark-factory-v2 concierge front gate (BLOCKED_SPEC_QUALITY) on three
+  KTP-699 halted at the dark-factory concierge front gate (BLOCKED_SPEC_QUALITY) on three
   real blockers: a wrong-advertiser source-of-truth contradiction, zero real campaign-geo rows
   in BQ, and an underspecified attribution mechanism. The factory performed well (fitness 88) by
   catching all three at the cheapest point before any code work; the task itself is far from

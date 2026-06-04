@@ -3,7 +3,7 @@
 **Status:** Accepted (2026-06-01, Gabriel)
 **Date:** 2026-06-01
 **Session:** wise-owl
-**Home:** `~/.claude/skills/dark-factory-v2/` (new skill dir; v1 kept intact as working fallback + benchmark baseline)
+**Home:** `~/.claude/skills/dark-factory/` (new skill dir; v1 kept intact as working fallback + benchmark baseline)
 **Seed ticket:** KTP-728
 **Deciders:** Gabriel (lead), assistant (analysis)
 **Supersedes:** the prose-orchestration model of `~/.claude/skills/dark-factory/SKILL.md` (v1.6.0)

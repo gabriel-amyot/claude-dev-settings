@@ -92,11 +92,11 @@ Three tools cover ticket-to-dev automation. They are **different modes, not thre
 
 | Tool | Substrate | Use it for |
 |------|-----------|-----------|
-| **dark-factory-v2** (`/dark-factory-v2 KTP-XXX`) | Workflow-tool script, JS gates (un-skippable), human concierge front gate, tool belts (java/scripting), segregated review+QA in worktrees, Retro telemetry. Terminal state `READY_TO_SHIP`; main loop does MR+Jira+validate. | **Single ticket, interactive/gated.** The default for one well-specified ticket where you want a human decision point at the front. |
-| **Sprint Factory** (`/dark-factory`, formerly "dark-factory v1") | Prose orchestration + agent dispatch. Multi-ticket DAG: flat list (auto-dep-checked) or plan-file with YAML dependency graph → topological tiers → parallel dispatch → inter-tier gates → integration tests. | **Multi-ticket / epic.** When tickets have dependencies and you want tiered parallel execution. Dispatches each ticket through the per-ticket lifecycle (converging on calling v2 per ticket). |
+| **dark-factory** (`/dark-factory KTP-XXX`) | Workflow-tool script, JS gates (un-skippable), human concierge front gate, tool belts (java/scripting), segregated review + bounded fix loop + QA in worktrees, Retro telemetry. Terminal state `READY_TO_SHIP`; main loop does MR+Jira+validate. | **Single ticket, interactive/gated.** The default for one well-specified ticket where you want a human decision point at the front. (Formerly "dark-factory v2".) |
+| **Sprint Factory** (`/sprint-factory`, formerly "dark-factory v1") | Prose orchestration + agent dispatch. Multi-ticket DAG: flat list (auto-dep-checked) or plan-file with YAML dependency graph → topological tiers → parallel dispatch → inter-tier gates → integration tests. Idempotent rerun (reconciles from Jira + ledger). | **Multi-ticket / epic.** When tickets have dependencies and you want tiered parallel execution. Conducts each ticket through `/dark-factory` via handoffs. |
 | **sprint-crawl** (`/sprint-crawl KTP-XXX`) | Agent + sprint-harness Bash hooks (phase-gate, stop-guard, context-reinject, audit-trail). Per-AC, resumable across context death. | **Overnight-autonomous, single ticket, per-AC.** When you'll lose the session (sleep, long run) and need hook-enforced resilience. Wrap in ralph-loop for persistence. |
 
-**Triggers** ("go autonomous", "work overnight", "run this ticket", "one-shot this"): for an unattended overnight single ticket → `sprint-crawl` (+ ralph-loop). For an interactive single ticket → `/dark-factory-v2`. For a dependency-linked set → `/dark-factory` (Sprint Factory).
+**Triggers** ("go autonomous", "work overnight", "run this ticket", "one-shot this"): for an unattended overnight single ticket → `sprint-crawl` (+ ralph-loop). For an interactive single ticket → `/dark-factory`. For a dependency-linked set → `/sprint-factory`.
 
 **Overnight with ralph-loop:**
 ```

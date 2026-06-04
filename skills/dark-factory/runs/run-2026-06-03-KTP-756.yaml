@@ -1,0 +1,80 @@
+run_id: run-2026-06-03-KTP-756
+ticket: KTP-756
+date: 2026-06-03
+epic: KTP-748
+title: "Backend: Goldfish API proxy and screen detail endpoint (/api/dooh/screens[/{id}])"
+terminal_status: READY_TO_SHIP
+belt: java
+repo: grp-app/grp-backend/grp-ms/app-proximity-report
+branch: KTP-756 (single-module Java 17 / Spring Boot, default branch dev)
+
+per_phase:
+  - phase: concierge
+    status: PASS
+    confidence: 86
+  - phase: design
+    status: pass
+    confidence: 88
+  - phase: grill
+    status: pass
+    confidence: 86
+  - phase: implement
+    status: pass
+    confidence: 88
+  - phase: review
+    status: "criticals:0"
+    confidence: 86
+  - phase: qa
+    status: ALL_PASS
+    confidence: 90
+  - phase: ship-prep
+    status: pass
+    confidence: 90
+
+scores:
+  task_confidence: 88
+  factory_fitness: 89
+
+deductions:
+  # task_confidence (start 100 -> 88)
+  - points: 5
+    reason: "task_confidence: All 5 ACs proven via 26 MockMvc/Mockito/pure-fn tests, but verification is in-code only — there is no live curl against the real Goldfish API (api.goldfishads.com /v2/inventory) inside the run. The upstream was validated out-of-band on 2026-05-28 (3,705 Toronto screens) and the wrapper/field shapes were checked against the data contract, but the proxy endpoint itself was never exercised end-to-end against the live upstream within this pipeline. 'Done' for the consuming frontend means a real screen list renders; that final hop is unproven here."
+  - points: 4
+    reason: "task_confidence: A live plaintext Goldfish API key is committed to application-dev.properties (review LOW + QA caveat). It does not fail AC-3 (credentials are not exposed to the frontend; server-side x-api-key/uid headers verified), and it mirrors the pre-existing placer.api.key convention, but a real secret-in-repo lands in the deliverable with only a 'Phase 2: Secret Manager' note. This is a shippable-but-not-clean state, hence not full task confidence."
+  - points: 3
+    reason: "task_confidence: Two MEDIUM/LOW resilience edge cases remain unhandled by design intent: a 200-with-error-envelope (e.g. rate-limit {\"error\":...,\"code\":429}) surfaces as a silent empty list with NO X-Dooh-Warning, and the detail endpoint emits a 'temporarily unavailable' warning on a genuine upstream 404. Both are outside the literal AC-5 contract (which scopes failure to 500/timeout) so no AC is broken, but they are real behavioral gaps a downstream client could be misled by."
+  # factory_fitness (start 100 -> 89)
+  - points: 4
+    reason: "factory_fitness: The grill phase caught two HIGH implementation defects that the design plan would have shipped — avgDailyImpressions typed as Long (a string \"857.0\" upstream value crashes parse -> 500, which AC-5 forbids) and a hex-hash venue regex of {16,} that misses the documented 15-char example. Catching these pre-build is the factory working correctly, but it also means the design phase produced a plan with two latent runtime defects that only a careful interrogation against the actual data contract surfaced. Design should have typed against the contract field shapes the first time."
+  - points: 4
+    reason: "factory_fitness: The plaintext-secret-in-dev-properties pattern was flagged by BOTH review and QA as a caveat/finding, yet the factory has no gate that either (a) blocks committing a live credential or (b) auto-files the Phase-2 Secret Manager follow-up. The factory keeps re-discovering the same secret-hygiene smell every Java proxy run (Placer, now Goldfish) and re-notes it in free text instead of handling it structurally."
+  - points: 3
+    reason: "factory_fitness: QA returned ALL_PASS but carries a load-bearing caveat in its summary (plaintext key) and there is no live-vs-code-proven distinction in the schema. As in KTP-779, an ALL_PASS verdict absorbs a real caveat in a notes field. The verify_status (code_proven | live_proven) modifier proposed last run is still not implemented, so the in-code-only proof of a live-API proxy reads as fully green."
+
+red_flags:
+  - "ALL_PASS QA verdict carries a load-bearing caveat in its summary: a live plaintext Goldfish API key is committed to application-dev.properties. A reader scanning only the verdict would miss the secret-in-repo concern."
+  - "No live end-to-end proof: the proxy was tested only against mocked upstream (26 green tests). The real Goldfish API was never curled inside the run; the consuming frontend's 'screens render' outcome is unverified."
+  - "Grill caught TWO HIGH latent defects in the design plan (Long avgDailyImpressions -> parse crash -> 500 forbidden by AC-5; {16,} hex regex misses the documented 15-char hash). Both would have shipped if grill had not interrogated the plan against the actual data contract."
+  - "Two resilience edge cases outside the literal AC-5 contract remain unhandled by design intent: 200-with-error-envelope (rate-limit) -> silent empty list with no warning header; genuine upstream 404 -> 'temporarily unavailable' warning conflating permanent miss with transient outage."
+  - "The plaintext-secret-in-dev-properties smell was flagged by BOTH review and QA, mirrors the pre-existing Placer convention, and has no factory gate — the factory re-notes the same secret-hygiene issue every Java proxy run instead of handling it."
+
+improvements:
+  - title: "Design (contract 2/3): type DTO fields against the actual data-contract shapes, not the happy-path assumption"
+    detail: "Grill caught avgDailyImpressions (string \"857.0\") typed as Long and a 16+ hex regex that misses the documented 15-char hash. The design phase should cross-reference each DTO field against the data-contract's stated type/example column before emitting the plan, and route every numeric-from-string field through the normalizer by default. Add a design self-check: 'for each field, what is its upstream type and a real example value, and does the chosen Java type parse it without throwing?'"
+  - title: "Add a secret-hygiene gate that fires when a credential is committed to *.properties"
+    detail: "Both review and QA flagged the live plaintext goldfish.api.key in application-dev.properties, same as the pre-existing placer.api.key. The factory should grep added/changed *.properties for credential-shaped values (api.key, uid, token, secret) during ship-prep and either (a) block with an explanation, or (b) auto-file a tracked Secret-Manager follow-up into the MR/Jira as a checklist item. Stop re-discovering this smell every Java proxy run."
+  - title: "Add a live-upstream smoke step for external-API proxy tickets (or record verify_status)"
+    detail: "For tickets whose deliverable is a proxy to a live external API, mocked tests prove wiring but not the live contract. Either add an optional ship-prep smoke (one curl against the real upstream behind the same headers, recorded in the trace) OR, at minimum, implement the verify_status: code_proven | live_proven per-AC modifier proposed in the KTP-779 retro so an in-code-only proof of a live proxy does not read as fully live-green."
+  - title: "QA schema: first-class verify_status + operational_followups (carry-over from KTP-779)"
+    detail: "Still unimplemented. Contract 6 should distinguish 'AC proven in code' from 'AC verifiable live', and surface a run-level operational_followups / pre_existing_caveats list so ALL_PASS cannot silently absorb a load-bearing caveat (plaintext key here; mbtiles upload last run) in free-text notes."
+  - title: "Review: let a demonstrated-but-out-of-contract edge case escalate to a tracked follow-up, not just a notes line"
+    detail: "The 200-with-error-envelope -> silent-empty-list and 404-conflation findings are real behavioral gaps correctly judged 'outside literal AC-5'. Rather than dying in the findings JSON, review should be able to emit a 'recommended follow-up ticket' signal that ship-prep folds into the MR/Jira, so genuinely useful hardening is not lost just because it was out of scope for this ticket."
+
+summary: >
+  KTP-756 reached READY_TO_SHIP cleanly: all 5 ACs PASS via 26 executed JDK-17 tests, 0 review
+  criticals, additive-only greenfield Java replicating the proven Placer proxy pattern, with grill
+  catching two HIGH latent defects (Long-vs-Double parse crash, 15-char hex regex) before any code
+  shipped. Its two real weaknesses are a live plaintext Goldfish API key committed to
+  application-dev.properties (flagged by both review and QA, no factory gate) and in-code-only
+  verification of what is fundamentally a live-API proxy (never curled against the real upstream
+  inside the run).

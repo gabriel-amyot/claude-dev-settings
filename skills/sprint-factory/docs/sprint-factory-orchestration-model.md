@@ -3,11 +3,11 @@
 **Status:** Design (2026-06-03, session deft-heron). Decided with Gab. This is the target shape for what
 is currently the `dark-factory` (v1) skill: rename it to **Sprint Factory** (a.k.a. sprint orchestrator)
 and reframe its role. It stops being a per-ticket lifecycle engine and becomes the **multi-ticket
-conductor** that drives tickets through `dark-factory-v2` (the per-ticket factory).
+conductor** that drives tickets through `dark-factory` (the per-ticket factory).
 
 ## Role split (why this exists)
 
-- **dark-factory-v2** owns the *single-ticket* lifecycle: concierge → design → grill → implement →
+- **dark-factory** owns the *single-ticket* lifecycle: concierge → design → grill → implement →
   review → fix loop → QA → ship-prep. It has a human concierge front gate and ends at `READY_TO_SHIP`.
 - **Sprint Factory** owns the *multi-ticket DAG*: it reads a flat list or a plan-file YAML dependency
   graph, computes topological tiers, and conducts each ticket through v2 — it does NOT re-implement the
@@ -25,9 +25,9 @@ Sprint Factory leans on the session **handoff / pickup / report-back** system (t
 1. **Plan.** Sprint Factory computes the DAG and tiers from the plan-file/flat-list (v1's existing tier
    logic). Example: 10 tickets, 3 cascading branches → Tier 1 has 3 startable tickets.
 2. **Surface + fan out.** It surfaces the startable tickets and writes **one handoff per startable
-   ticket** into `sessions/active/prompts/`. Each handoff says: "Run {TICKET} through `/dark-factory-v2`."
+   ticket** into `sessions/active/prompts/`. Each handoff says: "Run {TICKET} through `/dark-factory`."
    The three Tier-1 handoffs can be picked up in parallel (separate sessions/terminals).
-3. **Execute.** Each handoff session runs `/dark-factory-v2 {TICKET}` — full per-ticket factory with its
+3. **Execute.** Each handoff session runs `/dark-factory {TICKET}` — full per-ticket factory with its
    own human concierge gate. The human is naturally in the loop per ticket (that's fine in this mode).
 4. **Report back + unlock.** On completion, each session produces a **report-back** (`/session:report-back`).
    You paste the report-back into the Sprint Factory session; it marks that ticket done in the DAG and

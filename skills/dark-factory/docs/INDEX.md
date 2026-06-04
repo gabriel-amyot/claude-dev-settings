@@ -19,7 +19,7 @@ v2 owns the **single-ticket, human-gated** mode.
 ## Build order (from seed-spec-v1.md)
 
 1. KTP-728 + backend/Java floor (chosen).
-2. Write `dark-factory-v2.workflow.js` skeleton (phases as `agent({schema})`, gates as JS `if`).
+2. Write `dark-factory.workflow.js` skeleton (phases as `agent({schema})`, gates as JS `if`).
 3. Harvest phase-contract prompts from v1 `SKILL.md`.
 4. Solve the concierge front-gate pause/resume (highest-risk unknown).
 5. Run on KTP-728. Measure vs predictions #1 and #3. Write findings.

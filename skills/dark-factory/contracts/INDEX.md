@@ -1,6 +1,6 @@
 # Dark Factory v2 — Phase Contracts (the "muscle")
 
-Each phase agent in `dark-factory-v2.workflow.js` reads its contract here and executes it.
+Each phase agent in `dark-factory.workflow.js` reads its contract here and executes it.
 Contracts are the reasoning instructions, **harvested from v1's proven phases** — NOT written from
 any specific ticket. The workflow spine (gates, order, human-gate split) lives in the `.js`. Stack
 tooling lives in `toolcrib/` belts, never in these shared contracts.

@@ -1,0 +1,82 @@
+run_id: run-2026-06-03-KTP-779
+ticket: KTP-779
+date: 2026-06-03
+epic: KTP-559
+title: CA province center circles + full province name in demographics header (tileset NAME parity)
+terminal_status: READY_TO_SHIP
+belt: scripting
+repo: grp-app/grp-frontend/app-front-portal
+branch: KTP-779-ca-province-name
+
+per_phase:
+  - phase: concierge
+    status: PASS
+    confidence: 88
+  - phase: design
+    status: pass
+    confidence: 90
+  - phase: grill
+    status: pass
+    confidence: 90
+  - phase: implement
+    status: pass
+    confidence: 88
+  - phase: review
+    status: "criticals:0"
+    confidence: 88
+  - phase: qa
+    status: ALL_PASS
+    confidence: 85
+  - phase: ship-prep
+    status: pass
+    confidence: 93
+
+scores:
+  task_confidence: 78
+  factory_fitness: 84
+
+deductions:
+  # task_confidence (start 100 -> 78)
+  - points: 12
+    reason: "task_confidence: Code deliverable is proven, but the chosen tileset parity fix is NOT live-verifiable end-to-end. CA province circles + full-name header will not render on the live map until the regenerated state_boundaries/state_centers mbtiles are re-uploaded to Mapbox (app-klever-mapbox). That operational step is outside the PR and still pending (task #6). 'Done' for the user means circles render; that is gated on an un-automated manual upload."
+  - points: 5
+    reason: "task_confidence: QA flagged this as a CAVEAT rather than the factory automating or scheduling the mbtiles regeneration/upload. The end-to-end loop (ui-probe V11 confirmation) cannot close inside this run; verification is deferred."
+  - points: 3
+    reason: "task_confidence: Pre-existing test_geoid_regression.py FAILS in the worktree (FileNotFoundError on gitignored merged/county artifacts + large county sources). Environmental and unrelated to the change, but it means the worktree's test suite is not green as a whole; only the targeted new test + real-source merge were proven."
+  - points: 2
+    reason: "task_confidence: QA confidence was the lowest of the run (85), reflecting the verification gap above (proven-in-code, not proven-live)."
+  # factory_fitness (start 100 -> 84)
+  - points: 7
+    reason: "factory_fitness: The concierge picked the tileset parity fix over the FE NAME||PRENAME fallback the incoming handoff explicitly recommended as 'do first' (fast, independently shippable, deploy-verifiable). The factory optimized for the structurally-correct fix but produced a deliverable that cannot be verified within its own pipeline. The concierge gate did not weigh 'in-pipeline verifiability' when choosing between equivalent-correctness options."
+  - points: 5
+    reason: "factory_fitness: QA died mid-run on a network socket drop and had to re-run from cache. The factory recovered (good), but a transient infra failure during QA is brittleness that should be retried transparently rather than risk a partial result."
+  - points: 2
+    reason: "factory_fitness: QA had to invent a CAVEAT category to express 'code correct but not live'. The schema has PASS/FAIL per-AC but no first-class 'deployment-gated / operational-followup-required' signal, so a real verification gap rode along inside a notes field on an ALL_PASS verdict."
+  - points: 2
+    reason: "factory_fitness: A LOW review finding (redundant NAME write on state_boundaries features, consumer reads centers tileset) was left in rather than trimmed. Harmless and correctly classified, minor scope-tidiness slip."
+
+red_flags:
+  - "ALL_PASS QA verdict carries a load-bearing CAVEAT in notes: the live map does NOT reflect the fix until mbtiles are re-uploaded to Mapbox. A reader scanning only the verdict could believe the feature is live."
+  - "Concierge chose the option (tileset parity) that the incoming handoff explicitly de-prioritized in favor of the FE fallback, because the chosen option is not verifiable inside the factory pipeline."
+  - "QA execution suffered a transient network/socket failure and re-ran from cache. Recovered, but indicates a brittle dependency on network during the QA phase."
+  - "Pre-existing test_geoid_regression.py fails in the worktree (missing gitignored county artifacts); full suite is not green, only the targeted test + real-source merge were executed."
+  - "A required operational follow-up (mbtiles regeneration + Mapbox re-upload, task #6) lives only as a tracked task, not enforced by the pipeline. Risk it ships and never gets uploaded, leaving CA circles silently broken in prod."
+
+improvements:
+  - title: "Concierge: weigh in-pipeline verifiability when options are equivalent-correctness"
+    detail: "When the decision_packet offers multiple correct fixes (e.g. FE fallback vs tileset regeneration), the concierge gate should factor whether each option can be VERIFIED end-to-end within the factory (deploy + ui-probe). Prefer the option the factory can prove, or sequence the verifiable one first. Surface 'verifiability' as an explicit criterion in the concierge proposal so the human gate sees it. This run shipped the structurally-cleaner fix that the factory cannot confirm live."
+  - title: "QA schema: add a first-class DEPLOYMENT_GATED / OPERATIONAL_FOLLOWUP verdict modifier"
+    detail: "Contract 6 (QA) should distinguish 'AC proven in code' from 'AC verifiable live'. Add an optional per-AC field like verify_status: code_proven | live_proven and a run-level operational_followups list. Then ALL_PASS cannot silently absorb a load-bearing caveat in free-text notes; the gate and the retro both see the verification gap structurally."
+  - title: "Ship-prep: emit enforced operational follow-ups, not just tasks"
+    detail: "When QA records an operational_followup (e.g. 'regenerate + re-upload mbtiles to Mapbox'), ship-prep should write it into the MR description and the Jira comment as a blocking checklist item, and flag the ticket so it is not marked Done until the upload is confirmed. Avoids the silent-broken-in-prod risk."
+  - title: "QA phase: transparent retry on transient infra failures"
+    detail: "Wrap the QA execution step with a bounded retry (e.g. 2 attempts) on network/socket errors, logging each attempt. A transient socket drop should never produce a partial QA result; the retry should be automatic and recorded in the trace rather than relying on a manual cache re-run."
+  - title: "QA: distinguish environmental pre-existing failures explicitly in result.yaml"
+    detail: "test_geoid_regression.py failed for missing gitignored artifacts. QA correctly noted it, but the schema should carry a pre_existing_failures list (test, reason, related?) so retro and reviewers can tell 'our change is green' from 'the suite is green' at a glance."
+
+summary: >
+  KTP-779 reached READY_TO_SHIP with all 3 ACs PASS, 0 review criticals, and execution-verified QA on
+  real CA+US sources (13/13 provinces gain clean English NAME, 56 US features unchanged). The run's one
+  real weakness is verifiability: the concierge picked the tileset parity fix over the handoff's
+  recommended FE fallback, so the code is correct but cannot render live until mbtiles are re-uploaded
+  to Mapbox, leaving an ALL_PASS verdict riding on a load-bearing operational caveat.

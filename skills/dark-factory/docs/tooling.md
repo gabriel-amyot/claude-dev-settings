@@ -1,4 +1,4 @@
-# Tooling & Loadouts — dark-factory-v2
+# Tooling & Loadouts — dark-factory
 
 How the factory equips an agent with the right tools for a run. The analogy, the mechanics, who does
 what, and the future direction (skills-as-loadouts). This is the canonical tooling doc; the

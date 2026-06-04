@@ -1,11 +1,11 @@
-# Harvest from sprint-crawl → dark-factory-v2
+# Harvest from sprint-crawl → dark-factory
 
 **Status:** Reference (2026-06-03, session deft-heron). Captures what the `sprint-crawl` agent + `sprint-harness`
 plugin do, and which mechanisms are worth porting into v2 vs. which are substrate-bound and can't transfer.
 
 **Decision context:** sprint-crawl is NOT being deleted (it stays as the overnight-autonomous, context-death-resilient
 per-AC executor — the role v2 does not fill). The likely future is that sprint-crawl becomes a thin ralph-loop
-wrapper that drives `/dark-factory-v2`. This doc exists so the *ideas* are in v2's orbit regardless.
+wrapper that drives `/dark-factory`. This doc exists so the *ideas* are in v2's orbit regardless.
 
 ## The three tools are different modes, not three versions
 
@@ -13,7 +13,7 @@ wrapper that drives `/dark-factory-v2`. This doc exists so the *ideas* are in v2
 |------|-----------|--------------|
 | **sprint-crawl** | Agent + sprint-harness Bash hooks | Overnight-autonomous, resumable-across-context-death, per-AC |
 | **dark-factory v1** (→ "Sprint Factory") | Prose orchestration, agent dispatch | Multi-ticket / epic DAG with tiered parallelism |
-| **dark-factory-v2** | Workflow-tool script, JS gates | Single-ticket, human-gated, interactive |
+| **dark-factory** | Workflow-tool script, JS gates | Single-ticket, human-gated, interactive |
 
 ## sprint-crawl mechanism inventory
 
@@ -48,7 +48,7 @@ paths), `resumeFromRunId` (vs context-reinject), structured `review/findings.jso
    not AC granularity. Persisting per-AC verdicts would let a resumed run skip already-passed ACs.
 
 **Overnight persistence** is NOT a v2 feature to build — it's sprint-crawl's job (ralph-loop + state file). The
-intended convergence: sprint-crawl becomes the ralph-loop wrapper that invokes `/dark-factory-v2` and resumes via
+intended convergence: sprint-crawl becomes the ralph-loop wrapper that invokes `/dark-factory` and resumes via
 `resumeFromRunId`.
 
 ## Open design question for per-AC loop-back (before implementing in workflow.js)

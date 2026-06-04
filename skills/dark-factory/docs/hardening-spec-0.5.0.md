@@ -1,4 +1,4 @@
-# dark-factory-v2 — 0.5.0 Hardening Spec
+# dark-factory — 0.5.0 Hardening Spec
 
 **Status:** Spec (ready to implement in a fresh session). Source: KTP-728 + KTP-699 trial retros.
 **Decision basis:** ADR-003 (live-verify data claims). **Telemetry:**

@@ -28,7 +28,7 @@ ticket. Therefore:
 ## Build architecture (decided this session)
 
 Three artifacts, kept deliberately separable so v1 vs v2 can be benchmarked in two terminals:
-1. **`dark-factory-v2.workflow.js`** — the deterministic spine (Workflow tool script). Phase order,
+1. **`dark-factory.workflow.js`** — the deterministic spine (Workflow tool script). Phase order,
    gates as JS `if`s, the concierge human-gate split. Ticket-agnostic.
 2. **`contracts/*.md`** — the per-phase reasoning instructions (the "muscle"), harvested from v1.
    Each phase agent is told to *read its contract and execute it* (mirrors v1's analyst pattern).
@@ -45,7 +45,7 @@ answers in `args.humanDecisions` — the cached concierge result makes resume ch
 
 ## In scope (the seed)
 
-1. **Workflow skeleton** (`dark-factory-v2.workflow.js`): deterministic orchestration of the
+1. **Workflow skeleton** (`dark-factory.workflow.js`): deterministic orchestration of the
    per-ticket phase chain. Gates (verdict-cap, pre-ship artifact check) are JS `if`s, not prose.
 2. **Concierge front gate (human-in-the-loop):** spec analysis + context gathering + prerequisite
    check + (greenfield) infra-level decision. **Always pauses for the human here** regardless of
@@ -102,7 +102,7 @@ do this if/when cost optimization becomes timely.
 ## Build order (when approved — still no code until then)
 
 1. Choose the ticket + floor (backend/Java preferred).
-2. Write `dark-factory-v2.workflow.js` skeleton (phases as `agent({schema})`, gates as `if`).
+2. Write `dark-factory.workflow.js` skeleton (phases as `agent({schema})`, gates as `if`).
 3. Harvest phase-contract prompts from current SKILL.md.
 4. Solve the front-gate pause/resume.
 5. Run on the ticket. Measure against predictions. Write findings.

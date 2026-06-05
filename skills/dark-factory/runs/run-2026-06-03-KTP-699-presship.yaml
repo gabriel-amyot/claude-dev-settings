@@ -1,0 +1,162 @@
+run_id: run-2026-06-03-KTP-699-presship
+ticket: KTP-699
+ticket_summary: "Visitor flow lines for Blinds To Go using campaign data (FSA origins)"
+epic: KTP-747
+org: klever
+date: 2026-06-03
+terminal_status: HALT_PRESHIP
+ticket_folder: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-747/KTP-699
+tool_belt: java
+primary_repo: grp-app/grp-backend/grp-ms/app-proximity-report
+secondary_repo: grp-app/grp-frontend/app-front-portal
+prior_runs:
+  - run-2026-06-02-KTP-699  # BLOCKED_SPEC_QUALITY (3 blockers)
+  - run-2026-06-03-KTP-699  # BLOCKED_SPEC_QUALITY (B1+B2 cleared, Q1 still open)
+note: >
+  Third KTP-699 run and the FIRST to clear the concierge gate and drive the full
+  pipeline. The Q1 architecture fork (no FSA-centroid coordinate source) that blocked the
+  prior two runs was resolved — a 1643-entry ca_fsa_centroids.json source landed and the
+  backend FSA visitor-origins path was wired against real BQ dev. Terminal status
+  HALT_PRESHIP: code built and pushed-ready, but QA returned PARTIAL (AC-3 panel render
+  unverified) and one MEDIUM review finding is open, so it stopped before ship.
+
+branches:
+  backend: KTP-699-fsa-visitor-origins
+  frontend: KTP-699-fsa-flow-lines
+
+phases:
+  - phase: concierge
+    status: PASS
+    confidence: 88
+    note: >
+      Cleared on the third pass — the Q1 FSA-centroid blocker that hard-halted 06-02 and
+      06-03 is resolved (centroid source exists, advertiser 835 identity confirmed, real
+      campaign+conversion data present). Confidence 88 is appropriately high for a clean pass.
+  - phase: design
+    status: PASS
+    confidence: 82
+    note: >
+      Produced impl-plan.md plus two draft ADRs (FSA centroid duplication, volume column).
+      Lowest soft confidence of the run (82) — the open ADR questions (which volume column,
+      FSA/STATE duplication) foreshadow exactly the MEDIUM that surfaced in review.
+  - phase: grill
+    status: PASS
+    confidence: 88
+    note: "grill-report.md produced; plan stress-tested before build."
+  - phase: implement
+    status: PASS
+    confidence: 86
+    note: >
+      Backend + frontend changes landed across two repos. Java 17 toolchain required (Java 25
+      / Byte Buddy mismatch caused a transient Mockito test failure resolved by pinning JDK 17).
+  - phase: review
+    status: criticals:0
+    confidence: 83
+    note: >
+      0 CRITICAL / 0 HIGH. One demonstrated MEDIUM (FSA duplicated across inconsistent STATE
+      labels => duplicate flow lines + split volume; GROUP BY ZIP, STATE) and one LOW
+      (CHANGELOG references ca_fsa_centers.geojson but diff modifies ca_fsa_centroids.json).
+      The MEDIUM is the design-phase ADR question come true; it was NOT fixed before halt.
+  - phase: qa
+    status: PARTIAL
+    confidence: 88
+    note: >
+      execution_verified=true. AC-1 PASS (35 unit/MockMvc tests + live BQ dev HTTP 200 FSA
+      origins for store 890 / advertiser 835). AC-2 PASS for changed logic (2 tsx tests +
+      1643-entry centroid file validated; visual Mapbox styling unchanged, NOT browser-verified).
+      AC-3 PARTIAL — panel data live-proven but the React FSA-label branch (isFsa ? 'FSA':'ZIP')
+      has no unit/component test and no browser screenshot. Per belt: no rendering verification.
+
+# ship + retro: ship did not run (terminal HALT_PRESHIP); retro is this phase.
+
+scores:
+  task_confidence: 72
+  factory_fitness: 83
+
+deductions:
+  # task_confidence (start 100 -> 72): big jump from the prior runs (18 -> 30 -> 72) because
+  # code is built, the backend path is live-proven, and 2 of 3 ACs are PASS. Not shipped, AC-3
+  # not render-verified, one MEDIUM open.
+  - points: 10
+    reason: "task_confidence: Terminal status HALT_PRESHIP — code built and push-ready but NOT shipped. No MR, no merge, not deployed; Done requires production. A pre-ship halt is correct given the open items below, but the task is not complete."
+  - points: 9
+    reason: "task_confidence: AC-3 PARTIAL — the store-detail-panel FSA-label branch (store-detail-panel.tsx:271-306) has a clear code_ref and live-proven upstream data shape, but NO unit/component test and NO browser screenshot exercises the FSA relabel rendering. QA explicitly flags no rendering verification."
+  - points: 6
+    reason: "task_confidence: Open MEDIUM review finding (FsaCampaignOriginBigQueryAdapter GROUP BY ZIP, STATE). Demonstrated via a temp probe test: one FSA under two inconsistent STATE labels yields two overlapping flow lines and un-summed volume. Data-dependent (Canadian FSAs are province-specific) but unfixed at halt; fix is GROUP BY ZIP / SUM across STATE."
+  - points: 2
+    reason: "task_confidence: AC-2 visual styling (dashed/animated/width-by-volume Mapbox layer) is pre-existing unchanged code and was NOT browser-verified this run. Changed centroid-resolution logic is proven; on-screen rendering of the line styling is assumed, not demonstrated."
+  - points: 1
+    reason: "task_confidence: LOW finding — CHANGELOG cites ca_fsa_centers.geojson which the diff does not modify (it changes ca_fsa_centroids.json). Documentation drift, no runtime impact, but a real inaccuracy in the shipped artifact."
+  # factory_fitness (start 100 -> 83): the factory drove a full cross-repo Java+frontend build
+  # to a correct pre-ship halt with live evidence. Deductions are for friction and gaps the
+  # factory itself could close.
+  - points: 5
+    reason: "factory_fitness: The MEDIUM that review found (FSA/STATE duplication) was raised as an open ADR question at the DESIGN phase (ADR-draft-fsa-centroid-duplication.md / volume-column). Design surfaced the risk but the build proceeded without resolving it, so review re-discovered it downstream. Design-phase open questions should gate or pre-load a review check, not silently flow into implement."
+  - points: 4
+    reason: "factory_fitness: Java 25 / Byte Buddy toolchain mismatch caused a transient Mockito test failure that needed a manual JDK-17 pin to clear. The belt should pin/verify the JDK before implement (java belt preflight), not surface it as a mid-run test failure."
+  - points: 3
+    reason: "factory_fitness: AC-3 reached PARTIAL purely for lack of a frontend render check; the factory has live UI tooling (ui-probe) but the java belt's tester socket did not auto-dispatch a panel screenshot for a frontend-touching AC. A frontend-touching AC should auto-equip a render/screenshot verifier so AC-3 could have closed to PASS."
+  - points: 3
+    reason: "factory_fitness: The pre-concierge geo/centroid-readiness probe proposed in the 06-03 retro was NOT codified — Q1 was resolved by a human/data landing the centroid file, not by the factory mechanically confirming centroid readiness. Same gap, still open across three runs."
+  - points: 2
+    reason: "factory_fitness: CHANGELOG drift (wrong geojson filename) is a mechanically checkable mismatch — a pre-ship lint cross-checking CHANGELOG-named files against the actual diff would have caught the LOW before halt."
+
+red_flags:
+  - "QA returned PARTIAL with AC-3 having a code_ref but NO test_ref that exercises rendering — the panel FSA-label branch is unproven on screen despite live-proven data underneath it. 'Data path proven' was treated as close-enough; the actual render is unverified."
+  - "A demonstrated MEDIUM (FSA/STATE GROUP BY duplication) was carried to a pre-ship halt unfixed. It was foreseen at design (ADR draft) yet built around rather than resolved — the design ADR question leaked downstream into review."
+  - "Java 25 / Byte Buddy mismatch produced a real-looking Mockito test FAILURE mid-run that was actually an env/toolchain defect, not a code defect — easy to misread as a regression and burn retries; resolved only by manually pinning JDK 17."
+  - "AC-2 PASS is scoped to the changed centroid-resolution logic only; the visible Mapbox flow-line styling (dashed/animated/width-by-volume) is unchanged code that was NOT browser-verified — a stakeholder-visible aspect of the AC was asserted, not shown."
+  - "Third consecutive KTP-699 run. Real progress (BLOCKED->BLOCKED->HALT_PRESHIP, conf 18->30->72) but the ticket has consumed three factory passes; the first two were avoidable per the 06-03 'don't re-run until open_questions answered' improvement, which is still uncodified."
+  - "CHANGELOG names a file (ca_fsa_centers.geojson) the diff never touches — a shipped-artifact inaccuracy that slipped past implement and review and was only caught as a review LOW."
+
+improvements:
+  - title: "Auto-equip a frontend render verifier (ui-probe) for any AC that touches frontend code, even on the java belt"
+    detail: >
+      AC-3 landed PARTIAL solely because no screenshot/component test exercised the store-detail-panel
+      FSA-label branch, despite live-proven data. The dark-factory tester socket should detect a
+      frontend-touching AC (diff includes app-front-portal .tsx/.ts render code) and auto-dispatch a
+      ui-probe panel render + screenshot, regardless of the primary belt being java. That single check
+      would have closed AC-3 to PASS and avoided the PARTIAL pre-ship halt.
+  - title: "Pin/verify the JDK in the java belt preflight before implement"
+    detail: >
+      A Java 25 / Byte Buddy / Mockito mismatch produced a transient test FAILURE that was an env defect,
+      not a code defect, and cost a manual JDK-17 pin to clear. The java belt should assert
+      JAVA_HOME=temurin-17 (or the repo's required toolchain) as a preflight gate before the implement
+      phase runs tests, so a toolchain mismatch fails fast with a clear cause instead of masquerading as
+      a code regression mid-run.
+  - title: "Carry design-phase open ADR questions into a mandatory review checklist item"
+    detail: >
+      The MEDIUM (FSA/STATE GROUP BY duplication) and the volume-column ambiguity were both raised as
+      draft-ADR questions at design, then built around, then re-found at review. Contract 2 (design)
+      should emit its unresolved ADR questions as explicit review targets so contract 5 (review) MUST
+      confirm each was resolved or is an accepted/documented risk — closing the design->review leak
+      instead of relying on review to independently rediscover them.
+  - title: "Pre-ship lint: cross-check CHANGELOG-named files against the actual diff"
+    detail: >
+      The CHANGELOG cited ca_fsa_centers.geojson while the diff changed ca_fsa_centroids.json. A cheap
+      pre-ship step should parse filenames referenced in CHANGELOG.md entries for this branch and verify
+      each appears in `git diff origin/dev..HEAD --name-only`, flagging any mismatch. Mechanically catches
+      shipped-artifact documentation drift before the MR.
+  - title: "Codify the pre-concierge geo/centroid-readiness probe (third run, still open)"
+    detail: >
+      Q1 (no FSA-centroid coordinate source) blocked two runs and was resolved by a human landing
+      ca_fsa_centroids.json, not by the factory confirming readiness. For any map-rendering AC, a
+      pre-concierge probe should verify a centroid/coordinate source exists for the origin geography
+      (US ZIP/county vs Canadian FSA) and attach the row count + file path as evidence. Proposed in the
+      06-03 retro and still uncodified — this run proves it would have shortened the path."
+  - title: "Block re-running a ticket whose prior run halted needs_human until open_questions are answered (carried, partially borne out)"
+    detail: >
+      KTP-699 took three factory passes. The 06-02 and 06-03 halts were correct but the ticket should not
+      have re-entered the factory until Q1 was decided/landed. The front gate should read the latest
+      runs/run-*-<TICKET>.yaml and refuse a fresh run while the prior open_questions are unanswered,
+      pointing at the pending decision instead. Still uncodified after three runs."
+
+summary: >
+  KTP-699's third dark-factory pass finally cleared the concierge gate and drove a full cross-repo
+  Java+frontend build to a HALT_PRESHIP: the backend FSA visitor-origins path is live-proven against
+  real BQ dev (AC-1 PASS), the frontend FSA centroid-resolution logic passes (AC-2 PASS for changed
+  code), but AC-3 is PARTIAL (panel FSA-label render untested) and one MEDIUM (FSA/STATE GROUP BY
+  duplication, foreseen at design) is open, so it correctly stopped before ship. task_confidence 72
+  (built and mostly proven, not shipped), factory_fitness 83 (clean cross-repo drive to a correct
+  pre-ship halt; deductions for the design->review leak, a JDK-toolchain stumble, a missing
+  frontend-render check, and uncodified probes carried from prior runs).

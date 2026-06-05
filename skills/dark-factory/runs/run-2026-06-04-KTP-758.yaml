@@ -1,0 +1,128 @@
+run_id: run-2026-06-04-KTP-758
+ticket: KTP-758
+ticket_summary: "DOOH screen pins on the Measurement Map (zoom-gated, viewport-fetched, native GL clustering, flag-gated)"
+epic: KTP-748
+org: klever
+date: 2026-06-04
+terminal_status: HALT_PRESHIP
+ticket_folder: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-748/KTP-758
+tool_belt: frontend
+primary_repo: grp-app/grp-frontend/app-front-portal
+note: >
+  Clean frontend pipeline: spec → design → grill → implement → review (0 criticals) → QA.
+  Implementation matches the 6 ACs: next build EXIT=0 (/api/dooh/screens + /measurement
+  compiled), dev boots ✓ Ready, /measurement serves 200 with the flag on, and 3 isolated
+  Playwright pure-function tests pass (AC-2 zoom boundary; AC-3 viewport math + cache key).
+  Terminal status HALT_PRESHIP because 5 of 6 ACs are PARTIAL: live rendered pins/clusters and
+  the toggle / flag-off browser proofs require the KTP-756 backend DOOH endpoint
+  (GET /proximity-report/api/dooh/screens, NOT yet on origin/dev) plus an authenticated running
+  stack (Auth0/IAP), which a headless agent cannot complete. NO synthetic data was fabricated
+  to force a green — the belt's data-dependent cap held.
+
+phases:
+  - phase: concierge
+    status: PASS
+    confidence: 88
+    note: >
+      Front gate cleared cleanly. Frontend tool belt selected. Confidence 88 is an
+      appropriately high pass for a well-specified frontend ticket.
+  - phase: design
+    status: PASS
+    confidence: 88
+    note: "Design produced; native GL clustering chosen over a supercluster dep (matches AC notes)."
+  - phase: grill
+    status: PASS
+    confidence: 90
+    note: "Highest soft confidence of the run; plan stress-tested before build with no open forks."
+  - phase: implement
+    status: PASS
+    confidence: 82
+    note: >
+      DOOH pin layers, useDoohScreens hook, viewport→radius math, debounced refetch, native GL
+      clustering, layer toggle, and the NEXT_PUBLIC_DOOH_ENABLED feature gate landed across the
+      frontend. Lowest soft confidence (82) — foreshadows the runtime-unverifiable surface that
+      capped QA at PARTIAL.
+  - phase: review
+    status: "criticals:0"
+    confidence: 82
+    note: >
+      tsc --noEmit + next lint clean on all DOOH files; haversine/viewport math verified
+      (NYC→LA 2446mi). 0 criticals. One LOW non-user-visible cache nit (fetchDoohScreens never
+      caches a 0-screen viewport → harmless refetch on revisit), not gated.
+  - phase: qa
+    status: PARTIAL
+    confidence: 82
+    note: >
+      execution_verified=true (build EXIT=0, dev ✓ Ready, /measurement 200). AC-2 PASS on a real
+      runnable test. AC-1/3/4/5/6 PARTIAL — all infra_blocked on the KTP-756 backend DOOH endpoint
+      (not on origin/dev) and an authenticated stack. Belt correctly capped data-dependent ACs at
+      PARTIAL rather than fabricating data.
+
+scores:
+  task_confidence: 70
+  factory_fitness: 86
+
+deductions:
+  # task_confidence (start 100 → 70)
+  - points: 16
+    reason: "task_confidence: 5 of 6 ACs (AC-1,3,4,5,6) returned PARTIAL — live rendered pins/clusters and toggle/flag-off browser proofs unverified because KTP-756 backend DOOH endpoint is not on origin/dev and no authenticated stack was running (infra_blocked)."
+  - points: 8
+    reason: "task_confidence: HALT_PRESHIP terminal state — branch not shipped; the dependency on an unmerged upstream ticket (KTP-756) means the feature cannot be end-to-end validated, let alone deployed, until that endpoint lands on dev."
+  - points: 6
+    reason: "task_confidence: lowest per-phase confidence 82 (implement, review, qa) reflects a large runtime-unverifiable surface (5 of 6 ACs depend on a running backend the agent could not stand up)."
+  # factory_fitness (start 100 → 86)
+  - points: 8
+    reason: "factory_fitness: the factory drove a full frontend pipeline on a ticket whose acceptance is gated by an upstream dependency (KTP-756) that was not on dev. No early dependency-availability gate caught this before implement/QA, so QA was always going to cap at PARTIAL — the halt was structurally predetermined at concierge."
+  - points: 4
+    reason: "factory_fitness: QA relied on the agent to manually stand up an authenticated stack for live frontend proof; the headless Auth0/IAP wall is a recurring, known blocker (same shape as KTP-699 AC-3 panel-render PARTIAL on 06-03) with no standing harness to satisfy it."
+  - points: 2
+    reason: "factory_fitness: one LOW review finding (0-screen viewport cache nit) surfaced statically with demonstrated=false — fine to not gate, but it is residual signal the design phase could have pre-empted."
+
+red_flags:
+  - "5 of 6 ACs PARTIAL — the run was structurally destined to HALT_PRESHIP from the moment the concierge accepted a ticket whose acceptance depends on KTP-756's backend endpoint, which is not on origin/dev."
+  - "Repeat of the KTP-699 06-03 pattern: a frontend AC capped at PARTIAL because no authenticated running stack (Auth0/IAP) could be stood up by a headless agent. Same root blocker, second ticket — this is now a trend, not a one-off."
+  - "Cross-ticket dependency (KTP-758 needs KTP-756 merged to dev) was not surfaced or gated up front; it only became visible as an infra_note in the QA result."
+  - "execution_verified=true on QA despite 5 PARTIAL ACs — 'execution verified' here means the build/boot/route compiled, not that the feature was exercised against real data. The flag could be misread as stronger evidence than it is."
+  - "AC-6 (flag-off behavior) has a written proof spec (ktp-758-dooh-flag.spec.ts) that was never run — a spec on disk that nothing executed gives false comfort."
+
+improvements:
+  - title: "Add a dependency-availability gate at concierge for cross-ticket backend deps"
+    detail: >
+      The concierge contract should detect when a frontend ticket's ACs depend on an endpoint
+      owned by another ticket (KTP-758 → KTP-756 GET /proximity-report/api/dooh/screens) and check
+      whether that endpoint is on origin/dev BEFORE driving the pipeline. If absent, either block
+      with BLOCKED_DEPENDENCY (cheaper than a full pipeline that is predestined to HALT_PRESHIP) or
+      explicitly down-scope the run to 'build + unit/pure-fn proof only' so QA's PARTIAL is expected,
+      not a surprise. This is the highest-leverage fix: it would have saved an entire implement+QA
+      cycle here.
+  - title: "Stand up a standing authenticated frontend QA stack (or a mock-backend mode) for the frontend belt"
+    detail: >
+      Two consecutive runs (KTP-699 06-03, KTP-758 06-04) capped frontend ACs at PARTIAL solely
+      because a headless agent cannot complete Auth0/IAP login. The frontend belt's tester socket
+      should support a local authenticated stack (UM + MySQL + the relevant backend) seeded with a
+      mock/fixture DOOH response, gated behind the feature flag, so rendered-pin / toggle / cluster
+      ACs can reach PASS without the real upstream endpoint. Without this the frontend belt has a
+      structural PASS ceiling on any data-rendering AC.
+  - title: "Distinguish execution_verified from ac_verified in the QA schema"
+    detail: >
+      The QA result.yaml uses execution_verified=true to mean 'build/boot/route compiled', but 5
+      ACs are PARTIAL. Add a separate field (e.g. ac_render_verified or live_verified) so 'the app
+      boots' is never conflated with 'the AC behavior was exercised against real data'. Prevents a
+      reader from over-trusting execution_verified.
+  - title: "Require written proof specs to actually run (or be marked NOT_RUN) before QA reports on the AC"
+    detail: >
+      AC-6's flag-off spec (ktp-758-dooh-flag.spec.ts) exists but was never executed. Contract 8/QA
+      should refuse to cite a proof spec as evidence unless it ran; an unrun spec must be reported
+      as NOT_RUN with the reason, never silently treated as coverage.
+  - title: "Pre-empt the 0-screen-viewport cache nit in the design phase"
+    detail: >
+      The LOW finding (cache guard `doohScreens.length > 0` never registers an empty viewport →
+      harmless refetch on revisit) is a design-time cache-key concern. Design's caching ADR/notes
+      should specify the empty-result caching policy so review does not have to flag it after the fact.
+
+summary: >
+  KTP-758 (DOOH map pins, frontend belt) ran a clean pipeline — 0 review criticals, build/boot
+  verified, AC-2 PASS on a real test — but HALT_PRESHIP because 5 of 6 ACs are PARTIAL, all
+  infra_blocked on the unmerged KTP-756 backend endpoint and the headless Auth0/IAP wall.
+  task_confidence 70, factory_fitness 86; the highest-leverage fix is a concierge dependency
+  gate so a run destined to halt is caught before a full implement+QA cycle is spent.

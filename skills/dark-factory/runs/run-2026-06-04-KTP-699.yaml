@@ -1,0 +1,131 @@
+run_id: run-2026-06-04-KTP-699
+ticket: KTP-699
+date: 2026-06-04
+terminal_status: READY_TO_SHIP
+belt: java
+respec: "B+C (2026-06-04)"
+branches:
+  backend: KTP-699-fsa-provider-routing       # HEAD 2f1ba26, == origin tip
+  frontend: KTP-699-fsa-frontend-attribution  # HEAD 507eb7c, == origin tip
+
+phases:
+  - phase: concierge
+    status: PASS
+    confidence: 88
+  - phase: design
+    status: pass
+    confidence: 88
+  - phase: grill
+    status: pass
+    confidence: 88
+  - phase: implement
+    status: pass
+    confidence: 88
+  - phase: review
+    status: "criticals:0"
+    confidence: 72
+  - phase: qa
+    status: ALL_PASS
+    confidence: 88
+  - phase: ship-prep
+    status: pass
+    confidence: 88
+
+scores:
+  task_confidence: 70
+  factory_fitness: 80
+
+deductions:
+  # task_confidence (start 100 -> 70)
+  - points: 14
+    reason: >
+      task_confidence: Demonstrated HIGH review finding shipped UNRESOLVED. assign-nearest-store.ts
+      squaredDistance uses unscaled planar squared-degree distance with no cos(latitude) correction.
+      A runnable harness (review/nearest-store-latitude-distortion.test.mjs) exits 1 proving a 39 km
+      store loses to a 50 km store at 45.5N. BTG stores span Ontario + Gatineau QC (wide east-west
+      spread), so real FSAs near a perpendicular bisector flip to the wrong store. This misattributes
+      flow lines and inflates the wrong store's volume in production.
+  - points: 6
+    reason: >
+      task_confidence: MEDIUM panel/map divergence shipped. store-detail-panel TopOriginZipsTable reads
+      raw advertiser-wide FSA origins from the Zustand store while updateFlowLines applies
+      filterOriginsToNearestStore, so for every Canadian store the panel and the map disagree. AC-3
+      literal text is arguably met (flagged MEDIUM not HIGH) but the product is internally inconsistent.
+  - points: 4
+    reason: >
+      task_confidence: LOW case-sensitive 'Unknown' exclusion. CampaignVisitorOriginBigQueryAdapter
+      compares raw ZIP to literal 'Unknown' then UPPER()s in SELECT, so ZIP='unknown' survives the
+      filter and can surface as an 'UNKNOWN' row in the panel FSA table. Data-hygiene dependent.
+  - points: 6
+    reason: >
+      task_confidence: QA coverage is test-only on two AC evidence gaps. No live-BQ curl re-run
+      (infra-gated) and no full-app browser verification of flow-line styling (dashes / width-by-volume)
+      or the AC-3 panel labels in a running app. Response shape and label branch are pinned by MockMvc +
+      renderToStaticMarkup, but end-to-end render is unproven.
+  # factory_fitness (start 100 -> 80)
+  - points: 10
+    reason: >
+      factory_fitness: The review->ship path let READY_TO_SHIP proceed with a DEMONSTRATED HIGH finding
+      open. The ship gate only blocks on criticals_open (0 here); a demonstrated, runnable-harness-proven
+      HIGH correctness bug passed straight through. The gate should at minimum surface demonstrated HIGHs
+      as a blocking decision, not silently allow them.
+  - points: 5
+    reason: >
+      factory_fitness: QA PASS bar accepted code-trace-only coverage for the panel/map divergence
+      ("could not run a React-store integration test, no vitest/jest runner in this repo"). The factory
+      has no fallback path (ui-probe / agent-browser) wired into QA for Zustand-store/React integration
+      assertions, so a known map-vs-panel inconsistency was certified PASS without runtime proof.
+  - points: 5
+    reason: >
+      factory_fitness: Third KTP-699 run in three days after two BLOCKED_SPEC_QUALITY halts and a
+      HALT_PRESHIP. The respec (Option A -> B+C) mid-pipeline meant the prior result.yaml certified
+      superseded branches; QA had to detect and override stale on-disk certification by hand. Indicates
+      spec churn the factory absorbed but did not flag as elevated risk.
+
+red_flags:
+  - "Demonstrated HIGH (latitude distortion, runnable harness exits 1) shipped READY_TO_SHIP because the ship gate only checks criticals_open."
+  - "QA returned ALL_PASS while the review phase still held an open demonstrated HIGH; review confidence dropped to 72 but did not gate."
+  - "Panel/map divergence (MEDIUM) certified PASS on code-trace only — no React-store integration runner exists in the repo, no ui-probe fallback wired into QA."
+  - "On-disk result.yaml from the prior run certified SUPERSEDED branches (Option A); this pass had to manually re-point QA at the B+C branches."
+  - "Two AC evidence gaps (live-BQ curl, full-app browser styling) accepted below the PASS bar without an explicit risk acknowledgement in the ship handoff."
+  - "Case-sensitive 'Unknown' exclusion (LOW) is a latent data-hygiene bug that only the panel surfaces."
+  - "Third run on KTP-699 in 3 days following 2x BLOCKED_SPEC_QUALITY + 1x HALT_PRESHIP — spec instability the factory absorbed silently."
+
+improvements:
+  - title: "Ship gate must block (or force an explicit decision) on demonstrated HIGH findings, not just criticals"
+    detail: >
+      workflow.js / contract 8 (ship-prep) currently gates only on criticals_open == 0. Add: if any
+      review finding has severity HIGH AND demonstrated == true, the gate emits HALT_PRESHIP_HIGH (or
+      requires an explicit recorded override with rationale) instead of READY_TO_SHIP. The latitude
+      distortion bug had a runnable harness that exits 1 — exactly the signal a ship gate should respect.
+  - title: "Wire a runtime fallback into QA for React-store / map-vs-panel integration assertions"
+    detail: >
+      Contract 6 (qa) should, when a repo has no vitest/jest runner, fall back to ui-probe or
+      agent-browser to assert state-store-driven UI (e.g. panel FSA list == map-attributed FSA list)
+      rather than accepting code-trace-only coverage. Add a QA sub-step: "if AC asserts UI reflects
+      store state and no JS test runner exists, capture a live runtime sample." This would have caught
+      the panel/map divergence as a real PASS/FAIL instead of a MEDIUM trace note.
+  - title: "Invalidate stale result.yaml when branches change (respec / branch re-point)"
+    detail: >
+      The prior result.yaml certified superseded Option-A branches and was only caught because QA
+      re-read the branch tips. Contract 6 should record the certified branch HEADs in result.yaml and
+      the QA entry gate should refuse to trust an existing result.yaml whose certified HEADs != current
+      branch tips, forcing a fresh QA pass. Mechanical, removes the manual stale-detection burden.
+  - title: "Geographic-distance correctness check in review for any nearest-point / distance code"
+    detail: >
+      Add a review heuristic (contract 5): when a diff computes distance between lat/lng pairs using
+      raw subtraction / squared degrees, flag it HIGH and demand cos(latitude) scaling or haversine.
+      This is a recurring class of bug at non-equatorial latitudes; codify it so the reviewer catches
+      it by pattern, not by luck.
+  - title: "Surface accepted AC evidence gaps as an explicit ship-handoff acknowledgement"
+    detail: >
+      When QA records evidence gaps below the PASS bar (live-BQ curl, browser styling), the ship handoff
+      should list them as "shipped without runtime proof: X, Y" so the human MR reviewer sees them
+      up front rather than buried in result.yaml coverage notes.
+
+summary: >
+  KTP-699 reached READY_TO_SHIP with all 4 ACs PASS on the respec'd B+C branches, but a demonstrated
+  HIGH correctness bug (latitude-unscaled nearest-store attribution, runnable harness fails) and a
+  MEDIUM panel/map divergence shipped unresolved because the ship gate only blocks on criticals.
+  task_confidence 70, factory_fitness 80 — the factory executed cleanly but its ship gate is too coarse
+  to stop a proven HIGH, and QA has no runtime fallback for React-store integration claims.

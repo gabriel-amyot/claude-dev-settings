@@ -1,0 +1,140 @@
+run_id: run-2026-06-05-KTP-781
+ticket: KTP-781
+ticket_summary: "Canada county/CD conversions: backend COALESCE(COUNTY_FIPS, CDUID) query (retire US-only ZIP crosswalk JOIN) + frontend conversion-type selector and real circle values for Blinds To Go at province/CD/FSA tiers"
+epic: KTP-559
+org: klever
+date: 2026-06-05
+terminal_status: HALT_PRESHIP
+ticket_folder: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-559/KTP-781
+tool_belt: java
+primary_repo: grp-app/grp-backend/grp-ms/app-proximity-report
+branch: KTP-781-canada-county-conversions
+worktree: /tmp/KTP-781-backend
+note: >
+  Narrow, well-executed backend change ran cleanly through the full pipeline (design → grill →
+  implement → review:0 criticals → QA). The sole code deliverable, AC2 — rewrite CONVERSIONS_FOR_COUNTIES
+  to COALESCE(c.COUNTY_FIPS, c.CDUID) and drop the US-only zcta_to_county_crosswalk JOIN, mirroring the
+  already-live CountyPerformanceBigQueryAdapter (KTP-754) pattern — is fully proven: 12/12 unit tests
+  green, including 2 new assertions (SQL contains COALESCE(c.COUNTY_FIPS, c.CDUID) + UNNEST(@countyFips);
+  SQL does NOT join the crosswalk and verify(tableConfig, never()).getCrosswalkTable()). Terminal status
+  is HALT_PRESHIP because 3 of 4 ACs are PARTIAL: AC1 (BTG circles at province/CD/FSA) and AC3
+  (conversion-type selector lists BTG goals) are frontend AND data-blocked — Blinds To Go (adv 835) has
+  ZERO conversion rows on dev ever (verified 2026-06-03), so even a frontend belt could not turn them
+  green; AC4 (US no-regression) is structurally covered by unit tests but the AC demands a real-BQ
+  before/after county-TOTAL numerical parity check the mocked tests cannot prove. The java belt
+  correctly capped frontend/data-dependent ACs at PARTIAL rather than fabricating a green.
+
+phases:
+  - phase: concierge
+    status: PASS
+    confidence: 90
+    note: >
+      Highest soft confidence of the run. Front gate cleared cleanly, java tool belt selected for a
+      well-specified backend ticket. NOTE: a pre-pipeline data-gap verification (2026-06-03) had ALREADY
+      established that BTG adv 835 has no conversion rows on dev, meaning AC1/AC3 were known-unsatisfiable
+      before the run — yet concierge passed at 90 and drove the full pipeline anyway.
+  - phase: design
+    status: PASS
+    confidence: 88
+    note: "Design scoped the single-query rewrite to mirror the proven live CountyPerformanceBigQueryAdapter (KTP-754) COALESCE pattern; province tier explicitly human-deferred to a separate frontend ticket."
+  - phase: grill
+    status: PASS
+    confidence: 92
+    note: "Highest mid-pipeline confidence; plan stress-tested before build with no open forks. The narrow blast radius (1 method, 1 caller, String.format arity) made this an easy grill to clear."
+  - phase: implement
+    status: PASS
+    confidence: 88
+    note: >
+      COALESCE(c.COUNTY_FIPS, c.CDUID) applied across SELECT/WHERE/GROUP BY, US-only crosswalk JOIN
+      removed, String.format reduced to single-arg (crosswalk table arg dropped). 4 new tests added.
+      Clean diff confined to ConversionsBigQueryAdapter + its test.
+  - phase: review
+    status: "criticals:0"
+    confidence: 88
+    note: >
+      0 CRITICAL / 0 HIGH. Method signature, sole caller (MapDataService), String.format arity, GROUP BY
+      grain, and all 7 mapper-consumed columns verified intact. One LOW (demonstrated=false): US rows with
+      both COUNTY_FIPS and CDUID NULL would drop under COALESCE where the old ZIP JOIN could still derive a
+      county — explicitly accepted by the AC and rebutted by the identical expression already live on dev
+      in CountyPerformanceBigQueryAdapter (KTP-754). Not gated.
+  - phase: qa
+    status: PARTIAL
+    confidence: 88
+    note: >
+      AC2 PASS on a real runnable test (12/12 green). AC1/AC3/AC4 PARTIAL. AC1 + AC3 are frontend AND
+      data-blocked (no BTG conversion rows on dev); AC4 is structurally covered but its real-BQ numerical
+      parity assertion is unprovable under mocked unit tests. JDK friction surfaced here: default shell JDK
+      25 cannot inline-mock BigqueryClient (12 Mockito errors); only JAVA_HOME=temurin-17 produces green.
+
+scores:
+  task_confidence: 64
+  factory_fitness: 78
+
+deductions:
+  # task_confidence (start 100 -> 64)
+  - points: 18
+    reason: "task_confidence: AC1 (BTG circles at province/CD/FSA) and AC3 (conversion-type selector lists BTG goals) are both PARTIAL and UNSATISFIABLE on dev — Blinds To Go (adv 835) has zero conversion rows in proximity_daily_geo_conversions, verified 2026-06-03. These are not merely 'frontend, agent can't render' — there is no real data to render, so even the right belt could not turn them green. Half the ACs cannot reach PASS until Mo loads BTG conversion data."
+  - points: 8
+    reason: "task_confidence: AC4 (US no-regression county-TOTAL parity) is PARTIAL — unit tests prove the US path builds a valid COUNTY_FIPS query and FIPS-derived rows map to countyGeoid, but the AC explicitly demands a before/after numerical parity check (crosswalk-derived ZIP->ZCTA->county vs table-native COUNTY_FIPS) that a mocked test cannot perform. Numerical no-regression is asserted-by-analogy, not demonstrated."
+  - points: 6
+    reason: "task_confidence: HALT_PRESHIP terminal state — branch not shipped. The single code deliverable (AC2) is solid, but the feature's user-facing acceptance (BTG conversion circles + goal selector) cannot be end-to-end validated until upstream data lands, so the ticket as written is not deployable-and-done."
+  - points: 4
+    reason: "task_confidence: the one LOW review finding (US rows with COUNTY_FIPS and CDUID both NULL drop under COALESCE) remains demonstrated=false. Accepted by the AC and rebutted by KTP-754's live precedent, but it is a residual data-dependent edge with no positive proof on real US data."
+  # factory_fitness (start 100 -> 78)
+  - points: 12
+    reason: "factory_fitness: the BTG data gap was KNOWN BEFORE the run — a 2026-06-03 diagnosis report in the ticket folder verified adv 835 has zero conversion rows on dev and flagged AC1/AC3 as blocked, with a ping to Mo. The factory still drove a full design->implement->QA cycle that was structurally predestined to HALT_PRESHIP on those ACs. No gate consumed that pre-existing diagnosis to down-scope the run to 'AC2 backend only' up front."
+  - points: 6
+    reason: "factory_fitness: JDK toolchain friction — the project targets Java 17 but the default shell JDK is 25, which cannot inline-mock BigqueryClient (12 Mockito errors). QA had to detect this and re-run with JAVA_HOME=temurin-17 to get green. The belt's tester socket has no JDK-version preflight, so a clean test run depended on a manual workaround that a future run could miss."
+  - points: 4
+    reason: "factory_fitness: recurring frontend-PASS-ceiling pattern (same shape as KTP-758 06-04, KTP-699 06-03) — frontend ACs land on a java-belt ticket and are forced to PARTIAL because the java belt cannot render UI. AC1/AC3 being on a backend ticket at all is a scoping/packaging issue the factory did not flag (a mixed backend+frontend ticket cannot be fully closed by a single-belt run)."
+
+red_flags:
+  - "Half the ACs (AC1, AC3) were known-unsatisfiable BEFORE the pipeline ran: the ticket folder already held a 2026-06-03 diagnosis proving Blinds To Go (adv 835) has zero conversion rows on dev. The run proceeded anyway and the data gap only re-surfaced as a PARTIAL at QA — the factory did not read its own pre-run intelligence."
+  - "Mixed-belt ticket: AC2/AC4 are backend (java belt), AC1/AC3 are frontend. A single java-belt run can never close this ticket — AC1/AC3 were destined for PARTIAL from belt selection, independent of the data gap. Two structural reasons to halt stacked on the same ACs."
+  - "JDK version trap: default shell JDK 25 silently produces 12 Mockito 'cannot inline-mock' errors; only an explicit JAVA_HOME=temurin-17 yields 12/12 green. A future run on the same machine without that env override would read RED and could mis-score a correct change as broken."
+  - "AC4 reports PARTIAL but the QA note says 'PASS at structural level' — the only thing missing is a real-BQ numerical parity check the AC explicitly requires. 'Structural PASS' risks being over-read as nearly-done when the AC's actual acceptance bar (numerical no-regression on live data) was never touched."
+  - "The sole LOW review finding is dismissed by analogy to KTP-754's live COALESCE precedent rather than by evidence on KTP-781's own US data — correct reasoning, but no positive proof was captured."
+
+improvements:
+  - title: "Concierge must consume pre-existing ticket diagnosis reports and down-scope or block before driving the pipeline"
+    detail: >
+      KTP-781's folder already contained reports/diagnosis/2026-06-03-conversions-data-gap-verification.md
+      proving AC1/AC3 are unsatisfiable on dev (BTG adv 835 = 0 conversion rows). The concierge contract
+      should scan reports/diagnosis and reports/status for known blockers and, when found, either (a) block
+      with BLOCKED_DATA_DEPENDENCY, or (b) explicitly down-scope the run to the satisfiable ACs (here:
+      AC2 backend, partial AC4) so QA's PARTIAL on AC1/AC3 is EXPECTED, not re-discovered. This would have
+      saved the cost of a full design->implement->QA cycle whose halt was already known. Highest-leverage fix."
+  - title: "Add a belt-vs-AC coverage gate that flags mixed-belt tickets at concierge"
+    detail: >
+      AC1/AC3 are frontend; AC2/AC4 are backend. A single java-belt run is structurally incapable of closing
+      a mixed ticket. The concierge should classify each AC's belt and, when ACs span belts, warn that the
+      run can at best reach PARTIAL on out-of-belt ACs — and recommend splitting the ticket (backend AC2/AC4
+      vs frontend AC1/AC3) or running two belts. This is a recurring pattern (KTP-758, KTP-699): frontend ACs
+      keep arriving on backend tickets and getting forced to PARTIAL."
+  - title: "Add a JDK-version preflight to the java tester socket"
+    detail: >
+      QA only got 12/12 green by manually setting JAVA_HOME=temurin-17; the default JDK 25 yields 12 Mockito
+      inline-mock errors that look like real failures. The java belt should read pom.xml maven.compiler.target
+      (17 here), verify a matching JDK is on JAVA_HOME before running tests, and auto-select/abort with a clear
+      message otherwise. Prevents a correct change being mis-scored RED on a host with a newer default JDK."
+  - title: "QA must not label a real-data AC 'PASS at structural level' — separate structural coverage from AC acceptance"
+    detail: >
+      AC4's acceptance bar is a real-BQ before/after county-TOTAL numerical parity check; the unit tests only
+      prove query construction. The QA schema should distinguish structural_verified (query/shape compiles and
+      asserts) from ac_verified (the AC's actual acceptance condition met). AC4 is structural_verified=true,
+      ac_verified=false -> PARTIAL, and the language should never read as 'PASS'. Mirrors the KTP-758
+      execution_verified-vs-ac_verified improvement; promote this to a standard QA schema field."
+  - title: "Require positive evidence (or an explicit accepted-risk record) for data-dependent LOW findings"
+    detail: >
+      The LOW COUNTY_FIPS/CDUID-both-NULL finding was dismissed by analogy to KTP-754's live precedent. That
+      is sound, but the review should either capture a one-row real-BQ probe confirming no US rows have both
+      NULL, or record an explicit accepted-risk entry with the AC's own waiver text — so 'rebutted by analogy'
+      is logged as a decision, not an undemonstrated hand-wave."
+
+summary: >
+  KTP-781 (Canada county/CD conversions, java belt) executed a clean, narrow backend change — AC2 fully
+  proven with 12/12 tests, 0 review criticals — but HALT_PRESHIP because 3 of 4 ACs are PARTIAL: AC1/AC3
+  are both frontend AND data-blocked (Blinds To Go has zero conversion rows on dev, a gap the ticket folder
+  already documented before the run), and AC4 needs a real-BQ numerical parity check unit tests cannot give.
+  task_confidence 64, factory_fitness 78. The highest-leverage fix is a concierge gate that reads the ticket's
+  own pre-run diagnosis to down-scope or block a run whose halt is already known.

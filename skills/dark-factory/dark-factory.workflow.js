@@ -32,7 +32,7 @@ export const meta = {
 const CONTRACTS = '/Users/gabrielamyot/.claude/skills/dark-factory/contracts'
 const RUNS = '/Users/gabrielamyot/.claude/skills/dark-factory/runs'
 const TOOLCRIB = '/Users/gabrielamyot/.claude/skills/dark-factory/toolcrib'
-const SUPPORTED_BELTS = ['java', 'scripting'] // tool belts racked in the crib; concierge proposes one
+const SUPPORTED_BELTS = ['java', 'scripting', 'frontend'] // tool belts racked in the crib; concierge proposes one
 
 const ticket = (args && args.ticket) || null
 const org = (args && args.org) || 'klever'

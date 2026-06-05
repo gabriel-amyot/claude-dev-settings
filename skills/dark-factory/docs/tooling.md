@@ -82,4 +82,4 @@ The direction (from a parallel planning session — names still being decided th
 
 See `docs/second-floor-refining-notes.md` for the concierge/dispatcher/persona-loop parking lot, and
 `docs/roadmap.md` R5 + R8 for the staged plan. **None of this is wired yet** — the factory currently
-ships with the two mandatory belts (`java`, `scripting`) only.
+ships with three racked belts (`java`, `scripting`, `frontend`) only.

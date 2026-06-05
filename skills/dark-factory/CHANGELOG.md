@@ -2,6 +2,36 @@
 
 Every SKILL.md / workflow.js / contract change bumps the version and adds an entry.
 
+## 0.7.0 (2026-06-04)
+
+**Racked the `frontend` belt — the factory can now run Next.js / React / TypeScript / Mapbox GL UI
+tickets, not just Java services and side-effect scripts.**
+
+A frontend deliverable (e.g. KTP-758, a Measurement Map DOOH pin layer) previously halted at the
+concierge with `BLOCKED_UNSUPPORTED_FLOOR` — the crib only racked `java` and `scripting`. Per ADR-002 a
+belt swaps tools only, so this is purely a new loadout, no new floor logic.
+
+- **`toolcrib/frontend.md`**: build/tester loadout for rendered-UI work. Tooling validated against
+  `grp-app/grp-frontend/app-front-portal` (Next 15 / React 19 / TS 5 / Mapbox GL / Playwright), not
+  guessed. Corrections vs the originating handoff's proposed loadout: the repo ships **no jest/vitest**
+  (Playwright is the only runner, so there is no component-unit socket to equip — flagged as the belt's
+  weakest point); typecheck is the repo's `lint:types` script (`tsc --noEmit --skipLibCheck`), not a
+  bare `tsc`; added a `:3000` auth-port note. execute-verify = `next build` + a `next dev` boot smoke
+  (frontend analog of the java belt's "Started in N seconds"); proof = live AC validation with
+  screenshots via `ui-probe` (preferred, reuses Gab's authed Chrome) / agent-browser / Playwright,
+  code-reading is never a PASS; data-source-down → `infra_blocked(...)`, never fabricate API data.
+- **`SUPPORTED_BELTS`** in `dark-factory.workflow.js` → `['java','scripting','frontend']`. This is the
+  functional gate; the prose registries (`toolcrib/INDEX.md`, `SKILL.md`, `contracts/INDEX.md`,
+  `docs/tooling.md`) were updated to match.
+- **Each tool in the belt carries a "Why these tools" rationale** (the alternative it beat and why), so
+  a future loadout revision edits a decision rather than re-guessing.
+- **Belt-tuning telemetry proposal**: the belt documents a `belt_tools` block (per-tool ran / outcome /
+  caused_deduction / evidence) as a proposed addition to the Retro contract (`9-retro`), plus the three
+  questions an aggregated rollup should answer (which tool drives deductions; how often the missing unit
+  socket is skipped; recurring `infra_blocked` dependencies). Not yet wired into contract 9 — the belt
+  is the motivating case; capturing it structurally at Retro time is the next-upgrade hook.
+- `node --check dark-factory.workflow.js` clean. SKILL.md version → 0.7.0.
+
 ## 0.6.0 (2026-06-03)
 
 **Bounded fix loop — per-AC resilience harvested from v1 + sprint-crawl.**

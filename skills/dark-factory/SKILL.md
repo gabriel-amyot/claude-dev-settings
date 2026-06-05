@@ -1,12 +1,12 @@
 ---
 name: dark-factory
-version: "0.6.0"
-description: "The ticket-to-dev factory for a SINGLE ticket, orchestrated by the Workflow tool instead of prose. Gates are code (un-skippable), with a human concierge gate at the front. The concierge proposes a tool belt from the crib (java or scripting); the build + tester sockets are equipped from that belt, so the same line handles multiple work-types without duplication. Review + bounded fix loop + QA. The workflow does code work and pushes the branch (terminal state READY_TO_SHIP); the main loop creates the MR + Jira comment and runs post-merge validate. For multi-ticket / epic DAGs use Sprint Factory (/sprint-factory). Triggers on: '/dark-factory', 'dark factory', 'ticket to dev', 'run this ticket'. Klever."
+version: "0.7.0"
+description: "The ticket-to-dev factory for a SINGLE ticket, orchestrated by the Workflow tool instead of prose. Gates are code (un-skippable), with a human concierge gate at the front. The concierge proposes a tool belt from the crib (java, scripting, or frontend); the build + tester sockets are equipped from that belt, so the same line handles multiple work-types without duplication. Review + bounded fix loop + QA. The workflow does code work and pushes the branch (terminal state READY_TO_SHIP); the main loop creates the MR + Jira comment and runs post-merge validate. For multi-ticket / epic DAGs use Sprint Factory (/sprint-factory). Triggers on: '/dark-factory', 'dark factory', 'ticket to dev', 'run this ticket'. Klever."
 user_invocable: true
 nav:
   bay: build
-  when: "Run a Java-service OR scripting/side-effect Klever ticket through the v2 (workflow-orchestrated) factory. Code gates, front human gate, tool belt per work-type."
-  when_not: "Frontend/SQL tickets (no belt racked yet - rack one in toolcrib/ first). Multi-ticket epics (use /sprint-factory). Overnight per-AC autonomous (use sprint-crawl). Quick ship (use /autonomous-ticket-ship)."
+  when: "Run a Java-service, scripting/side-effect, OR frontend (Next.js/React UI) Klever ticket through the v2 (workflow-orchestrated) factory. Code gates, front human gate, tool belt per work-type."
+  when_not: "SQL tickets (no belt racked yet - rack one in toolcrib/ first). Multi-ticket epics (use /sprint-factory). Overnight per-AC autonomous (use sprint-crawl). Quick ship (use /autonomous-ticket-ship)."
   personas: [amelia, quinn, winston]
   org: [klever]
 ---
@@ -49,8 +49,9 @@ trickle work back to an earlier phase.
 The line (the "blueprint" / workflow spine) is single. Only two sockets are work-type-specific — the
 **build station** (Implement) and the **tester station** (execution-verify + QA). The **concierge
 proposes a tool belt** from the crib; the build/tester steps equip it. Racked belts:
-`java` (running Java/Spring service) and `scripting` (a script whose value is its output/side-effect —
-make tiles, populate BQ, transform data, change state). Unknown work-type → honest
+`java` (running Java/Spring service), `scripting` (a script whose value is its output/side-effect —
+make tiles, populate BQ, transform data, change state), and `frontend` (a rendered Next.js/React UI
+change — component, Mapbox GL layer, page/route, control). Unknown work-type → honest
 `BLOCKED_UNSUPPORTED_FLOOR` halt (rack a belt first). Rule (ADR-002): a belt swaps **tools only**; a
 work-type needing different room *logic* is a rare new floor, not a belt. Refining-phase ideas
 (dispatcher, spec/architect personas in the loop) are parked in `docs/second-floor-refining-notes.md`.
@@ -59,7 +60,7 @@ work-type needing different room *logic* is a rare new floor, not a belt. Refini
 
 - `dark-factory.workflow.js` — the orchestrator (steps + JS gates + tool-belt routing + Retro).
 - `contracts/*.md` — per-phase instructions worker agents read and execute (1-8 + 9-retro).
-- `toolcrib/*.md` — tool belts (build/tester loadouts per work-type): `java`, `scripting`.
+- `toolcrib/*.md` — tool belts (build/tester loadouts per work-type): `java`, `scripting`, `frontend`.
 
 ## Invocation
 
@@ -118,6 +119,12 @@ Historical design docs in `docs/` may still say "v2"; that means this skill.
 
 ## Status
 
+`0.7.0` — racked the `frontend` belt (Next.js/React/TypeScript/Mapbox GL UI). Loadout validated against
+`app-front-portal` (no jest/vitest in the repo → Playwright-only test layer; typecheck is `lint:types`,
+not bare `tsc`), each tool carries a why-chosen rationale, and the belt proposes a `belt_tools` Retro
+telemetry block so future loadout revisions are data-driven. Belts racked: `java`, `scripting`,
+`frontend`. See CHANGELOG 0.7.0.
+
 `0.6.0` — added the bounded fix loop (per-AC resilience harvested from v1 + sprint-crawl): a review
 CRITICAL now bounces to a targeted fix + re-review (max 2 rounds) before `BLOCKED_REVIEW_CRITICAL`,
 instead of halting on first pass. See `docs/harvest-from-sprint-crawl.md`.
@@ -127,4 +134,4 @@ every data-layer claim (ADR-003): schema preflight pins VERIFIED columns, new br
 advertiser id, backend-gated sub-ACs are flagged/split at the gate, and the ticket folder is bucketed
 under `tickets/...` (never PM root). Review/QA now persist structured `review/findings.json` +
 `qa/result.yaml` (with `test_ref`). Resume re-runs the concierge live so a ticket-side resolution is
-read instead of a stale needs_human verdict. Belts racked: `java`, `scripting`.
+read instead of a stale needs_human verdict. Belts racked: `java`, `scripting`, `frontend`.

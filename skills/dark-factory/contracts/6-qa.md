@@ -27,6 +27,27 @@ For each AC, collect:
 caps it to PARTIAL. Only mark PASS with both a `code_ref` and a real proof in `test_ref`. If the belt's
 proof method cannot be run (e.g. no endpoint, no real input), the verdict is `PARTIAL`, never `PASS`.
 
+## Re-verify the TDD RED (per AC) — ground truth, not self-report
+
+The implementor self-reported a per-AC `ac_tdd` ledger claiming each AC was built test-first. You are the
+independent check that the RED was real (the implementor's word alone is fabricable). The RED ledger
+(`{ac, red_commit, exempt}` per AC) is in your prompt. For each AC, set `red_verified`:
+
+- **`true`** — ALL THREE hold: (1) `git show --stat <red_commit>` touches the **test file(s) only** (no
+  production source change in that commit); (2) the test **fails** when you check out that commit and run
+  it; (3) the **same test** (same name + assertion, not a swapped one) **passes** at the branch tip.
+  Condition (3) defeats the vacuous-RED trick — `assert(false)` (or any test unrelated to the AC) can
+  never go green, so a real RED is the **same** test red-then-green; a test that was quietly replaced
+  between RED and GREEN fails (3).
+- **`'exempt'`** — the entry is `exempt` AND the exemption is legitimate: confirm it on the diff. For a
+  `not_applicable(...)` claim, verify the AC's diff really has **no extractable pure logic** that could
+  have carried a unit RED — if you find an untested pure function, the exemption is bogus → `false`.
+- **`false`** — the RED commit is not test-only, the test does not fail at that commit, the ledger/artifact
+  is missing, or an exemption is bogus.
+
+A `PASS` AC whose `red_verified` is not `true`/`'exempt'` is capped to PARTIAL by the orchestrator
+(`tddVerifiedCap`). Reading the ledger is not enough — run the git checks.
+
 ## Output (write to disk)
 
 Write `<ticket_folder>/qa/result.yaml` (path in your prompt). Each `per_ac` row carries a real
@@ -41,13 +62,14 @@ per_ac:
     test_ref:
       command: "<the proof command per your belt>"
       output_path: "<ticket_folder>/qa/AC-1.out"
+    red_verified: true        # true | false | exempt — from the git re-check above
 summary: "..."
 ```
 
 ## Return
 
 - `raw_overall`: ALL_PASS | PARTIAL | FAIL  (your raw read of the evidence)
-- `per_ac`: array of `{ ac, verdict, code_ref, test_ref }`
+- `per_ac`: array of `{ ac, verdict, code_ref, test_ref, red_verified }`
 - `summary`: 1-3 sentences
 
 **Example per_ac row (shape — `test_ref` is whatever proof your belt defines):**

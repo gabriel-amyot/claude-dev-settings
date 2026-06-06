@@ -2,6 +2,42 @@
 
 Every SKILL.md / workflow.js / contract change bumps the version and adds an entry.
 
+## 0.8.0 (2026-06-05)
+
+**Promoted red-green-refactor from prose into an un-skippable, artifact-backed gate — the one factory
+discipline that was still self-certified.**
+
+An audit of 9 past runs (`runs/*.yaml`) found TDD adherence was *invisible and fabricable*: not one run
+recorded a test written first or seen failing. The contract said "RED first"; nothing proved it. Per
+ADR-001 ("gates are code, not prose"), that self-cert is exactly what the factory exists to eliminate.
+
+- **`dark-factory.workflow.js`** (+128/−9):
+  - `IMPLEMENT_SCHEMA` gains a required `ac_tdd[]` ledger — per AC: `kind`, `red{artifact,commit,failed,
+    right_reason}`, `green{commit,passed,suite_green}`, `exempt`.
+  - `QA_SCHEMA.per_ac` gains `red_verified` (`true|false|exempt`).
+  - **`tddViolations()`** — layer-1 structural gate: every non-exempt AC needs `red.failed +
+    red.right_reason + red.artifact` and `green.passed`; every `done` AC must carry a ledger entry (no
+    dodge-by-omission). Exemptions must match `not_applicable(<why>)` / `infra_blocked(<why>)`.
+  - **`tddVerifiedCap()`** — layer-2: caps a PASS AC to PARTIAL when QA could not re-verify its RED.
+  - Wired into Implement (`HALT_TDD_GATE`), each Fix round (completeness off — a fix re-reports only what
+    it touched), and QA's capped verdict.
+  - `tdd_gate_mode` arg: `warn` (cap + telemetry, no halt) for the soft-launch trial; default `halt`.
+- **Two-layer design (why):** the Workflow spine is a pure JS sandbox (no fs/git), so it can only check
+  the self-reported `ac_tdd` shape. QA — a fresh agent on the branch — supplies ground truth by diffing
+  the **test-only RED commit** (`git show --stat`) and re-running it to confirm it fails. The test-only
+  commit is the forgery-resistance core: you cannot fake "I did TDD" without it.
+- **Contracts:** `4-implement.md` (stub-then-assert RED, test-only RED commit, per-AC `tdd/AC-<N>.md`
+  ledger, structured exemptions), `6-qa.md` (re-verify the RED commit → `red_verified`), `2-design.md`
+  (test specs state the expected RED assertion; flag no-unit-surface ACs).
+- **Belts:** `java` (stub signature → assertion failure, not compile error), `scripting` (stub fn →
+  pytest assertion, not ImportError), `frontend` (extractable pure logic → Playwright pure-fn RED;
+  pure-render ACs → honest `not_applicable`, proof stays the ui-probe screenshot — no fake unit tests).
+- **Decisions (locked):** D1 test-only RED commit + QA re-verify · D2 strict stub-then-assert, no
+  compile-error RED on any belt · D3 `infra_blocked` exempts only execution-verify, not unit RED · D4
+  soft-launch one `warn` trial, then `halt`.
+- **`tests/tdd-gate.test.mjs`** — first test harness in the skill: 16 cases over the real gate functions
+  (extracted verbatim, not reimplemented), mutation-checked to confirm the RED check is load-bearing.
+
 ## 0.7.0 (2026-06-04)
 
 **Racked the `frontend` belt — the factory can now run Next.js / React / TypeScript / Mapbox GL UI

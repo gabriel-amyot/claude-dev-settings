@@ -1,6 +1,6 @@
 ---
 name: dark-factory
-version: "0.7.0"
+version: "0.8.0"
 description: "The ticket-to-dev factory for a SINGLE ticket, orchestrated by the Workflow tool instead of prose. Gates are code (un-skippable), with a human concierge gate at the front. The concierge proposes a tool belt from the crib (java, scripting, or frontend); the build + tester sockets are equipped from that belt, so the same line handles multiple work-types without duplication. Review + bounded fix loop + QA. The workflow does code work and pushes the branch (terminal state READY_TO_SHIP); the main loop creates the MR + Jira comment and runs post-merge validate. For multi-ticket / epic DAGs use Sprint Factory (/sprint-factory). Triggers on: '/dark-factory', 'dark factory', 'ticket to dev', 'run this ticket'. Klever."
 user_invocable: true
 nav:
@@ -28,9 +28,10 @@ ticket through this factory. More belts + rigor on the roadmap (`docs/roadmap.md
 
 ## Division of labor (important)
 
-The **workflow** does the code work: concierge → design → grill → implement (TDD, execution check,
-**pushes the feature branch**) → review → **fix loop** (on a CRITICAL: targeted fix + re-review, max 2
-rounds) → QA → ship-prep (version bump + push). It ends at `READY_TO_SHIP`. The **main loop** (this conversational context) does the things a workflow agent
+The **workflow** does the code work: concierge → design → grill → implement (TDD with a **proven RED per
+AC** — test-only RED commit, fail-on-assertion — execution check, **pushes the feature branch**) → review
+→ **fix loop** (on a CRITICAL: targeted fix + re-review, max 2 rounds) → QA (proves each AC **and
+re-verifies the RED commit**) → ship-prep (version bump + push). It ends at `READY_TO_SHIP`. The **main loop** (this conversational context) does the things a workflow agent
 can't safely do: create the MR (`/klever-mr`), post the Jira comment (`/post-comment`), transition the
 ticket, and — after the human merges — run post-merge validate (contract 8). This split is forced by
 verified Workflow-API limits (skills aren't reliably callable inside an agent; no native wait).
@@ -107,8 +108,9 @@ work-type needing different room *logic* is a rare new floor, not a belt. Refini
 
 No direct push to dev/main; no destructive git; DAC repos dev-only; ticket transition ceiling =
 In Review/Testing; all external posts via `/post-comment`. The workflow's JS gates enforce
-execution-verified, branch-pushed, zero-open-CRITICAL, evidence-backed QA, and QA-green-before-ship,
-plus the front human gate.
+execution-verified, branch-pushed, zero-open-CRITICAL, evidence-backed QA, QA-green-before-ship, the
+**TDD RED gate** (a proven failing-first test per AC, re-verified by QA on the branch), plus the front
+human gate.
 
 ## Lineage note
 
@@ -118,6 +120,16 @@ conductor, `/sprint-factory`), v2 took the plain **dark-factory** name as the si
 Historical design docs in `docs/` may still say "v2"; that means this skill.
 
 ## Status
+
+`0.8.0` — promoted red-green-refactor from prose into an **un-skippable, artifact-backed gate**. An audit
+of 9 past runs found TDD adherence was invisible *and* fabricable (no run recorded a test seen failing
+first). Now: Implement returns a per-AC `ac_tdd` ledger (test-only RED commit + fail-on-assertion + GREEN);
+the spine's `tddViolations()` gates it structurally; QA independently re-verifies the RED commit on the
+branch (`red_verified`) and `tddVerifiedCap()` caps any PASS whose RED is unproven. Strict (all belts:
+stub-then-assert, no compile-error RED); `infra_blocked` exempts only execution-verify, not unit RED;
+frontend pure-render ACs use honest `not_applicable`. Soft-launch via `tdd_gate_mode:'warn'` for one trial,
+then the fail-safe `halt` default. Regression guard: `tests/tdd-gate.test.mjs` (16 cases, mutation-checked).
+See CHANGELOG 0.8.0.
 
 `0.7.0` — racked the `frontend` belt (Next.js/React/TypeScript/Mapbox GL UI). Loadout validated against
 `app-front-portal` (no jest/vitest in the repo → Playwright-only test layer; typecheck is `lint:types`,

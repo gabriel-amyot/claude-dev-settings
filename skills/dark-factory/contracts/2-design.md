@@ -27,8 +27,13 @@ Adapted from the old skill's Phase 2 (DESIGN).
    parallel artifacts when modifying existing code satisfies the AC. (KTP-713 lesson.)
 4. **Write test specifications** per AC (specs, not bodies — Phase 4 writes bodies):
    - Baseline test (existing behavior, backward-compat): signature + expected assertion.
-   - New-behavior test: signature + expected assertion targeting the actual change.
+   - New-behavior test: signature + **the expected RED assertion** — the specific assertion that must
+     fail before the code exists (Phase 4 gates on a RED that fails for this reason, not a compile error).
    - Adversarial test: an edge case the AC does not mention (null, empty, old call signature).
+   - **No-unit-surface ACs:** if an AC is pure-render with no extractable logic (e.g. "the layer renders",
+     "the toggle shows/hides" on the frontend belt), say so here and mark it for `not_applicable` unit RED
+     — its proof is the belt's method (live visual validation), not a unit test. Do not invent a unit spec
+     just to have one.
 5. **Module scoping:** if the run's tool belt defines module scoping (e.g. multi-module builds), pick
    the target module(s) from the AC file paths per the belt's guidance.
 

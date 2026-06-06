@@ -5,10 +5,10 @@ export const meta = {
     { title: 'Concierge', detail: 'analyze + context + prereqs; surface decisions for the human' },
     { title: 'Design',    detail: 'tactical impl plan + test specs' },
     { title: 'Grill',     detail: 'interrogate the plan against the codebase' },
-    { title: 'Implement', detail: 'TDD per AC in a worktree; attempt execution; push branch' },
+    { title: 'Implement', detail: 'TDD per AC in a worktree (proven RED-first per AC); attempt execution; push branch' },
     { title: 'Review',    detail: 'fresh adversarial agent in its own worktree on the pushed branch' },
     { title: 'Fix',       detail: 'bounded loop: on a CRITICAL, targeted fix + re-review (max 2 rounds) before halting' },
-    { title: 'QA',        detail: 'fresh agent proves each AC; verdict capped by execution_verified + evidence' },
+    { title: 'QA',        detail: 'fresh agent proves each AC + re-verifies the test-only RED commit; verdict capped by execution_verified + evidence + RED' },
     { title: 'ShipPrep',  detail: 'version bump + CHANGELOG + commit + push (no MR/Jira)' },
     { title: 'Retro',     detail: 'score the run, capture red flags, write telemetry + improvement handoff' },
   ],
@@ -37,6 +37,14 @@ const SUPPORTED_BELTS = ['java', 'scripting', 'frontend'] // tool belts racked i
 const ticket = (args && args.ticket) || null
 const org = (args && args.org) || 'klever'
 const humanDecisions = (args && args.humanDecisions) || null
+// TDD gate mode (deft-falcon, D4): 'halt' (default, un-skippable) | 'warn' (cap + telemetry, no halt).
+// Soft-launch: pass tdd_gate_mode:'warn' for the ONE validation trial to confirm agents can produce clean
+// RED artifacts, then drop the arg so it reverts to the fail-safe 'halt'.
+const tddGateMode = (args && args.tdd_gate_mode) === 'warn' ? 'warn' : 'halt'
+// In 'warn' mode the gate does not halt — but it must never be SILENT (adversarial finding: a left-on
+// warn flag would disable the gate invisibly). Every warn-mode violation is accumulated and surfaced on
+// the final result + handed to Retro, so a warn run can never masquerade as a clean run.
+const tddWarnings = []
 if (!ticket) throw new Error('dark-factory requires args.ticket (e.g. "ABC-123")')
 
 // ---- Schemas (handoffs are validated objects, not parsed text) ----
@@ -84,7 +92,7 @@ const PHASE_SCHEMA = {
 
 const IMPLEMENT_SCHEMA = {
   type: 'object',
-  required: ['status', 'execution_verified', 'ac_progress', 'branch', 'pushed', 'diff_artifact'],
+  required: ['status', 'execution_verified', 'ac_progress', 'branch', 'pushed', 'diff_artifact', 'ac_tdd'],
   properties: {
     status: { type: 'string', enum: ['pass', 'partial', 'stuck'] },
     execution_verified: { type: 'string', pattern: '^(true|false|infra_blocked\\(.*\\)|not_applicable\\(.*\\))$' },
@@ -92,6 +100,43 @@ const IMPLEMENT_SCHEMA = {
     branch: { type: 'string', minLength: 1 },
     pushed: { type: 'boolean' },
     diff_artifact: { type: 'string' },
+    // Per-AC red-green-refactor ledger (deft-falcon). One entry per AC the agent touched. The spine's
+    // tddViolations() gates on this self-report structurally; QA independently re-verifies the test-only
+    // RED commit on the branch (red_verified). 'red' is the AC's NEW-behavior test only — not baseline,
+    // not post-green adversarial edge tests. right_reason MUST be an assertion failure (stub-then-assert),
+    // never a compile/import/typo error (D2: strict, all belts).
+    ac_tdd: {
+      type: 'array',
+      items: {
+        type: 'object',
+        required: ['ac', 'kind'],
+        properties: {
+          ac: { type: 'string' },
+          test_file: { type: 'string' },
+          kind: { type: 'string', enum: ['new', 'baseline_plus_new', 'bugfix'] },
+          red: {
+            type: 'object',
+            properties: {
+              artifact: { type: 'string' },      // abs path to <ticket_folder>/tdd/AC-<N>.md
+              commit: { type: 'string' },         // test-only RED commit sha (no production change)
+              failed: { type: 'boolean' },        // the test was run and FAILED before any code
+              right_reason: { type: 'boolean' },  // assertion failure (feature missing), not a compile/typo error
+            },
+          },
+          green: {
+            type: 'object',
+            properties: {
+              commit: { type: 'string' },         // production-code commit sha that flipped RED->GREEN
+              passed: { type: 'boolean' },
+              suite_green: { type: 'boolean' },   // other tests still pass
+            },
+          },
+          // Structured exemption only (D3): 'not_applicable(<why>)' for no-unit-surface work, or
+          // 'infra_blocked(<why>)' ONLY when the test cannot even be authored/run without the infra.
+          exempt: { type: ['string', 'null'] },
+        },
+      },
+    },
     summary: { type: 'string' },
     confidence: { type: 'integer', minimum: 0, maximum: 100 },
     confidence_deductions: { type: 'array', items: { type: 'object', properties: { points: { type: 'integer' }, reason: { type: 'string' } } } },
@@ -133,6 +178,10 @@ const QA_SCHEMA = {
         properties: {
           ac: { type: 'string' }, verdict: { type: 'string', enum: ['PASS', 'PARTIAL', 'FAIL'] },
           code_ref: { type: 'string' }, test_ref: { type: 'string' },
+          // RED re-verification on the branch (deft-falcon): true if QA independently confirmed the AC's
+          // RED commit is test-only and the test fails at that commit; 'exempt' for not_applicable/infra
+          // exemptions; false/absent if unverified. tddVerifiedCap() caps a PASS lacking this to PARTIAL.
+          red_verified: { type: ['boolean', 'string'] },
         },
       },
     },
@@ -204,6 +253,53 @@ function preShipBlockers(impl, review, qaCapped) {
   else if (review.criticals_open > 0) b.push(`${review.criticals_open} open CRITICAL finding(s)`)
   if (qaCapped !== 'ALL_PASS') b.push(`QA verdict is ${qaCapped}, not ALL_PASS`)
   return b
+}
+
+// ---- TDD gate (deft-falcon): red-green-refactor promoted from prose into a deterministic check ----
+// LAYER 1 (structural, here): the spine is a pure JS sandbox — no fs, no git — so it can only check the
+// SELF-REPORTED ac_tdd object. It proves the SHAPE of the discipline (a failing-for-the-right-reason RED
+// artifact + a GREEN per AC). LAYER 2 (ground truth) is tddVerifiedCap(), fed by QA re-verifying the
+// test-only RED commit on the branch — that's what makes the self-report hard to fabricate.
+function tddViolations(impl, requireComplete) {
+  const acTdd = (impl && impl.ac_tdd) || []
+  const violations = []
+  // No silent omission: every AC reported "done" must carry a ledger entry, else the gate is dodged by
+  // simply leaving the AC out of ac_tdd. Only enforced on the full Implement pass — a Fix round legitimately
+  // re-reports only the ACs it touched, so completeness is checked against the original implement, not the fix.
+  if (requireComplete !== false) {
+    const progress = (impl && impl.ac_progress) || {}
+    const ledgered = new Set(acTdd.map((e) => e.ac))
+    for (const ac of Object.keys(progress)) {
+      if (String(progress[ac]) === 'done' && !ledgered.has(ac)) violations.push(`${ac}: marked done but has no ac_tdd ledger entry`)
+    }
+  }
+  for (const e of acTdd) {
+    if (e.exempt) {
+      if (!/^(not_applicable|infra_blocked)\(.+\)$/.test(String(e.exempt))) {
+        violations.push(`${e.ac}: malformed exempt "${e.exempt}" — need not_applicable(<why>) or infra_blocked(<why>)`)
+      }
+      continue
+    }
+    const red = e.red || {}
+    const green = e.green || {}
+    if (red.failed !== true || red.right_reason !== true || !red.artifact) {
+      violations.push(`${e.ac}: no valid RED proof (need red.failed=true + red.right_reason=true + red.artifact path)`)
+    } else if (green.passed !== true) {
+      violations.push(`${e.ac}: RED proven but GREEN not confirmed (need green.passed=true)`)
+    }
+  }
+  return violations
+}
+
+// LAYER 2 cap: a PASS AC whose RED was not independently re-verified by QA on the branch is not trustworthy
+// (the implement agent's ac_tdd alone could be fabricated). Cap such a run to PARTIAL. 'exempt' passes.
+function tddVerifiedCap(qa, overall) {
+  const unverified = (qa.per_ac || []).some((a) => a.verdict === 'PASS' && a.red_verified !== true && a.red_verified !== 'exempt')
+  if (overall === 'ALL_PASS' && unverified) {
+    log('WARN: a PASS AC has no QA-verified RED (red_verified) -> capping QA to PARTIAL')
+    return 'PARTIAL'
+  }
+  return overall
 }
 
 // Soft-signal instruction appended to every phase prompt.
@@ -284,14 +380,28 @@ rather than fake a proof — that means a new belt must be racked first).${resum
 
   phase('Implement')
   const impl = await agent(`${readContract('4-implement')}
-The Workflow runtime gave you your OWN git worktree — do NOT run 'git worktree add'. TDD per AC. After
-all ACs are green, ATTEMPT to run the artifact and record execution_verified honestly (never skip).
-Then PUSH the feature branch to origin and write 'git diff origin/dev..HEAD' to a file in the ticket
-folder; return its path as diff_artifact and set pushed=true. ${decisionsNote}`,
+The Workflow runtime gave you your OWN git worktree — do NOT run 'git worktree add'. TDD per AC, RED
+FIRST and PROVEN: for each AC, write the new-behavior test and run it so it FAILS ON AN ASSERTION (stub
+the signature so it compiles first — a compile/import/typo error is NOT a valid RED), commit that test
+ALONE as a test-only RED commit, THEN write the minimal code to GREEN and commit that. Write a per-AC
+ledger to <ticket_folder>/tdd/AC-<N>.md (RED command + failing output + commit sha; GREEN command +
+passing output + commit sha) and return the ac_tdd array — one entry per AC you touched, with
+red.failed/red.right_reason/red.artifact and green.passed set. Use exempt:'not_applicable(<why>)' only
+for work with no unit surface; 'infra_blocked(<why>)' only if the test cannot even be AUTHORED without
+the infra (infra_blocked does NOT excuse a unit RED you could have written). After all ACs are green,
+ATTEMPT to run the artifact and record execution_verified honestly (never skip). Then PUSH the feature
+branch to origin and write 'git diff origin/dev..HEAD' to a file in the ticket folder; return its path
+as diff_artifact and set pushed=true. ${decisionsNote}`,
     { schema: IMPLEMENT_SCHEMA, label: 'implement', phase: 'Implement', isolation: 'worktree' })
   if (!impl) return { status: 'HALT_AGENT_SKIPPED', phase: 'Implement', ticket }
   rec('implement', impl)
   if (impl.status === 'stuck') return { status: 'HALT_IMPLEMENT_STUCK', ticket, branch: impl.branch, impl }
+  // TDD gate, layer 1 (deft-falcon): structural RED-green proof per AC. Un-skippable in 'halt' mode.
+  {
+    const v = tddViolations(impl, true)
+    if (v.length && tddGateMode === 'halt') return { status: 'HALT_TDD_GATE', phase: 'Implement', ticket, branch: impl.branch, tdd_violations: v, impl }
+    if (v.length) { tddWarnings.push({ phase: 'Implement', violations: v }); log(`TDD gate (warn mode): ${v.length} violation(s) — ${v.join('; ')}`) }
+  }
 
   // Review prompt reused across the bounded fix loop (each round is a fresh, segregated reviewer).
   const reviewPrompt = `${readContract('5-review')}
@@ -325,6 +435,12 @@ OPEN CRITICAL FINDINGS: ${JSON.stringify(criticals)}`,
     if (!fix) return { status: 'HALT_AGENT_SKIPPED', phase: 'Fix', ticket, branch: impl.branch }
     rec(`fix-${fixRounds}`, fix)
     if (fix.pushed !== true) return { status: 'HALT_FIX_NOT_PUSHED', ticket, branch: impl.branch, fix, review }
+    // TDD gate on the fix's own bug-tests (completeness off — a fix only re-reports the ACs it touched).
+    {
+      const v = tddViolations(fix, false)
+      if (v.length && tddGateMode === 'halt') return { status: 'HALT_TDD_GATE', phase: 'Fix', ticket, branch: impl.branch, tdd_violations: v, fix, review }
+      if (v.length) { tddWarnings.push({ phase: `Fix-${fixRounds}`, violations: v }); log(`TDD gate (warn mode, fix round ${fixRounds}): ${v.length} violation(s) — ${v.join('; ')}`) }
+    }
 
     phase('Review')
     review = await agent(reviewPrompt, { schema: REVIEW_SCHEMA, label: `review-r${fixRounds + 1}`, phase: 'Review', isolation: 'worktree' })
@@ -333,16 +449,23 @@ OPEN CRITICAL FINDINGS: ${JSON.stringify(criticals)}`,
   }
   if (review.criticals_open > 0) return { status: 'BLOCKED_REVIEW_CRITICAL', ticket, branch: impl.branch, review, impl, fix_rounds: fixRounds }
 
+  // Hand QA the RED commits to re-verify on the branch (deft-falcon layer 2) — just what it needs to check.
+  const redLedger = JSON.stringify((impl.ac_tdd || []).map((e) => ({ ac: e.ac, red_commit: e.red && e.red.commit, exempt: e.exempt || null })))
   phase('QA')
   const qa = await agent(`${readContract('6-qa')}
 You did NOT write this code or its plan. The runtime gave you your own worktree: run 'git fetch origin
 ${impl.branch}' then 'git checkout ${impl.branch}'. Prove each AC with concrete evidence (code_ref + a
-passing test_ref; for runnable behaviour, run it). Return raw verdicts; do NOT self-assign the level.`,
+passing test_ref; for runnable behaviour, run it). ALSO re-verify the TDD RED per AC against the ledger
+below: 'git show --stat <red_commit>' must touch the TEST file only (no production source change), and the
+test must FAIL when run at that commit — set red_verified=true when both hold, false when not, 'exempt'
+for an exempt entry. A PASS whose RED you cannot re-verify gets capped. Return raw verdicts; do NOT
+self-assign the level.
+RED LEDGER: ${redLedger}`,
     { schema: QA_SCHEMA, label: 'qa', phase: 'QA', isolation: 'worktree' })
   if (!qa) return { status: 'HALT_AGENT_SKIPPED', phase: 'QA', ticket, branch: impl.branch }
   rec('qa', qa, qa.raw_overall)
 
-  const qaCapped = capQaVerdict(impl.execution_verified, evidenceCappedOverall(qa))
+  const qaCapped = capQaVerdict(impl.execution_verified, tddVerifiedCap(qa, evidenceCappedOverall(qa)))
   const blockers = preShipBlockers(impl, review, qaCapped)
   if (blockers.length) return { status: 'HALT_PRESHIP', ticket, branch: impl.branch, blockers, qa_capped: qaCapped, impl, review, qa }
 
@@ -361,7 +484,13 @@ ${impl.branch}'. Version bump + CHANGELOG, commit, push the branch with git. Do 
   return {
     status: 'READY_TO_SHIP', ticket, branch: shipPrep.branch, version: shipPrep.version,
     execution_verified: impl.execution_verified, qa_capped: qaCapped, ticket_folder: _tf,
+    tdd_gate_mode: tddGateMode,
+    tdd_warnings: tddWarnings, // non-empty only in warn mode; a warn run can never look clean
+    // Deterministic backstop (adversarial finding): layers 1+2 are agent-reported; the MAIN LOOP can run
+    // git for real. It mechanically audits each RED commit before opening the MR — the one non-LLM check.
+    tdd_red_audit: (impl.ac_tdd || []).filter((e) => !e.exempt && e.red).map((e) => ({ ac: e.ac, red_commit: e.red.commit })),
     next_steps_for_main_loop: [
+      'MECHANICALLY verify each tdd_red_audit entry: `git show --stat <red_commit>` touches test file(s) only (no production source), and the same test FAILS when checked out at that commit. If any fails, do NOT open the MR — re-run or halt.',
       'Invoke /klever-mr (no auto-merge) for branch ' + shipPrep.branch,
       'Invoke /post-comment for the Jira comment (MR link + AC summary + QA evidence)',
       'Transition the ticket to In Review/Testing (ceiling)',
@@ -384,10 +513,13 @@ const runEval = await agent(
   `Read ${CONTRACTS}/9-retro.md and execute it for ticket ${ticket}.
 Terminal status: ${result.status}. Ticket folder: ${_tf || '(unresolved)'}.
 Per-phase trace (JSON, includes each phase's soft confidence): ${JSON.stringify(trace)}.
+TDD gate mode: ${tddGateMode}. TDD warn-mode violations (must be empty for a trustworthy run): ${JSON.stringify(tddWarnings)}.
+If the gate ran in 'warn' mode, treat that as a red flag (the un-skippable gate was disabled) and record any
+warn-mode violations as the top improvement — the next run should use the default 'halt'.
 Score the run, list red flags, propose concrete next-run improvements, and WRITE both the telemetry
 YAML (to ${RUNS}/) and the next-run improvement handoff exactly as the contract specifies. Return the
 paths you wrote as telemetry_written and handoff_written.`,
   { schema: RETRO_SCHEMA, label: 'retro', phase: 'Retro' }
 )
 
-return { ...result, eval: runEval || null, trace }
+return { ...result, tdd_gate_mode: tddGateMode, tdd_warnings: tddWarnings, eval: runEval || null, trace }

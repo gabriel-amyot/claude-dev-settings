@@ -20,6 +20,18 @@ build station (Implement) and tester station (execution-verify + QA). Tooling va
   component; behavior verification is end-to-end. If a changed module has a pure, isolatable function
   (a selector, a transform, a geo helper), prefer to extract and test it — but do NOT assume a unit
   runner exists. Re-check `package.json` `devDependencies` each run before claiming a unit layer.
+- **red (test-first) — and when it is honestly `not_applicable`:** the TDD gate wants a proven RED per AC,
+  but this belt has no component-unit runner, so split by AC type:
+  - **Extractable pure logic** (a selector, transform, geo/format helper) → write a Playwright
+    **pure-function** test (the isolated-function pattern — the only unit-ish layer here), stub the fn so it
+    imports, assert the new behavior, run it so it fails on the **assertion**, commit test-only, then GREEN.
+    That is a real RED; record it in the ledger.
+  - **Pure-render ACs** (a Mapbox layer renders, a toggle shows/hides, a panel appears) have **no unit
+    surface** → `exempt: not_applicable(rendered-UI AC, no extractable logic; proof is live visual
+    validation)`. The real proof stays the belt's `proof (QA)` (ui-probe screenshot), which QA still gates
+    (no screenshot → PARTIAL). **Do NOT manufacture a fake unit test to dodge the gate** (synthetic-data
+    anti-pattern) — but do NOT label an AC `not_applicable` if you extracted ANY pure fn: QA re-checks the
+    diff, and a found-but-untested pure function makes the exemption bogus → the AC is capped.
 - **execute-verify:** `npm run build` (= `next build`) succeeds AND a dev startup smoke
   (`npm run dev` = `next dev`, timeout ~120s) **boots and compiles without a runtime error**. Success
   signal: Next prints `✓ Ready in <N>ms` / `✓ Compiled` for the affected route with no error overlay.

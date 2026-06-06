@@ -9,6 +9,11 @@ transform data, change state. The deliverable is NOT a running service; it is an
 - **compile / lint:** `python -m py_compile <file>` (Python); `bash -n <file>` (shell).
 - **unit test:** `pytest` (Python) if tests exist; for shell, a fixture-driven test script (`bats` or
   a small harness) if present. Pure functions should be unit-tested.
+- **red (test-first):** stub the function so the file imports, write the `pytest` assertion for the new
+  behavior, run `pytest <path>::<test>` — it must fail on the **assertion**, NOT an `ImportError`/
+  `SyntaxError`. Commit the test alone (test-only RED commit), then write code to GREEN. Capture the failing
+  output into the per-AC ledger (`<ticket_folder>/tdd/AC-<N>.md`). (Shell: assert on output/exit-code in the
+  harness — same rule: fail on the assertion, not a parse error.)
 - **execute-verify:** RUN the script on **declared fixtures / inputs** and assert the **declared
   expected output**. Design (Phase 2) must declare the expected output (the scripting analog of test
   specs): which files appear, exit code 0, content/row-count/shape matches.

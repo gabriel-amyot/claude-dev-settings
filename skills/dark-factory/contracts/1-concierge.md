@@ -25,6 +25,15 @@ Merges the old skill's Phase 1 (ANALYZE) and Phase 2 prerequisites/escalation in
    splitting the seedable/buildable part from the backend-gated part. A single-AC ticket whose AC cannot
    fully pass must be split or flagged here at the gate — not discovered downstream at HALT_PRESHIP.
    Record gated sub-ACs in the AC artifact and surface them in `summary`.
+3b. **Classify each AC visual vs logic (0.9.0 visual-AC gate).** Set `ac_kind` per AC: `visual` if its
+   proof is a live screenshot (a rendered panel/layer/toggle/page, or an interaction), `logic` if it is
+   unit-verifiable. For each `visual` AC gated on a DATA condition (country===CA, granularity===fsa, a
+   specific advertiser), set `fixture`: `available` (renderable now), `seedable` (a local fixture can be
+   created), or `missing` (no way to render this data locally). **A `visual` AC with `fixture: missing` is
+   a front-gate blocker** — set needs_human and raise an open_question UP FRONT (defer, or accept
+   logic-only this run). A stack cannot conjure unseeded data, and discovering it at QA is the recurring
+   KTP-728/758/759/788 HALT_PRESHIP surprise this gate exists to kill. Browser/dev availability is NOT a
+   front-gate concern (the main loop renders rendered-UI ACs against the local stack); missing DATA is.
 4. **Repo + stack.** Identify affected repo(s) and stack (Klever repo map in `project-management/CLAUDE.md`).
    Unknown/ambiguous repo or unclear stack → a **human decision** (open_question; set needs_human).
 4b. **Classify the tool belt.** Read the tool crib (`toolcrib/INDEX.md`, then each belt file's `detect`
@@ -77,6 +86,7 @@ Merges the old skill's Phase 1 (ANALYZE) and Phase 2 prerequisites/escalation in
 - `prereqs_ok`: boolean
 - `ticket_folder`: absolute path you resolved in step 2
 - `tool_belt`: proposed belt id from step 4b (a belt id racked in `toolcrib/`, or best-guess)
+- `acs`: array of `{ id, ac_kind: visual|logic, fixture?: available|seedable|missing|n/a }` (step 3b) — the visual-AC gate uses this to route rendered-UI ACs to the main-loop render step
 - `open_questions`: array of `{ id, question, why_blocking, options? }`
 - `summary`: 1-3 sentences (include any brownfield finding from step 5)
 

@@ -71,6 +71,22 @@ const CONCIERGE_SCHEMA = {
         },
       },
     },
+    // Per-AC classification (0.9.0 visual-AC gate): which ACs need a live screenshot (rendered-UI) vs are
+    // unit-verifiable. For a visual AC gated on a data condition (country===CA, granularity===fsa), the
+    // fixture verdict says whether it can be rendered locally. A 'missing' fixture on a visual AC must be
+    // raised as a needs_human open_question UP FRONT (a stack can't conjure unseeded data).
+    acs: {
+      type: 'array',
+      items: {
+        type: 'object',
+        required: ['id', 'ac_kind'],
+        properties: {
+          id: { type: 'string' },
+          ac_kind: { type: 'string', enum: ['visual', 'logic'] },
+          fixture: { type: 'string', enum: ['available', 'seedable', 'missing', 'n/a'] },
+        },
+      },
+    },
     summary: { type: 'string' },
     confidence: { type: 'integer', minimum: 0, maximum: 100 },
     confidence_deductions: { type: 'array', items: { type: 'object', properties: { points: { type: 'integer' }, reason: { type: 'string' } } } },
@@ -182,6 +198,11 @@ const QA_SCHEMA = {
           // RED commit is test-only and the test fails at that commit; 'exempt' for not_applicable/infra
           // exemptions; false/absent if unverified. tddVerifiedCap() caps a PASS lacking this to PARTIAL.
           red_verified: { type: ['boolean', 'string'] },
+          // Visual-AC gate (0.9.0): true when a rendered-UI AC's logic + wiring are proven (code_ref + any
+          // pure-logic RED green) and the ONLY missing thing is a live screenshot. A run whose only non-PASS
+          // ACs are visual_pending routes to NEEDS_VISUAL_VERIFY (main loop renders against the local
+          // stack), not HALT_PRESHIP. Never set true for a logic gap or a real failure.
+          visual_pending: { type: 'boolean' },
         },
       },
     },
@@ -245,14 +266,33 @@ function executionOk(ev) {
   return v === 'true' || v.indexOf('not_applicable') === 0
 }
 
-function preShipBlockers(impl, review, qaCapped) {
+function preShipBlockers(impl, review, qaCapped, qaGap) {
   const b = []
   if (!impl || !executionOk(impl.execution_verified)) b.push(`execution not verified (${impl ? impl.execution_verified : 'no impl'})`)
   if (!impl || impl.pushed !== true) b.push('feature branch was not pushed (review/QA could not see the code)')
   if (!review) b.push('no review artifact')
   else if (review.criticals_open > 0) b.push(`${review.criticals_open} open CRITICAL finding(s)`)
-  if (qaCapped !== 'ALL_PASS') b.push(`QA verdict is ${qaCapped}, not ALL_PASS`)
+  // A QA verdict below ALL_PASS blocks ONLY when the gap is real (a logic AC failed, or a PASS AC lacked
+  // evidence/RED). A 'visual_only' gap — every non-PASS AC is a rendered-UI AC awaiting a live screenshot —
+  // does NOT block here; it routes to NEEDS_VISUAL_VERIFY so the main loop renders it against the local
+  // stack. (0.9.0 visual-AC gate)
+  if (qaCapped !== 'ALL_PASS' && qaGap === 'real_gap') b.push(`QA verdict is ${qaCapped}, not ALL_PASS (non-visual gap)`)
   return b
+}
+
+// Classify WHY QA isn't ALL_PASS (0.9.0). Decides HALT vs NEEDS_VISUAL_VERIFY vs READY_TO_SHIP.
+//  'all_pass'    — clean; everything PASS, nothing capped.
+//  'visual_only' — the ONLY non-PASS ACs are rendered-UI ACs marked visual_pending (logic proven, just no
+//                  screenshot yet), AND no PASS AC was capped for evidence/RED. The machine-provable work
+//                  is done; only the live render remains -> the main loop verifies it.
+//  'real_gap'    — anything else: a logic AC failed/partial, or a PASS AC lacked code_ref/test_ref/red_verified.
+function classifyQaGap(qa, qaCapped) {
+  if (qaCapped === 'ALL_PASS') return 'all_pass'
+  const perAc = (qa && qa.per_ac) || []
+  const nonPass = perAc.filter((a) => a.verdict !== 'PASS')
+  const passUnsupported = perAc.some((a) => a.verdict === 'PASS' && (!a.code_ref || !a.test_ref || (a.red_verified !== true && a.red_verified !== 'exempt')))
+  if (nonPass.length > 0 && nonPass.every((a) => a.visual_pending === true) && !passUnsupported) return 'visual_only'
+  return 'real_gap'
 }
 
 // ---- TDD gate (deft-falcon): red-green-refactor promoted from prose into a deterministic check ----
@@ -338,7 +378,15 @@ Do NOT guess past these.
 Also CLASSIFY the work-type and PROPOSE a tool_belt: read the tool crib at ${TOOLCRIB}/ (start with its
 INDEX.md, then each belt file's "detect" rule) and return the id of the belt whose detect rule matches
 this ticket's deliverable. If none match, return your best-guess label (the run halts as unsupported
-rather than fake a proof — that means a new belt must be racked first).${resumeNote}${CONFIDENCE_BLURB}`,
+rather than fake a proof — that means a new belt must be racked first).
+Also CLASSIFY EACH AC (return the 'acs' array): ac_kind='visual' for a rendered-UI AC whose proof is a
+live screenshot (a panel/layer/toggle renders, an interaction behaves), or 'logic' for a unit-verifiable
+AC. For each 'visual' AC gated on a DATA condition (e.g. country===CA, granularity===fsa, a specific
+advertiser), set fixture='available' (data already renderable), 'seedable' (a local fixture can be
+created), or 'missing' (no way to render this data locally). A 'visual' AC with fixture='missing' is a
+front-gate blocker: set needs_human=true and raise it as an open_question UP FRONT (a stack can't conjure
+unseeded data — decide defer vs accept logic-only now), rather than discovering at QA that the panel
+can't be rendered.${resumeNote}${CONFIDENCE_BLURB}`,
     { schema: CONCIERGE_SCHEMA, label: 'concierge', phase: 'Concierge' }
   )
   if (!concierge) return { status: 'HALT_AGENT_SKIPPED', phase: 'Concierge', ticket }
@@ -466,8 +514,9 @@ RED LEDGER: ${redLedger}`,
   rec('qa', qa, qa.raw_overall)
 
   const qaCapped = capQaVerdict(impl.execution_verified, tddVerifiedCap(qa, evidenceCappedOverall(qa)))
-  const blockers = preShipBlockers(impl, review, qaCapped)
-  if (blockers.length) return { status: 'HALT_PRESHIP', ticket, branch: impl.branch, blockers, qa_capped: qaCapped, impl, review, qa }
+  const qaGap = classifyQaGap(qa, qaCapped) // all_pass | visual_only | real_gap (0.9.0)
+  const blockers = preShipBlockers(impl, review, qaCapped, qaGap)
+  if (blockers.length) return { status: 'HALT_PRESHIP', ticket, branch: impl.branch, blockers, qa_capped: qaCapped, qa_gap: qaGap, impl, review, qa }
 
   phase('ShipPrep')
   const shipPrep = await agent(`${readContract('7-ship')}
@@ -481,22 +530,49 @@ ${impl.branch}'. Version bump + CHANGELOG, commit, push the branch with git. Do 
     return { status: 'HALT_SHIPPREP_FAILED', ticket, branch: impl.branch, shipPrep, impl, review, qa }
   }
 
-  return {
-    status: 'READY_TO_SHIP', ticket, branch: shipPrep.branch, version: shipPrep.version,
-    execution_verified: impl.execution_verified, qa_capped: qaCapped, ticket_folder: _tf,
+  // Shared payload for both ship-ready terminal states.
+  const shipped = {
+    ticket, branch: shipPrep.branch, version: shipPrep.version,
+    execution_verified: impl.execution_verified, qa_capped: qaCapped, qa_gap: qaGap, ticket_folder: _tf,
     tdd_gate_mode: tddGateMode,
     tdd_warnings: tddWarnings, // non-empty only in warn mode; a warn run can never look clean
     // Deterministic backstop (adversarial finding): layers 1+2 are agent-reported; the MAIN LOOP can run
     // git for real. It mechanically audits each RED commit before opening the MR — the one non-LLM check.
     tdd_red_audit: (impl.ac_tdd || []).filter((e) => !e.exempt && e.red).map((e) => ({ ac: e.ac, red_commit: e.red.commit })),
+    phases: { concierge, design, grill, impl, review, qa, shipPrep },
+  }
+  const redAuditStep = 'MECHANICALLY verify each tdd_red_audit entry: `git show --stat <red_commit>` touches test file(s) only (no production source), and the same test FAILS when checked out at that commit. If any fails, do NOT open the MR — re-run or halt.'
+
+  // Visual-AC gate (0.9.0): the ONLY non-PASS ACs are rendered-UI ACs awaiting a live screenshot. The
+  // machine-provable work is done + pushed, but visual proof can't run in a subagent (skills unreliable
+  // there, and it needs the local stack). Hand the visual step to the MAIN LOOP, which CAN run skills.
+  if (qaGap === 'visual_only') {
+    const visualAcs = (qa.per_ac || []).filter((a) => a.visual_pending === true).map((a) => {
+      const c = ((concierge.acs || []).find((x) => x.id === a.ac)) || {}
+      return { ac: a.ac, fixture: c.fixture || 'unknown' }
+    })
+    return {
+      ...shipped, status: 'NEEDS_VISUAL_VERIFY', visual_acs: visualAcs,
+      next_steps_for_main_loop: [
+        redAuditStep,
+        'Start the local stack: /klever-local-stack (use klever-local-stack-real-bq when a visual AC needs real data). Seed any fixture marked "seedable" in visual_acs.',
+        'For each visual_acs AC, render it against http://localhost:3000 and capture a screenshot: prefer the ui-probe skill (reuses your authenticated Chrome); else /klever-test AC-validation (headless Playwright — localhost has no IAP wall).',
+        'If EVERY visual AC renders correctly: treat as READY_TO_SHIP — /klever-mr (no auto-merge) for ' + shipPrep.branch + ', /post-comment with the screenshots as AC evidence, transition to In Review/Testing.',
+        'If a visual AC renders WRONG: it is a real gap — do NOT ship; report it (a fix is needed).',
+        'If the stack will not start, a fixture is genuinely unavailable (concierge marked it "missing"), or no browser is drivable: fall back to READY_FOR_VISUAL_QA — /klever-mr + /post-comment flagged "visual QA pending: ' + visualAcs.map((v) => v.ac).join(', ') + ' — needs a human eyeball on the running app", transition to In Review/Testing.',
+      ],
+    }
+  }
+
+  return {
+    ...shipped, status: 'READY_TO_SHIP',
     next_steps_for_main_loop: [
-      'MECHANICALLY verify each tdd_red_audit entry: `git show --stat <red_commit>` touches test file(s) only (no production source), and the same test FAILS when checked out at that commit. If any fails, do NOT open the MR — re-run or halt.',
+      redAuditStep,
       'Invoke /klever-mr (no auto-merge) for branch ' + shipPrep.branch,
       'Invoke /post-comment for the Jira comment (MR link + AC summary + QA evidence)',
       'Transition the ticket to In Review/Testing (ceiling)',
       'After the human merges: run contract 8 (validate) as a post-merge step',
     ],
-    phases: { concierge, design, grill, impl, review, qa, shipPrep },
   }
 }
 

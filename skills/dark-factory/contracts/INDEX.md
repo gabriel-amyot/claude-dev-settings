@@ -27,6 +27,8 @@ Source = `~/.claude/skills/dark-factory/SKILL.md` (v1), proven across KTP-681/68
 - Shared contracts stay **stack-agnostic**; work-type tooling lives in `toolcrib/` belts (`java`,
   `scripting`, `frontend` racked). A belt swaps tools only (ADR-002).
 - The JS gates in the spine ALREADY enforce: spec-quality halt, zero-open-CRITICAL, QA verdict cap
-  from execution_verified, pre-ship blockers, and the **TDD RED gate** (`tddViolations` on `ac_tdd` +
-  `tddVerifiedCap` on QA's `red_verified`). Contracts describe the *work*; the spine enforces the
-  *gates*. Do not duplicate gate logic as prose in the contracts.
+  from execution_verified, pre-ship blockers, the **TDD RED gate** (`tddViolations` on `ac_tdd` +
+  `tddVerifiedCap` on QA's `red_verified`), and the **visual-AC gate** (`classifyQaGap` routes a
+  visual-only QA gap to `NEEDS_VISUAL_VERIFY` instead of HALT; concierge `acs` carries the visual/logic +
+  fixture classification; QA's `visual_pending` marks proven-logic rendered-UI ACs). Contracts describe
+  the *work*; the spine enforces the *gates*. Do not duplicate gate logic as prose in the contracts.

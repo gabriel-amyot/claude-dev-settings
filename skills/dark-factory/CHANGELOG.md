@@ -2,6 +2,44 @@
 
 Every SKILL.md / workflow.js / contract change bumps the version and adds an entry.
 
+## 0.9.0 (2026-06-09)
+
+**Visual-AC gate — stop discovering at QA that rendered-UI ACs can't be auto-verified; gate on it up
+front, and ship code-complete UI tickets to a render step instead of a surprise HALT.**
+
+The 0.8.0 TDD gate ran clean in production (KTP-759/788, `trustworthy: true`), but those runs — and
+KTP-728/758 before them — all `HALT_PRESHIP` on the *same* root cause: a rendered-UI AC can't be visually
+verified from a headless QA subagent, found only at QA after burning implement+review+QA. Reframe:
+"couldn't auto-verify the UI" is not "failed" — a UI ticket with proven logic + clean build + clean review
+is code-complete and needs a render/eyeball, not a blocked branch.
+
+- **Corrected premise:** a too-pessimistic v1 spec said visual proof was "structurally impossible
+  autonomously." It conflated *dev* verification (IAP + nightly-off) with *all* verification. Localhost has
+  no IAP wall and the Playwright suite already drives the local stack headlessly. So local-stack rendering
+  is the **primary** path; human eyeball is the fallback. The real irreducible blocker is **fixtures**
+  (unseeded data, e.g. KTP-788's Canadian FSA store), not browser access.
+- **`dark-factory.workflow.js`:**
+  - `CONCIERGE_SCHEMA` gains per-AC `acs: [{id, ac_kind: visual|logic, fixture}]`. A `visual` AC with
+    `fixture: 'missing'` is a front-gate `needs_human` (a stack can't conjure unseeded data).
+  - `QA_SCHEMA.per_ac` gains `visual_pending` — a rendered-UI AC whose logic is proven and only the live
+    screenshot is missing.
+  - `classifyQaGap()` (`all_pass` | `visual_only` | `real_gap`) + `preShipBlockers()` now takes the gap:
+    a `visual_only` gap does NOT block; a `real_gap` does. New terminal state **`NEEDS_VISUAL_VERIFY`**
+    (ShipPrep still runs, branch pushed) hands the render step to the main loop with `visual_acs` + the
+    `next_steps`. Concierge prompt classifies + raises the missing-fixture question up front.
+- **Two-tier verification, by substrate:** skills are unreliable inside Workflow subagents (ADR-001), so
+  the QA subagent proves everything *without* a browser; the **main loop** (where skills + the local stack
+  work) does the render: `/klever-local-stack` → `ui-probe`/`/klever-test` against `localhost:3000` →
+  promote to READY_TO_SHIP with screenshots, or fall to **`READY_FOR_VISUAL_QA`** (MR flagged for a human
+  eyeball) when the stack/fixture/browser can't render. `HALT_PRESHIP` stays for real blockers only.
+- **Contracts:** `1-concierge.md` (step 3b: visual/logic + fixture classification, missing-fixture
+  front-gate halt), `6-qa.md` (mark `visual_pending` for proven-logic rendered-UI ACs).
+- **`tests/visual-readiness.test.mjs`** — 14 cases over the real `classifyQaGap` + `preShipBlockers`
+  (extracted verbatim), mutation-checked (dropping the `visual_pending` requirement lets a real FAIL slip
+  into `visual_only`, caught).
+- **Deferred (in the spec):** typecheck-noise split, deferred-hardening capture for dropped LOW/MEDIUM
+  findings, AC-vs-implementation mechanism-drift gate, an auto-seed fixture library.
+
 ## 0.8.0 (2026-06-05)
 
 **Promoted red-green-refactor from prose into an un-skippable, artifact-backed gate — the one factory

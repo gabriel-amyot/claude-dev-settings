@@ -48,6 +48,21 @@ independent check that the RED was real (the implementor's word alone is fabrica
 A `PASS` AC whose `red_verified` is not `true`/`'exempt'` is capped to PARTIAL by the orchestrator
 (`tddVerifiedCap`). Reading the ledger is not enough — run the git checks.
 
+## Rendered-UI ACs: mark `visual_pending` (0.9.0 visual-AC gate)
+
+A rendered-UI AC (a panel/layer/toggle/page renders, an interaction behaves) is proven only by a live
+screenshot — which you, a headless QA subagent, cannot capture (no authenticated browser, and the local
+stack isn't yours to run). Do NOT invent a green and do NOT fail it. Instead, when such an AC has its
+**logic + wiring proven** (a real `code_ref`, and any extractable pure-logic RED is green) and the ONLY
+missing thing is the live render, set `verdict: PARTIAL` AND **`visual_pending: true`**.
+
+That flag tells the orchestrator the machine-provable work is done and only the human-eye/local-render
+step remains: a run whose only non-PASS ACs are `visual_pending` routes to `NEEDS_VISUAL_VERIFY` (the main
+loop renders it against the local stack), not `HALT_PRESHIP`. **Set `visual_pending: true` ONLY when the
+logic is genuinely proven** — never on a logic gap, a failed assertion, or a missing `code_ref`. A
+non-visual PARTIAL/FAIL (a logic AC that didn't pass, a `not_applicable` exemption that was bogus) is a
+real gap: leave `visual_pending` false/absent so it blocks.
+
 ## Output (write to disk)
 
 Write `<ticket_folder>/qa/result.yaml` (path in your prompt). Each `per_ac` row carries a real
@@ -63,13 +78,14 @@ per_ac:
       command: "<the proof command per your belt>"
       output_path: "<ticket_folder>/qa/AC-1.out"
     red_verified: true        # true | false | exempt — from the git re-check above
+    visual_pending: false     # true ONLY for a rendered-UI AC whose logic is proven but the live screenshot couldn't be captured here
 summary: "..."
 ```
 
 ## Return
 
 - `raw_overall`: ALL_PASS | PARTIAL | FAIL  (your raw read of the evidence)
-- `per_ac`: array of `{ ac, verdict, code_ref, test_ref, red_verified }`
+- `per_ac`: array of `{ ac, verdict, code_ref, test_ref, red_verified, visual_pending }`
 - `summary`: 1-3 sentences
 
 **Example per_ac row (shape — `test_ref` is whatever proof your belt defines):**

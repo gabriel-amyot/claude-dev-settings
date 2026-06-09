@@ -1,6 +1,6 @@
 ---
 name: dark-factory
-version: "0.8.0"
+version: "0.9.0"
 description: "The ticket-to-dev factory for a SINGLE ticket, orchestrated by the Workflow tool instead of prose. Gates are code (un-skippable), with a human concierge gate at the front. The concierge proposes a tool belt from the crib (java, scripting, or frontend); the build + tester sockets are equipped from that belt, so the same line handles multiple work-types without duplication. Review + bounded fix loop + QA. The workflow does code work and pushes the branch (terminal state READY_TO_SHIP); the main loop creates the MR + Jira comment and runs post-merge validate. For multi-ticket / epic DAGs use Sprint Factory (/sprint-factory). Triggers on: '/dark-factory', 'dark factory', 'ticket to dev', 'run this ticket'. Klever."
 user_invocable: true
 nav:
@@ -98,10 +98,22 @@ work-type needing different room *logic* is a rare new floor, not a belt. Refini
      QA not green); do not ship.
    - `HALT_SHIPPREP_FAILED` / `HALT_AGENT_SKIPPED` → report; nothing shipped.
    - `READY_TO_SHIP` → the code is done, reviewed, QA'd, version-bumped, and pushed. Now the MAIN LOOP:
-     1. `/klever-mr` (no auto-merge) for `branch`.
-     2. `/post-comment` — Jira comment: MR link + AC summary + QA evidence highlights.
-     3. Transition the ticket to In Review/Testing (ceiling).
-     4. After the human merges: run contract 8 (`docs`/`contracts/8-validate.md`) as a post-merge step.
+     1. **Mechanically verify the TDD RED commits** (`tdd_red_audit`): for each, `git show --stat <sha>`
+        touches test file(s) only AND the same test fails at that commit. Any failure → do NOT open the MR.
+     2. `/klever-mr` (no auto-merge) for `branch`.
+     3. `/post-comment` — Jira comment: MR link + AC summary + QA evidence highlights.
+     4. Transition the ticket to In Review/Testing (ceiling).
+     5. After the human merges: run contract 8 (`docs`/`contracts/8-validate.md`) as a post-merge step.
+   - `NEEDS_VISUAL_VERIFY` (0.9.0) → all machine-provable work is green + pushed; the only non-PASS ACs are
+     rendered-UI ACs awaiting a live screenshot (`visual_acs`). The MAIN LOOP does the render step the
+     subagent couldn't (follow `next_steps_for_main_loop` verbatim): run the `tdd_red_audit`, then
+     `/klever-local-stack` (seed any `seedable` fixture), then render each `visual_acs` AC against
+     `localhost:3000` (prefer `ui-probe`; else `/klever-test` AC-validation) and capture a screenshot.
+     **Every visual AC renders correctly** → proceed exactly like `READY_TO_SHIP` (MR + Jira with the
+     screenshots as evidence). **A visual AC renders wrong** → real gap, do not ship. **Stack won't start /
+     fixture unavailable / no drivable browser** → fall back to `READY_FOR_VISUAL_QA`: open the MR +
+     `/post-comment` flagged "visual QA pending: <ACs> — needs a human eyeball on the running app", at the
+     In Review/Testing ceiling.
 4. **Write a short run note** to the ticket folder (status, MR if any, what the gates did).
 
 ## Guardrails
@@ -109,8 +121,9 @@ work-type needing different room *logic* is a rare new floor, not a belt. Refini
 No direct push to dev/main; no destructive git; DAC repos dev-only; ticket transition ceiling =
 In Review/Testing; all external posts via `/post-comment`. The workflow's JS gates enforce
 execution-verified, branch-pushed, zero-open-CRITICAL, evidence-backed QA, QA-green-before-ship, the
-**TDD RED gate** (a proven failing-first test per AC, re-verified by QA on the branch), plus the front
-human gate.
+**TDD RED gate** (a proven failing-first test per AC, re-verified by QA on the branch), the **visual-AC
+gate** (rendered-UI ACs route to `NEEDS_VISUAL_VERIFY` for a real render instead of a surprise
+`HALT_PRESHIP`; a `missing` data fixture is caught at the front gate), plus the front human gate.
 
 ## Lineage note
 
@@ -120,6 +133,19 @@ conductor, `/sprint-factory`), v2 took the plain **dark-factory** name as the si
 Historical design docs in `docs/` may still say "v2"; that means this skill.
 
 ## Status
+
+`0.9.0` — **visual-AC gate**, from the 0.8.0 run feedback (KTP-728/758/759/788 all HALT_PRESHIP on the
+same root cause: rendered-UI ACs unverifiable in an autonomous subagent, discovered late at QA). Reframe:
+"couldn't auto-verify the UI" ≠ "failed." The concierge now classifies each AC `visual`|`logic` and checks
+fixture availability up front (a `missing` data fixture is a front-gate `needs_human`, since no stack
+conjures unseeded data). QA marks proven-logic rendered-UI ACs `visual_pending`. A run whose ONLY non-PASS
+ACs are `visual_pending` routes to the new **`NEEDS_VISUAL_VERIFY`** terminal state: the main loop (where
+skills + the local stack work, unlike a subagent) starts `/klever-local-stack` and renders each AC against
+`localhost:3000` via `ui-probe`/`/klever-test` — true autonomous visual PASS — falling back to
+**`READY_FOR_VISUAL_QA`** (push + MR flagged for a human eyeball) only when the stack/fixture/browser
+genuinely can't render. `HALT_PRESHIP` stays reserved for real blockers. Guards: `tests/visual-readiness.test.mjs`
+(14 cases, mutation-checked). Local-stack-as-primary corrected a too-pessimistic v1 spec premise. See
+`docs/visual-ac-feasibility-spec-0.9.0.md` + CHANGELOG 0.9.0.
 
 `0.8.0` — promoted red-green-refactor from prose into an **un-skippable, artifact-backed gate**. An audit
 of 9 past runs found TDD adherence was invisible *and* fabricable (no run recorded a test seen failing

@@ -460,9 +460,11 @@ def search(jql, max_results=20, full=False):
         return {"error": str(e)}
 
 
-def create_issue(summary, issue_type, project=None, description=None, assignee=None, labels=None, parent=None, sprint=None):
+def create_issue(summary, issue_type, project=None, description=None, assignee=None, labels=None, parent=None, sprint=None, estimate=None, epic=None):
     """Create a new issue. Use --parent KEY to create a sub-task linked to a parent.
-    Use --sprint SPRINT_ID to place the issue in a sprint."""
+    Use --sprint SPRINT_ID to place the issue in a sprint.
+    Use --estimate N to set story points (customfield_10028).
+    Use --epic KEY to set the Epic Link (customfield_10014) for company-managed projects."""
     if not project:
         return {"error": "project is required"}
 
@@ -496,6 +498,12 @@ def create_issue(summary, issue_type, project=None, description=None, assignee=N
         if sprint is not None:
             fields["customfield_10020"] = int(sprint)
 
+        if estimate is not None:
+            fields["customfield_10028"] = float(estimate)
+
+        if epic is not None:
+            fields["customfield_10014"] = epic
+
         issue = jira.create_issue(fields=fields)
         result = {
             "created": True,
@@ -508,6 +516,10 @@ def create_issue(summary, issue_type, project=None, description=None, assignee=N
             result["parent"] = parent
         if sprint is not None:
             result["sprint_id"] = int(sprint)
+        if estimate is not None:
+            result["estimate"] = float(estimate)
+        if epic is not None:
+            result["epic"] = epic
         return result
     except Exception as e:
         return {"error": str(e)}
@@ -662,6 +674,25 @@ def link_issues(key1, key2, link_type="Relates"):
         return {"error": str(e)}
 
 
+def unlink_issues(key1, key2):
+    """Delete all issue links between key1 and key2 (either direction)."""
+    try:
+        issue = jira.issue(key1)
+        deleted = []
+        for link in issue.fields.issuelinks:
+            other = None
+            if hasattr(link, "outwardIssue"):
+                other = link.outwardIssue.key
+            elif hasattr(link, "inwardIssue"):
+                other = link.inwardIssue.key
+            if other == key2:
+                jira.delete_issue_link(link.id)
+                deleted.append(link.id)
+        return {"success": True, "deleted_link_ids": deleted, "count": len(deleted)}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 def list_link_types():
     """List all available issue link types."""
     try:
@@ -706,8 +737,8 @@ def retype_issue(key, new_type):
         return {"error": error_str}
 
 
-def update_issue(key, description=None, summary=None, assignee=None, labels=None, parent=None, estimate=None, sprint=None, force=False):
-    """Update issue fields (description, summary, assignee, labels, parent, estimate/story_points, sprint).
+def update_issue(key, description=None, summary=None, assignee=None, labels=None, parent=None, estimate=None, sprint=None, epic=None, force=False):
+    """Update issue fields (description, summary, assignee, labels, parent, estimate/story_points, sprint, epic).
     Ownership gate: blocks description updates on tickets not reported by the current user.
     Hierarchy gate: validates parent/child type compatibility before attempting the update.
     Pass force=True or --force to override."""
@@ -757,8 +788,11 @@ def update_issue(key, description=None, summary=None, assignee=None, labels=None
         if sprint is not None:
             fields["customfield_10020"] = int(sprint)
 
+        if epic is not None:
+            fields["customfield_10014"] = epic
+
         if not fields:
-            return {"error": "No fields to update. Provide --description, --summary, --assignee, --labels, --parent, --estimate, or --sprint"}
+            return {"error": "No fields to update. Provide --description, --summary, --assignee, --labels, --parent, --estimate, --sprint, or --epic"}
 
         issue.update(fields=fields)
 
@@ -1362,7 +1396,19 @@ try:
                 if idx + 1 < len(sys.argv):
                     sprint = sys.argv[idx + 1]
 
-            result = create_issue(summary, issue_type, project, description, assignee, labels, parent, sprint=sprint)
+            estimate = None
+            if "--estimate" in sys.argv:
+                idx = sys.argv.index("--estimate")
+                if idx + 1 < len(sys.argv):
+                    estimate = sys.argv[idx + 1]
+
+            epic = None
+            if "--epic" in sys.argv:
+                idx = sys.argv.index("--epic")
+                if idx + 1 < len(sys.argv):
+                    epic = sys.argv[idx + 1]
+
+            result = create_issue(summary, issue_type, project, description, assignee, labels, parent, sprint=sprint, estimate=estimate, epic=epic)
 
     elif command == "transition":
         if len(sys.argv) < 4:
@@ -1427,8 +1473,14 @@ try:
                 if idx + 1 < len(sys.argv):
                     sprint = sys.argv[idx + 1]
 
+            epic = None
+            if "--epic" in sys.argv:
+                idx = sys.argv.index("--epic")
+                if idx + 1 < len(sys.argv):
+                    epic = sys.argv[idx + 1]
+
             force = "--force" in sys.argv
-            result = update_issue(key, description=description, summary=summary, assignee=assignee, labels=labels, parent=parent, estimate=estimate, sprint=sprint, force=force)
+            result = update_issue(key, description=description, summary=summary, assignee=assignee, labels=labels, parent=parent, estimate=estimate, sprint=sprint, epic=epic, force=force)
 
     elif command == "add-comment":
         if len(sys.argv) < 4:
@@ -1472,6 +1524,12 @@ try:
                 if idx + 1 < len(sys.argv):
                     link_type = sys.argv[idx + 1]
             result = link_issues(key1, key2, link_type)
+
+    elif command == "unlink":
+        if len(sys.argv) < 4:
+            result = {"error": "unlink requires two issue keys. Usage: unlink KEY1 KEY2"}
+        else:
+            result = unlink_issues(sys.argv[2], sys.argv[3])
 
     elif command == "sprints":
         project = None

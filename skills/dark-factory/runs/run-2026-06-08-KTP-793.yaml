@@ -1,0 +1,181 @@
+run_id: run-2026-06-08-KTP-793
+ticket: KTP-793
+title: >
+  DOOH pin click-arbitration — a click on an unclustered DOOH pin opens ONLY the screen detail panel
+  and suppresses the ZIP/state Demographics panel; enlarge the unclustered pin hit radius (6->11px);
+  preserve pre-DOOH demographics behavior when the DOOH layer is absent or the click misses pins;
+  panel degraded-state copy on screen-detail fetch failure.
+date: 2026-06-08
+terminal_status: HALT_PRESHIP
+session: bold-fox
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: true
+  note: >
+    Gate ran in default halt mode with zero warn-mode violations. AC-1 RED is a genuine same-test
+    red-then-green: RED commit 759cd25 is a signature-stub helper (doohPinUnderClick returns constant
+    false so the new-file import compiles) plus its test; the baseline assertion PASSES at the RED
+    commit while the new-behavior assertion ("DOOH pin under click -> true") FAILS, proving the failure
+    is an assertion failure (right reason), not a missing-import/compile error. Same test passes at tip
+    (GREEN commit de9224a). AC-3/AC-4/AC-5 are belt-sanctioned RED exemptions: AC-3 is the
+    over-suppression guard bundled into the same click-arbitration pure-fn test; AC-4 is a baseline
+    no-op (helper returns false without querying when the layer is absent) covered by the same test;
+    AC-5 is a regression-lock on KTP-759-shipped fetch-rejection behavior (dooh-screen-detail-fetch
+    test, 3 assertions). AC-2 is a not_applicable exemption (paint-property circle-radius change with
+    no extractable pure logic). Defeats the vacuous-RED trick.
+
+per_phase:
+  - phase: concierge
+    status: PASS
+    confidence: 88
+  - phase: design
+    status: pass
+    confidence: 88
+  - phase: grill
+    status: pass
+    confidence: 88
+  - phase: implement
+    status: pass
+    confidence: 86
+  - phase: review
+    status: "criticals:0"
+    confidence: 88
+    note: >
+      0 CRITICAL/HIGH. One LOW, demonstrated:false — a cluster bubble (DOOH_CLUSTER_LAYER) overlaying a
+      ZIP is not arbitrated because doohPinUnderClick queries only DOOH_UNCLUSTERED_LAYER, so a
+      cluster-over-ZIP click could fire the cluster zoom AND open ZIP Demographics. Out of AC scope
+      (AC-1 explicitly scopes to "an unclustered pin"; clusters zoom and open no detail panel), so this
+      is pre-existing behavior, flagged as a hunch with no reproduction path. Fix is small and
+      well-targeted: a pure doohPinUnderClick helper invoked at the top of all 5 demographics handlers
+      before their circle-priority ladders.
+  - phase: qa
+    status: PARTIAL
+    confidence: 83
+    note: >
+      All 5 ACs capped PARTIAL. The load-bearing logic IS proven: click-arbitration.test.ts 5/5 and
+      dooh-screen-detail-fetch.test.ts 3/3 pass, AC-1 RED re-verified red-at-RED-commit / green-at-tip,
+      and next build compiles the /measurement route clean. Every AC is nonetheless capped at PARTIAL
+      because its terminal proof is rendered/visual behavior (ONLY the detail panel opens, the enlarged
+      hit target, the live ZIP Demographics still opening on a miss, the degraded-state panel copy),
+      which could not be live-verified: dev is in nightly-shutdown auth state (302) and ui-probe needs
+      an interactive authenticated Chrome unavailable to this autonomous run. No screenshot -> PARTIAL
+      per the frontend belt; QA invented no green. The 4 tsc errors are pre-existing vitest-import
+      failures in files untouched by this branch (confirmed present on origin/dev).
+
+scores:
+  task_confidence: 75
+  factory_fitness: 81
+
+deductions:
+  # task_confidence (start 100 -> 75)
+  - points: 12
+    reason: >
+      task_confidence: all 5 ACs are rendered-UI ACs whose belt proof is a live ui-probe screenshot,
+      which was not captured (dev in nightly-shutdown 302 auth state; no interactive authenticated
+      Chrome for ui-probe in an autonomous run). The pure logic is proven (click-arbitration 5/5,
+      fetch 3/3) and wiring confirmed by code_ref, but the final visual/behavioral verification — only
+      the detail panel opens, the enlarged hit target, the degraded-state copy — does not exist. The
+      ACs are unverified at the UI layer, not failed.
+  - points: 8
+    reason: >
+      task_confidence: HALT_PRESHIP terminal state — the run did not reach READY_TO_SHIP, so the main
+      loop's MR + Jira comment + post-merge validate did not run. Not deployed.
+  - points: 3
+    reason: >
+      task_confidence: per-phase confidence trended down (88 -> 83) into QA, reflecting the unprovable
+      visual layer; soft signal the task is not cleanly closeable as-is despite a sound logic layer.
+  - points: 2
+    reason: >
+      task_confidence: review's LOW cluster-over-ZIP finding (doohPinUnderClick queries only the
+      unclustered layer) is out of AC scope but a real un-arbitrated interaction path; undemonstrated
+      and carried forward with no follow-up artifact, a small residual closure/regression risk.
+  # factory_fitness (start 100 -> 81)
+  - points: 10
+    reason: >
+      factory_fitness: the factory still cannot self-serve visual verification for rendered-UI ACs. QA
+      depends on a live authenticated browser (ui-probe needs Gab's Chrome / IAP+Auth0) which is not
+      drivable from the QA subagent, AND dev was in nightly shutdown. Every UI-render AC is structurally
+      uncloseable inside an autonomous run, forcing HALT_PRESHIP. This is the SAME recurring root cause
+      as KTP-728 / KTP-758 / KTP-759 / KTP-788 — the factory keeps re-discovering it at QA instead of
+      gating on it up front. The fix (a visual-AC feasibility pre-flight) was proposed in the KTP-788
+      retro and has not yet landed.
+  - points: 5
+    reason: >
+      factory_fitness: no local-render fallback path was attempted. A click-arbitration / pin-radius /
+      panel-degraded-state interaction is renderable against a seeded local stack (/klever-local-stack)
+      without IAP, yet QA fell straight to "no authenticated Chrome -> PARTIAL" rather than spinning a
+      local /measurement render with a DOOH-pin fixture. The factory has the tooling (klever-local-stack,
+      um-local-seed) but the QA belt did not route to it for a localhost-renderable AC.
+  - points: 3
+    reason: >
+      factory_fitness: next build / tsc surfaced 4 pre-existing tsc errors (vitest-import failures) in
+      __tests__ files present on origin/dev and untouched by this branch. QA correctly attributed them,
+      but the gate output still mixes pre-existing noise with run signal, costing reviewer attention to
+      disambiguate run-introduced (0) from pre-existing (4). Same gate-noise gap flagged in KTP-788.
+  - points: 1
+    reason: >
+      factory_fitness: review's LOW finding (cluster-over-ZIP not arbitrated) was recorded
+      demonstrated:false with no reproduction path and no deferred-hardening capture — a real-but-latent
+      fragility carried forward with nowhere to land if clusters ever overlay ZIPs reachably.
+
+red_flags:
+  - "All 5 ACs returned PARTIAL; none reached PASS. The terminal UI proof (live ui-probe screenshot) was structurally unachievable — dev in nightly-shutdown auth state (302) and no interactive authenticated Chrome for the autonomous QA worker."
+  - "QA never attempted a local-render fallback (/klever-local-stack + seeded DOOH pin) for a localhost-renderable interaction AC; it went straight from 'no authenticated Chrome' to PARTIAL."
+  - "Recurring pattern: KTP-728, KTP-758, KTP-759, KTP-788, and now KTP-793 all HALT_PRESHIP on the same root cause (UI ACs unverifiable in an autonomous run). The KTP-788 retro proposed a visual-AC feasibility pre-flight gate; it has not landed, so the factory re-discovered the surprise at QA again."
+  - "next build / tsc shows 4 errors, all pre-existing vitest-import failures in untouched __tests__ files. Gate noise requiring manual attribution to clear (same as KTP-788)."
+  - "Review LOW finding (cluster-over-ZIP click not arbitrated — helper queries only DOOH_UNCLUSTERED_LAYER) marked demonstrated:false and dropped with no follow-up ticket — latent interaction-path fragility lost."
+
+improvements:
+  - title: "Land the visual-AC feasibility pre-flight gate (proposed at KTP-788, still open)"
+    detail: >
+      workflow.js should detect rendered-UI ACs (the frontend belt already classifies them) and, before
+      spending implement+review+qa, check whether visual verification is achievable this run: is a
+      drivable authenticated browser available (or is dev up — not in nightly shutdown) AND does a
+      renderable fixture exist for the AC's data condition? If not, surface a single up-front decision
+      ('visual ACs will land at PARTIAL — proceed code-only, run local-render, or defer?') instead of
+      discovering it at QA. This is the #1 recurring fitness gap across KTP-728/758/759/788/793. It was
+      proposed in the KTP-788 retro and has not been implemented; KTP-793 is direct evidence the gap
+      persists. Prioritize landing it.
+  - title: "Add a localhost-render QA fallback for IAP-independent interaction ACs"
+    detail: >
+      KTP-793's ACs (pin click suppresses Demographics, enlarged hit radius, ZIP demographics still
+      opens on a miss, degraded-state panel copy) are renderable against a seeded local stack with no
+      IAP. When ui-probe cannot reach dev (nightly shutdown) or lacks an authenticated Chrome, the QA
+      belt should route to /klever-local-stack + um-local-seed + a DOOH-pin fixture and drive the
+      /measurement route on localhost to capture a real PASS screenshot, rather than capping at PARTIAL.
+      Reserve PARTIAL for ACs that genuinely require auth-gated or vendor-coverage-gated data (e.g.
+      KTP-788's Canadian FSA fixture), not for interactions that render locally.
+  - title: "Separate pre-existing typecheck noise from run signal in the QA gate"
+    detail: >
+      QA already knows dev carries pre-existing tsc errors in __tests__ files (vitest not installed).
+      The gate should diff the changed-file set against the error set and emit two counts
+      (run-introduced: 0, pre-existing: 4) so a reader never manually attributes. Fail only on
+      run-introduced errors. Repeat of the KTP-788 finding — worth implementing rather than re-flagging.
+  - title: "Auto-capture undemonstrated MEDIUM/LOW review findings as deferred hardening"
+    detail: >
+      The cluster-over-ZIP non-arbitration (doohPinUnderClick queries only DOOH_UNCLUSTERED_LAYER, not
+      DOOH_CLUSTER_LAYER) is out-of-AC-scope-for-now but a real interaction path. When review records a
+      demonstrated:false MEDIUM/LOW finding, retro (or the ship loop) should append it to a 'deferred
+      hardening' list in the ticket reports so it is not silently lost — cheaper than re-discovering as
+      a prod bug if cluster bubbles ever overlay reachable ZIP boundaries. Repeat of the KTP-788
+      finding.
+  - title: "Track the recurring HALT_PRESHIP root cause as a meta-item, not a per-run red flag"
+    detail: >
+      Five consecutive UI-AC tickets (728/758/759/788/793) halted pre-ship on the identical root cause.
+      Re-listing it as a fresh red flag each run dilutes signal. Promote it to a single tracked
+      factory-improvement item (the visual-AC feasibility gate + local-render fallback above) and have
+      retro reference that item rather than re-deriving it, so the improvement actually lands instead of
+      being perpetually re-proposed.
+
+summary: >
+  KTP-793 (DOOH pin click-arbitration) halted pre-ship at task_confidence 75 / factory_fitness 81. The
+  logic layer is genuinely sound — AC-1 has a real same-test RED->green proof, click-arbitration (5/5)
+  and dooh-screen-detail-fetch (3/3) tests pass, the TDD gate ran in halt mode with zero violations,
+  next build compiles, and review found zero user-reaching bugs (one out-of-scope LOW cluster hunch).
+  But all 5 ACs are rendered-UI and capped at PARTIAL: live ui-probe visual proof was impossible
+  because dev was in nightly shutdown (302) and no authenticated Chrome was drivable, and QA did not
+  fall back to a localhost render. The dominant fitness gap is the now-five-times recurring
+  KTP-728/758/759/788/793 pattern: the factory must land the visual-AC feasibility pre-flight gate and a
+  localhost-render QA fallback so IAP-independent interaction ACs reach a true PASS instead of perpetual
+  HALT_PRESHIP.

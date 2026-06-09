@@ -1,0 +1,80 @@
+run_id: run-2026-06-05-KTP-759
+ticket: KTP-759
+title: DOOH screen detail side panel (pin click -> fetch -> panel; X/ESC/map-click close) + detail proxy route + pure-fn formatters
+date: 2026-06-05
+terminal_status: HALT_PRESHIP
+session: deft-falcon
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: true
+  note: "Gate ran in default halt mode with zero violations. AC-2 RED proof is genuine same-test red-then-green: tests fail on the ASSERTION at commit 66bc746 (belt-sanctioned stub returning '') and pass at tip. Defeats the vacuous-RED trick."
+
+per_phase:
+  - phase: concierge
+    status: PASS
+    confidence: 88
+  - phase: design
+    status: pass
+    confidence: 88
+  - phase: grill
+    status: pass
+    confidence: 88
+  - phase: implement
+    status: pass
+    confidence: 87
+  - phase: review
+    status: "criticals:0"
+    confidence: 82
+    note: "0 CRITICAL/HIGH. One LOW undemonstrated hunch: formatImpressions/formatCurrency use Number.isFinite with no coercion; a stringified-number from the backend would render em-dash. DTO types these as number, so correct for the documented contract."
+  - phase: qa
+    status: PARTIAL
+    confidence: 82
+    note: "AC-2 PASS (9/9 pure-fn Playwright, genuine RED). AC-1 + AC-3 capped PARTIAL: rendered-UI/interaction ACs, no live ui-probe screenshot achievable (dev past 20:00 EDT nightly-off, IAP 302; ui-probe needs Gab's authenticated Chrome, not drivable from QA subagent). next build EXIT 0, route /api/dooh/screens/[id] registered. No data fabricated."
+
+scores:
+  task_confidence: 72
+  factory_fitness: 83
+
+deductions:
+  # task_confidence (start 100 -> 72)
+  - points: 14
+    reason: "task_confidence: 2 of 3 ACs (AC-1 pin-click-opens-panel, AC-3 close-on-X/ESC/map-click) are rendered-UI/interaction ACs that could only be proven by live visual validation, which was not performed. Wiring is coherent and compiles (next build EXIT 0, proxy route registered) but no behavioral/visual proof exists. They are unverified, not failed."
+  - points: 8
+    reason: "task_confidence: HALT_PRESHIP terminal state — the run did not reach READY_TO_SHIP, so MR + Jira comment + post-merge validate did not run. Not deployed."
+  - points: 4
+    reason: "task_confidence: per-phase confidence trended down (88 -> 82) at review/qa, reflecting the unprovable visual ACs; soft signal that the task is not cleanly closeable as-is."
+  - points: 2
+    reason: "task_confidence: one LOW review hunch (Number.isFinite no-coercion on formatters) left undemonstrated; correct for the typed contract but an untested fragility if the backend ever serializes numbers as strings."
+  # factory_fitness (start 100 -> 83)
+  - points: 9
+    reason: "factory_fitness: the factory cannot self-serve visual verification for rendered-UI ACs. QA depends on dev being up AND on Gab's authenticated Chrome (ui-probe). When dev is past its 20:00 EDT nightly-off window, every UI-render AC is structurally uncloseable inside an autonomous run, forcing HALT_PRESHIP. This is a recurring fitness gap (same root as KTP-758, KTP-728)."
+  - points: 5
+    reason: "factory_fitness: no time-of-day awareness in the run. The factory started UI work in a window where dev was guaranteed off (after 20:00 EDT). A pre-flight check could have flagged 'visual ACs will not be verifiable tonight' before burning the implement+review+qa phases."
+  - points: 3
+    reason: "factory_fitness: typecheck surfaced 4 errors that are pre-existing unrelated __tests__ failures (dev has 6). QA correctly attributed them, but the gate output mixes pre-existing noise with run signal, costing reviewer attention to disambiguate."
+
+red_flags:
+  - "AC-1 and AC-3 returned PARTIAL with test_ref = 'npm run build' (a compile check), not a behavioral/visual test. Build-passes is being used as the only evidence for interaction ACs."
+  - "Visual verification was structurally impossible: dev past nightly-off (IAP 302) and ui-probe requires Gab's Chrome, not drivable from the QA subagent. The factory walked into UI work it could not finish tonight."
+  - "typecheck.out shows 4 errors; all pre-existing in unrelated __tests__ files. Gate noise that requires manual attribution to clear."
+  - "Review LOW finding (Number.isFinite no string coercion) marked demonstrated:false — a real-but-unproven fragility carried forward with no follow-up ticket."
+  - "Recurring pattern: KTP-758, KTP-728, and now KTP-759 all HALT_PRESHIP on the same root cause (UI ACs unverifiable in autonomous run). The factory keeps re-discovering this instead of gating on it up front."
+
+improvements:
+  - title: "Add a pre-flight 'visual-AC feasibility' gate before the implement phase"
+    detail: "workflow.js should detect rendered-UI / interaction ACs (the belt already classifies them) and, before spending implement+review+qa, check whether visual verification is achievable this run: is dev up (IAP not 302) AND is a drivable authenticated browser available? If not, surface a single up-front decision ('visual ACs will land at PARTIAL tonight — proceed code-only or defer?') instead of discovering it at QA. This kills the recurring KTP-728/758/759 HALT_PRESHIP surprise."
+  - title: "Let the frontend belt run UI ACs against the local stack as a fallback when dev is down"
+    detail: "The QA contract caps UI ACs at PARTIAL whenever it cannot reach dev. But /klever-local-stack + ui-probe against localhost:3000 (auth on :3000) can render the panel locally without IAP. Teach the QA belt to fall back to the local stack for rendered-UI ACs when dev is in its nightly-off window, so pin-click-opens-panel and X/ESC-close can reach a true PASS autonomously."
+  - title: "Separate pre-existing typecheck noise from run signal in the QA gate"
+    detail: "QA already knows dev carries 6 pre-existing tsc errors in __tests__ files. The gate should diff the changed-file set against the error set and emit two counts (run-introduced: 0, pre-existing: 4) so a reader never has to manually attribute. Fail only on run-introduced errors."
+  - title: "Auto-file a follow-up for undemonstrated LOW review hunches instead of dropping them"
+    detail: "The Number.isFinite no-coercion hunch is correct-for-now but a latent fragility. When review records demonstrated:false LOW findings, retro (or the ship loop) should append them to a 'deferred hardening' list in the ticket so they are not silently lost — cheaper than re-discovering it as a prod bug."
+
+summary: >
+  KTP-759 (DOOH detail panel) halted pre-ship at task_confidence 72 / factory_fitness 83. AC-2
+  formatters are a genuine PASS with a real TDD RED (same-test red->green); AC-1 and AC-3 are
+  rendered-UI/interaction ACs that compile cleanly but could not be visually verified because dev was
+  past its nightly-off window and ui-probe was not drivable from the QA subagent. The dominant fitness
+  gap is recurring (KTP-728/758/759): the factory should gate on visual-AC feasibility up front and/or
+  fall back to the local stack rather than discovering the constraint at QA.

@@ -1,0 +1,159 @@
+run_id: run-2026-06-05-KTP-788
+ticket: KTP-788
+title: Canadian (FSA) modeled-origin treatment in the store detail panel — decouple origins table from mapped state, CA empty-state copy, distinct modeled flow-line color, modeled-not-measured labels/tooltips/legend
+date: 2026-06-05
+terminal_status: HALT_PRESHIP
+session: none (no active session references KTP-788; handoff written to ticket reports/)
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: true
+  note: >
+    Gate ran in default halt mode with zero warn-mode violations. AC-2/3/4 RED proofs are genuine
+    same-test red-then-green: tests fail on the ASSERTION at the belt-sanctioned stub commit and pass
+    at tip (AC-2 b7c0fc8 6 fail->pass, AC-3 9902934 2 fail->pass, AC-4 a130713 5 fail->pass). AC-1 is
+    a legitimate RED exemption (not_applicable): a rendered-UI JSX gating change with no extractable
+    pure logic, so no unit RED was possible — confirmed on diff (commit 788c6ae touches only
+    store-detail-panel.tsx production JSX). Defeats the vacuous-RED trick.
+
+per_phase:
+  - phase: concierge
+    status: PASS
+    confidence: 88
+  - phase: design
+    status: pass
+    confidence: 86
+  - phase: grill
+    status: pass
+    confidence: 86
+  - phase: implement
+    status: pass
+    confidence: 86
+  - phase: review
+    status: "criticals:0"
+    confidence: 86
+    note: >
+      0 CRITICAL/HIGH. One MEDIUM, demonstrated:false — legend header and panel table label
+      modeled/measured off origins[0].granularity; a mixed FSA+ZIP origin list would mislabel the
+      table/legend header. Not user-reachable (CA-FSA and US-ZIP belong to separate advertiser/market
+      contexts never viewed together) and flow-line colors are per-feature/data-driven so the drawn
+      lines stay correct regardless. No reproduction path found.
+  - phase: qa
+    status: PARTIAL
+    confidence: 82
+    note: >
+      All 4 ACs capped PARTIAL. AC-2/3/4 logic layer independently PROVEN: passing Playwright pure-fn
+      tests re-verified red-at-RED-commit and green-at-tip (8 + 5 + 6 assertions). AC-1 decoupling +
+      single-table duplicate guard confirmed by structure review. next build EXIT 0, /measurement route
+      compiled. The frontend belt's proof for these rendered-UI ACs is a live ui-probe screenshot,
+      which could not be captured from the headless QA worktree (no authenticated Chrome / IAP+Auth0
+      session, no live Canadian FSA-origin store fixture). Per belt, missing visual proof caps each AC
+      to PARTIAL; none invented green. No data fabricated.
+
+scores:
+  task_confidence: 73
+  factory_fitness: 82
+
+deductions:
+  # task_confidence (start 100 -> 73)
+  - points: 14
+    reason: >
+      task_confidence: all 4 ACs are rendered-UI ACs whose belt proof is a live ui-probe screenshot,
+      which was not captured (headless QA worktree, no authenticated Chrome / no live Canadian FSA
+      store fixture). The logic layer is proven and wiring (code_ref) confirmed, but the final
+      visual/behavioral verification — CA empty-state copy, distinct CA flow-line color, modeled labels
+      rendered in the live panel/legend — does not exist. They are unverified at the UI layer, not failed.
+  - points: 8
+    reason: >
+      task_confidence: HALT_PRESHIP terminal state — the run did not reach READY_TO_SHIP, so the main
+      loop's MR + Jira comment + post-merge validate did not run. Not deployed.
+  - points: 3
+    reason: >
+      task_confidence: per-phase confidence trended down (88 -> 82) into QA, reflecting the unprovable
+      visual ACs; soft signal the task is not cleanly closeable as-is.
+  - points: 2
+    reason: >
+      task_confidence: AC-3 mechanism deviates from the AC's suggested treatment — implementor
+      distinguishes modeled FSA flow lines by HUE (visitorFlowLinesModeled #8C9BAE) rather than the
+      AC-suggested dashed style. Intent ('visually distinct as modeled') is met and an ADR-draft notes
+      it, but the divergence from the written AC is unconfirmed by the PO and adds closure risk.
+  # factory_fitness (start 100 -> 82)
+  - points: 9
+    reason: >
+      factory_fitness: the factory cannot self-serve visual verification for rendered-UI ACs. QA
+      depends on a live authenticated browser (ui-probe needs Gab's Chrome / IAP+Auth0) AND on a live
+      Canadian FSA-origin store fixture, neither drivable from the QA subagent. Every UI-render AC is
+      structurally uncloseable inside an autonomous run, forcing HALT_PRESHIP. Recurring fitness gap
+      (same root as KTP-728 / KTP-758 / KTP-759).
+  - points: 5
+    reason: >
+      factory_fitness: no test-data feasibility check before implement. This ticket's ACs are
+      Canada-specific (FSA empty state, FSA flow-line color, FSA modeled labels) yet there is no live
+      Canadian FSA-origin store fixture available to the factory — Placer has no Canadian coverage and
+      the CA path is campaign-data modeled. The factory should have flagged 'no CA fixture to render
+      against' up front rather than discovering at QA that the visual proof is impossible.
+  - points: 3
+    reason: >
+      factory_fitness: next build / tsc surfaced 4 pre-existing tsc errors in unrelated __tests__/*.test.ts
+      files (vitest not installed) present on origin/dev and untouched by this branch. QA correctly
+      attributed them, but the gate output still mixes pre-existing noise with run signal, costing
+      reviewer attention to disambiguate run-introduced (0) from pre-existing (4).
+  - points: 1
+    reason: >
+      factory_fitness: review's MEDIUM finding (origins[0].granularity drives legend/table label) was
+      recorded demonstrated:false with no reproduction path and no follow-up artifact — a real-but-latent
+      mixed-list fragility carried forward with no deferred-hardening capture.
+
+red_flags:
+  - "All 4 ACs returned PARTIAL; none reached PASS. The terminal UI proof (live ui-probe screenshot) was structurally unachievable from the headless QA worktree."
+  - "Visual verification was impossible for a Canada-specific feature: no live Canadian FSA-origin store fixture exists for the factory to render against (Placer has no CA coverage; CA path is campaign-data modeled)."
+  - "AC-3 ships a different mechanism than the written AC (modeled-hue instead of dashed style), justified by an ADR-draft but not confirmed by the PO — AC-vs-implementation drift carried into ship loop."
+  - "next build / tsc shows 4 errors, all pre-existing vitest-import failures in untouched __tests__ files. Gate noise requiring manual attribution to clear."
+  - "Review MEDIUM finding (legend/table label off origins[0].granularity in a mixed FSA+ZIP list) marked demonstrated:false and dropped with no follow-up ticket — latent fragility lost."
+  - "Recurring pattern: KTP-728, KTP-758, KTP-759, and now KTP-788 all HALT_PRESHIP on the same root cause (UI ACs unverifiable in an autonomous run). The factory keeps re-discovering this instead of gating on it up front."
+
+improvements:
+  - title: "Add a pre-flight 'visual-AC feasibility' gate before the implement phase"
+    detail: >
+      workflow.js should detect rendered-UI ACs (the belt already classifies them) and, before
+      spending implement+review+qa, check whether visual verification is achievable this run: is a
+      drivable authenticated browser available AND does a renderable fixture exist for the AC's data
+      condition? If not, surface a single up-front decision ('visual ACs will land at PARTIAL — proceed
+      code-only or defer?') instead of discovering it at QA. Kills the recurring KTP-728/758/759/788
+      HALT_PRESHIP surprise.
+  - title: "Require a fixture-availability check for data-conditional UI ACs"
+    detail: >
+      KTP-788's ACs are all Canada-specific (FSA empty state, FSA flow color, FSA modeled labels) but
+      there is no live Canadian FSA-origin store fixture for the factory. The concierge/design phase
+      should, for any AC gated on a specific data condition (country===CA, granularity===fsa), confirm a
+      seedable/local fixture exists OR record up front that the AC is logic-only-verifiable this run.
+      Pair with /klever-local-stack + a seeded CA store so the FSA panel/flow lines/legend can render
+      locally and reach a true PASS without IAP or Placer CA coverage.
+  - title: "Gate AC-vs-implementation mechanism drift before the ship loop"
+    detail: >
+      AC-3 was implemented with a modeled HUE instead of the AC's suggested dashed style. When the
+      implementor deviates from a written AC mechanism (even when intent is met), the workflow should
+      flag it as a PO-confirmation item (ADR-draft -> inbox/Jira comment) before HALT/ship, so closure
+      is not blocked later by 'that's not what the AC said'.
+  - title: "Separate pre-existing typecheck noise from run signal in the QA gate"
+    detail: >
+      QA already knows dev carries pre-existing tsc errors in __tests__ files. The gate should diff the
+      changed-file set against the error set and emit two counts (run-introduced: 0, pre-existing: 4) so
+      a reader never manually attributes. Fail only on run-introduced errors.
+  - title: "Auto-capture undemonstrated MEDIUM/LOW review findings as deferred hardening"
+    detail: >
+      The origins[0].granularity mixed-list mislabel is correct-for-now but latent. When review records
+      demonstrated:false MEDIUM/LOW findings, retro (or the ship loop) should append them to a
+      'deferred hardening' list in the ticket reports so they are not silently lost — cheaper than
+      re-discovering as a prod bug if a mixed-market origin list ever becomes reachable.
+
+summary: >
+  KTP-788 (Canadian FSA modeled-origin panel treatment) halted pre-ship at task_confidence 73 /
+  factory_fitness 82. The logic layer is genuinely sound — AC-2/3/4 each have passing Playwright
+  pure-fn tests with real same-test RED->green proofs, AC-1's decoupling is structurally confirmed,
+  next build passes, and review found zero user-reaching bugs. But all four ACs are rendered-UI and
+  capped at PARTIAL: live ui-probe visual proof was impossible from a headless worktree with no
+  authenticated browser and, critically, no live Canadian FSA-origin fixture to render against. The
+  dominant fitness gap is recurring (KTP-728/758/759/788): the factory should gate on visual-AC + data-
+  fixture feasibility up front rather than discovering at QA, and AC-3's hue-vs-dashed mechanism drift
+  should be PO-confirmed before the ship loop.

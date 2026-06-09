@@ -15,6 +15,7 @@ v2 owns the **single-ticket, human-gated** mode.
 | [hardening-spec-0.5.0.md](hardening-spec-0.5.0.md) | The 0.5.0 hardening spec (7 ranked changes) from the KTP-728/699 trial retros: live-verify, schema preflight, advertiser-id, backend-gated sub-ACs, structured findings, resume fix, bucketed path. | Understanding the 0.5.0 changes; planning the next hardening pass. |
 | [adr/ADR-003-live-verify-data-claims.md](adr/ADR-003-live-verify-data-claims.md) | The decision behind 0.5.0 #1/#2: data-layer claims must be live-verified; stale local checkouts are not evidence. | Touching the concierge's blocker logic. |
 | [harvest-from-sprint-crawl.md](harvest-from-sprint-crawl.md) | What sprint-crawl + sprint-harness do, and which mechanisms port to v2 (concierge context checklist, per-AC loop-back) vs. which are hook-substrate-bound. The 3-tool division (sprint-crawl / Sprint Factory / v2). | Considering per-AC resilience, or the sprint-crawl→v2 convergence. |
+| [visual-ac-feasibility-spec-0.9.0.md](visual-ac-feasibility-spec-0.9.0.md) | The 0.9.0 spec (SPEC, not yet built) from the 0.8.0 TDD-gate run feedback (KTP-728/758/759/788 all HALT_PRESHIP on un-verifiable rendered-UI ACs): a concierge front-gate visual-feasibility check + a new READY_FOR_VISUAL_QA terminal state (push + MR when human visual sign-off is the only gap). Deferred follow-ups listed. | Building the visual-AC gate; planning the next hardening pass. |
 
 ## Build order (from seed-spec-v1.md)
 

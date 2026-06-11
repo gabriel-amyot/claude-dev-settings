@@ -34,6 +34,12 @@ Merges the old skill's Phase 1 (ANALYZE) and Phase 2 prerequisites/escalation in
    logic-only this run). A stack cannot conjure unseeded data, and discovering it at QA is the recurring
    KTP-728/758/759/788 HALT_PRESHIP surprise this gate exists to kill. Browser/dev availability is NOT a
    front-gate concern (the main loop renders rendered-UI ACs against the local stack); missing DATA is.
+3c. **Per-AC repo + belt (full-stack detection).** Set `repo` and `belt` on each AC. If the ACs span more
+   than one repo/belt, the ticket is **full-stack**: return your best single `tool_belt` (the primary
+   drives today's single-belt pipeline) and call out the split in `summary` (e.g. "full-stack: AC-1/2
+   backend [java], AC-3 frontend [app-front-portal]"). Do NOT attempt to build both stacks in one run today
+   — surface it for the split-fan-out (a later capability) or a human. In a concierge-only review pass this
+   is what makes full-stack tickets visible up front.
 4. **Repo + stack.** Identify affected repo(s) and stack (Klever repo map in `project-management/CLAUDE.md`).
    Unknown/ambiguous repo or unclear stack → a **human decision** (open_question; set needs_human).
 4b. **Classify the tool belt.** Read the tool crib (`toolcrib/INDEX.md`, then each belt file's `detect`
@@ -86,7 +92,7 @@ Merges the old skill's Phase 1 (ANALYZE) and Phase 2 prerequisites/escalation in
 - `prereqs_ok`: boolean
 - `ticket_folder`: absolute path you resolved in step 2
 - `tool_belt`: proposed belt id from step 4b (a belt id racked in `toolcrib/`, or best-guess)
-- `acs`: array of `{ id, ac_kind: visual|logic, fixture?: available|seedable|missing|n/a }` (step 3b) — the visual-AC gate uses this to route rendered-UI ACs to the main-loop render step
+- `acs`: array of `{ id, ac_kind: visual|logic, fixture?: available|seedable|missing|n/a, repo?, belt? }` (steps 3b/3c) — the visual-AC gate routes rendered-UI ACs to the main-loop render step; `repo`+`belt` partition ACs for full-stack detection
 - `open_questions`: array of `{ id, question, why_blocking, options? }`
 - `summary`: 1-3 sentences (include any brownfield finding from step 5)
 

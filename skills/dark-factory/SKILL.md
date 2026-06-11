@@ -1,6 +1,6 @@
 ---
 name: dark-factory
-version: "0.9.1"
+version: "0.9.2"
 description: "The ticket-to-dev factory for a SINGLE ticket, orchestrated by the Workflow tool instead of prose. Gates are code (un-skippable), with a human concierge gate at the front. The concierge proposes a tool belt from the crib (java, scripting, or frontend); the build + tester sockets are equipped from that belt, so the same line handles multiple work-types without duplication. Review + bounded fix loop + QA. The workflow does code work and pushes the branch (terminal state READY_TO_SHIP); the main loop creates the MR + Jira comment and runs post-merge validate. For multi-ticket / epic DAGs use Sprint Factory (/sprint-factory). Triggers on: '/dark-factory', 'dark factory', 'ticket to dev', 'run this ticket'. Klever."
 user_invocable: true
 nav:
@@ -140,6 +140,14 @@ conductor, `/sprint-factory`), v2 took the plain **dark-factory** name as the si
 Historical design docs in `docs/` may still say "v2"; that means this skill.
 
 ## Status
+
+`0.9.2` — **multi-belt detection** (foundation for full-stack). The concierge now sets per-AC `repo` +
+`belt` in `acs`; ACs spanning >1 repo/belt are flagged "full-stack" in `summary`. In a concierge-only
+review this surfaces full-stack tickets up front. Additive — the single-belt pipeline still uses the
+top-level `tool_belt`; the per-AC partition feeds the future split-fan-out (0.10.0). Backed by an observed
+fan-out spike (`docs/fullstack-fanout-spec-0.10.0.md`): `parallel()` runs two agents fine, but
+`isolation:'worktree'` only sandboxes the workflow's repo, so the fan-out build must self-manage a worktree
+in each target repo.
 
 `0.9.1` — **concierge-only / dry-run mode** (`args.concierge_only` / `dry_run`). Runs ONLY the front gate
 and stops at a uniform `CONCIERGE_ONLY_COMPLETE` (full findings as data: spec_quality, ac_count, `acs`

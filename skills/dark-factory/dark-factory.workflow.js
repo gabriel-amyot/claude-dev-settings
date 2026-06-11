@@ -88,6 +88,12 @@ const CONCIERGE_SCHEMA = {
           id: { type: 'string' },
           ac_kind: { type: 'string', enum: ['visual', 'logic'] },
           fixture: { type: 'string', enum: ['available', 'seedable', 'missing', 'n/a'] },
+          // Per-AC repo + belt (0.9.2): the partition data for full-stack detection. When ACs span more
+          // than one repo/belt the ticket is a full-stack candidate (surfaced in summary). In concierge-only
+          // review this makes full-stack tickets visible up front. The single-belt pipeline still uses the
+          // top-level `tool_belt`; per-AC belt drives the future split-fan-out (0.10.0).
+          repo: { type: 'string' },
+          belt: { type: 'string' },
         },
       },
     },
@@ -390,7 +396,12 @@ advertiser), set fixture='available' (data already renderable), 'seedable' (a lo
 created), or 'missing' (no way to render this data locally). A 'visual' AC with fixture='missing' is a
 front-gate blocker: set needs_human=true and raise it as an open_question UP FRONT (a stack can't conjure
 unseeded data — decide defer vs accept logic-only now), rather than discovering at QA that the panel
-can't be rendered.${resumeNote}${CONFIDENCE_BLURB}`,
+can't be rendered.
+For EACH AC also set 'repo' (which repo it touches) and 'belt' (which tool belt builds it). If the ACs span
+MORE THAN ONE repo/belt, this is a FULL-STACK ticket: still return your best single 'tool_belt' (the primary
+one drives today's single-belt pipeline), but call out the split in 'summary' (e.g. "full-stack: AC-1/2
+backend [java/app-user-management], AC-3 frontend [app-front-portal]"). Do NOT try to build both stacks in
+one run today — surface it so the split-fan-out (a later capability) or a human can decide.${resumeNote}${CONFIDENCE_BLURB}`,
     { schema: CONCIERGE_SCHEMA, label: 'concierge', phase: 'Concierge' }
   )
   if (!concierge) return { status: 'HALT_AGENT_SKIPPED', phase: 'Concierge', ticket }

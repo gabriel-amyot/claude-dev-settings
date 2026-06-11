@@ -2,6 +2,24 @@
 
 Every SKILL.md / workflow.js / contract change bumps the version and adds an entry.
 
+## 0.9.2 (2026-06-10)
+
+**Multi-belt detection — the concierge can now see that a ticket is full-stack, so a sprint review surfaces
+it instead of the factory hitting it mid-build.**
+
+Foundation for full-stack mode (the fan-out pipeline itself is the 0.10.0 work). `CONCIERGE_SCHEMA.acs`
+items gain `repo` + `belt`; the concierge sets them per AC and, when ACs span more than one repo/belt,
+flags the ticket "full-stack" in `summary` (still returning a single primary `tool_belt`). In a
+concierge-only review (0.9.1) this makes full-stack tickets visible up front. Additive + arg-safe: the
+single-belt pipeline is unchanged. Contracts: `1-concierge.md` step 3c.
+
+Backed by an **observed fan-out spike** (`docs/fullstack-fanout-spec-0.10.0.md`, run wf_3743e789-d3b):
+`parallel()` runs two agents concurrently and each reaches a distinct target repo, BUT `isolation:'worktree'`
+sandboxes only the *workflow's* repo (project-management), not the target code repos — so the 0.10.0 fan-out
+must have each agent self-manage a worktree in its own target repo, and must not rely on the workflow's
+isolation. (Also flagged: the single-ticket implement worktree may be partly illusory when run from
+project-management — to verify in 0.10.0.)
+
 ## 0.9.1 (2026-06-10)
 
 **Concierge-only / dry-run mode — run the front gate across a whole sprint to review tickets, with zero

@@ -1,6 +1,6 @@
 ---
 name: dark-factory
-version: "0.9.0"
+version: "0.9.1"
 description: "The ticket-to-dev factory for a SINGLE ticket, orchestrated by the Workflow tool instead of prose. Gates are code (un-skippable), with a human concierge gate at the front. The concierge proposes a tool belt from the crib (java, scripting, or frontend); the build + tester sockets are equipped from that belt, so the same line handles multiple work-types without duplication. Review + bounded fix loop + QA. The workflow does code work and pushes the branch (terminal state READY_TO_SHIP); the main loop creates the MR + Jira comment and runs post-merge validate. For multi-ticket / epic DAGs use Sprint Factory (/sprint-factory). Triggers on: '/dark-factory', 'dark factory', 'ticket to dev', 'run this ticket'. Klever."
 user_invocable: true
 nav:
@@ -77,7 +77,14 @@ work-type needing different room *logic* is a rare new floor, not a belt. Refini
    - `args`: `{ "ticket": "<TICKET>", "org": "<org>" }`
    This is explicit Workflow opt-in (the user invoked this skill). **Note the returned `runId`** — you
    need it to resume after the human gate.
+   - **Concierge-only / dry-run:** add `"concierge_only": true` (alias `"dry_run": true`) to run ONLY the
+     front gate and stop — no design, no code, zero trickle. For a sprint-wide review pass over many
+     tickets: one uniform `CONCIERGE_ONLY_COMPLETE` per ticket, no resume prompts, no Retro. Loop it over
+     the ticket list (each invocation is independent).
 3. **Handle the workflow's return `status`:**
+   - `CONCIERGE_ONLY_COMPLETE` (dry-run) → the front gate ran and stopped. Record the findings
+     (`spec_quality`, `ac_count`, `acs` [visual/logic + fixture], `repos`, `tool_belt`, `prereqs_ok`,
+     `open_questions`, `summary`). Do NOT resume, do NOT advance — this is a review result, not a pause.
    - `AWAITING_HUMAN` → present each item in `decision_packet` via `AskUserQuestion`. Collect answers.
      **Re-invoke the Workflow** with `resumeFromRunId: <runId>` and
      `args: { ticket, org, humanDecisions: { <id>: <answer>, ... } }`. On resume the concierge **re-runs
@@ -133,6 +140,12 @@ conductor, `/sprint-factory`), v2 took the plain **dark-factory** name as the si
 Historical design docs in `docs/` may still say "v2"; that means this skill.
 
 ## Status
+
+`0.9.1` — **concierge-only / dry-run mode** (`args.concierge_only` / `dry_run`). Runs ONLY the front gate
+and stops at a uniform `CONCIERGE_ONLY_COMPLETE` (full findings as data: spec_quality, ac_count, `acs`
+visual/logic + fixture, repos, tool_belt, open_questions), before any advance — zero risk of trickling
+into design or code. No resume prompts, no Retro. Built for a sprint-wide review pass (loop it over the
+ticket list). Spike-independent, additive (arg-gated; default runs are unchanged).
 
 `0.9.0` — **visual-AC gate**, from the 0.8.0 run feedback (KTP-728/758/759/788 all HALT_PRESHIP on the
 same root cause: rendered-UI ACs unverifiable in an autonomous subagent, discovered late at QA). Reframe:

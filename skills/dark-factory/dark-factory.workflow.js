@@ -45,6 +45,10 @@ const tddGateMode = (args && args.tdd_gate_mode) === 'warn' ? 'warn' : 'halt'
 // warn flag would disable the gate invisibly). Every warn-mode violation is accumulated and surfaced on
 // the final result + handed to Retro, so a warn run can never masquerade as a clean run.
 const tddWarnings = []
+// Concierge-only / dry-run mode: run ONLY the front gate and stop, with ZERO risk of trickling into design
+// or any code work. For a sprint-wide review pass over many tickets — one uniform terminal state per ticket
+// (CONCIERGE_ONLY_COMPLETE), no resume prompts, no Retro.
+const conciergeOnly = !!(args && (args.concierge_only === true || args.dry_run === true))
 if (!ticket) throw new Error('dark-factory requires args.ticket (e.g. "ABC-123")')
 
 // ---- Schemas (handoffs are validated objects, not parsed text) ----
@@ -391,6 +395,18 @@ can't be rendered.${resumeNote}${CONFIDENCE_BLURB}`,
   )
   if (!concierge) return { status: 'HALT_AGENT_SKIPPED', phase: 'Concierge', ticket }
   rec('concierge', concierge, concierge.spec_quality)
+  // Concierge-only / dry-run: stop HERE, uniformly, before any advance. Report the full findings so a
+  // sprint-wide review gets one consistent shape per ticket (incl. spec FAIL / needs_human / open_questions
+  // as DATA, not as a pause-and-resume). Guarantees zero trickle into design or code work.
+  if (conciergeOnly) {
+    return {
+      status: 'CONCIERGE_ONLY_COMPLETE', ticket, ticket_folder: concierge.ticket_folder,
+      spec_quality: concierge.spec_quality, needs_human: concierge.needs_human, ac_count: concierge.ac_count,
+      prereqs_ok: concierge.prereqs_ok, repos: concierge.repos, tool_belt: concierge.tool_belt,
+      acs: concierge.acs || [], open_questions: concierge.open_questions || [],
+      confidence: concierge.confidence, summary: concierge.summary, concierge,
+    }
+  }
   if (concierge.spec_quality === 'FAIL') return { status: 'BLOCKED_SPEC_QUALITY', ticket, concierge }
   if (concierge.needs_human && !humanDecisions) {
     return { status: 'AWAITING_HUMAN', ticket, decision_packet: concierge.open_questions, concierge,
@@ -582,6 +598,9 @@ const result = await runPipeline()
 
 // AWAITING_HUMAN is a pause (will resume), not an end — no retro yet.
 if (result.status === 'AWAITING_HUMAN') return result
+// CONCIERGE_ONLY_COMPLETE is a deliberate front-gate-only review pass — no code work happened, so there is
+// nothing to score. Skip Retro (keeps a sprint-wide review cheap + uniform).
+if (result.status === 'CONCIERGE_ONLY_COMPLETE') return result
 
 // Every other terminal state (success OR halt/block) gets instrumented.
 phase('Retro')

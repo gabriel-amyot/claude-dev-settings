@@ -2,6 +2,20 @@
 
 Every SKILL.md / workflow.js / contract change bumps the version and adds an entry.
 
+## 0.9.1 (2026-06-10)
+
+**Concierge-only / dry-run mode — run the front gate across a whole sprint to review tickets, with zero
+risk of trickling into design or any code work.**
+
+For a Sprint 6 review pass that runs the concierge on every ticket and stops. `args.concierge_only: true`
+(alias `dry_run: true`): immediately after the concierge phase records, the workflow returns a uniform
+`CONCIERGE_ONLY_COMPLETE` carrying the full findings (spec_quality, needs_human, ac_count, `acs`
+[visual/logic + fixture], repos, tool_belt, prereqs_ok, open_questions, summary) — as DATA, not as an
+`AWAITING_HUMAN` pause. The return sits BEFORE the spec-quality / needs-human / belt early-returns, so a
+review gets one consistent shape per ticket regardless of verdict, and the run can never reach design.
+Retro is skipped for this state (a review pass is not scored). Additive + arg-gated: default runs are
+byte-identical. (workflow.js + SKILL.md.)
+
 ## 0.9.0 (2026-06-09)
 
 **Visual-AC gate — stop discovering at QA that rendered-UI ACs can't be auto-verified; gate on it up

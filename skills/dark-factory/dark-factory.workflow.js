@@ -32,7 +32,7 @@ export const meta = {
 const CONTRACTS = '/Users/gabrielamyot/.claude/skills/dark-factory/contracts'
 const RUNS = '/Users/gabrielamyot/.claude/skills/dark-factory/runs'
 const TOOLCRIB = '/Users/gabrielamyot/.claude/skills/dark-factory/toolcrib'
-const SUPPORTED_BELTS = ['java', 'scripting', 'frontend'] // tool belts racked in the crib; concierge proposes one
+const SUPPORTED_BELTS = ['java', 'scripting', 'frontend', 'terraform-dac-infra'] // tool belts racked in the crib; concierge proposes one
 
 const ticket = (args && args.ticket) || null
 const org = (args && args.org) || 'klever'
@@ -169,6 +169,13 @@ const IMPLEMENT_SCHEMA = {
   },
 }
 
+// Output of the bounded ledger-repair retry: just the corrected, COMPLETE ac_tdd array (no code fields).
+const LEDGER_REPAIR_SCHEMA = {
+  type: 'object',
+  required: ['ac_tdd'],
+  properties: { ac_tdd: IMPLEMENT_SCHEMA.properties.ac_tdd },
+}
+
 const REVIEW_SCHEMA = {
   type: 'object',
   required: ['criticals_open', 'findings'],
@@ -296,12 +303,25 @@ function preShipBlockers(impl, review, qaCapped, qaGap) {
 //                  screenshot yet), AND no PASS AC was capped for evidence/RED. The machine-provable work
 //                  is done; only the live render remains -> the main loop verifies it.
 //  'real_gap'    — anything else: a logic AC failed/partial, or a PASS AC lacked code_ref/test_ref/red_verified.
+//
+// A "met non-code gate" is a sequencing / human-decision / dependency AC with NO code surface
+// (code_ref starts with "n/a") whose RED is exempt and whose verdict is not FAIL — QA confirmed its
+// precondition, there is literally nothing to fail. The factory's PASS/visual_pending/FAIL trichotomy
+// has no slot for these, so QA tends to mark them PARTIAL, which used to force a false real_gap halt
+// (KTP-784). They are met preconditions, not logic gaps — excluded from the gap analysis below. The
+// gate keeps its teeth: a FAIL verdict or any AC with a real code_ref still counts as a non-pass.
+function isMetNonCodeGate(a) {
+  return !!a && a.red_verified === 'exempt' && a.visual_pending !== true &&
+    a.verdict !== 'FAIL' && /^n\/a\b/i.test(String(a.code_ref || ''))
+}
 function classifyQaGap(qa, qaCapped) {
   if (qaCapped === 'ALL_PASS') return 'all_pass'
   const perAc = (qa && qa.per_ac) || []
-  const nonPass = perAc.filter((a) => a.verdict !== 'PASS')
+  const nonPass = perAc.filter((a) => a.verdict !== 'PASS' && !isMetNonCodeGate(a))
   const passUnsupported = perAc.some((a) => a.verdict === 'PASS' && (!a.code_ref || !a.test_ref || (a.red_verified !== true && a.red_verified !== 'exempt')))
-  if (nonPass.length > 0 && nonPass.every((a) => a.visual_pending === true) && !passUnsupported) return 'visual_only'
+  if (passUnsupported) return 'real_gap'                                   // a PASS AC lacks evidence/RED
+  if (nonPass.length === 0) return 'all_pass'                              // only PASS + met preconditions remain
+  if (nonPass.every((a) => a.visual_pending === true)) return 'visual_only' // the rest is just live render
   return 'real_gap'
 }
 
@@ -339,6 +359,15 @@ function tddViolations(impl, requireComplete) {
     }
   }
   return violations
+}
+
+// A "shape-only" TDD halt is one whose ONLY violations are done-ACs missing a ledger entry — e.g. a
+// sequencing/dependency gate the implement agent marked done but never ledgered. These are trivially
+// re-emittable without touching code, so they earn ONE bounded ledger-repair retry before a hard halt
+// (retro KTP-784 #3). A genuine missing-RED, malformed-exempt, or GREEN-unconfirmed violation is NOT
+// shape-only and still hard-halts — the gate's teeth stay on real logic ACs.
+function isShapeOnlyTdd(violations) {
+  return violations.length > 0 && violations.every((v) => / marked done but has no ac_tdd ledger entry$/.test(String(v)))
 }
 
 // LAYER 2 cap: a PASS AC whose RED was not independently re-verified by QA on the branch is not trustworthy
@@ -473,7 +502,34 @@ as diff_artifact and set pushed=true. ${decisionsNote}`,
   if (impl.status === 'stuck') return { status: 'HALT_IMPLEMENT_STUCK', ticket, branch: impl.branch, impl }
   // TDD gate, layer 1 (deft-falcon): structural RED-green proof per AC. Un-skippable in 'halt' mode.
   {
-    const v = tddViolations(impl, true)
+    let v = tddViolations(impl, true)
+    // Bounded ledger-repair retry (retro KTP-784 #3): a SHAPE-ONLY halt — done ACs missing a ledger
+    // entry, e.g. sequencing/dependency gates with no code surface — is re-emittable without touching
+    // code. Bounce ONCE to a cheap repair agent (no worktree, no rebuild) that re-emits the full ac_tdd
+    // ledger, then re-gate. A genuine missing-RED on a logic AC is not shape-only and skips this entirely.
+    if (v.length && isShapeOnlyTdd(v)) {
+      log(`TDD gate: shape-only violation(s) — ${v.join('; ')}; attempting one bounded ledger-repair retry`)
+      phase('Implement')
+      const repair = await agent(`${readContract('4-implement')}
+LEDGER-REPAIR MODE. The code for this ticket is ALREADY written, committed, and pushed on branch
+${impl.branch} — do NOT touch code, do NOT create a worktree, do NOT re-run the build. Your ONLY job is
+to re-emit a COMPLETE ac_tdd ledger so every AC reported "done" carries an entry. The TDD gate flagged
+these done ACs as missing a ledger entry: ${JSON.stringify(v)}.
+For each flagged AC, read the ticket folder (${_tf}) to determine its nature:
+- A pure sequencing/dependency gate (a dependency-met check with NO code change and NO unit surface) gets
+  exempt:'not_applicable(<why — e.g. sequencing gate, KTP-779 dependency met, no code/test surface>)'.
+- An AC with REAL logic that genuinely lacks a RED must be returned WITHOUT a valid exempt and WITHOUT a
+  fabricated RED — do NOT invent a passing RED to dodge the gate; an honest gap must re-fail.
+Preserve the existing well-formed entries VERBATIM. Return the FULL merged ac_tdd array.
+IMPLEMENT SUMMARY: ${impl.summary}
+EXISTING ac_tdd: ${JSON.stringify(impl.ac_tdd || [])}`,
+        { schema: LEDGER_REPAIR_SCHEMA, label: 'tdd-ledger-repair', phase: 'Implement' })
+      if (repair && Array.isArray(repair.ac_tdd) && repair.ac_tdd.length) {
+        impl.ac_tdd = repair.ac_tdd
+        rec('implement-ledger-repair', { status: 'pass' }, `repaired:${v.length}`)
+        v = tddViolations(impl, true)
+      }
+    }
     if (v.length && tddGateMode === 'halt') return { status: 'HALT_TDD_GATE', phase: 'Implement', ticket, branch: impl.branch, tdd_violations: v, impl }
     if (v.length) { tddWarnings.push({ phase: 'Implement', violations: v }); log(`TDD gate (warn mode): ${v.length} violation(s) — ${v.join('; ')}`) }
   }

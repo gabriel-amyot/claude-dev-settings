@@ -11,7 +11,7 @@ function extract(name) {
 }
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
 const mod = new AsyncFunction(
-  extract('executionOk') + '\n' + extract('classifyQaGap') + '\n' + extract('preShipBlockers') +
+  extract('executionOk') + '\n' + extract('isMetNonCodeGate') + '\n' + extract('classifyQaGap') + '\n' + extract('preShipBlockers') +
   '\nconst log = () => {};' +
   '\nreturn { classifyQaGap, preShipBlockers };'
 )
@@ -37,6 +37,17 @@ ok('G5 PARTIAL AC without visual_pending flag -> real_gap',
   classifyQaGap({ per_ac: [passAc('AC-1'), { ac: 'AC-2', verdict: 'PARTIAL', code_ref: 'f', test_ref: 't' }] }, 'PARTIAL') === 'real_gap')
 ok('G6 mixed: one visual_pending + one real FAIL -> real_gap',
   classifyQaGap({ per_ac: [visualPendingAc('AC-1'), { ac: 'AC-2', verdict: 'FAIL' }] }, 'PARTIAL') === 'real_gap')
+// Met non-code gates (sequencing / dependency / human-decision ACs with no code surface) are met
+// preconditions, not logic gaps — they must not force a real_gap halt (KTP-784 regression).
+const metGateAc = (ac) => ({ ac, verdict: 'PARTIAL', code_ref: 'n/a (sequencing gate — no code)', test_ref: 'dependency met', red_verified: 'exempt', visual_pending: false })
+ok('G7a met non-code gate alongside a visual_pending AC -> visual_only (gate excluded)',
+  classifyQaGap({ per_ac: [passAc('AC-1'), metGateAc('AC-0'), metGateAc('AC-4'), visualPendingAc('AC-3')] }, 'PARTIAL') === 'visual_only')
+ok('G7b met non-code gates as the only non-PASS, all PASS otherwise -> all_pass-equivalent (no real gap)',
+  classifyQaGap({ per_ac: [passAc('AC-1'), metGateAc('AC-0')] }, 'PARTIAL') !== 'real_gap')
+ok('G7c a no-code AC that FAILED is still a real_gap (gate keeps teeth)',
+  classifyQaGap({ per_ac: [passAc('AC-1'), { ac: 'AC-0', verdict: 'FAIL', code_ref: 'n/a', red_verified: 'exempt' }] }, 'PARTIAL') === 'real_gap')
+ok('G7d an exempt AC with a REAL code_ref + PARTIAL is still a real_gap (not a no-code gate)',
+  classifyQaGap({ per_ac: [passAc('AC-1'), { ac: 'AC-2', verdict: 'PARTIAL', code_ref: 'src/x.ts:10', red_verified: 'exempt' }] }, 'PARTIAL') === 'real_gap')
 ok('G7 PASS AC lacking red_verified -> real_gap (TDD evidence gap, not visual)',
   classifyQaGap({ per_ac: [{ ac: 'AC-1', verdict: 'PASS', code_ref: 'f', test_ref: 't' /* no red_verified */ }, visualPendingAc('AC-2')] }, 'PARTIAL') === 'real_gap')
 ok('G8 visual_pending with exempt RED on the PASS AC -> visual_only',

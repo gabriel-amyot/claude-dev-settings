@@ -1,6 +1,6 @@
 ---
 name: bibliotheque-librarian
-description: "Wiki knowledge management hub. Modes: curate (batch inbox), shelve (place a nugget), query (search wiki), lint (health check), investigate (research without writing), stats (quick metrics), graph (regenerate link data). Invoke with /bibliotheque-librarian [mode] [args]. Spawns a dedicated wiki agent for all modes except stats. Multi-org: auto-detects from cwd, or pass --wiki {klever|supervisr|personal}."
+description: "Wiki knowledge management hub. Modes: curate (batch inbox), shelve (place a nugget), query (search wiki), lint (health check), investigate (research without writing), stats (quick metrics), graph (regenerate link data), prune-memory (auto-memory hygiene: index reconcile, dedupe, staleness, size budget — propose-only). Invoke with /bibliotheque-librarian [mode] [args]. Spawns a dedicated wiki agent for all modes except stats. Multi-org: auto-detects from cwd, or pass --wiki {klever|supervisr|personal}."
 ---
 
 # Bibliothèque Librarian
@@ -20,6 +20,8 @@ Wiki knowledge management skill. Routes to the `bibliotheque-librarian` agent fo
 /bibliotheque-librarian investigate "topic" → research using wiki, return findings (no writes)
 /bibliotheque-librarian stats               → quick metrics (inline, no agent spawn)
 /bibliotheque-librarian graph               → regenerate GRAPH_DATA.json
+/bibliotheque-librarian prune-memory        → auto-memory scan + manifest + proposals (headless-safe, propose-only)
+/bibliotheque-librarian prune-memory --interactive → human gates in-session (quarantine on approval)
 ```
 
 All modes except `stats` spawn the `bibliotheque-librarian` agent via the Agent tool.
@@ -47,7 +49,7 @@ This mode runs in the current context without spawning an agent. It is cheap and
 
 ## All Other Modes: Spawn Agent
 
-For curate, shelve, query, lint, investigate, graph:
+For curate, shelve, query, lint, investigate, graph, prune-memory:
 
 1. Detect org and resolve wiki root.
 2. Build the agent prompt:
@@ -88,3 +90,4 @@ These files support the agent and should not be modified without understanding t
 |------|---------|
 | `references/three-lane-catalog.md` | Classification rulebook: Understand/Blocked/Do Something lanes |
 | `references/curate-workflow.md` | Full 8-step inbox processing procedure (loaded by agent in curate mode) |
+| `references/memory-prune-checks.md` | Detailed auto-memory prune procedures: always-on-surface rule, feedback immutability, quarantine mechanics (loaded by agent in prune-memory mode) |

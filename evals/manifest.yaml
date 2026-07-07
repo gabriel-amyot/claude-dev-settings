@@ -1,0 +1,43 @@
+# Eval manifest — single registry of every eval suite in the harness.
+#
+# /skill-evals reads this. Layer meanings:
+#   A  = deterministic fixture runner (seconds, judge-free, safe for unattended sweep)
+#   B  = behavioral evals.json via skill-creator grader (headless claude, on-demand only)
+#   B' = trigger evals ([{query, should_trigger}] via skill-creator run_eval.py, on-demand)
+#
+# Rules:
+#   - Every new suite registers here (Layer A suites also get swept monthly).
+#   - runner commands must be non-interactive and exit non-zero on any failure.
+#   - last_green is machine-updated by the sweep (skills/skill-evals/scripts/run_sweep.py);
+#     keep the field on its own line inside the suite block.
+#   - A ≥1/month skill with NO suite must appear under `exclusions` with a rationale.
+
+suites:
+  - target: post-comment/verify-causal-claims
+    layer: A
+    runner: python3 ~/.claude-shared-config/skills/post-comment/evals/run_causal_evals.py
+    owner_skill: post-comment
+    last_green: 2026-07-07
+
+exclusions:
+  - target: crit:crit
+    reason: External brew-installed CLI; not ours to eval. Skill layer is a thin wrapper.
+  - target: dev-status
+    reason: Environment/network-bound (pings live Cloud Run). A fixture would test nothing real.
+  - target: klever-local-stack / klever-local-stack-real-bq
+    reason: Environment-bound orchestration (local MySQL, Docker, seeds). No hermetic fixture possible.
+  - target: gcloud
+    reason: Network-bound GCP queries. Only the log-summary formatter would be fixture-able (deferred).
+  - target: superpowers:using-git-worktrees
+    reason: Plugin prose skill; exercised implicitly by the worktree-guard fixture suite.
+  - target: gitlab (CLI core)
+    reason: Already covered by skills/gitlab/tests/test_gitlab_skill.py (unittest); extend only on gaps.
+    verify: python3 -m pytest ~/.claude-shared-config/skills/gitlab/tests/ -q
+  - target: mapping:mapbox, adtech:goldfish, adtech:placer
+    reason: Plugin skills that ship their own evals; verify green on plugin update, not swept here.
+  - target: session:pickup / session:report-back
+    reason: Low-stakes session plumbing; session:check + session:handoff suites cover the ledger surface.
+  - target: create-tickets / grill-with-docs
+    reason: Low-stakes vs cost; creation path is human-gated (no-ticket-creation-without-go rule).
+  - target: feedback-to-spec / harness-audit / sprint-factory
+    reason: Existing evals.json in their skill dirs; registered format, run on-demand via skill-creator.

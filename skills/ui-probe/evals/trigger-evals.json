@@ -1,0 +1,12 @@
+[
+  {"query": "why isn't the spinner doing anything on dev", "should_trigger": true},
+  {"query": "the button does nothing, inspect the live state", "should_trigger": true},
+  {"query": "validate this AC against the running app", "should_trigger": true},
+  {"query": "check the UI, why isn't it updating", "should_trigger": true},
+  {"query": "read the live React props and state for this component", "should_trigger": true},
+  {"query": "is the UI working right now on localhost", "should_trigger": true},
+  {"query": "run the e2e regression suite", "should_trigger": false},
+  {"query": "run playwright tests", "should_trigger": false},
+  {"query": "run the backend API tests", "should_trigger": false},
+  {"query": "generate sprint proof for the tickets", "should_trigger": false}
+]

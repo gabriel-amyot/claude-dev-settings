@@ -1,0 +1,10 @@
+[
+  {"query": "challenge what you just built", "should_trigger": true},
+  {"query": "give me a critical second opinion on this design", "should_trigger": true},
+  {"query": "poke holes in this architecture decision", "should_trigger": true},
+  {"query": "play devil's advocate on this plan", "should_trigger": true},
+  {"query": "is this test valid", "should_trigger": false},
+  {"query": "run the quality gate before MR", "should_trigger": false},
+  {"query": "adversarial review of the code", "should_trigger": false},
+  {"query": "review my teammate's PR", "should_trigger": false}
+]

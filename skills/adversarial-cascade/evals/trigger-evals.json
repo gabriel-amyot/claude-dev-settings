@@ -1,0 +1,10 @@
+[
+  {"query": "run the quality gate before MR", "should_trigger": true},
+  {"query": "adversarial review", "should_trigger": true},
+  {"query": "run adversarial cascade before shipping", "should_trigger": true},
+  {"query": "adversarial review before MR", "should_trigger": true},
+  {"query": "review my teammate's PR", "should_trigger": false},
+  {"query": "challenge what you just built", "should_trigger": false},
+  {"query": "is this test valid", "should_trigger": false},
+  {"query": "give me a critical second opinion on this design", "should_trigger": false}
+]

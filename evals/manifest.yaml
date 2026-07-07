@@ -19,7 +19,186 @@ suites:
     owner_skill: post-comment
     last_green: 2026-07-07
 
+  - target: post-comment/verify-code-claims
+    layer: A
+    runner: python3 ~/.claude-shared-config/skills/post-comment/evals/run_code_claim_evals.py
+    owner_skill: post-comment
+    last_green: 2026-07-07
+
+  - target: gitlab/cli-core
+    layer: A
+    runner: cd ~/.claude-shared-config/skills/gitlab && python3 test_gitlab_skill.py
+    owner_skill: gitlab
+    last_green: 2026-07-07
+
+  # --- hook suites (runner: hooks/evals/run_hook_evals.py) ---
+
+  - target: hooks/external-post-gate
+    layer: A
+    runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook external-post-gate
+    owner_skill: post-comment
+    # DESIGNED RED: the wiring assertion (expected_wired: true) fails while the hook
+    # is unwired pending the PCE handoff decision. Do NOT green it by editing the
+    # fixture; it flips green when settings.json wires the hook.
+    last_green: null
+
+  - target: hooks/challenge-detect
+    layer: A
+    runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook challenge-detect
+    owner_skill: deploy-identity
+    last_green: 2026-07-07
+
+  - target: hooks/pm-single-trunk-guard
+    layer: A
+    runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook pm-single-trunk-guard
+    owner_skill: skill-evals
+    last_green: 2026-07-07
+
+  - target: hooks/session-close-operationalize-guard
+    layer: A
+    runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook session-close-operationalize-guard
+    owner_skill: skill-evals
+    last_green: 2026-07-07
+
+  - target: hooks/claude-md-guard
+    layer: A
+    runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook claude-md-guard
+    owner_skill: harness
+    last_green: 2026-07-07
+
+  - target: hooks/screenshot-placement-guard
+    layer: A
+    runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook screenshot-placement-guard
+    owner_skill: harness
+    last_green: 2026-07-07
+
+  - target: hooks/proposal-backlog-check
+    layer: A
+    runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook proposal-backlog-check
+    owner_skill: harness
+    last_green: 2026-07-07
+
+  - target: hooks/spec-guard
+    layer: A
+    runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook spec-guard
+    owner_skill: harness
+    last_green: 2026-07-07
+
+  - target: hooks/file-guard
+    layer: A
+    runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook file-guard
+    owner_skill: harness
+    # DESIGNED RED: unwired; wiring assertion pinned expected_wired: true to surface
+    # the wire-or-retire decision. Behavior cases 5/5 green.
+    last_green: null
+
+  - target: hooks/config-protect
+    layer: A
+    runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook config-protect
+    owner_skill: harness
+    # DESIGNED RED: unwired (same decision as file-guard). Also carries a REAL BUG,
+    # pinned: broken quote-escaping means it never blocks anything — see
+    # hooks/evals/reports/2026-07-07-cheap-hooks.md.
+    last_green: null
+
+  # --- Layer B behavioral suites (on-demand via skill-creator grader; see /skill-evals) ---
+
+  - target: klever-mr/behavioral
+    layer: B
+    runner: skill-creator benchmark — evals at ~/.claude-shared-config/skills/klever-mr/evals/evals.json
+    owner_skill: klever-mr
+    last_green: null
+
+  - target: sprint-close/behavioral
+    layer: B
+    runner: skill-creator benchmark — evals at ~/.claude-shared-config/skills/sprint-close/evals/evals.json
+    owner_skill: sprint-close
+    last_green: null
+
+  - target: session:check/behavioral
+    layer: B
+    runner: skill-creator benchmark — evals at ~/.claude/plugins/local-marketplace/session/skills/check/evals/evals.json (cache-synced; resync via /bin/cp -f after edits)
+    owner_skill: session:check
+    last_green: null
+
+  - target: operationalize/behavioral
+    layer: B
+    runner: skill-creator benchmark — evals at ~/.claude-shared-config/skills/gab-operationalize/evals/evals.json (skill_name is `operationalize`)
+    owner_skill: gab-operationalize
+    # CAUTION: evals 3-4 write to real targets (~/.claude/skill-proposals/, inbox).
+    # Run against scratch copies or clean up after; see the suite's authoring note.
+    last_green: null
+
+  - target: bibliotheque-librarian/behavioral
+    layer: B
+    runner: skill-creator benchmark — evals at ~/.claude-shared-config/skills/bibliotheque-librarian/evals/evals.json
+    owner_skill: bibliotheque-librarian
+    # CAUTION: evals 1-3/5 write to the live Klever wiki (org auto-detected from cwd).
+    # Run against a scratch wiki clone or git-reset the wiki afterward.
+    last_green: null
+
+  - target: jira/behavioral
+    layer: B
+    runner: skill-creator benchmark — evals at ~/.claude-shared-config/skills/jira/evals/evals.json (11 evals; 1-9 pre-existing)
+    owner_skill: jira
+    last_green: null
+
+  - target: session:handoff/behavioral
+    layer: B
+    runner: skill-creator benchmark — evals at ~/.claude/plugins/local-marketplace/session/skills/handoff/evals/evals.json (cache-synced; resync via /bin/cp -f after edits)
+    owner_skill: session:handoff
+    last_green: null
+
+  # --- Layer B' trigger suites (on-demand; runner = skill-creator run_eval.py, 3 runs/query,
+  #     should-trigger PASS at rate >=0.5, should-not-trigger PASS only at 0) ---
+  # Common runner prefix: python3 ~/.claude/plugins/marketplaces/claude-plugins-official/plugins/skill-creator/skills/skill-creator/scripts/run_eval.py
+
+  - target: klever-sprint-exit/trigger
+    layer: B'
+    runner: run_eval.py --eval-set ~/Developer/grp-beklever-com/project-management/.claude/skills/klever-sprint-exit/evals/trigger-evals.json --skill-path ~/Developer/grp-beklever-com/project-management/.claude/skills/klever-sprint-exit
+    owner_skill: klever-sprint-exit
+    last_green: null
+
+  - target: klever-sprint-mgmt/trigger
+    layer: B'
+    runner: run_eval.py --eval-set ~/Developer/grp-beklever-com/project-management/.claude/skills/klever-sprint-mgmt/evals/trigger-evals.json --skill-path ~/Developer/grp-beklever-com/project-management/.claude/skills/klever-sprint-mgmt
+    owner_skill: klever-sprint-mgmt
+    last_green: null
+
+  - target: ui-probe/trigger
+    layer: B'
+    runner: run_eval.py --eval-set ~/.claude-shared-config/skills/ui-probe/evals/trigger-evals.json --skill-path ~/.claude-shared-config/skills/ui-probe
+    owner_skill: ui-probe
+    last_green: null
+
+  - target: klever-test/trigger
+    layer: B'
+    runner: run_eval.py --eval-set ~/.claude-shared-config/skills/klever-test/evals/trigger-evals.json --skill-path ~/.claude-shared-config/skills/klever-test
+    owner_skill: klever-test
+    last_green: null
+
+  - target: investigate/trigger
+    layer: B'
+    runner: run_eval.py --eval-set ~/.claude-shared-config/skills/investigate/evals/trigger-evals.json --skill-path ~/.claude-shared-config/skills/investigate
+    owner_skill: investigate
+    last_green: null
+
+  - target: challenge/trigger
+    layer: B'
+    runner: run_eval.py --eval-set ~/.claude-shared-config/skills/challenge/evals/trigger-evals.json --skill-path ~/.claude-shared-config/skills/challenge
+    owner_skill: challenge
+    last_green: null
+
+  - target: adversarial-cascade/trigger
+    layer: B'
+    runner: run_eval.py --eval-set ~/.claude-shared-config/skills/adversarial-cascade/evals/trigger-evals.json --skill-path ~/.claude-shared-config/skills/adversarial-cascade
+    owner_skill: adversarial-cascade
+    last_green: null
+
 exclusions:
+  - target: superpowers:brainstorming
+    reason: Plugin skill; trigger-only coverage would require writing into the plugin tree.
+      Outputs too open-ended for cheap grading (documented rationale per plan). Rationale-only entry.
   - target: crit:crit
     reason: External brew-installed CLI; not ours to eval. Skill layer is a thin wrapper.
   - target: dev-status
@@ -30,9 +209,6 @@ exclusions:
     reason: Network-bound GCP queries. Only the log-summary formatter would be fixture-able (deferred).
   - target: superpowers:using-git-worktrees
     reason: Plugin prose skill; exercised implicitly by the worktree-guard fixture suite.
-  - target: gitlab (CLI core)
-    reason: Already covered by skills/gitlab/tests/test_gitlab_skill.py (unittest); extend only on gaps.
-    verify: python3 -m pytest ~/.claude-shared-config/skills/gitlab/tests/ -q
   - target: mapping:mapbox, adtech:goldfish, adtech:placer
     reason: Plugin skills that ship their own evals; verify green on plugin update, not swept here.
   - target: session:pickup / session:report-back

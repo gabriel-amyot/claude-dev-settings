@@ -1,0 +1,12 @@
+[
+  {"query": "the circles are empty on the map", "should_trigger": true},
+  {"query": "the feature misbehaves after deploy", "should_trigger": true},
+  {"query": "something is broken, the store panel is blank", "should_trigger": true},
+  {"query": "this isn't right, the flow lines disappeared", "should_trigger": true},
+  {"query": "unexpected behavior after the last deploy", "should_trigger": true},
+  {"query": "visual bug on the dashboard", "should_trigger": true},
+  {"query": "implement the new filter dropdown", "should_trigger": false},
+  {"query": "write tests for the adapter", "should_trigger": false},
+  {"query": "create a new Jira ticket for this feature", "should_trigger": false},
+  {"query": "review my teammate's PR", "should_trigger": false}
+]

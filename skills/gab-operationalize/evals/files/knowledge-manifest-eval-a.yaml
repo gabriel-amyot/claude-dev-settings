@@ -1,0 +1,16 @@
+session_slug: eval-fixture-alpha
+created: 2026-07-07T09:00:00Z
+last_run: 2026-07-07T11:15:00Z
+run_count: 1
+inbox_file: documentation/bibliotheque/inbox/2026-07-07-deploy-debugging.md
+nuggets:
+  - subject: "Cloud Run rejects a direct first deploy; deploy with --no-traffic then migrate"
+    inbox_file: documentation/bibliotheque/inbox/2026-07-07-deploy-debugging.md
+    captured: 2026-07-07T11:15:00Z
+skills: []
+runs:
+  - at: 2026-07-07T11:15:00Z
+    mode: checkpoint
+    nuggets_added:
+      - "Cloud Run rejects a direct first deploy; deploy with --no-traffic then migrate"
+    skills_added: []

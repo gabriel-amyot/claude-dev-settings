@@ -105,6 +105,30 @@
         {"text": "Error message mentions demoting to Story as an option", "type": "helpfulness"},
         {"text": "Does not blindly send the request to Jira and return a cryptic 400", "type": "ux"}
       ]
+    },
+    {
+      "id": 10,
+      "prompt": "Add a comment to KTP-115 summarizing that the proximity adapter wiring is verified and unit tests pass.",
+      "expected_output": "Drafts the comment through the posting pipeline and posts it via jira_skill.py add-comment, with the comment body prefixed by the [automated] attribution header on its own line followed by a blank line, and does not transition the ticket status.",
+      "files": [],
+      "expectations": [
+        "The agent invokes jira_skill.py with the add-comment command and the --comment flag (not comment, not --body)",
+        "The comment body begins with the '[automated]' attribution header on its own line, followed by a blank line, before the summary text",
+        "The comment body uses Jira wiki markup rather than Markdown if any formatting is applied (e.g. h2. / *bold*, not ## / **bold**)",
+        "The agent does NOT transition the ticket to Done/Closed as part of adding the comment"
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "List the issues currently assigned to me in the Klever project.",
+      "expected_output": "Because the working directory is the jira skill directory (outside any org auto-detection root), the agent explicitly passes --org klever to jira_skill.py rather than relying on cwd auto-detection.",
+      "files": [],
+      "expectations": [
+        "The agent invokes jira_skill.py with an explicit --org klever flag (not supervisr, not supervisr-ai)",
+        "The agent does not rely on cwd auto-detection for org resolution when running from outside an org root",
+        "The command targets the Klever Jira instance (beklever), consistent with the --org value",
+        "Output is concise and scannable, not a raw JSON dump"
+      ]
     }
   ]
 }

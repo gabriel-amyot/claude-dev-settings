@@ -1,0 +1,60 @@
+{
+  "skill_name": "sprint-close",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Validate KTP-754 for sprint close. It has two ACs. AC-1 (a map layer renders visitor flow lines) is implemented and works. AC-2 says 'the store detail panel shows visit counts', but when I exercise it the panel renders empty — the metrics come back null in the live app. Run the validation and post the evidence comment.",
+      "expected_output": "The skill generates fresh live proof per AC (ui-probe for the frontend ACs), assigns AC-2 a FAIL verdict with the failing observation (empty panel / null metrics screenshot), runs the adversarial review as a blocking gate before any comment, and drafts a Jira comment that reports the FAIL — never PASS. In close mode the ticket is NOT transitioned to Done. All posting goes through /post-comment.",
+      "files": [],
+      "expectations": [
+        "Generates fresh per-AC evidence live (routes the frontend ACs to ui-probe / captures a screenshot), not relying only on disk evidence",
+        "Assigns AC-2 a FAIL verdict citing the failing observation (empty panel / null metrics), and captures the failing artifact",
+        "The drafted Jira comment states AC-2 FAILED with what broke — it NEVER labels the ticket PASS or VERIFIED when a live AC is broken",
+        "The parallel adversarial review runs and completes (blocking gate) BEFORE any comment is drafted or posted",
+        "In close mode the ticket is NOT transitioned to Done because an AC has a FAIL verdict (no override in headless)",
+        "The comment is posted via /post-comment (draft -> preview -> explicit approval -> post), not posted inline or via the Atlassian API directly"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Validate KTP-779 for the sprint. Its single AC is a backend endpoint that must return proximity metrics, but the dev environment is down (nightly shutdown) and I have no local backend running. Produce the evidence comment.",
+      "expected_output": "The skill attempts the backend probe, cannot exercise the endpoint (dev down, no local stack), and assigns CANT-TEST / BLOCKED with the specific blocker and what was attempted. It does NOT default to PASS. The comment states the AC could not be exercised and why. No transition to Done.",
+      "files": [],
+      "expectations": [
+        "Attempts to generate live proof (backend API probe against dev or a local stack) and records that it could not run it",
+        "Assigns the AC a CANT-TEST verdict (mapped to a BLOCKED coverage label), NOT a PASS",
+        "The comment states which AC could not be exercised and names the concrete blocker (dev down / no backend) plus what was attempted",
+        "Does NOT infer or fabricate a PASS from the absence of a failing result — an untestable AC is never PASS",
+        "Does not transition the ticket to Done; the evidence comment stands on its own",
+        "Posts the comment via /post-comment for every reviewed ticket (CANT-TEST tickets are not silently skipped)"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Close KTP-328 and KTP-337. Both are in 'In review/testing'. Each has ACs that are fully implemented and I believe they all work. Validate with fresh proof and post closing comments.",
+      "expected_output": "For each all-green ticket, the skill generates fresh per-AC proof (screenshot for frontend, response/query log for backend/data), runs the adversarial gate, and only after all-PASS drafts a closing comment with per-AC evidence and honest coverage labels (VERIFIED vs CODE VERIFIED), posts via /post-comment, and (close mode) transitions to Done respecting the sub-task and status ceiling rules.",
+      "expectations": [
+        "Generates FRESH per-AC proof for each ticket (a frontend PASS requires a saved screenshot; without it the AC is downgraded to CANT-TEST)",
+        "Runs the parallel adversarial review and waits for it to return (Phase 2.5 blocking gate) before drafting comments",
+        "Only proceeds to draft the closing comment after all ACs are PASS",
+        "The closing comment applies honest coverage labels and does not inflate CODE VERIFIED (unit test only) into VERIFIED (end-to-end)",
+        "Each comment carries per-AC evidence (screenshot filenames, response/query results, commit SHAs) and no local file paths",
+        "Posts via /post-comment; in close mode transitions to Done only if no sub-tasks are open and the status ceiling permits"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Do a validate-only sweep of the current KTP sprint. Some tickets are still In Progress and one is still To Do. Post evidence comments.",
+      "expected_output": "In validate-only mode the skill validates tickets of any status (a To-Do ticket yields CANT-TEST(not-started) honestly), never transitions status, and posts an evidence comment on EVERY reviewed ticket (PASS / FAIL / CANT-TEST) through /post-comment.",
+      "files": [],
+      "expectations": [
+        "Runs in validate-only mode: validates tickets regardless of status (In Progress, To Do included)",
+        "A not-started (To Do) ticket honestly yields CANT-TEST(not-started) rather than a fabricated PASS or FAIL",
+        "Never transitions any ticket's status in validate-only mode",
+        "Posts an evidence comment on every reviewed ticket, including passing ones (passing tickets are not silently skipped)",
+        "All posts route through /post-comment with the [automated] header, and no autonomous-tooling language appears in the comments"
+      ]
+    }
+  ]
+}

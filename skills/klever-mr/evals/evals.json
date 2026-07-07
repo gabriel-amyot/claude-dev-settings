@@ -1,0 +1,72 @@
+{
+  "skill_name": "klever-mr",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I'm on branch KTP-712-null-visit-guard in the app-proximity-report repo (a Java backend, pom.xml at root). I finished the fix and I'm ready to open the merge request to dev. The branch's pom.xml version is 1.4.2 and origin/dev's pom.xml version is also 1.4.2 — I did not bump it. The CHANGELOG.md top entry is still [1.4.2] from a previous merge. Create the MR.",
+      "expected_output": "The skill classifies the repo as a Java backend app repo, runs the version-bump and CHANGELOG gates (does not skip them), detects that the local version is not strictly greater than origin/dev, and refuses to ship a colliding version: it resolves the version to 1.4.3 and adds a matching CHANGELOG entry before creating the MR. It never opens an MR carrying the un-bumped 1.4.2 version.",
+      "files": ["files/pom.xml", "files/CHANGELOG.md"],
+      "expectations": [
+        "Classifies the repo as a Java backend / app repo because pom.xml is present at the root",
+        "Runs the version-bump gate (Gate 4) — it is NOT skipped for a Java repo",
+        "Detects that the local pom.xml version (1.4.2) is not strictly greater than origin/dev's version (1.4.2)",
+        "Does NOT create the MR while the version still collides with origin/dev — the version discrepancy is resolved first (bumped to 1.4.3, patch increment)",
+        "Runs the CHANGELOG gate and ensures a `## [1.4.3]` entry exists (adds one from commit subjects) before the MR proceeds",
+        "Treats version bump + CHANGELOG as mandatory for this repo type — it demands both before proceeding, rather than silently opening the MR with the stale version"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I'm on branch KTP-853-proexp-cos-scaling in the dac-gcp-back-proexp repo (path contains grp-dac, terraform only, there is no pom.xml, package.json, or pyproject.toml). Create the MR to dev.",
+      "expected_output": "The skill classifies the repo as Infra/DAC, skips the version-bump and CHANGELOG gates with an explicit 'gate skipped' report, still synthesizes WHY and WHAT sections for the MR description, and verifies the target branch is dev.",
+      "files": [],
+      "expectations": [
+        "Classifies the repo as Infra/DAC because none of pom.xml, package.json, or pyproject.toml exist (and the path contains grp-dac)",
+        "Skips the version-bump gate and says so explicitly (e.g. 'Gate skipped: version bump (infra/terraform repo, no versioned artifact)')",
+        "Skips the CHANGELOG gate and says so explicitly",
+        "Still produces a WHY section and a WHAT section in the MR description despite skipping the app-repo gates",
+        "Confirms/uses the target branch as dev (never main or uat) for the MR"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "On branch KTP-499-atomic-permissions in app-user-management (Java, pom.xml). I already bumped the version to 2.1.0 in pom.xml, but a git tag v2.1.0 already exists in the repo from an earlier attempt. Open the MR to dev.",
+      "expected_output": "The skill runs the tag-collision check, finds that v2.1.0 already exists, and auto-resolves by bumping to the next available patch version (2.1.1), reporting the collision, before creating the MR.",
+      "files": [],
+      "expectations": [
+        "Checks existing git tags for a collision with the local version (e.g. `git tag --list` filtered for 2.1.0)",
+        "Detects that tag v2.1.0 already exists",
+        "Bumps to the next available patch version (2.1.1) rather than shipping a colliding tag",
+        "Reports the collision and the bump explicitly (e.g. 'Tag 2.1.0 exists, bumped to 2.1.1')",
+        "Only creates the MR after the version no longer collides with an existing tag"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Branch KTP-609-store-detail-metrics in app-front-portal (Node frontend, package.json present). Commits are ready and the version is already ahead of dev. Open the merge request to dev.",
+      "expected_output": "The skill builds an MR description containing Why, What, Tickets, Commits, and Test plan sections; the WHY describes the problem/motivation (not the solution), the ticket link is built from the branch name (KTP-609), and the package-lock is kept in sync after any version bump.",
+      "files": [],
+      "expectations": [
+        "The MR description contains all five sections: Why, What, Tickets, Commits, Test plan",
+        "The WHY section describes the problem or what was asked, not the implementation/solution",
+        "The Tickets section links KTP-609 derived from the branch name (https://beklever.atlassian.net/browse/KTP-609)",
+        "The Commits section is generated from the git log (origin/dev..HEAD), not invented",
+        "If package.json is bumped, package-lock.json is regenerated (npm install --package-lock-only) and included",
+        "The MR description is written to an ephemeral .mr-description.md (not committed) rather than pasted only inline"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Create an MR for my current work. I'm on the dev branch of app-proximity-report.",
+      "expected_output": "The skill runs the branch check (Gate 2), detects it is on a protected branch (dev), and stops with a structural failure telling the user to create a feature branch first. It does not attempt to push or create an MR.",
+      "files": [],
+      "expectations": [
+        "Runs the branch check and detects the current branch is a protected branch (dev)",
+        "Treats this as a structural failure — reports and STOPS, does not auto-resolve",
+        "Tells the user to create a feature branch first",
+        "Does NOT push the branch or create the MR",
+        "Does not fabricate a ticket ID or MR when the branch state is invalid"
+      ]
+    }
+  ]
+}

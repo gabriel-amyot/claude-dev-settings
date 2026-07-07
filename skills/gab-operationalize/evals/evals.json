@@ -1,0 +1,73 @@
+{
+  "skill_name": "operationalize",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "/operationalize --mode close\n\nWe just wrapped a deploy debugging session. Two things became clear:\n\n1. Cloud Run rejects a direct deploy of a brand-new revision. You have to deploy with `--no-traffic` first, then migrate traffic. This is why our first two deploys reported success but served nothing.\n2. When the GitLab clone/API stops working mid-session it is the IAP cookie expiring. Running `git fetch` inside `grp-cfg/cfg-app` refreshes the cookie without a full re-auth.\n\nThe active session's knowledge-manifest.yaml is provided at evals/files/knowledge-manifest-eval-a.yaml. Treat it as the active session's `sessions/active/<slug>/knowledge-manifest.yaml`. Extract and persist end-of-session knowledge.",
+      "expected_output": "Reconciles against the manifest, extracts ONLY the IAP-cookie-refresh nugget (Cloud Run --no-traffic is already on the manifest), writes it to the session inbox file, then stamps last_run, increments run_count, and appends a runs entry even though only one nugget was added. Never asks the user which nuggets to persist.",
+      "files": ["evals/files/knowledge-manifest-eval-a.yaml"],
+      "expectations": [
+        "The IAP-cookie-refresh nugget is extracted and written through to the bibliothèque inbox as a new nugget",
+        "The Cloud Run --no-traffic nugget is NOT re-extracted or re-written, because its subject is already listed in the manifest's nuggets[]",
+        "The agent does NOT ask the user which nuggets to persist; it persists immediately after showing the list (operationalize-defaults: persist all, no asking)",
+        "The manifest's last_run field is updated to the current run timestamp",
+        "A new entry is appended to the manifest's runs[] list with nuggets_added containing the one new subject",
+        "The manifest's run_count is incremented from 1 to 2"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "/operationalize --mode close\n\nQuick session. We only re-confirmed something we already knew: story points on Klever Jira live in `customfield_10028`, not `10016`. Nothing else new came up.\n\nThe active session's knowledge-manifest.yaml is provided at evals/files/knowledge-manifest-eval-b.yaml. Treat it as the active session's manifest. Run end-of-session capture.",
+      "expected_output": "Finds zero new knowledge (the only point is already on the manifest). Writes no new nugget and fabricates none, but still stamps last_run, increments run_count, and appends a runs entry with an empty nuggets_added list so the close gate has proof capture ran.",
+      "files": ["evals/files/knowledge-manifest-eval-b.yaml"],
+      "expectations": [
+        "No new nugget is written to the bibliothèque inbox; the only knowledge point is already on the manifest",
+        "The agent does NOT fabricate, pad, or invent nuggets to have something to show",
+        "The manifest's last_run is still stamped with the current timestamp even though nothing new was found",
+        "A runs[] entry is appended with nuggets_added as an empty list",
+        "The manifest's run_count is incremented",
+        "The agent does not ask the user whether to persist anything"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "/operationalize \"deploy flow\"\n\nDuring this session we worked out the full Cloud Run deploy pipeline for a Klever service, and we will run it every release: (1) bump the version and update CHANGELOG, (2) push to dev, (3) CI builds and pushes the git tag, (4) deploy the new revision with `--no-traffic`, (5) smoke-test the new revision URL, (6) migrate traffic to it. Operationalize this.",
+      "expected_output": "Recognizes the repeatable multi-step procedure as a skill candidate: tags it [+SKILL], writes a skill-proposal file to ~/.claude/skill-proposals/, AND writes the procedure to the bibliothèque inbox as tribal knowledge. Accumulates the proposal to the backlog rather than auto-invoking skill-creator.",
+      "files": [],
+      "expectations": [
+        "The deploy-pipeline procedure is tagged [+SKILL] in the presented nugget list",
+        "A skill-proposal file is written to ~/.claude/skill-proposals/ with a dated YYYY-MM-DD filename",
+        "The proposal file contains Trigger, Scope, and Draft Steps sections",
+        "The procedure is ALSO written to the bibliothèque inbox as tribal knowledge (every nugget is tribal knowledge; [+SKILL] additionally produces a proposal)",
+        "The agent does NOT auto-invoke skill-creator; it accumulates the proposal to the backlog and reports the proposal count",
+        "The agent does not ask the user which nuggets to persist"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "/operationalize\n\nIn this session we discovered that Mapbox nested zoom expressions fail silently: an `interpolate` expression nested inside another `interpolate` throws no error but the layer just does not render. Capture this.",
+      "expected_output": "Extracts a single [KNOWLEDGE] gotcha, writes it to one dated inbox file, and updates inbox/INDEX.md with a pending row. No skill proposal (this is not a repeatable procedure). Persists without asking.",
+      "files": [],
+      "expectations": [
+        "The gotcha is written to a single inbox file at documentation/bibliotheque/inbox/YYYY-MM-DD-{slug}.md",
+        "inbox/INDEX.md is updated with a row for the new entry marked status pending",
+        "The nugget is classified [KNOWLEDGE], not tagged [+SKILL] (it is a gotcha, not a repeatable procedure)",
+        "The agent persists immediately without asking the user which nuggets to keep",
+        "Only one inbox file is created for the session, not one file per nugget"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "/operationalize --update klever-mr\n\nWe just learned that when a Klever repo uses `pyproject.toml` (Python), the version bump has to touch the `[project] version` field AND the CHANGELOG, and /klever-mr was missing the pyproject path in its version-bump gate. Add this learning to the klever-mr skill.",
+      "expected_output": "Enters update mode: locates the existing klever-mr skill, reads it, mines the pyproject learning, shows a before/after diff, and applies only on approval. Does not create a fresh inbox nugget file (update mode targets the named artifact).",
+      "files": [],
+      "expectations": [
+        "The agent locates the existing klever-mr skill file (under ~/.claude/skills/ or a repo .claude/skills/)",
+        "The agent reads the existing skill content before proposing any change",
+        "The agent shows a before/after diff of the addition rather than writing blindly",
+        "The agent applies the change only after approval; update mode is approval-gated, unlike standard-mode persist-all",
+        "The agent does not create a new inbox nugget file for this update"
+      ]
+    }
+  ]
+}

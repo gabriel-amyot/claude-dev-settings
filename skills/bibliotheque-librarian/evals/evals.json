@@ -1,0 +1,70 @@
+{
+  "skill_name": "bibliotheque-librarian",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "/bibliotheque-librarian shelve --wiki klever\n\nShelve this nugget into the wiki. The content and source are in evals/files/nugget-dac-branch-model.md. Place it in the right section with full enrichment.",
+      "expected_output": "Classifies the nugget as an operational/deploy procedure, writes a new enriched page (frontmatter + 3-5 wikilinks + a How to apply line) into the correct section, and updates that section's INDEX.md. Shelve writes directly to a section, not to the inbox.",
+      "files": ["evals/files/nugget-dac-branch-model.md"],
+      "expectations": [
+        "The agent classifies the nugget into an operational/procedure section (operations/ or sops/), not stack/",
+        "The agent writes a new page with YAML frontmatter including title, type, created, tags, and related",
+        "The page body contains 3-5 [[wikilinks]] to related wiki pages",
+        "The page includes a 'How to apply:' line for the procedure",
+        "The relevant section INDEX.md is updated with a one-line descriptive entry for the new page",
+        "The agent does NOT write the nugget to the inbox; shelve places directly into a section"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "/bibliotheque-librarian shelve --wiki klever\n\nShelve this debugging nugget. Content and source in evals/files/nugget-gateway-401.md. It is a failure symptom engineers will hit under pressure, so make sure it is reachable from the catalog.",
+      "expected_output": "Classifies the nugget into stack/ (service-to-service auth behavior) and, because it is a high-traffic crisis-time failure symptom, adds a Blocked-lane row to the root INDEX with a specific observable symptom. This root-lane row is the wiki's cross-cutting cross-reference surface.",
+      "files": ["evals/files/nugget-gateway-401.md"],
+      "expectations": [
+        "The agent classifies the nugget into the stack/ section (service-to-service auth behavior)",
+        "The agent adds a row to the root INDEX.md Blocked lane ('I Am Blocked by an Error') because it is a crisis-time failure symptom",
+        "The Blocked-lane Symptom column is a specific observable failure naming the service pair and error (e.g. 'gateway -> subgraph returns 401 on dual auth headers'), not a generic term like '401 error'",
+        "The section INDEX.md is also updated with a one-liner for the new page",
+        "The page body carries 3-5 [[wikilinks]] and a 'How to apply:' line"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "/bibliotheque-librarian lint --wiki klever\n\nRun the health scan. Note for context: the inbox has a pending entry at evals/files/phantom-inbox-entry.md whose nugget was already shelved directly into stack/gateway-dual-header-401.md, so treat that page as already existing on disk with the dual-header 401 content. The ledger still shows the entry pending.",
+      "expected_output": "In the phantom-pending reconcile check, greps verbatim key phrases from the pending entry against on-disk pages, confirms the content already exists, flips the entry Status to promoted (reconciled) and archives it, and creates no duplicate page.",
+      "files": ["evals/files/phantom-inbox-entry.md"],
+      "expectations": [
+        "The agent runs the phantom-pending reconcile check over the pending inbox entries",
+        "The agent greps 1-2 verbatim key phrases from the nugget to verify the content is already on disk, rather than trusting the ledger alone",
+        "On confirming the content exists, the agent flips the inbox entry Status to a reconciled/promoted state (e.g. 'promoted (reconciled by lint ...)')",
+        "The agent does NOT create a duplicate page or re-write the existing content",
+        "The reconciled entry is archived out of the hot inbox (moved to inbox/archive/YYYY/) rather than left in place"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "/bibliotheque-librarian query \"why does the Apollo gateway return a 401 to a subgraph?\" --wiki klever",
+      "expected_output": "Searches the root INDEX / section INDEXes progressively, returns a synthesized answer citing the specific wiki page(s) it drew from, and writes nothing.",
+      "files": [],
+      "expectations": [
+        "The agent searches the root INDEX and section INDEX files progressively (metadata before content), not by bulk-reading every wiki file",
+        "The answer includes citations: specific wiki file paths or page links it drew the answer from",
+        "The agent does NOT write, create, or modify any file in query mode",
+        "The answer is a synthesized response, not a raw dump of a file's full contents"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "/bibliotheque-librarian curate --wiki klever\n\nProcess the inbox. The pending entry to curate is evals/files/curate-inbox-entry.md (two nuggets, curator note included). Treat it as the single pending row in inbox/INDEX.md.",
+      "expected_output": "Reads the inbox INDEX and the entry, presents a placement plan for both nuggets before writing (plan-then-execute), then executes: routes each nugget to a section, updates section + root INDEX + ALIASES/LOG, marks the inbox entry promoted, and archives the raw file.",
+      "files": ["evals/files/curate-inbox-entry.md"],
+      "expectations": [
+        "The agent reads the inbox INDEX and the pending entry file before writing anything",
+        "The agent presents a placement PLAN (target section, new-file vs extend, root-lane per nugget) BEFORE executing writes (plan-then-execute)",
+        "Each of the two nuggets is routed to a section consistent with the three-lane/section rules (stack/ or sops/)",
+        "After execution the inbox entry Status is marked promoted and the raw file is archived to inbox/archive/YYYY/ (Step 7b)",
+        "The agent updates the section INDEX and, where warranted, the root INDEX lanes and ALIASES/LOG"
+      ]
+    }
+  ]
+}

@@ -25,7 +25,7 @@ Captures visual evidence for frontend acceptance criteria. Navigates the app, pe
 Before capturing anything, verify the local stack:
 
 1. **Frontend running?** `curl -s http://localhost:3000 | head -1` returns HTML.
-2. **Backend running?** `curl -s http://localhost:8090/actuator/health` returns UP.
+2. **Backend running?** `curl -s http://localhost:8098/user/actuator/health` returns UP.
 3. **Dev environment accessible?** `curl -s https://demo.dev.beklever.com` (alternative to local).
 
 If nothing is running:

@@ -66,14 +66,14 @@ Every test type requires services to be running. Previous failures were caused b
 curl -s -o /dev/null -w "%{http_code}" http://localhost:3001 2>/dev/null || \
 curl -s -o /dev/null -w "%{http_code}" http://localhost:3000
 
-# Proximity backend (port 8097)
-curl -s -o /dev/null -w "%{http_code}" http://localhost:8097/actuator/health
+# Proximity backend (port 8097, context path /proximity-report)
+curl -s -o /dev/null -w "%{http_code}" http://localhost:8097/proximity-report/actuator/health
 
-# UM backend (port 8090)
-curl -s -o /dev/null -w "%{http_code}" http://localhost:8090/actuator/health
+# UM backend (port from .env.local, currently 8098, context path /user)
+curl -s -o /dev/null -w "%{http_code}" http://localhost:8098/user/actuator/health
 
-# MySQL container
-docker ps --filter name=klever-mysql-local --format "{{.Status}}"
+# MySQL (native Homebrew, not Docker) — check the port is listening
+lsof -ti :3306 >/dev/null 2>&1 && echo "mysql up" || echo "mysql down"
 ```
 
 If any fail: report which services are down. Suggest `/klever-local-stack`. Do NOT proceed.

@@ -9,6 +9,7 @@ spine and the shared contracts name no stack — all work-type specifics live in
 | `java` | Deliverable is a change to a running Java/Spring service (`pom.xml` present). | [java.md](java.md) |
 | `scripting` | Deliverable is a script whose value is its output / side-effect — make tiles, populate BQ, transform data, change state (`.py`/`.sh`, no service framework). | [scripting.md](scripting.md) |
 | `frontend` | Deliverable is a rendered UI change — a React/Next component, a Mapbox GL layer, a page/route, a UI control (`package.json` present; the value is what renders on screen, not a side-effect). | [frontend.md](frontend.md) |
+| `terraform-dac-infra` | Deliverable is GCP infra provisioned through a Klever DAC (`terraform/*.tf` + DAC-deploy CI) and/or a FaaS cloud-function app repo (`main.py`+`pyproject.toml`), cloned from a proven pattern — a Cloud Run Function, Cloud Scheduler, service account, least-privilege IAM, a partitioned BigQuery table. Value is the live dev footprint (asserted via `gcloud`/`bq`/`get-iam-policy`). Repo creation is a human gate; dev-only autonomous; no local apply. | [terraform-dac-infra.md](terraform-dac-infra.md) |
 
 **No match → halt.** If the ticket's deliverable matches no belt's `detect` rule, the run halts
 `BLOCKED_UNSUPPORTED_FLOOR`. Rack a new belt here (copy a belt file, define its detect + build +

@@ -1,0 +1,166 @@
+run_id: run-2026-06-11-KTP-678
+ticket: KTP-678
+title: >
+  Wire SummaryPerformanceBigQueryAdapter to the real proximity_daily_summary_performance base
+  table (was zip-performance table + hardcoded '0 AS CONVERSIONS'): real SUM(CONVERSIONS) as Long,
+  add VISITS/DISTRIBUTED_VISITS, fix ProximityTableConfig to the base table (the configured
+  v_prox_summary_performance view does not exist in live BQ). 7 ACs incl. AC-0 grain pre-flight
+  and AC-6 negative scope fence (backend only). Epic KTP-558, app-proximity-report, java belt.
+date: 2026-06-11
+terminal_status: READY_TO_SHIP
+branch: KTP-678-summary-performance-table-wiring
+tip: cbb3268c5e06eb73583895e1cd189a28b8bfe5d7
+version_bump: "0.1.80 -> 0.1.81 (pom.xml + CHANGELOG.md in diff)"
+session: unresolved (sessions/active/state.yaml session_id empty AGAIN — same gap flagged in run-2026-06-11-KTP-704; handoff written to shared sessions/active/prompts/)
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: true
+  note: >
+    Gate ran in default halt mode with zero violations, and the signal is SUBSTANTIVE (unlike the
+    vacuous HALT_AGENT_SKIPPED runs the same day): 4 RED-ledger commits (a6e60e5, a309896, e436bf8,
+    5147c66) were independently re-verified by QA in a segregated detached worktree — each shown to
+    be a test-only diff that FAILS at the RED commit and passes byte-identical at tip. 3 of 7 ACs
+    exempt (AC-0 evidence-only, AC-5 meta-AC, AC-6 negative-scope), each exemption justified on the
+    diff in qa/result.yaml.
+
+per_phase:
+  - { phase: concierge, status: PASS, confidence: 92 }
+  - { phase: design, status: pass, confidence: 90 }
+  - { phase: grill, status: pass, confidence: 90 }
+  - { phase: implement, status: pass, confidence: 90 }
+  - { phase: review, status: "criticals:0", confidence: 90 }
+  - { phase: qa, status: ALL_PASS, confidence: 95 }
+  - { phase: ship-prep, status: pass, confidence: 92 }
+
+scores:
+  task_confidence: 91
+  factory_fitness: 88
+
+deductions:
+  # task_confidence (start 100 -> 91)
+  - points: 3
+    reason: >
+      task_confidence: READY_TO_SHIP is not shipped. MR creation, the two mandatory Jira comments
+      (plan + validation), and post-merge dev validation are still owed by the main loop. Code is
+      done, pushed, version-bumped (0.1.81 + CHANGELOG); the remaining distance is procedural but
+      real.
+  - points: 3
+    reason: >
+      task_confidence: no live execution proof of the running artifact. Evidence is unit/MockMvc
+      (full suite 492/0 on JDK 17) + live BQ grain queries, but nobody started the service and
+      curled POST /proximity-report/api/v1/reports/summary/performance — the exact path the grill
+      had to CORRECT in the plan (GAP-1: plan's path would have 404'd). Compile+test alone is below
+      the house execution-verification bar for a wiring ticket whose whole point is live data.
+  - points: 2
+    reason: >
+      task_confidence: live BQ drift discovered at grill (GAP-6: max DATE now 2026-06-30 with
+      future-dated rows; 86 rows where CONVERSIONS != INT64 cast, up from ~58) is documented but
+      unresolved — an upstream Dataform/pipeline oddity that can surface post-ship as "the numbers
+      look wrong" and land back on this ticket. No data-quality follow-up ticket or inbox item was
+      raised.
+  - points: 1
+    reason: >
+      task_confidence: residual uncertainty acknowledged by the line itself — soft confidences sit
+      at 90-92 across all code phases, none at 100 (e.g. silent toward-zero truncation of
+      fractional CONVERSIONS accepted as default and pinned by test, but never confirmed by the PO).
+  # factory_fitness (start 100 -> 88)
+  - points: 3
+    reason: >
+      factory_fitness: design phase emitted a wrong live-proof endpoint path (GAP-1 — omitted the
+      context-path + class-level /api/v1 segments). Grill caught it, which is the system working,
+      but a QA curl against the planned path would have 404'd and read as a regression. The design
+      contract has no rule to derive endpoint paths from context-path + class mapping + method
+      mapping instead of eyeballing the method annotation.
+  - points: 3
+    reason: >
+      factory_fitness: design phase's Mockito LENIENT placement (GAP-2) would have masked the AC-1
+      RED — strict mode throws UnnecessaryStubbingException on the not-yet-used stub, hiding the
+      intended AssertionError. Grill fixed it, but the strict-mode-vs-RED-first interaction is a
+      known java-belt trap (UnnecessaryStubbing already bit KTP-430) and is codified nowhere in the
+      java belt prompt.
+  - points: 2
+    reason: >
+      factory_fitness: upstream artifacts are not amended when re-verification contradicts them.
+      analyst/assumptions.json still asserts "max DATE = 2026-06-02, VERIFIED" while the grill's
+      same-day live re-run found max DATE = 2026-06-30 (GAP-6). A resume or downstream phase
+      reading the analyst folder picks up a stale "VERIFIED" fact with no superseded marker.
+  - points: 2
+    reason: >
+      factory_fitness: the review phase persisted only review/diff.patch. There is no on-disk
+      findings report behind the trace's "criticals:0" — no count of non-critical findings, no
+      record of what was checked. The retro (and any auditor) must take a 10-character trace string
+      on faith for an entire phase.
+  - points: 1
+    reason: >
+      factory_fitness: per-phase trace status vocabulary is uncontrolled ("PASS", "pass",
+      "criticals:0", "ALL_PASS") — no enum in the schema, so cross-run telemetry aggregation needs
+      string heuristics.
+  - points: 1
+    reason: >
+      factory_fitness: session resolution failed again (state.yaml session_id empty), forcing the
+      improvement handoff into the shared sessions/active/prompts/ folder. Same gap was recorded in
+      run-2026-06-11-KTP-704 earlier the same day and is still unfixed.
+
+red_flags:
+  - "Plan's live-proof endpoint path was wrong (missing /proximity-report context-path and /api/v1 class mapping) — caught at grill (GAP-1); a QA curl would have 404'd and looked like a regression."
+  - "Plan's class-level LENIENT would have converted the AC-1 RED failure into UnnecessaryStubbingException, masking the watched-fail — caught at grill (GAP-2). Second appearance of the Mockito-strict trap in this repo family (KTP-430)."
+  - "analyst/assumptions.json still says 'max DATE = 2026-06-02, VERIFIED' after the grill measured 2026-06-30 the same day — corrected facts are not written back to upstream artifacts."
+  - "Live dev BQ has FUTURE-DATED rows (max DATE 2026-06-30 on 2026-06-11) and 86 rows with non-integer CONVERSIONS — upstream pipeline smell, documented in the grill report but no follow-up ticket/inbox item raised."
+  - "review/ contains only diff.patch; 'criticals:0' has no on-disk findings artifact backing it."
+  - "AC-5's Jira text said 'update existing tests' for a test file that does not exist on origin/dev — concierge caught and re-framed it (CREATE, not update), but the Jira spec shipped with a false premise."
+  - "3 of 7 ACs are red_verified: exempt. All three exemptions are individually legitimate (evidence-only / meta / negative-scope), but a 43% exemption ratio is worth watching as a gaming vector."
+  - "sessions/active/state.yaml session_id is empty again — handoff cannot be routed to a named session folder (recurring, also hit KTP-704 retro)."
+
+improvements:
+  - title: "Review phase must persist a findings artifact even at zero criticals"
+    detail: >
+      Contract 5 (review) should require writing review/findings.yaml — counts by severity, each
+      finding with file:line and disposition (fixed/accepted), and an explicit 'criticals: 0' record
+      with what was inspected — alongside diff.patch. The workflow gate should refuse a review PASS
+      whose findings file is absent, exactly as QA refuses a PASS without test_ref.
+  - title: "Grill corrections must write back to the artifacts they invalidate"
+    detail: >
+      When grill re-verification contradicts an analyst/ or design/ fact (here: GAP-6 vs
+      assumptions.json 'max DATE = 2026-06-02 VERIFIED'), the grill contract must amend the source
+      artifact in place (status: SUPERSEDED, pointer to the grill section) — not only record the
+      delta in its own report. Downstream phases and resumes read analyst/ as truth.
+  - title: "Java belt: codify the Mockito-strict-vs-RED rule and endpoint-path derivation"
+    detail: >
+      Add two rules to the java tool-belt prompt: (1) RED-first tests that stub the post-change
+      collaborator must scope @MockitoSettings(LENIENT) to the nested test class, or strict mode's
+      UnnecessaryStubbingException masks the watched-fail (bit KTP-678 at design, bit KTP-430
+      before); (2) live-proof URLs must be derived as server.servlet.context-path + class-level
+      @RequestMapping + method mapping, never from the method annotation alone (KTP-678 GAP-1).
+  - title: "QA contract: live execution proof (or explicit waiver) for backend wiring tickets"
+    detail: >
+      For belts with a runnable artifact, contract 6 should require one execution-level proof —
+      boot the service locally (java -jar --spring.profiles.active=local) and curl the real
+      endpoint path with a date range that matches known data — or record an explicit
+      execution_waiver with reason. KTP-678 shipped on unit/MockMvc + raw BQ only; the corrected
+      GAP-1 path was never actually exercised end-to-end.
+  - title: "Fix session resolution so retro handoffs land in a named session folder"
+    detail: >
+      sessions/active/state.yaml session_id has been empty across multiple 2026-06-11 runs
+      (KTP-704, KTP-678), so every dark-factory handoff piles into the shared
+      sessions/active/prompts/ root. Either the session:init hook must populate session_id, or the
+      retro contract should fall back to the newest sessions/active/<slug>/ with a state file.
+      Also normalize the per-phase status vocabulary to an enum (PASS/FAIL/SKIPPED + detail field)
+      while touching the schema.
+  - title: "Raise the BQ future-dated-rows finding as a data follow-up, not just a grill footnote"
+    detail: >
+      GAP-6's facts (max DATE 2026-06-30 on 2026-06-11; 86 fractional-CONVERSIONS rows) belong in a
+      data-quality ticket or at minimum a general/inboxes/ item for the Dataform pipeline owner.
+      The factory should treat 'upstream data contradicts documented assumptions' as an escalation
+      output of the grill contract, since it lands on this ticket's endpoint after ship.
+
+summary: >
+  KTP-678 is the cleanest run in the 2026-06-11 wave: READY_TO_SHIP with all 7 ACs PASS, four
+  RED commits independently re-verified by a segregated QA worktree, full suite 492/0 on JDK 17,
+  live BQ grain re-asserted, version bumped to 0.1.81, scope fence (backend-only) proven on the
+  diff — task_confidence 91 / factory_fitness 88. Points came off for the still-pending MR/Jira/
+  validate tail, the absence of a live endpoint execution proof (notable because the grill had to
+  fix the plan's wrong proof path), two design-phase traps the grill caught (Mockito LENIENT
+  placement masking RED, endpoint path), stale upstream artifacts after grill corrections, a
+  review phase with no findings artifact behind 'criticals:0', and the recurring empty session_id.

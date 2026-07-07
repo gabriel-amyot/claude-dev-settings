@@ -94,9 +94,21 @@ Pages with no `[[wikilinks]]`, no `[markdown](links.md)`, and no `related:` fron
 **Output:** Count and top 10 examples.
 
 ### Check 8: Inbox Backlog
-Check `inbox/INDEX.md` for entries with `pending` status. Flag if any are >7 days old.
+Count entries whose final Status cell in `inbox/INDEX.md` is `pending` (not the raw file count, and not rows already `promoted/done/skipped`). Flag if any are >7 days old. Run Check 8.5 first so this reflects true remaining work.
 
 **Severity:** WARNING if >5 pending, ERROR if any >14 days old.
+
+### Check 8.5: Phantom-Pending Reconcile (AUTO-FIX)
+The drift killer. `shelve` and direct session writes place knowledge into pages without updating the inbox ledger, so entries stay `pending` forever even though their content is already on disk. For each `pending` entry: read it + its curator note, identify the target page(s), and verify the page exists AND contains the nugget's distinctive content (grep 1-2 verbatim phrases).
+- **HIGH confidence already-on-disk:** flip Status to `promoted (reconciled by lint YYYY-MM-DD: already on disk at <path>)`, then archive (see GC sweep).
+- **Uncertain / not found:** leave `pending`, list under "needs curate". Never auto-promote on weak evidence.
+
+**Severity:** INFO per reconciled entry; WARNING for genuinely-pending entries remaining.
+
+### GC Sweep (AUTO-FIX)
+Any entry whose Status is terminal (`promoted`/`done`/`skipped`) but whose raw file is still in the hot `inbox/`: `git mv` it to `inbox/archive/{YYYY}/` and move its ledger row to `inbox/archive/INDEX.md`. Keeps the folder, ledger, `inbox-guard.sh`, and Check 8 honest. Never delete; move only.
+
+> **This skill now mutates** (Check 8.5 + GC sweep only): they edit `inbox/INDEX.md`, move files, and create `inbox/archive/`. Stage and commit with `knowledge: lint reconcile + archive ({wiki})`. Checks 1-8 and 9 remain read-only.
 
 ### Check 9: Wiki Infrastructure Files
 Verify the wiki has all required files: SCHEMA.md, ALIASES.md, LOG.md, GLOSSARY.md, INDEX.md.

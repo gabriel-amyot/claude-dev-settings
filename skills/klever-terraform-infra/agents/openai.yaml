@@ -1,0 +1,4 @@
+interface:
+  display_name: "Klever Terraform Infra"
+  short_description: "Edit Klever Datasophia Terraform safely"
+  default_prompt: "Use $klever-terraform-infra to modify Klever Datasophia Terraform safely."

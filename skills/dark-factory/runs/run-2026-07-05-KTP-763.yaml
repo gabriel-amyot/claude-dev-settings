@@ -1,0 +1,175 @@
+run_id: run-2026-07-05-KTP-763
+ticket: KTP-763
+title: >
+  Backend: TTD campaign metrics join by DOOH screen. New GET /api/dooh/screens/{screenId}/impressions
+  on app-proximity-report: resolve Goldfish screenId -> programmaticPlatformKey, join
+  ttd_normalized_daily_inventory_performance.SITE, advertiser-scoped sum (config-level test mapping
+  -> qhb7yfc per human decision Q1; real Toronto Klever id deferred to KTP-764), non-UUID tail
+  bucket excluded, zero semantics for no-match/unmapped. Epic KTP-748, java belt.
+date: 2026-07-05
+terminal_status: READY_TO_SHIP
+branch: KTP-763-dooh-screen-impressions
+tip: 1c76ec860eeb3a352be8b32ea725ee6c10d8be8d
+version_bump: "0.1.85 -> 0.1.86 (pom.xml + CHANGELOG.md in diff; origin/dev confirmed at 0.1.85, no tag collision)"
+session: unresolved (sessions/active/state.yaml session_id EMPTY AGAIN — same gap as run-2026-06-11-KTP-704/KTP-678; handoff written to shared sessions/active/prompts/)
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: true
+  note: >
+    Gate ran in default halt mode with zero violations. The pushed branch itself carries the TDD
+    ledger: 5 RED/GREEN commit pairs (AC-1 d5d6d25/008948e, AC-2 c93cd54/e849abd, AC-3 53d40be/
+    6f6b07d, AC-4 fa68b48/b00e897, AC-5 6bf5bd5/82fd5e0) plus an adversarial edge-case round
+    (fe3537f: inverted date range 404 -> 400) and the grill G1 cache-registration fix (1833821).
+
+per_phase:
+  - { phase: concierge, status: PASS, confidence: 91 }
+  - { phase: design, status: pass, confidence: 90 }
+  - { phase: grill, status: pass, confidence: 92 }
+  - { phase: implement, status: pass, confidence: 90 }
+  - { phase: review, status: "criticals:0", confidence: 88 }
+  - { phase: qa, status: ALL_PASS, confidence: 88 }
+  - { phase: ship-prep, status: pass, confidence: 90 }
+
+scores:
+  task_confidence: 90
+  factory_fitness: 90
+
+deductions:
+  # task_confidence (start 100 -> 90)
+  - points: 3
+    reason: >
+      task_confidence: READY_TO_SHIP is not shipped. MR creation, the two mandatory Jira comments
+      (plan + validation), and post-merge dev validation are still owed by the main loop. Branch
+      pushed, version-bumped, local==remote; the remaining distance is procedural but real.
+  - points: 3
+    reason: >
+      task_confidence: QA ALL_PASS has zero on-disk evidence. The ticket folder has no qa/ artifact
+      (no result.yaml, no test_ref, no captured curl output), so full-suite counts and the plan
+      §7.7 execute-verify boot+curl cannot be independently confirmed post-hoc — the claim rests
+      entirely on the in-context trace. (The G1 cache fix landing as its own commit suggests
+      execute-verify ran, but suggestion is not evidence.)
+  - points: 2
+    reason: >
+      task_confidence: deployed-dev service-account read on klever_data_aggregation remains
+      UNVERIFIED (grill P2, carried from analyst/assumptions.json). Local proof used developer ADC;
+      the first deployed-dev request can 403 as an IAM gap post-merge. Documented as a human-gate
+      item but not yet converted into a post-merge validation step or inbox action.
+  - points: 1
+    reason: >
+      task_confidence: AC-1 end-user verifiability is deferred by design — real City of Toronto
+      Klever advertiser id lands with KTP-764 (Salesforce follow-up); dev shows impressions:0 for
+      real advertisers until then, and the DEV BQ table is a static backfill fresh only to
+      2026-06-14. Accepted per human decision Q1, but it narrows what "done" demonstrates today.
+  - points: 1
+    reason: >
+      task_confidence: residual uncertainty priced in by the line itself — soft confidences sit at
+      88-92 across all phases, with review and qa lowest at 88.
+  # factory_fitness (start 100 -> 90)
+  - points: 3
+    reason: >
+      factory_fitness: review phase left review/ EMPTY (directory created 2026-07-05 23:18, zero
+      files) behind a 'criticals:0' verdict. This is a RECURRENCE: the run-2026-06-11-KTP-678 retro
+      flagged the same hole and proposed a workflow gate requiring review/findings.yaml; it was
+      never implemented. A repeat-flagged improvement that doesn't land is a factory-loop failure,
+      not just a phase gap.
+  - points: 2
+    reason: >
+      factory_fitness: QA phase persists nothing to the ticket folder either — the two phases whose
+      whole job is producing evidence are the two phases with no on-disk artifacts. The workflow
+      gate accepts ALL_PASS on trace alone.
+  - points: 2
+    reason: >
+      factory_fitness: design phase produced G1 — cache registered in the wrong CacheManager
+      (non-primary ProximityReportConfig instead of @Primary mapCacheManager where the DOOH cache
+      family lives). Proxy-less unit tests can never catch it; it detonates as IllegalArgumentException
+      on first live request. Grill caught it (system working), but the two-CacheManager trap is
+      repo-structural and codified nowhere in the java belt prompt. G2 (missing
+      unless-guard caching empty Optionals for the full 1h TTL) is the same class of known-precedent
+      trap missed at design.
+  - points: 2
+    reason: >
+      factory_fitness: session resolution is still broken — sessions/active/state.yaml session_id
+      empty, so this retro's handoff again piles into the shared sessions/active/prompts/ root.
+      Flagged in at least two prior retros (KTP-704, KTP-678, 2026-06-11); three strikes on the
+      same infrastructure gap.
+  - points: 1
+    reason: >
+      factory_fitness: no phase syncs ticket-folder state — STATUS_SNAPSHOT.yaml still says
+      status "TO DO", last_jira_sync 2026-06-08, while the factory sits at READY_TO_SHIP. Any
+      status-index / sprint tooling reading the snapshot gets a false picture.
+
+red_flags:
+  - "review/ directory is EMPTY behind 'criticals:0' — no findings artifact, no diff.patch. Same flag raised in the KTP-678 retro (2026-06-11); the proposed findings.yaml gate was never implemented. Recurring."
+  - "No qa/ artifact anywhere in the ticket folder — QA ALL_PASS (confidence 88) is unverifiable post-hoc; no test_ref, no suite counts, no captured execute-verify curl."
+  - "sessions/active/state.yaml session_id empty AGAIN (third+ occurrence: KTP-704, KTP-678, now KTP-763) — handoffs cannot route to a named session folder."
+  - "STATUS_SNAPSHOT.yaml stale: status 'TO DO', last_jira_sync 2026-06-08, at a READY_TO_SHIP terminal."
+  - "Grill P2 unresolved at terminal: deployed-dev SA read on klever_data_aggregation unverified — first deployed-dev call may 403 as an IAM gap, and no post-merge check or inbox item encodes it."
+  - "Design G1 near-miss: @Cacheable('doohImpressionsCache') registered in the non-primary CacheManager would have thrown IllegalArgumentException on first live request; invisible to unit tests. Grill caught it."
+  - "Design G2 near-miss: missing unless=\"#result == null\" would cache empty Optionals (Goldfish outage -> pinned 404) for the 1h TTL, contradicting the DOOH controller family's documented resilience contract."
+  - "DEV BQ table is a static backfill fresh only to 2026-06-14 (37.2M rows) — all dev-side proofs run against a frozen snapshot, and real-advertiser impressions stay 0 until KTP-764."
+  - "Local checkout ran 4 commits behind origin/dev for the whole run — handled correctly (every fact read via git show origin/dev:...), but it is per-phase friction the factory pays every time instead of syncing once."
+
+improvements:
+  - title: "Implement the review-findings gate this time (second strike — highest priority)"
+    detail: >
+      The KTP-678 retro already specified it: contract 5 must write review/findings.yaml (severity
+      counts, each finding file:line + disposition, explicit 'criticals: 0' record of what was
+      inspected) and workflow.js must refuse a review PASS when the file is absent — exactly as the
+      TDD gate refuses unproven RED. KTP-763 shipped with an empty review/ dir behind 'criticals:0'.
+      An improvement flagged twice and implemented zero times means the retro loop itself is
+      open-circuit; land this as a workflow.js gate, not a prompt suggestion.
+  - title: "QA gate: require qa/result.yaml with test_ref + execution evidence on disk"
+    detail: >
+      Contract 6's ALL_PASS must be backed by a persisted qa/result.yaml in the ticket folder:
+      suite pass/fail counts, per-AC verdicts, RED re-verification refs, and for runnable belts the
+      execute-verify proof (boot command + curl + captured response, or an explicit
+      execution_waiver with reason). The workflow gate should reject ALL_PASS when the artifact is
+      missing. Evidence that only exists in the model's context dies with the context.
+  - title: "Java belt: codify the two-CacheManager trap and the Optional cache guard"
+    detail: >
+      Add to the java tool-belt prompt: (1) app-proximity-report has TWO CacheManager beans —
+      @Primary 'mapCacheManager' (MapCacheConfig, owns the DOOH cache family, 1h TTL) and
+      non-primary 'cacheManager' (ProximityReportConfig, 30m TTL, opt-in only). New @Cacheable
+      names MUST be registered in the manager that will actually resolve them (the @Primary one,
+      unless cacheManager= is set); both are static-name-list Caffeine managers, so a miss is a
+      runtime IllegalArgumentException invisible to proxy-less unit tests. (2) @Cacheable on
+      Optional returns requires unless = "#result == null" per the GoldfishApiHttpClient precedent,
+      or upstream blips pin empties for the full TTL. Both bit KTP-763 at design and were only
+      saved by the grill.
+  - title: "Grill parked items must become machine-readable carry-forwards that ship-prep acknowledges"
+    detail: >
+      G1/G2 amendments flowed into implement, but parked items P2 (deployed-dev IAM read
+      unverified) and P3 (re-check dev pom version at ship) lived only as prose in
+      design/grill-report.md. Emit design/parked-items.yaml with {id, kind, blocking_stage,
+      required_action}; ship-prep's gate must require each item's status (verified / waived-with-
+      reason / escalated-to-inbox) before pass. P2-class items (post-merge environment risk) should
+      auto-generate the post-merge validation step or a general/inboxes/ entry.
+  - title: "Ship-prep must sync ticket-folder state (STATUS_SNAPSHOT.yaml)"
+    detail: >
+      Add to contract 7: update STATUS_SNAPSHOT.yaml (status, branch, tip, version, timestamp) as
+      part of ship-prep. KTP-763 sits at READY_TO_SHIP while its snapshot says 'TO DO' from
+      2026-06-08; every sprint/status tool reading snapshots inherits the lie.
+  - title: "Fix session resolution for retro handoffs (third strike)"
+    detail: >
+      sessions/active/state.yaml session_id has been empty across the 2026-06-11 wave and again
+      today; every dark-factory handoff lands in the shared sessions/active/prompts/ root. Either
+      the session:init hook must reliably populate session_id (state.yaml's current_focus already
+      embeds one — parse it), or contract 9 should fall back to the newest sessions/active/<slug>/
+      containing a state file. Pick one and implement; stop re-flagging.
+  - title: "Concierge should sync (or fast-forward) the local checkout instead of running the whole line 4 commits behind"
+    detail: >
+      Fetch-before-read discipline held (all facts read from origin/dev), but every phase paid the
+      git show/git grep origin-indirection tax. When the main checkout is behind and clean, the
+      concierge should fast-forward it (or record why not) so worktrees and reads start current.
+
+summary: >
+  KTP-763 is a clean READY_TO_SHIP: 5 ACs with RED/GREEN pairs under a halt-mode TDD gate (zero
+  violations), an adversarial edge-case round, grill catching two real runtime defects (wrong
+  CacheManager registration, missing Optional cache guard) before implement, version 0.1.86 bumped
+  against a confirmed 0.1.85 dev, branch pushed with local==remote — task_confidence 90 /
+  factory_fitness 90. Points came off for the unshipped MR/Jira/validate tail, evidence-free review
+  ('criticals:0' over an EMPTY review/ dir — a repeat of the KTP-678 flag whose fix was never
+  implemented) and QA (no on-disk artifact), the unverified deployed-dev BQ IAM read (grill P2),
+  the stale STATUS_SNAPSHOT, and the third-strike empty session_id.

@@ -1,0 +1,130 @@
+run_id: run-2026-06-11-KTP-739
+ticket: KTP-739
+title: >
+  Portal Embedding (Page-Level Placement) — embed the AI insights blurb component in a portal page
+  (epic KTP-736, AI Insights Blurbs in Proximity Portal).
+date: 2026-06-11  # dispatched late 2026-06-10 ET / 2026-06-11 UTC; sibling runs KTP-677/695/784 halted identically the same night
+terminal_status: HALT_AGENT_SKIPPED
+halt_phase: Concierge
+session: unresolved  # sessions/active/state.yaml has empty session_id; candidate sessions own other intents
+ticket_folder: ~/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-736/KTP-739
+ticket_folder_note: >
+  The workflow reported the ticket folder as "(unresolved)", but it exists at
+  tickets/KTP/KTP-736/KTP-739 (plus a sprint mirror at tickets/sprints/Q2-Sprint-6/KTP-739).
+  The HALT_AGENT_SKIPPED return path (workflow.js:407) fires before folder resolution.
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: true
+  note: >
+    Gate configured in default halt mode with zero warn-mode violations, but the signal is VACUOUS:
+    the run halted at the first agent (Concierge) before any code phase, so no RED->GREEN sequence
+    ever existed to evaluate. Do not read this as a quality signal for the ticket.
+
+per_phase: []  # the workflow returned before recording any phase; concierge agent() returned null
+
+scores:
+  task_confidence: 5
+  factory_fitness: 65
+
+deductions:
+  # task_confidence (start 100 -> 5)
+  - points: 90
+    reason: >
+      task_confidence: zero phases executed. The concierge agent() call returned null and the
+      workflow halted immediately (HALT_AGENT_SKIPPED at Concierge, workflow.js:407). No analysis,
+      no branch, no code, no tests, no review, no QA. Unlike the BLOCKED_SPEC_QUALITY runs
+      (KTP-699, KTP-762) which at least produced verified analyst artifacts, this run produced
+      nothing at all.
+  - points: 5
+    reason: >
+      task_confidence: independently of this run, the ticket is known not-buildable as written. The
+      2026-06-10 Leo spec gate (reports/reviews/sprint6-spec-gate-2026-06-10.md, AMBIGUOUS_RESOLVABLE
+      68/100) found the placement target page does not exist in app-front-portal, AC3 depends on an
+      insufficient-data signal KTP-737's contract never defines, and upstream tickets KTP-737/738/740
+      are still TO DO. Even a clean re-dispatch would halt until the posted-question defaults are
+      confirmed.
+  # factory_fitness (start 100 -> 65)
+  - points: 15
+    reason: >
+      factory_fitness: the first agent dispatch died (returned null). The null-guard worked as
+      designed (halt rather than proceed on a missing result), but a factory whose very first socket
+      can silently come back empty and burn the whole dispatch is brittle. No retry, no
+      classification of WHY the agent was skipped (operator skip vs dispatch error vs timeout).
+  - points: 8
+    reason: >
+      factory_fitness: the HALT_AGENT_SKIPPED return carries no diagnostics — empty per-phase trace,
+      no skip reason, and ticket folder "(unresolved)" even though tickets/KTP/KTP-736/KTP-739 exists
+      and is deterministically derivable from the CLAUDE.md ticket schema. The retro for this run is
+      nearly evidence-free as a direct result.
+  - points: 7
+    reason: >
+      factory_fitness: no pre-dispatch triage. A Leo spec gate written the previous day says verdict
+      AMBIGUOUS_RESOLVABLE 68/100 and explicitly "Do not start the embed work until placement is
+      answered" — yet the ticket was dispatched to the code factory anyway. This is the third
+      consecutive retro flagging a missing pre-dispatch triage filter (KTP-699 x2, KTP-762, now
+      KTP-739); the improvement is proposed but never landed.
+  - points: 3
+    reason: >
+      factory_fitness: the Leo gate's recommendation-led question to Sisi (placement default =
+      Dashboard, null-return hide contract, aggregated blurb) was drafted on disk on 2026-06-10 and
+      never posted to Jira. Disk-only parking of a PO-blocking question is the named failure mode in
+      the CLAUDE.md "A Deferred AC Is an Open Question" SOP, and it directly caused a wasted dispatch.
+  - points: 2
+    reason: >
+      factory_fitness: active-session bookkeeping is broken — sessions/active/state.yaml has an
+      empty session_id, so the retro handoff cannot land in a session prompts/ folder and falls back
+      to the ticket reports/ folder per contract.
+
+red_flags:
+  - "Concierge agent() returned null at the very first phase: terminal HALT_AGENT_SKIPPED with an empty per-phase trace. Zero work product from the entire dispatch."
+  - "BATCH FAILURE: sibling runs KTP-677, KTP-695, and KTP-784 all terminated HALT_AGENT_SKIPPED the same night (per runs/INDEX.md). Four+ first-agent skips in one batch points at the dispatching orchestration (agents skipped wholesale), not four independent operator decisions."
+  - "Terminal report says ticket folder '(unresolved)' while tickets/KTP/KTP-736/KTP-739 exists (with a Q2-Sprint-6 mirror) — the halt return path fires before folder resolution."
+  - "Dispatched against an explicit day-old gate verdict: Leo's sprint6 spec gate scored KTP-739 AMBIGUOUS_RESOLVABLE 68/100 and said 'Do not start the embed work until placement is answered.' The factory had no way to see it."
+  - "Leo's recommendation question to Sisi (drafted 2026-06-10) was never posted to Jira — disk-only parking, the exact deferred-AC SOP failure mode, and the root reason the ticket was still ambiguous at dispatch time."
+  - "Upstream dependencies KTP-737/738/740 (functions, prompt logic, data wiring) were still TO DO; KTP-739 consumes their output and no stub-contract decision exists."
+  - "TDD gate 'halt mode, zero violations' is vacuously true here (no code phase ran) — easy to misread as a clean signal in the INDEX."
+  - "Third spec-blocked or dead dispatch in eight days (KTP-699, KTP-762, KTP-739): the pre-dispatch triage improvement keeps being proposed in retros and never implemented."
+
+improvements:
+  - title: "Carry a skip reason and partial context through every HALT_AGENT_SKIPPED return"
+    detail: >
+      workflow.js null-guards return only { status, phase, ticket } (line 407 et al.). Extend them to
+      include why the agent returned null (operator pressed skip vs dispatch failure vs empty/invalid
+      output), a timestamp, and whatever partial trace exists. Contract 9 currently receives an empty
+      JSON trace on first-phase halts and cannot do evidence-based scoring.
+  - title: "Resolve the ticket folder at workflow start, before the first agent call"
+    detail: >
+      The folder is deterministic from the CLAUDE.md schema (tickets/{PREFIX}/{EPIC-or-no-epic}/{ID})
+      and KTP-739's already existed at tickets/KTP/KTP-736/KTP-739. Resolve it in the workflow
+      preamble and thread it into every return object so even a Concierge-phase halt reports a usable
+      folder instead of '(unresolved)'.
+  - title: "Pre-dispatch triage gate that consumes existing spec-gate verdicts (recurring, now 3rd retro)"
+    detail: >
+      Before equipping the line, glob the ticket folder for reports/reviews/*spec-gate*.md (and the
+      sprint mirror). If a verdict below ~75 or 'do not start' language exists with the blocking
+      question still unposted/unanswered, refuse dispatch and route to a question-posting step
+      instead. KTP-739 had exactly this artifact one day old. Same shape as the KTP-699 and KTP-762
+      retro recommendations — promote from retro suggestion to an actual workflow.js front gate.
+  - title: "Auto-route drafted spec-gate questions through /post-comment"
+    detail: >
+      Leo's gate ended with a ready-to-send recommendation-led question to Sisi (placement default =
+      Dashboard, generator-returns-null hide contract, one aggregated blurb) marked 'Draft only —
+      nothing posted.' Per the deferred-AC SOP, a drafted PO question must produce a Jira comment.
+      Wire the spec-gate skill (or the triage gate above) to hand the draft to /post-comment for
+      approval instead of leaving it disk-only.
+  - title: "Retry once on a null first-agent return before halting"
+    detail: >
+      A null Concierge result is far more likely a dispatch glitch or accidental skip than a
+      considered decision, and it costs an entire run. One automatic re-dispatch of the same agent
+      (with the skip flagged) before emitting HALT_AGENT_SKIPPED would have salvaged this run or at
+      least produced a diagnosable second failure.
+
+summary: >
+  Dead run: the Concierge agent was skipped (returned null) and the workflow halted at its first
+  null-guard with HALT_AGENT_SKIPPED — zero phases, zero artifacts, empty trace, ticket folder
+  unresolved. task_confidence 5 / factory_fitness 65. The deeper finding is upstream: KTP-739 had a
+  day-old Leo spec gate (AMBIGUOUS_RESOLVABLE 68/100, "do not start until placement is answered")
+  whose blocking question to the PO was drafted but never posted, and the factory has no pre-dispatch
+  triage to see it — the same gap flagged in the KTP-699 and KTP-762 retros.

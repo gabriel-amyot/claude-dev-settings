@@ -1,0 +1,198 @@
+run_id: run-2026-06-22-KTP-739
+ticket: KTP-739
+title: >
+  Campaign Insights read-side backend (folded into KTP-739 from the phantom KTP-779) — proximity-report
+  Java/Spring endpoint that reads klever_proximity_insights.campaign_insights and serves the latest
+  insight blurb(s) per advertiser. Backend-only run (AC-B1/B2/B3/B5 code portion); frontend AC-F1..F5 +
+  AC-B4 auth deferred to a separate frontend run. Epic KTP-736 (AI Insights Blurbs in Proximity Portal).
+date: 2026-06-22
+terminal_status: HALT_PRESHIP
+ticket_folder: ~/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-736/KTP-739
+repo: grp-app/grp-backend/grp-ms/app-proximity-report
+tool_belt: java
+session_id: 976e79ba-de12-45da-8d9b-83c7db7010d1
+workflow_id: wf_6777ac0c-75f
+
+terminal_status_note: >
+  The orchestrator passed terminal HALT_PRESHIP with qa=PARTIAL to Retro. The backend run note records the
+  workflow's OWN terminal as READY_TO_SHIP (branch pushed, MR !120 opened) for the scoped backend half.
+  Both are true: the backend sub-slice reached the workflow's ship-prep, but the TICKET is not shippable
+  (frontend half + auth deferred, live read infra-blocked), so the ticket-level terminal is HALT_PRESHIP.
+  This vocabulary clash is itself a fitness finding (see improvements).
+
+scope_note: >
+  DELIBERATE SCOPE SPLIT (human-decided 2026-06-22, Q1 backend-first). The ticket is full-stack. THIS run
+  built only the backend half: AC-B1 (expose by advertiser), AC-B2 (latest partition per campaign), AC-B3
+  (empty on no-row/NO_DATA), AC-B5 code portion (config-driven dataset). DEFERRED to a second run:
+  AC-B4 (authorization — lives in the Next.js BFF, no auth in this Java service per Q3) and AC-F1..AC-F5
+  (the home-page "AI Insights" panel the ticket is named for). task_confidence is therefore scored against
+  the whole ticket, not the slice; the slice itself is high quality.
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: true
+  note: >
+    Gate ran in default halt mode with zero warn-mode violations, and (unlike the 2026-06-11 dead run on
+    this same ticket) the signal is NOT vacuous: the qa/ folder holds four RED captures
+    (red-AC-B1/B2/B3/B5.out) that genuinely fail FIRST — UnsupportedOperation "not implemented" and
+    AssertionErrors on the stubbed methods — followed by all-tests.out showing 48/48 GREEN, BUILD SUCCESS.
+    A real RED->GREEN sequence existed and was preserved on disk. Trustworthy.
+
+per_phase:
+  - phase: concierge
+    status: PASS
+    confidence: 88
+  - phase: design
+    status: pass
+    confidence: 86
+  - phase: grill
+    status: pass
+    confidence: 90
+  - phase: implement
+    status: pass
+    confidence: 82
+  - phase: review
+    status: "criticals:0"
+    confidence: 82
+  - phase: qa
+    status: PARTIAL
+    confidence: 88
+
+qa_detail: >
+  PARTIAL is correct and pre-declared, not a defect. Unit + controller-integration (MockMvc) layers are
+  GREEN (48 tests, 28 of them campaign-insight classes). The live BQ read is infra_blocked: the
+  proximity-report runtime SA lacks dataViewer on the cross-project klever_proximity_insights dataset
+  (separate DAC dev IAM PR — dac-gcp-report-cmpins MR !3 — queued, human-gated apply). The design plan
+  (impl-plan-backend-run.md section 4) pre-declared this 403 as acceptable and pinned proof to the
+  integration-test layer. Execution-verify DID boot a live Spring context and caught + fixed a
+  campaignInsightsCache 500 (cache-name mismatch) in-run. AC-B3 ordering HIGH was fixed post-run
+  (commit 798ed94, failing-first test added).
+
+scores:
+  task_confidence: 75
+  factory_fitness: 88
+
+deductions:
+  # ---- task_confidence: start 100 -> 75 ----
+  - points: 13
+    reason: >
+      task_confidence: only the BACKEND CODE portion of a full-stack ticket shipped. AC-B4 (authorization
+      — only an agency with advertiser access may retrieve insights) and all five frontend ACs
+      (AC-F1..F5, the actual home-page "AI Insights" panel the ticket is named for) are deferred to a
+      separate frontend run (now building, wf_a27f2aa0-86f). The user-visible feature KTP-739 describes is
+      not done by this run; only the read endpoint that feeds it.
+  - points: 8
+    reason: >
+      task_confidence: the live read is INFRA-BLOCKED and was never executed end-to-end. AC-B5 depends on
+      the proximity-report runtime SA having dataViewer on klever_proximity_insights, which is a separate
+      DAC dev IAM PR (dac-gcp-report-cmpins !3) outside this run with a human-gated apply. QA proof falls
+      back to MockMvc + adapter unit tests (mocked BQ). No real BigQuery row was ever served by the running
+      service — a genuine deploy-readiness gap, not just a test gap. qa=PARTIAL reflects exactly this.
+  - points: 4
+    reason: >
+      task_confidence: an AC-B3 correctness HIGH (a stale OK blurb would surface when the latest partition
+      row is NO_DATA — wrong status ordering) escaped the in-loop review (review returned criticals:0) and
+      was found and fixed POST-RUN (commit 798ed94 with a failing-first test). It is green now, but a real
+      in-scope-AC bug shipping past the gate before being caught is a confidence cost on the delivered code.
+  # ---- factory_fitness: start 100 -> 88 ----
+  - points: 4
+    reason: >
+      factory_fitness: the AC-B3 NO_DATA stale-OK ordering HIGH was a textbook adversarial finding (latest
+      row is NO_DATA but an older OK row exists) on an AC the review socket HELD, yet the bounded review/fix
+      loop closed at criticals:0 / confidence 82 without catching it; the fix happened out-of-band. The
+      review phase under-covered a status/enum-filter ordering edge it had the AC for.
+  - points: 3
+    reason: >
+      factory_fitness: ticket-identity / provenance drift the factory tolerated rather than surfaced. The
+      KTP-821 handoff assigns the read backend to "KTP-779", but Leo's gate found KTP-779 is a Done
+      Canada-map ticket (a phantom reference); the work was folded into KTP-739 by operator call. Sound
+      decision, but the run shipped backend code under a ticket whose Jira ACs are frontend-only — the
+      backend ACs exist only in an in-flight on-disk Leo revision, not on the Jira issue. No structured
+      provenance flag was emitted into the trace or the MR/Jira note.
+  - points: 2
+    reason: >
+      factory_fitness: execution-verify hit a live campaignInsightsCache 500 (Spring cache-name mismatch)
+      that required an in-run fix. The cached-BQ adapter pattern (CountyPerformance, now CampaignInsight)
+      keeps producing boot-time cache-wiring breakage; the factory recovered but it cost a debug cycle a
+      belt-level cache-config check could have pre-empted at build time.
+  - points: 2
+    reason: >
+      factory_fitness: terminal-status nomenclature friction + the same recurring stale-checkout and
+      empty-session bookkeeping. The workflow's READY_TO_SHIP vs the orchestrator's HALT_PRESHIP/QA PARTIAL
+      for one deliberately half-scoped run makes the trace ambiguous about what "done" means; the local
+      checkout was again 2 commits behind origin/dev (caught + handled via worktree off origin/dev); and
+      sessions/active/state.yaml still has an empty session_id (the live id 976e79ba lives only in
+      latest-answer.md), so the handoff resolves to sessions/active/prompts/ by convention rather than a
+      per-session prompts path.
+
+red_flags:
+  - "AC-B3 HIGH (a stale OK blurb surfaces when the latest partition row is NO_DATA) was found and fixed POST-RUN (commit 798ed94), after the bounded review/fix loop closed with criticals:0. A real status-ordering bug escaped the in-loop review on an AC the reviewer held."
+  - "Live read never executed end-to-end: AC-B5 dataViewer grant on klever_proximity_insights is a separate human-gated DAC IAM PR (dac-gcp-report-cmpins !3). QA fell back to mocked-BQ unit/integration tests; no real row was served. Acceptable per Q2/the pre-declared plan, but it is an infra_blocked execute-verify, not a live green — which is why qa=PARTIAL."
+  - "Deliberate half-scope: AC-B4 (auth) + AC-F1..F5 (the home-page panel the ticket is named for) deferred to a separate frontend run. A reader skimming 'MR open, 0 criticals' could mistake this for a near-complete ticket; it is one of two halves."
+  - "Ticket-identity drift: the read backend belongs to a phantom 'KTP-779' (a Done Canada-map ticket per Leo's gate) and was folded into KTP-739, whose Jira ACs are frontend-only. The factory built backend code under a frontend-AC ticket without emitting a structured provenance flag; the backend ACs live only in an in-flight on-disk Leo revision."
+  - "Execution-verify caught a live campaignInsightsCache 500 (Spring cache-name mismatch) needing an in-run fix — the cached-BQ adapter pattern keeps producing cache-wiring breakage at boot."
+  - "Terminal vocabulary clash: the workflow says READY_TO_SHIP (backend slice) while the orchestrator reports HALT_PRESHIP / QA PARTIAL (ticket). The trace does not self-explain that the scope was an intentional sub-slice."
+  - "Single-advertiser v0 data (Blinds To Go CAD only, advertiser_id 8220435308). AC-B2 latest-partition dedup proven only at SQL-shape level in unit tests; end-to-end dedup is documented as execute-verify territory the infra block prevented."
+  - "sessions/active/state.yaml has an empty session_id again (same defect as the 2026-06-11 run). The live id (976e79ba-de12-45da-8d9b-83c7db7010d1) appears only in latest-answer.md; the retro handoff falls back to sessions/active/prompts/ rather than a per-session folder."
+  - "The prior dead-run improvements file (reports/dark-factory-improvements-KTP-739.md, dated 2026-06-11, HALT_AGENT_SKIPPED) still sits in the ticket folder and could be mistaken for THIS run's retro. Notably, the upstream readiness it complained about (unposted spec-gate question, phantom dependency) was closed by the KTP-821 handoff (2026-06-22), which is why this dispatch executed cleanly — verify whether the proposed pre-dispatch triage GATE actually landed or the handoff merely happened to be ready."
+
+improvements:
+  - title: "Run the adversarial status/ordering pass INSIDE the review/fix loop, not after"
+    detail: >
+      The AC-B3 NO_DATA stale-OK ordering bug was a textbook adversarial finding (a valid in-scope AC, a
+      realistic edge: latest partition is NO_DATA but an older OK row exists) yet it was found post-run.
+      Contract 5/6 should run an explicit per-AC edge pass — for status/enum filters specifically: "what if
+      the latest row carries the excluded status but an earlier row passes the filter?" — before the fix
+      loop is allowed to close. A HIGH on an in-scope AC must RE-OPEN the loop, not ship and get patched
+      out-of-band.
+  - title: "Belt-level cache-config preflight for the cached-BQ adapter pattern"
+    detail: >
+      Every new @Cacheable service on this pattern (CountyPerformance, now CampaignInsight) risks a
+      boot-time 500 from a cache name not registered in the Spring cache manager (campaignInsightsCache vs
+      campaignInsightCache, etc.). Add a java-belt check: after wiring a new @Cacheable, assert the cache
+      name is present in the cache-manager config (grep MapCacheConfig / cache definitions) BEFORE
+      execution-verify, so the boot 500 is caught at build time, not at runtime.
+  - title: "Make deliberate sub-scope a first-class workflow input + terminal state"
+    detail: >
+      This was an intentional backend-only slice of a full-stack ticket, but the trace expresses it as a
+      generic HALT_PRESHIP/QA PARTIAL while the run note says READY_TO_SHIP. Add a run_scope field (e.g.
+      'backend-half', with the explicit deferred-AC list) captured at concierge and threaded to Retro, plus
+      a terminal state like SHIPPED_PARTIAL_SCOPE distinct from a blocked/incomplete PARTIAL. Then
+      task_confidence can be scored against the run's declared scope, and the retro stops conflating
+      'half by design' with 'half because something broke'.
+  - title: "Emit a structured provenance flag when the run ticket != the work's true ticket"
+    detail: >
+      The concierge folded a phantom-KTP-779 backend into KTP-739 (correct operator call), but the factory
+      shipped backend code under a ticket whose Jira ACs are frontend-only, with the backend ACs existing
+      only in an in-flight Leo revision on disk. Add a concierge-phase check: if the equipped work maps to
+      ACs not yet on the run ticket's Jira issue (or references a Done/phantom sibling), surface a provenance
+      flag into the trace and the ship-prep MR/Jira note so the AC-to-code mapping is auditable at merge time.
+  - title: "Classify infra_blocked execute-verify as an explicit field, and gate the live-read claim before the FE run"
+    detail: >
+      Carry an execute_verified field (e.g. infra_blocked(403 dataViewer on klever_proximity_insights)) into
+      the terminal payload and the runs INDEX so a reader can tell a live-verified ship from an
+      integration-test-only ship without opening the impl plan. Critically: before dispatching the frontend
+      run, confirm the dataViewer grant (DAC !3) landed and a live curl returns the Blinds To Go CAD row —
+      otherwise the FE panel hides on empty (AC-F3) and a still-403'd backend will render NOTHING while
+      looking 'correct', masking a broken backend as a passing UI.
+  - title: "Fix empty session_id and add a stale-checkout pre-flush"
+    detail: >
+      Two recurring frictions. (1) sessions/active/state.yaml session_id has been empty on both the
+      2026-06-11 and 2026-06-22 KTP-739 runs; the live id is in latest-answer.md
+      (976e79ba-de12-45da-8d9b-83c7db7010d1). Repair the session-init/state-write step or have Retro derive
+      the session from latest-answer.md so handoffs land in the right per-session folder and are discoverable
+      by /session:pickup. (2) Grill found the local checkout 2 commits behind origin/dev every run; add a
+      workflow preamble that fetches, reports the behind-count, and auto-creates/uses the origin/dev worktree
+      so the build phase never starts stale and the manual-sync instruction drops out of the plan.
+
+summary: >
+  A genuinely strong, deliberately backend-only slice of full-stack KTP-739: real RED->GREEN TDD (4 RED
+  commits captured fail-first, 48/48 tests green on Java 17), 0 criticals, execution-verified Spring boot,
+  branch pushed, MR !120 opened — factory_fitness 88. task_confidence is held to 75 because the ticket is
+  half done by design (AC-B4 auth + AC-F1..F5 frontend deferred to a second run, now building) and the live
+  BQ read is infra_blocked pending a human-gated DAC dataViewer grant, so the endpoint has never served a
+  real row (hence qa=PARTIAL, terminal HALT_PRESHIP). The one real escape was an AC-B3 NO_DATA stale-OK
+  ordering HIGH that slipped past the in-loop review and was fixed post-run. Sharp contrast with this
+  ticket's 2026-06-11 dead run (HALT_AGENT_SKIPPED, conf 5): the KTP-821 handoff closed the upstream spec
+  gaps that killed the earlier dispatch.

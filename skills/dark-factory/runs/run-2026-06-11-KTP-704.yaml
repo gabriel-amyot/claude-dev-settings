@@ -1,0 +1,140 @@
+run_id: run-2026-06-11-KTP-704
+ticket: KTP-704
+title: >
+  Bug: DIT animation crashes with React infinite render loop (error #185). Remaining scope is Bug 2
+  only (no-selector useMapStore() destructure + useCounter full-counterState dep array) in
+  app-front-portal; Bug 1 (useEffect mount self-destruct) already shipped under KTP-669 commit
+  79e9738. Six Given/When/Then ACs, Sprint 6 (Q2).
+date: 2026-06-11
+terminal_status: HALT_AGENT_SKIPPED
+halt_phase: Concierge
+session: unresolved (sessions/active/state.yaml has empty session_id; handoff written to shared sessions/active/prompts/)
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: true
+  note: >
+    Gate configured in default halt mode with zero warn-mode violations, but the signal is VACUOUS:
+    the run terminated at the Concierge null-guard before any phase executed, so the TDD gate never
+    ran. There is no implementation and no RED->GREEN sequence to evaluate. Trustworthy only in the
+    structural sense that nothing could have bypassed it.
+
+per_phase: []
+# The trace is genuinely empty. workflow.js only records a phase via rec() AFTER a successful agent
+# return; the concierge agent() call returned null (skipped) and the workflow returned
+# { status: 'HALT_AGENT_SKIPPED', phase: 'Concierge' } with no entry, no confidence, and no skip
+# reason. Zero telemetry exists for this run beyond the terminal status itself.
+
+scores:
+  task_confidence: 5
+  factory_fitness: 58
+
+deductions:
+  # task_confidence (start 100 -> 5)
+  - points: 90
+    reason: >
+      task_confidence: the run terminated HALT_AGENT_SKIPPED at the FIRST phase (Concierge). The
+      agent dispatch returned null, so no spec validation, no design, no implementation, no review,
+      no QA, no branch, no push. Zero of the 6 ACs were even read by the line. The task is exactly
+      as undone as before the run started.
+  - points: 5
+    reason: >
+      task_confidence: the run produced no recoverable state for a resume. ticket_folder came back
+      unresolved (despite tickets/KTP/KTP-558/KTP-704/ existing on disk, plus a Sprint-6 folder at
+      tickets/sprints/Q2-Sprint-6/KTP-704/), so a re-run starts cold with nothing cached.
+  # factory_fitness (start 100 -> 58)
+  - points: 15
+    reason: >
+      factory_fitness: this is a FLEET-WIDE failure, not a one-off. The runs ledger shows at least
+      four Sprint-6 tickets (KTP-677, KTP-695, KTP-704, KTP-784) all terminating HALT_AGENT_SKIPPED
+      on 2026-06-11 — the agent-dispatch mechanism failed wholesale across the batch, and nothing
+      (no circuit breaker, no batch-level guard) stopped the remaining dispatches after the first
+      identical skip. Same shape as the CLAUDE.md pipeline-retry circuit-breaker rule: repeated
+      identical failures are systemic, and the factory burned a full sprint dispatch wave learning
+      that.
+  - points: 10
+    reason: >
+      factory_fitness: HALT_AGENT_SKIPPED carries NO skip cause. The null-guard at workflow.js:407
+      returns only { status, phase, ticket }; it does not capture WHY agent() returned null
+      (user declined the dispatch? Agent tool error? timeout? workflow misconfiguration?). This
+      retro cannot distinguish a deliberate human decline from an infrastructure failure, which
+      means the right corrective action is unknowable from telemetry alone.
+  - points: 8
+    reason: >
+      factory_fitness: the per-phase trace is empty because rec() only fires on a successful agent
+      return. A skipped/failed agent leaves zero trail — no attempted-phase entry, no timestamp, no
+      partial context. An observability gap baked into the workflow: the runs that most need
+      diagnosis are the ones that record the least.
+  - points: 5
+    reason: >
+      factory_fitness: ticket-folder resolution is delegated entirely to the concierge agent, so a
+      front-gate skip leaves ticket_folder unresolved even though the path is deterministically
+      computable from the schema convention (tickets/KTP/{EPIC}/KTP-704 — epic KTP-558 is in Jira
+      and the folder already exists on disk). The workflow could resolve a fallback path in code
+      before dispatching any agent.
+  - points: 4
+    reason: >
+      factory_fitness: a fresh, high-quality spec-gate artifact already existed
+      (reports/reviews/sprint6-spec-gate-2026-06-10.md, Leo, score 88, AMBIGUOUS_RESOLVABLE) with
+      two named pre-start actions (reply to the PO's 2026-05-27 "story points?" comment with 2 SP;
+      confirm the AC-6 end-state default). The dispatch neither consumed that artifact nor checked
+      that its required actions were done. Even if the concierge had run, it would have re-derived
+      work that was finished the night before.
+
+red_flags:
+  - "Concierge agent dispatch returned null at the FIRST phase — the entire run is one null-guard. No skip reason recorded anywhere; cannot tell user-declined dispatch from Agent tool failure from workflow misconfig."
+  - "Per-phase trace is empty: rec() only records successful agent returns, so a skipped agent produces zero telemetry. The least-observable runs are exactly the failed ones."
+  - "ticket_folder returned unresolved even though tickets/KTP/KTP-558/KTP-704/ exists on disk (scaffolded 2026-06-10 23:01) and a Sprint-6 copy exists at tickets/sprints/Q2-Sprint-6/KTP-704/."
+  - "TDD gate 'halt mode, zero violations' is vacuously true — no code phase ran. Do not read it as evidence of a disciplined run."
+  - "The night-before spec gate scored KTP-704 at 88 with two REQUIRED pre-start actions (SP estimate reply to Amal, AC-6 default decision). No evidence either was completed before this dispatch; the draft Jira reply is still sitting unposted in the spec-gate report."
+  - "FLEET-WIDE: the runs ledger shows KTP-677, KTP-695, and KTP-784 also terminated HALT_AGENT_SKIPPED on 2026-06-11. Four+ parallel Sprint-6 dispatches all died at the same null-guard — systemic agent-dispatch failure, and no circuit breaker stopped the batch after the first skip. (13 prior runs all reached at least the concierge; this failure mode is new and arrived as a wave.)"
+
+improvements:
+  - title: "Batch-level circuit breaker on repeated identical agent skips"
+    detail: >
+      When the factory is dispatched as a sprint batch (Sprint Factory or parallel single-ticket
+      runs), the FIRST HALT_AGENT_SKIPPED should pause the remaining dispatches and surface the
+      skip to the human. On 2026-06-11 four+ Sprint-6 runs (KTP-677, KTP-695, KTP-704, KTP-784)
+      all died at the same Concierge null-guard — a systemic dispatch failure that a one-skip
+      tripwire would have caught after the first ticket instead of burning the whole wave. Mirrors
+      the existing CLAUDE.md pipeline-retry circuit-breaker principle.
+  - title: "Capture and return the skip cause in every HALT_AGENT_SKIPPED null-guard"
+    detail: >
+      In dark-factory.workflow.js, every `if (!x) return { status: 'HALT_AGENT_SKIPPED', ... }`
+      guard (lines 407, 446, 452, 471, 490, 510, 522, 540, 554) should also capture whatever the
+      Workflow tool exposes about the agent() call outcome (declined / errored / timed out / empty
+      return) and include it as `skip_reason` in the terminal object, plus rec() a phase entry with
+      status 'SKIPPED' so the trace is never empty. Retro and resume logic are blind without it.
+  - title: "Resolve ticket_folder deterministically in workflow code before the concierge dispatch"
+    detail: >
+      Compute a fallback ticket folder from the schema convention (tickets/{PREFIX}/{EPIC|no-epic}/
+      {TICKET}/, epic from a cheap Jira lookup or an existing on-disk match) at workflow start, and
+      carry it in every terminal object. The concierge can refine it, but a front-gate skip should
+      never leave the retro phase with 'ticket folder: (unresolved)' when the folder exists on disk.
+  - title: "One bounded auto-retry when the Concierge agent is skipped with zero work done"
+    detail: >
+      A null agent return at phase 1 is the cheapest possible retry: no state, no side effects, no
+      worktree. The workflow should retry the concierge dispatch exactly once (with the skip cause
+      appended to the prompt) before emitting HALT_AGENT_SKIPPED. Later-phase skips (post-implement)
+      should still halt immediately since a branch already exists.
+  - title: "Feed existing spec-gate artifacts into the concierge prompt and gate on their required actions"
+    detail: >
+      When reports/reviews/*spec-gate*.md exists in the ticket folder (as sprint6-spec-gate-
+      2026-06-10.md did here, score 88 with a ready-to-post PO reply), the workflow should pass its
+      path into the concierge prompt and the concierge should verify the gate's 'Required before
+      sprint start' actions are done (SP set + PO replied, AC-6 default confirmed) — surfacing them
+      as open_questions if not — instead of re-deriving spec quality from scratch. On re-run for
+      KTP-704 specifically: post the drafted Jira reply (2 SP + AC-6 default = stop and revert to
+      range aggregate, same as AC-4) via /post-comment first.
+
+summary: >
+  KTP-704 (DIT React #185 render-loop bug) never started: the very first agent dispatch (Concierge)
+  returned null and the workflow halted HALT_AGENT_SKIPPED with an empty trace, no skip reason, and
+  an unresolved ticket folder — task_confidence 5 / factory_fitness 58. The failure is fleet-wide:
+  KTP-677, KTP-695, and KTP-784 died the same way on the same date, so the agent-dispatch mechanism
+  failed across the whole Sprint-6 wave with no circuit breaker. The ticket itself is in excellent
+  shape (night-before Leo spec gate: 88/100, root cause pre-diagnosed, remaining scope is Bug 2 only
+  in app-front-portal), so the loss is pure factory infrastructure: null-guards that record no
+  cause, a trace that only logs successes, no deterministic ticket-folder fallback, no batch
+  tripwire. Re-run is cheap and should succeed once dispatch works and the two pre-start actions
+  from the spec gate (SP reply to the PO, AC-6 default) are posted.

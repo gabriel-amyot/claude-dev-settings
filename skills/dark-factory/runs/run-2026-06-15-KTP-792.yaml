@@ -1,0 +1,193 @@
+run_id: run-2026-06-15-KTP-792
+ticket: KTP-792
+title: >
+  [Measurement Map] DOOH screen category filter — flat multi-select checkbox list filtering
+  rendered DOOH pins by venue type (top category derived from locationTypeId), with empty-state,
+  viewport-refetch persistence, and layer-gating parity. 5 ACs, 2 SP, Epic KTP-748, Q2-Sprint-6.
+date: 2026-06-15
+terminal_status: NEEDS_VISUAL_VERIFY
+halted_phase: none
+ticket_folder: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-748/KTP-792
+branch: KTP-792-dooh-category-filter
+branch_pushed: true
+worktree: /Users/gabrielamyot/Developer/grp-beklever-com/grp-app/grp-frontend/app-front-portal-KTP-792
+head_commit: "9a14461 — KTP-792: bump version 1.1.65 + CHANGELOG for DOOH category filter"
+session: >
+  sessions/active/state.yaml session_id is empty (current_focus carries 2e81a158-...).
+  Handoff written to sessions/active/prompts/ per established precedent.
+
+contrast_with_prior_run: >
+  This is the SECOND retro for KTP-792. The first (run-2026-06-11-KTP-792) was a HALT_AGENT_SKIPPED
+  no-op — the Concierge dispatch returned null, zero phases ran, empty trace. That retro scored
+  task_confidence 5 / factory_fitness 30 and, critically, asserted KTP-792 was BLOCKED on KTP-791
+  ("the filter operates on locationTypeName, which exists only after KTP-791's backend MR merges").
+  THIS run executed every phase end-to-end and the grill report (design/grill-report.md, A16 + the
+  "Why no status: stuck" section) independently DISPROVED that blocker against origin/dev: the
+  category labels come from the on-dev DOOH_LOCATION_TYPE_LABELS (99 entries verified), so KTP-791
+  being unmerged does NOT block this ticket. The prior retro's central premise was a false blocker
+  — the same failure mode the KTP-130 B1 RCA warns about (a blocker asserted without verifying the
+  evidence). Net: the factory was right to proceed, and it shipped a real, pushed, version-bumped
+  branch.
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: true
+  note: >
+    Gate ran in default halt mode with zero warn-mode violations, and the signal is REAL this time
+    (unlike the prior KTP-792 no-op where the gate was vacuous). The RED->GREEN sequence is on disk:
+    qa/red-verify.out shows the AC-2/AC-4 pure-fn spec failing 9/10 against the stubbed module in
+    /private/tmp/ktp792-red (RED), and qa/pure-fn-tests.out shows the same 10 tests passing after
+    implementation (GREEN). The canonical RED carrier is the extractable logic
+    (filterScreensByCategory / presentCategories / topCategoryOf); render-only ACs (AC-1 control,
+    AC-3 notice, AC-5 gating) are correctly marked not_applicable for unit RED and deferred to
+    live visual proof — no fake unit tests manufactured.
+
+per_phase:
+  - phase: concierge
+    status: PASS
+    confidence: 88
+  - phase: design
+    status: pass
+    confidence: 88
+  - phase: grill
+    status: pass
+    confidence: 90
+  - phase: implement
+    status: pass
+    confidence: 85
+  - phase: review
+    status: "criticals:0"
+    confidence: 88
+  - phase: qa
+    status: PARTIAL
+    confidence: 88
+  - phase: ship-prep
+    status: pass
+    confidence: 90
+
+artifacts_on_disk:
+  analyst: [ac-list.json, affected-repos.json, assumptions.json]
+  design: [grill-report.md, impl-plan.md]
+  architecture: [adr/ADR-draft-dooh-category-filter-applied-at-source.md]
+  qa: [build.out, typecheck.out, pure-fn-tests.out, red-verify.out]
+  review: "(EMPTY — review phase reported criticals:0 but left no artifact on disk)"
+  tdd: "(EMPTY — TDD ledger lives in design/impl-plan.md 'RED-test ledger', qa/red-verify.out is the proof)"
+  ship: [reports/ship/post-log.yaml, reports/ship/posts/2026-06-09-deferral-note.md]
+
+scores:
+  task_confidence: 78
+  factory_fitness: 86
+
+deductions:
+  # ---- task_confidence (start 100 -> 78) ----
+  - points: 12
+    reason: >
+      task_confidence: terminal status is NEEDS_VISUAL_VERIFY, not READY_TO_SHIP. AC-1 (flat
+      checkbox list appears, multi-select), AC-3 (empty-state notice when filtered to zero), and
+      AC-5 (control hidden when doohVisible off) are render/visual ACs that the headless run could
+      not prove with a ui-probe screenshot. The frontend belt rule caps these at PARTIAL until a
+      live capture confirms them. The code is wired correctly (grill A6/A9/A11 verified the seam)
+      but "deployable with proof" is not yet true.
+  - points: 6
+    reason: >
+      task_confidence: AC-3 empty-state copy and the doohVisible gating guard (grill G2/G3) are
+      the highest-risk untested surfaces — both are render-only with no unit RED. A wrong guard
+      (single early-return on loaded instead of also on doohVisible) would silently fail AC-5 and
+      the headless QA would not catch it. Residual unverified risk until visual verify.
+  - points: 4
+    reason: >
+      task_confidence: PO open questions KTP-131 Q6 (flat-checkbox UX) and Q7 (raw Goldfish types
+      vs grouped buckets) remain open. The build picked a reasonable default (11 top-level
+      categories present in loaded screens) and surfaced both on the ticket, but if Amal objects
+      the taxonomy/UX model could change — the shipped behavior is a defaulted-not-confirmed
+      product decision.
+  # ---- factory_fitness (start 100 -> 86) ----
+  - points: 5
+    reason: >
+      factory_fitness: review phase reported "criticals:0" but left NO artifact in the review/
+      folder (it is empty on disk). The verdict is in the trace only; a future reader cannot see
+      what was reviewed or why it passed. Same shape as the tdd/ folder being empty (the ledger
+      lives in impl-plan.md instead). Phase outputs should land in their named folder.
+  - points: 4
+    reason: >
+      factory_fitness: qa/typecheck.out shows 9 tsc errors across 4 files (vitest module-not-found
+      in chatbot/format-helpers/flow-lines tests; emptyStateCopyFor arity + VisitorOrigin.originName
+      in market-copy.spec / calculate-flow-lines.test). NONE are in the KTP-792 changed files (the
+      dooh-category-filter spec is clean), so they are pre-existing repo-level breakage — but the
+      QA gate surfaced them as a wall of red with no triage note distinguishing "mine" from
+      "pre-existing." A reviewer must manually prove they are not regressions. The gate should
+      diff typecheck failures against the changed file set and annotate.
+  - points: 3
+    reason: >
+      factory_fitness: the prior KTP-792 retro (run-2026-06-11) hard-asserted a KTP-791 dependency
+      blocker that this run's grill correctly disproved. Good that the factory self-corrected via
+      the grill assumption audit — but the false blocker still cost a write-only handoff
+      (dark-factory-improvements-KTP-792.md) prescribing "do NOT re-dispatch until KTP-791 merges,"
+      which, if followed, would have wrongly parked a buildable ticket. Telemetry that prescribes a
+      false hold is anti-signal. The retro/handoff loop needs the same assumption-audit discipline
+      the grill applies to specs.
+  - points: 2
+    reason: >
+      factory_fitness: session_id is empty in sessions/active/state.yaml (only current_focus has
+      the id), so the retro had to fall back to the prompts/ folder by precedent rather than a
+      resolved active session. Minor, recurring across recent runs.
+
+red_flags:
+  - "NEEDS_VISUAL_VERIFY: 3 of 5 ACs (AC-1/AC-3/AC-5) are render-only and have no live screenshot proof — they cap at PARTIAL until a human or ui-probe verifies on the running app. The run cannot self-certify the visible behavior."
+  - "review/ folder is EMPTY despite the review phase reporting criticals:0 — the pass verdict has no on-disk evidence. tdd/ folder is also empty (ledger lives in impl-plan.md). Two named phase folders with no artifacts."
+  - "qa/typecheck.out has 9 errors in 4 files; all pre-existing (vitest missing, emptyStateCopyFor arity, VisitorOrigin.originName) and none in KTP-792's files — but the QA gate did not triage them, so a reader must manually confirm they are not regressions introduced by this branch."
+  - "FALSE-BLOCKER CARRYOVER: the prior 2026-06-11 KTP-792 retro asserted KTP-791 blocks this ticket; the grill disproved it against origin/dev (labels come from on-dev DOOH_LOCATION_TYPE_LABELS). The earlier handoff still prescribes 'do not re-dispatch until KTP-791 merges' — a written, unactioned false hold. Echoes the KTP-130 B1 lesson."
+  - "AC-3 empty-state copy and AC-5 doohVisible gating guard (grill G2/G3) are the highest-risk surfaces and are render-only with zero unit RED — a wrong early-return would silently fail AC-5 and headless QA would not catch it."
+  - "PO open questions KTP-131 Q6/Q7 still open; the shipped taxonomy/UX is a defaulted product decision pending Amal's objection window."
+  - "clearDoohCategories store action (grill G1) risk: if implemented but with no UI trigger it is exported dead code. Diff shows it was added to the store — verify it is wired or dropped."
+
+improvements:
+  - title: "Make the visual-verify handoff the immediate, mechanical next step on NEEDS_VISUAL_VERIFY"
+    detail: >
+      When a run terminates NEEDS_VISUAL_VERIFY, the retro/ship loop should auto-emit a ready-to-run
+      ui-probe instruction for the exact render ACs (here AC-1 list renders + multi-select, AC-3
+      empty-state notice on filtered-to-zero, AC-5 control hidden when doohVisible off), targeting
+      the pushed branch on local stack or dev. The branch is built and pushed; the only gap is a
+      live capture. Don't leave that as prose — emit the precise /ui-probe or /klever-test option
+      with the URL and the three assertions.
+  - title: "Write a review artifact to review/ even when criticals:0"
+    detail: >
+      Contract 5 (review) should always drop review/review-report.md (what was checked, the
+      criticals:0 verdict, any non-blocking nits) into the ticket's review/ folder, not just return
+      the verdict in the trace. Same for the TDD phase dropping a tdd/ledger. Empty named folders
+      mean a future reader (or this retro) cannot reconstruct the pass without re-deriving it.
+  - title: "QA gate should triage typecheck/lint failures against the changed file set"
+    detail: >
+      Contract 6 (QA) runs lint:types and gets 9 errors here, ALL pre-existing and none in the
+      branch's files. The gate should diff the failing files against `git diff --name-only
+      origin/dev...HEAD` and annotate each as MINE (regression, blocks) vs PRE-EXISTING (repo debt,
+      does not block this ticket). Surfacing a raw wall of tsc red without that split forces manual
+      proof and risks either a false halt or a missed real regression.
+  - title: "Apply assumption-audit discipline to retro-prescribed blockers"
+    detail: >
+      The prior KTP-792 retro prescribed a hard hold on a KTP-791 dependency that the grill then
+      disproved against origin/dev. Retro improvements that assert a code/data blocker ('X does not
+      exist until Y merges') must cite the same kind of evidence the grill demands (git show on the
+      default branch), or be downgraded to 'hypothesis to verify in next run's grill.' A write-only
+      false hold is worse than no handoff. Add a check: before a retro emits a 'do not re-dispatch'
+      directive, require a one-line evidence cite or mark it tentative.
+  - title: "Verify clearDoohCategories is wired or dropped (grill G1)"
+    detail: >
+      The grill flagged clearDoohCategories as potential exported-but-unused dead code (G1) and
+      recommended dropping it unless a 'Clear' affordance is added. The diff added it to map-store.
+      The visual-verify pass or a quick grep should confirm it has a UI trigger; if not, drop it in
+      a follow-up commit before MR to honor the no-orphan-exports preference.
+  - title: "Close the loop on the stale false-blocker handoff for KTP-792"
+    detail: >
+      sessions/active/prompts/dark-factory-improvements-KTP-792.md (from the 2026-06-11 no-op) still
+      tells a future session to hold KTP-792 for KTP-791. Mark it superseded by this run's handoff
+      (dark-factory-improvements-2026-06-15-KTP-792.md) so the false hold is not picked up.
+
+summary: >
+  KTP-792 ran clean end-to-end this time (contrast the 2026-06-11 no-op): a real, pushed,
+  version-bumped (1.1.64->1.1.65) branch with a TDD RED->GREEN proof on the pure filter logic, and
+  a grill that correctly disproved the prior retro's false KTP-791 blocker. task_confidence 78 /
+  factory_fitness 86. The only thing standing between this and READY_TO_SHIP is live visual proof of
+  the three render ACs (AC-1/AC-3/AC-5) — the next step is a targeted ui-probe on the pushed branch,
+  not more code.

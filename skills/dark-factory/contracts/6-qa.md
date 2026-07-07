@@ -63,6 +63,26 @@ logic is genuinely proven** — never on a logic gap, a failed assertion, or a m
 non-visual PARTIAL/FAIL (a logic AC that didn't pass, a `not_applicable` exemption that was bogus) is a
 real gap: leave `visual_pending` false/absent so it blocks.
 
+## Triage repo debt vs regression (0.9.3)
+
+When a typecheck/lint/test sweep fails, diff the failing files against the changed-file set
+(`git diff --name-only origin/dev...HEAD`) and annotate each failure **MINE** (in a changed file —
+blocks) or **PRE-EXISTING** (repo debt — report, don't block). Where possible capture a dev-baseline
+run of the same command for comparison. This prevents both false halts on inherited debt (KTP-792's 9
+pre-existing TS errors) and missed regressions hiding among known failures.
+
+## Non-ALL_PASS verdicts carry a cause string (0.9.3)
+
+Whenever `raw_overall` is not `ALL_PASS`, return `partial_cause`: ONE line naming each non-pass AC and
+why, e.g. `"partial: AC-1 clean vs baseline; AC-3 visual not captured"`. A PARTIAL that requires
+re-deriving its cause from .out files is not legible.
+
+## Spot-check the review artifact (0.9.3)
+
+Confirm `<ticket_folder>/review/findings.json` exists and is non-empty (the reviewer is
+schema-required to write it, even at criticals:0). If missing, note it in `summary` as a red flag —
+do not fail ACs over it.
+
 ## Output (write to disk)
 
 Write `<ticket_folder>/qa/result.yaml` (path in your prompt). Each `per_ac` row carries a real
@@ -85,6 +105,7 @@ summary: "..."
 ## Return
 
 - `raw_overall`: ALL_PASS | PARTIAL | FAIL  (your raw read of the evidence)
+- `partial_cause`: one-line cause string — REQUIRED whenever raw_overall != ALL_PASS
 - `per_ac`: array of `{ ac, verdict, code_ref, test_ref, red_verified, visual_pending }`
 - `summary`: 1-3 sentences
 

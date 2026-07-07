@@ -1,0 +1,157 @@
+run_id: run-2026-06-11-KTP-792
+ticket: KTP-792
+title: >
+  [Measurement Map] DOOH screen category filter — flat multi-select checkbox list filtering
+  rendered DOOH pins by venue type (locationTypeName), with empty-state, viewport-refetch
+  persistence, and layer-gating parity. 5 ACs, 2 SP, Epic KTP-748, Q2-Sprint-6.
+date: 2026-06-11
+terminal_status: HALT_AGENT_SKIPPED
+halted_phase: Concierge
+ticket_folder_in_run: "(unresolved)"
+ticket_folder_actual: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-748/KTP-792
+session: "(unresolved — sessions/active/state.yaml has empty session_id; handoff written to sessions/active/prompts/ per KTP-677/KTP-695 precedent)"
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: true
+  note: >
+    Gate configured in default halt mode with zero warn-mode violations, but the signal is
+    VACUOUS: the run halted before any phase executed, so no implementation and no RED->GREEN
+    sequence ever reached the gate.
+
+per_phase: []
+per_phase_note: >
+  The per-phase trace handed to retro is EMPTY ([]). The first agent dispatch (Concierge)
+  returned null and the workflow's null-guard emitted HALT_AGENT_SKIPPED before rec() could
+  record anything. Everything in this retro was reconstructed from disk (the ticket's
+  jira-description.md, Leo's 2026-06-10 spec-gate report, and the two sibling run records
+  from earlier today).
+
+pattern_alert: >
+  THIRD identical failure in one day. run-2026-06-11-KTP-677 and run-2026-06-11-KTP-695 both
+  died at the same null-guard with the same empty trace and the same "(unresolved)" folder.
+  Their retros already prescribed the fixes (skip_reason capture, one idempotent retry,
+  mechanical folder resolution, stub trace entries); none was applied before this third
+  dispatch. This is now a systemic front-gate failure plus a broken auto-improvement loop,
+  and it violates the spirit of the pipeline-retry circuit breaker (same error 3x = stop
+  retrying, diagnose).
+
+scores:
+  task_confidence: 5
+  factory_fitness: 30
+
+deductions:
+  # task_confidence (start 100 -> 5)
+  - points: 85
+    reason: >
+      task_confidence: zero phases executed. No spec validation, no design, no code, no tests,
+      no review, no QA, no branch. 0 of 5 ACs touched. The task is exactly as undone as before
+      dispatch.
+  - points: 10
+    reason: >
+      task_confidence: the run left no resumable state (folder "(unresolved)", no concierge
+      artifacts) AND lost the natural moment to action Leo's spec-gate prescriptions. The gate
+      (AMBIGUOUS_RESOLVABLE, 82/100) called for: re-linking KTP-791 as "blocks" (hard dependency
+      mislabeled "relates to"), replying to Amal's 2026-06-09 taxonomy question (drafted on disk,
+      unposted, now 2 days stale — deferred-AC SOP exposure), and three description sentences
+      (list source pinned to KTP-791 labels, AC-3 empty-state surface+copy, AC-5 selection
+      persistence). All remain unactioned.
+  # factory_fitness (start 100 -> 30)
+  - points: 30
+    reason: >
+      factory_fitness: the factory's first station failed to start — agent() returned null at
+      Concierge and the run produced zero value on a sprint-committed 2 SP ticket. Clean halt
+      (credit: null-guard, no crash), but a line that cannot dispatch its first agent did not
+      perform.
+  - points: 15
+    reason: >
+      factory_fitness: HALT_AGENT_SKIPPED carries no skip_reason. Cannot distinguish user-skip
+      from dispatch error, timeout, or schema-validation failure. Root cause is unrecoverable
+      from the run record — for the third time today.
+  - points: 8
+    reason: >
+      factory_fitness: per-phase trace was [] — not even a stub entry for the attempted
+      Concierge dispatch. Retro reconstructed the run entirely from disk.
+  - points: 7
+    reason: >
+      factory_fitness: ticket_folder reported "(unresolved)" although it resolves
+      deterministically by glob to tickets/KTP/KTP-748/KTP-792. Pre-concierge halts therefore
+      orphan all fallback artifact paths, including the retro contract's own ticket-reports
+      fallback.
+  - points: 5
+    reason: >
+      factory_fitness: no retry before halting. Concierge is read-only and idempotent — the
+      cheapest phase to retry once on a null return.
+  - points: 5
+    reason: >
+      factory_fitness: the auto-improvement loop itself failed. Two retros earlier TODAY
+      (KTP-677, KTP-695) prescribed exactly the fixes that would have prevented or diagnosed
+      this halt, and the factory was re-dispatched a third time with none applied. Telemetry
+      that is written but not consumed is overhead, not improvement.
+
+red_flags:
+  - "Third HALT_AGENT_SKIPPED at Concierge in one day (KTP-677, KTP-695, KTP-792) — identical signature each time (null first dispatch, empty trace, unresolved folder). This is systemic, not transient."
+  - "No skip_reason captured: user-skip vs dispatch error vs timeout vs schema rejection is unknowable from telemetry, three runs in a row."
+  - "Per-phase trace [] again: the run left no machine-readable evidence beyond its terminal status string."
+  - "ticket_folder '(unresolved)' despite tickets/KTP/KTP-748/KTP-792 existing on disk."
+  - "Improvements from the two sibling retros (same morning) were not applied before re-dispatching — the improvement loop is write-only right now."
+  - "KTP-792 was not actually dev-ready anyway: spec gate verdict AMBIGUOUS_RESOLVABLE (82/100) with a HARD unmerged dependency on KTP-791 (locationTypeName does not exist until KTP-791's backend MR merges) mislabeled as 'relates to'. Even a successful run would likely have blocked at Grill."
+  - "Amal's 2026-06-09 PO reply (resolves KTP-131 Q7) has sat unanswered; the drafted recommendation-led reply from the spec gate is still disk-only. Deferred-AC SOP exposure grows each day."
+
+improvements:
+  - title: "CIRCUIT BREAKER: stop dispatching dark-factory until the Concierge null-return is diagnosed"
+    detail: >
+      Same failure, same phase, three runs, one day. Per the pipeline-retry circuit-breaker
+      principle, the fourth dispatch without a diagnosis is waste. Before any new run: inspect
+      the agent() dispatch path in dark-factory.workflow.js (null-guard at the Concierge site),
+      reproduce a dispatch in isolation, and determine whether the null is a harness regression
+      (e.g. agent registry/schema change), a permission prompt being declined, or a timeout.
+      Fix or instrument, then resume.
+  - title: "Capture skip_reason in every HALT_AGENT_SKIPPED return"
+    detail: >
+      Extend agent() (or each null-guard site) to surface WHY the return was null —
+      user_declined | dispatch_error | timeout | schema_validation_failed | unknown — and
+      include it in the halt object and the trace. Carried from the KTP-677 and KTP-695
+      retros; now blocking diagnosis for the third time.
+  - title: "Retry idempotent read-only phases once before halting"
+    detail: >
+      Concierge (and Grill) are read-only and idempotent. On a null agent() return, retry
+      exactly once (label suffixed '-retry') before emitting HALT_AGENT_SKIPPED. Bounded to
+      one retry to respect the circuit breaker. Carried from sibling retros.
+  - title: "Resolve ticket_folder mechanically in workflow.js, before the concierge"
+    detail: >
+      Glob project-management/tickets/*/**/<TICKET> (archive/ as fallback) at run start and
+      carry the result in run context. KTP-792 resolves unambiguously to
+      tickets/KTP/KTP-748/KTP-792. Carried from sibling retros.
+  - title: "Emit a stub trace entry for every attempted phase, including skips"
+    detail: >
+      Record an 'attempted' stub (phase, timestamp) at dispatch time and finalize on return
+      (outcome: skipped + skip_reason on null). Guarantees retro never receives [] for a run
+      that consumed a dispatch. Carried from sibling retros.
+  - title: "Make retro improvements gate the next dispatch (close the loop)"
+    detail: >
+      Add a lightweight pre-dispatch check to the dark-factory front gate: read the last N
+      run records from runs/INDEX.md; if the most recent run(s) ended HALT_* with open harness
+      improvements for the same phase, surface them to the human concierge gate before
+      dispatching. Today the loop wrote the same prescriptions twice and dispatched a third
+      run blind.
+  - title: "Do NOT re-dispatch KTP-792 until KTP-791 merges; execute the spec-gate pre-actions instead"
+    detail: >
+      The filter operates on locationTypeName, which exists only after KTP-791's backend MR
+      merges (KTP-791 is TO DO with an open unreviewed MR). Sequence: (1) review+merge KTP-791,
+      (2) post the drafted recommendation-led reply to Amal via /post-comment (Goldfish
+      GET /v2/location-types, ~99 venue types, actual names, no grouping), (3) re-link KTP-791
+      as 'blocks' KTP-792, (4) add the three description sentences (list source = distinct
+      loaded locationTypeName values matching KTP-791 labels; AC-3 empty-state surface + copy;
+      AC-5 selection persistence on layer re-toggle). Then /dark-factory KTP-792 with the
+      spec-gate report (tickets/KTP/KTP-748/KTP-792/reports/reviews/sprint6-spec-gate-2026-06-10.md)
+      as warm-start context.
+
+summary: >
+  KTP-792's run was the third identical harness no-op of the day: the first agent dispatch
+  (Concierge) returned null, HALT_AGENT_SKIPPED fired with an empty trace and an unresolved
+  ticket folder. task_confidence 5 / factory_fitness 30 (lower than the siblings because the
+  same undiagnosed failure repeated a third time and the prior retros' fixes were never
+  applied). Stop dispatching, diagnose the Concierge null-return, apply the carried fixes —
+  and hold KTP-792 itself until KTP-791 merges and the spec-gate pre-actions (Amal reply,
+  blocks-link, three description sentences) are done.

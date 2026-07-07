@@ -25,7 +25,7 @@ Source = `~/.claude/skills/dark-factory/SKILL.md` (v1), proven across KTP-681/68
 - Keep the **TDD discipline** in contract 4; stack tooling (build/test/execute) lives in `toolcrib/`
   belts, not the contract.
 - Shared contracts stay **stack-agnostic**; work-type tooling lives in `toolcrib/` belts (`java`,
-  `scripting`, `frontend` racked). A belt swaps tools only (ADR-002).
+  `scripting`, `frontend`, `terraform-dac-infra` racked). A belt swaps tools only (ADR-002).
 - The JS gates in the spine ALREADY enforce: spec-quality halt, zero-open-CRITICAL, QA verdict cap
   from execution_verified, pre-ship blockers, the **TDD RED gate** (`tddViolations` on `ac_tdd` +
   `tddVerifiedCap` on QA's `red_verified`), and the **visual-AC gate** (`classifyQaGap` routes a

@@ -49,6 +49,19 @@ const tddWarnings = []
 // or any code work. For a sprint-wide review pass over many tickets — one uniform terminal state per ticket
 // (CONCIERGE_ONLY_COMPLETE), no resume prompts, no Retro.
 const conciergeOnly = !!(args && (args.concierge_only === true || args.dry_run === true))
+// Headless mode (0.9.4, gate-as-handoff per session ADR-004 v2.2): the caller is an unattended run
+// (autopilot) that can NEVER AskUserQuestion. A human gate must not pause; it must EXIT CLEAN with a
+// machine-readable GATE_REQUIRED terminal the caller converts into a `type: gate` ledger handoff
+// (gate_of + decision_file). Re-entry is a FRESH run, not resume-in-place (resumeFromRunId is
+// same-session only): the human answers into <ticket_folder>/factory/decisions.yaml at pickup, and the
+// concierge reads that file BEFORE raising any question. Headless grants a clean gate-EXIT only —
+// it never moves the autonomy ceiling (no auto-merge, transition ceiling unchanged).
+const headless = !!(args && args.headless === true)
+// Deterministic decision-file pin (0.9.5, adversarial finding #2): the concierge resolves
+// ticket_folder with an LLM, so two fresh runs could bucket it differently and the re-entry would
+// silently MISS the human's answers. The gate handoff records decision_file; the re-entry caller
+// passes it back here so the path is pinned by code, not re-derived.
+const decisionFileArg = (args && args.decision_file) || null
 if (!ticket) throw new Error('dark-factory requires args.ticket (e.g. "ABC-123")')
 
 // ---- Schemas (handoffs are validated objects, not parsed text) ----
@@ -178,9 +191,14 @@ const LEDGER_REPAIR_SCHEMA = {
 
 const REVIEW_SCHEMA = {
   type: 'object',
-  required: ['criticals_open', 'findings'],
+  // findings_artifact is REQUIRED (0.9.3): contract 5 has mandated an on-disk findings.json since 0.5.0,
+  // yet three consecutive KTP-784 runs returned criticals:0 with an EMPTY review/ folder — prose alone
+  // does not stick. Making the path a schema-required field is the same pattern that made ac_tdd stick.
+  // QA (contract 6) spot-checks the file exists on the branch/ticket folder as the ground-truth layer.
+  required: ['criticals_open', 'findings', 'findings_artifact'],
   properties: {
     criticals_open: { type: 'integer', minimum: 0 },
+    findings_artifact: { type: 'string', minLength: 1 }, // abs path to <ticket_folder>/review/findings.json
     findings: {
       type: 'array',
       items: {
@@ -203,6 +221,10 @@ const QA_SCHEMA = {
   required: ['raw_overall', 'per_ac'],
   properties: {
     raw_overall: { type: 'string', enum: ['ALL_PASS', 'PARTIAL', 'FAIL'] },
+    // One-line machine-readable cause for any non-ALL_PASS verdict (0.9.3, 3 retros): e.g.
+    // "partial: AC-1 clean vs baseline; AC-3 visual not captured". Required by contract 6 whenever
+    // raw_overall != ALL_PASS so a PARTIAL is legible without re-deriving from .out files.
+    partial_cause: { type: 'string' },
     per_ac: {
       type: 'array',
       items: {
@@ -394,6 +416,17 @@ const readContract = (name) =>
 const trace = []
 const rec = (name, r, extra) => { trace.push({ phase: name, status: (r && (r.status || r.spec_quality)) || extra || '?', confidence: r ? r.confidence : null }); return r }
 
+// Diagnosable skip (0.9.3, proposed by all 7 retros of the 2026-06-11 HALT_AGENT_SKIPPED cluster): a
+// null agent() return previously produced an empty trace, no skip reason, and "(unresolved)" folder —
+// making the batch failure undiagnosable. Now every null-guard records a stub trace entry + a
+// skip_reason, so the Retro (and a batch caller's circuit breaker) has evidence to act on.
+const SKIP_REASON = 'agent() returned null — dispatch error, terminal API error after retries, or operator skip; no agent output was produced'
+function agentSkipped(phaseName) {
+  trace.push({ phase: phaseName, status: 'agent_null', confidence: null })
+  return { status: 'HALT_AGENT_SKIPPED', phase: phaseName, ticket, skip_reason: SKIP_REASON,
+    ticket_folder: _tf || '(unresolved — halted before/at Concierge)' }
+}
+
 // =================== PIPELINE ===================
 
 async function runPipeline() {
@@ -407,7 +440,20 @@ async function runPipeline() {
   const resumeNote = humanDecisions
     ? `\n\nRESUME CONTEXT: a human supplied decisions/answers since the prior run: ${JSON.stringify(humanDecisions)}. Re-read the ticket LIVE now (the human may also have resolved an open_question in the ticket itself) and incorporate these answers. Only set needs_human=true if a NEW, still-unresolved blocker remains — do NOT re-raise a question these answers resolve.`
     : ''
-  const concierge = await agent(
+  // Gate-as-handoff re-entry (0.9.4): in a headless run the human's answers live ON DISK, not in a
+  // prompt. The concierge must consume them BEFORE raising any question (schema.yaml: "headless
+  // factories read this file BEFORE asking").
+  const headlessNote = headless
+    ? `\n\nHEADLESS RUN (gate-as-handoff): the human is NOT interactive; your open_questions will be routed
+to a gate handoff for later human pickup. BEFORE raising any question, look for answered decisions:
+${decisionFileArg ? `the caller pinned the decision file at ${decisionFileArg} — read THAT path.` : `check <ticket_folder>/factory/decisions.yaml; if the folder you resolved has none, glob tickets/*/*/${ticket}/factory/decisions.yaml AND tickets/*/no-epic/${ticket}/factory/decisions.yaml (a prior run may have bucketed the ticket folder differently — if an existing ticket folder for ${ticket} exists ANYWHERE under tickets/, reuse it rather than creating a second one).`}
+decisions.yaml is a list of entries { id, question, answer }. CONSUME an entry ONLY when BOTH its id and
+its question text match a question you would raise now — the question-text match is the staleness guard.
+An entry whose question does not match anything you would ask is a leftover from a PREVIOUS gate: IGNORE
+it as an answer, and note it as stale in summary. Never let an old answer silently answer a NEW question.
+Only set needs_human=true for questions with no matching consumed answer.`
+    : ''
+  const conciergePrompt =
     `Read ${CONTRACTS}/1-concierge.md and execute it for ticket ${ticket} (org: ${org}).
 You are the concierge: validate spec quality, gather context, extract ACs, check prerequisites, and
 RESOLVE the absolute ticket-folder path (return it as ticket_folder). This is the front gate. If
@@ -430,10 +476,18 @@ For EACH AC also set 'repo' (which repo it touches) and 'belt' (which tool belt 
 MORE THAN ONE repo/belt, this is a FULL-STACK ticket: still return your best single 'tool_belt' (the primary
 one drives today's single-belt pipeline), but call out the split in 'summary' (e.g. "full-stack: AC-1/2
 backend [java/app-user-management], AC-3 frontend [app-front-portal]"). Do NOT try to build both stacks in
-one run today — surface it so the split-fan-out (a later capability) or a human can decide.${resumeNote}${CONFIDENCE_BLURB}`,
-    { schema: CONCIERGE_SCHEMA, label: 'concierge', phase: 'Concierge' }
-  )
-  if (!concierge) return { status: 'HALT_AGENT_SKIPPED', phase: 'Concierge', ticket }
+one run today — surface it so the split-fan-out (a later capability) or a human can decide.${resumeNote}${headlessNote}${CONFIDENCE_BLURB}`
+  let concierge = await agent(conciergePrompt, { schema: CONCIERGE_SCHEMA, label: 'concierge', phase: 'Concierge' })
+  // Bounded retry on a null FIRST agent (0.9.3, proposed by all 7 cluster retros): the Concierge is
+  // read-only (no code, no worktree), so one retry is free of side-effect risk. A dead first dispatch is
+  // far more often a transient harness glitch than a decision — one retry either salvages the run or
+  // yields a diagnosable second failure instead of a silent dead batch.
+  if (!concierge) {
+    log('Concierge agent returned null — read-only phase, retrying once before halting')
+    trace.push({ phase: 'concierge', status: 'agent_null_retrying', confidence: null })
+    concierge = await agent(conciergePrompt, { schema: CONCIERGE_SCHEMA, label: 'concierge-retry', phase: 'Concierge' })
+  }
+  if (!concierge) return agentSkipped('Concierge')
   rec('concierge', concierge, concierge.spec_quality)
   // Concierge-only / dry-run: stop HERE, uniformly, before any advance. Report the full findings so a
   // sprint-wide review gets one consistent shape per ticket (incl. spec FAIL / needs_human / open_questions
@@ -445,6 +499,33 @@ one run today — surface it so the split-fan-out (a later capability) or a huma
       prereqs_ok: concierge.prereqs_ok, repos: concierge.repos, tool_belt: concierge.tool_belt,
       acs: concierge.acs || [], open_questions: concierge.open_questions || [],
       confidence: concierge.confidence, summary: concierge.summary, concierge,
+    }
+  }
+  // Headless gate-exit (0.9.4; hardened 0.9.5): ANY human-shaped stop in a headless run — unanswered
+  // decisions OR a failed spec gate — is one uniform, clean, machine-readable terminal. Never a pause,
+  // never AskUserQuestion. The caller (autopilot conductor / main loop) converts it into a `type: gate`
+  // ledger handoff; the human answers at pickup into decision_file; a FRESH run re-enters idempotently
+  // (the concierge reads decision_file first, matching answers by id + question text). spec_quality FAIL
+  // is included (0.9.5, adversarial finding #5): a bad spec is exactly a needs-human case — headless
+  // must park it as a gate, not dead-end it. Note this branch fires regardless of humanDecisions:
+  // in headless a still-unanswered question re-gates (there is no BLOCKED_NEEDS_HUMAN_AGAIN headless).
+  if (headless && (concierge.spec_quality === 'FAIL' || concierge.needs_human)) {
+    const gateKind = concierge.spec_quality === 'FAIL' ? 'spec_quality' : 'decisions'
+    const packet = (concierge.open_questions && concierge.open_questions.length)
+      ? concierge.open_questions
+      : [{ id: 'SPEC-1', question: `spec_quality FAIL: ${concierge.summary} — repair the ticket spec (or supply the missing decisions in the ticket), then re-run.`, why_blocking: 'The concierge judged the ACs too vague, contradictory, or incomplete to implement safely.' }]
+    const decisionFile = decisionFileArg || `${concierge.ticket_folder}/factory/decisions.yaml`
+    return {
+      status: 'GATE_REQUIRED', gate_kind: gateKind, ticket, ticket_folder: concierge.ticket_folder,
+      decision_packet: packet, concierge,
+      gate_of: `dark-factory:${ticket}`,
+      decision_file: decisionFile,
+      next_steps_for_caller: [
+        'Write a `type: gate` handoff to the session ledger with gate_of + decision_file (sessions/schema.yaml v2.2 contract) carrying each decision_packet question VERBATIM (id + question text — the re-entry matches on both).',
+        'Exit cleanly. Gates are ALWAYS human-only — never autopilot-approve a gate handoff. (Note: today this is an instruction to the triage flow, not a mechanical block.)',
+        'On human pickup: write the answers to the decision_file as a YAML list of { id, question, answer } — copy id and question verbatim from the gate handoff; the question text is the staleness guard.',
+        `Re-entry is a FRESH dark-factory run (resumeFromRunId is same-session only) with the same args PLUS decision_file: "${decisionFile}" — passing it back pins the path so a differently-bucketed ticket folder cannot silently miss the answers.`,
+      ],
     }
   }
   if (concierge.spec_quality === 'FAIL') return { status: 'BLOCKED_SPEC_QUALITY', ticket, concierge }
@@ -472,13 +553,13 @@ one run today — surface it so the split-fan-out (a later capability) or a huma
 
   phase('Design')
   const design = await agent(`${readContract('2-design')}\n${decisionsNote}`, { schema: PHASE_SCHEMA, label: 'design', phase: 'Design' })
-  if (!design) return { status: 'HALT_AGENT_SKIPPED', phase: 'Design', ticket }
+  if (!design) return agentSkipped('Design')
   rec('design', design)
   if (design.status === 'stuck') return { status: 'HALT_DESIGN_STUCK', ticket, design }
 
   phase('Grill')
   const grill = await agent(`${readContract('3-grill')}\nInterrogate the design plan against the actual codebase (use git, not just local files). ${decisionsNote}`, { schema: PHASE_SCHEMA, label: 'grill', phase: 'Grill' })
-  if (!grill) return { status: 'HALT_AGENT_SKIPPED', phase: 'Grill', ticket }
+  if (!grill) return agentSkipped('Grill')
   rec('grill', grill)
   if (grill.status === 'stuck') return { status: 'HALT_GRILL_UNWORKABLE', ticket, design, grill }
 
@@ -497,7 +578,7 @@ ATTEMPT to run the artifact and record execution_verified honestly (never skip).
 branch to origin and write 'git diff origin/dev..HEAD' to a file in the ticket folder; return its path
 as diff_artifact and set pushed=true. ${decisionsNote}`,
     { schema: IMPLEMENT_SCHEMA, label: 'implement', phase: 'Implement', isolation: 'worktree' })
-  if (!impl) return { status: 'HALT_AGENT_SKIPPED', phase: 'Implement', ticket }
+  if (!impl) return agentSkipped('Implement')
   rec('implement', impl)
   if (impl.status === 'stuck') return { status: 'HALT_IMPLEMENT_STUCK', ticket, branch: impl.branch, impl }
   // TDD gate, layer 1 (deft-falcon): structural RED-green proof per AC. Un-skippable in 'halt' mode.
@@ -525,9 +606,15 @@ IMPLEMENT SUMMARY: ${impl.summary}
 EXISTING ac_tdd: ${JSON.stringify(impl.ac_tdd || [])}`,
         { schema: LEDGER_REPAIR_SCHEMA, label: 'tdd-ledger-repair', phase: 'Implement' })
       if (repair && Array.isArray(repair.ac_tdd) && repair.ac_tdd.length) {
+        const before = v.length
         impl.ac_tdd = repair.ac_tdd
-        rec('implement-ledger-repair', { status: 'pass' }, `repaired:${v.length}`)
         v = tddViolations(impl, true)
+        // Telemetry footprint (0.9.3, 3 retros): violations seen -> entries re-emitted -> gate result,
+        // so this retry's hit-rate is measurable run-over-run instead of invisible.
+        trace.push({ phase: 'implement-ledger-repair', status: `violations:${before}->` + v.length + ` entries:${repair.ac_tdd.length} gate:${v.length ? 'still-failing' : 'cleared'}`, confidence: null })
+        log(`TDD ledger-repair: ${before} violation(s) -> ${v.length} after repair (${v.length ? 'still failing' : 'gate cleared'})`)
+      } else {
+        trace.push({ phase: 'implement-ledger-repair', status: 'repair_agent_returned_nothing', confidence: null })
       }
     }
     if (v.length && tddGateMode === 'halt') return { status: 'HALT_TDD_GATE', phase: 'Implement', ticket, branch: impl.branch, tdd_violations: v, impl }
@@ -539,11 +626,14 @@ EXISTING ac_tdd: ${JSON.stringify(impl.ac_tdd || [])}`,
 You did NOT write this code and have no design context. The runtime gave you your own worktree: run
 'git fetch origin ${impl.branch}' then 'git checkout ${impl.branch}'. Review only 'git diff
 origin/dev..HEAD' against the ACs and the repo CLAUDE.md. Find bugs that reach users; for each, write a
-test and run it; retract if it passes. Diff artifact (backup): ${impl.diff_artifact}.`
+test and run it; retract if it passes. Diff artifact (backup): ${impl.diff_artifact}.
+MANDATORY: write your findings to ${_tf}/review/findings.json on EVERY run — including criticals_open:0
+— and return its absolute path as findings_artifact (schema-required; a clean review with no on-disk
+record is unverifiable).`
 
   phase('Review')
   let review = await agent(reviewPrompt, { schema: REVIEW_SCHEMA, label: 'review', phase: 'Review', isolation: 'worktree' })
-  if (!review) return { status: 'HALT_AGENT_SKIPPED', phase: 'Review', ticket, branch: impl.branch }
+  if (!review) return { ...agentSkipped('Review'), branch: impl.branch }
   rec('review', review, 'criticals:' + review.criticals_open)
 
   // Bounded fix loop (0.6.0): on a CRITICAL, bounce back to a targeted fix + re-review instead of
@@ -563,7 +653,7 @@ write/keep a test that demonstrates the bug, fix the code minimally, re-run the 
 the branch. Return execution_verified honestly and pushed=true.
 OPEN CRITICAL FINDINGS: ${JSON.stringify(criticals)}`,
       { schema: IMPLEMENT_SCHEMA, label: `fix-round-${fixRounds}`, phase: 'Fix', isolation: 'worktree' })
-    if (!fix) return { status: 'HALT_AGENT_SKIPPED', phase: 'Fix', ticket, branch: impl.branch }
+    if (!fix) return { ...agentSkipped('Fix'), branch: impl.branch }
     rec(`fix-${fixRounds}`, fix)
     if (fix.pushed !== true) return { status: 'HALT_FIX_NOT_PUSHED', ticket, branch: impl.branch, fix, review }
     // TDD gate on the fix's own bug-tests (completeness off — a fix only re-reports the ACs it touched).
@@ -575,7 +665,7 @@ OPEN CRITICAL FINDINGS: ${JSON.stringify(criticals)}`,
 
     phase('Review')
     review = await agent(reviewPrompt, { schema: REVIEW_SCHEMA, label: `review-r${fixRounds + 1}`, phase: 'Review', isolation: 'worktree' })
-    if (!review) return { status: 'HALT_AGENT_SKIPPED', phase: 'Review', ticket, branch: impl.branch }
+    if (!review) return { ...agentSkipped('Review'), branch: impl.branch }
     rec(`review-${fixRounds + 1}`, review, 'criticals:' + review.criticals_open)
   }
   if (review.criticals_open > 0) return { status: 'BLOCKED_REVIEW_CRITICAL', ticket, branch: impl.branch, review, impl, fix_rounds: fixRounds }
@@ -593,7 +683,7 @@ for an exempt entry. A PASS whose RED you cannot re-verify gets capped. Return r
 self-assign the level.
 RED LEDGER: ${redLedger}`,
     { schema: QA_SCHEMA, label: 'qa', phase: 'QA', isolation: 'worktree' })
-  if (!qa) return { status: 'HALT_AGENT_SKIPPED', phase: 'QA', ticket, branch: impl.branch }
+  if (!qa) return { ...agentSkipped('QA'), branch: impl.branch }
   rec('qa', qa, qa.raw_overall)
 
   const qaCapped = capQaVerdict(impl.execution_verified, tddVerifiedCap(qa, evidenceCappedOverall(qa)))
@@ -607,7 +697,7 @@ The runtime gave you your own worktree: 'git fetch origin ${impl.branch}' then '
 ${impl.branch}'. Version bump + CHANGELOG, commit, push the branch with git. Do NOT invoke /klever-mr,
 /post-comment, or any Jira transition — the main loop does those. Return branch, version, pushed=true.`,
     { schema: SHIPPREP_SCHEMA, label: 'ship-prep', phase: 'ShipPrep', isolation: 'worktree' })
-  if (!shipPrep) return { status: 'HALT_AGENT_SKIPPED', phase: 'ShipPrep', ticket, branch: impl.branch }
+  if (!shipPrep) return { ...agentSkipped('ShipPrep'), branch: impl.branch }
   rec('ship-prep', shipPrep)
   if (shipPrep.status === 'stuck' || shipPrep.pushed !== true) {
     return { status: 'HALT_SHIPPREP_FAILED', ticket, branch: impl.branch, shipPrep, impl, review, qa }
@@ -642,7 +732,7 @@ ${impl.branch}'. Version bump + CHANGELOG, commit, push the branch with git. Do 
         'For each visual_acs AC, render it against http://localhost:3000 and capture a screenshot: prefer the ui-probe skill (reuses your authenticated Chrome); else /klever-test AC-validation (headless Playwright — localhost has no IAP wall).',
         'If EVERY visual AC renders correctly: treat as READY_TO_SHIP — /klever-mr (no auto-merge) for ' + shipPrep.branch + ', /post-comment with the screenshots as AC evidence, transition to In Review/Testing.',
         'If a visual AC renders WRONG: it is a real gap — do NOT ship; report it (a fix is needed).',
-        'If the stack will not start, a fixture is genuinely unavailable (concierge marked it "missing"), or no browser is drivable: fall back to READY_FOR_VISUAL_QA — /klever-mr + /post-comment flagged "visual QA pending: ' + visualAcs.map((v) => v.ac).join(', ') + ' — needs a human eyeball on the running app", transition to In Review/Testing.',
+        'If the stack will not start, a fixture is genuinely unavailable (concierge marked it "missing"), or no browser is drivable: fall back to READY_FOR_VISUAL_QA — /klever-mr (open the MR), but do NOT post a Jira status comment and do NOT transition the ticket. PARK the drafted comment on disk in the ticket folder ("visual QA pending: ' + visualAcs.map((v) => v.ac).join(', ') + '"). Post ONE consolidated comment only when real proof (verified visual evidence) exists — status-only updates are noise (Gab directive 2026-06-16, feedback_no_external_status_updates_without_proof).',
       ],
     }
   }
@@ -665,6 +755,9 @@ const result = await runPipeline()
 
 // AWAITING_HUMAN is a pause (will resume), not an end — no retro yet.
 if (result.status === 'AWAITING_HUMAN') return result
+// GATE_REQUIRED (headless) exits before any code work — like a concierge-only pass there is nothing to
+// score; the gate handoff + fresh re-entry carry the run forward. Skip Retro to keep gate exits cheap.
+if (result.status === 'GATE_REQUIRED') return result
 // CONCIERGE_ONLY_COMPLETE is a deliberate front-gate-only review pass — no code work happened, so there is
 // nothing to score. Skip Retro (keeps a sprint-wide review cheap + uniform).
 if (result.status === 'CONCIERGE_ONLY_COMPLETE') return result

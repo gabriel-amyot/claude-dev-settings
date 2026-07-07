@@ -1,0 +1,186 @@
+run_id: run-2026-06-11-KTP-677-tdd-gate
+ticket: KTP-677
+title: >
+  [Proximity measurements] Remove abandoned feature code (DMA, City, location fallback) — delete
+  dead code in app-proximity-report identified by the KTP-542 spike (DMA/City adapters, services,
+  DAOs, controller endpoints, StoreLocationCoordinateFallback, getSummaryPerformanceTable), with a
+  pre-flight BQ data-safety AC and a green-test-suite AC. 6 ACs, 2 SP, Sprint 6.
+date: 2026-06-11
+terminal_status: HALT_TDD_GATE
+halt_phase: TDD gate (post-implement)
+ticket_folder: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-558/KTP-677
+worktree: /private/tmp/KTP-677-wt
+branch: KTP-677-remove-dead-feature-code (pushed to origin; 0 unpushed commits)
+
+note_second_run_of_day: >
+  This is the SECOND dark-factory run on KTP-677 on 2026-06-11. The first (telemetry
+  run-2026-06-11-KTP-677.yaml, 07:23) was a harness no-op: Concierge agent() returned null,
+  HALT_AGENT_SKIPPED, empty trace. That run's #1 improvement ("re-dispatch KTP-677 promptly") was
+  acted on — this run is the re-dispatch and it ran the full line through Implement before halting at
+  the TDD gate. Telemetry filenames disambiguated with a -tdd-gate suffix (precedent: the
+  -presship suffix already in this folder).
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: true
+  note: >
+    Gate ran in default HALT mode (un-skippable) with ZERO warn-mode violations — the trustworthy
+    configuration. The halt is the gate doing its job, NOT a disabled gate. Root cause of the halt:
+    KTP-677 is a PURE dead-code-removal ticket. 5 of 6 ACs are deletions (DMA stack, City stack,
+    summary config method, geography-cities endpoints, test cleanup) that cannot produce a meaningful
+    RED-first unit test — there is no new behavior to assert failing. The impl plan PREDICTED this
+    verbatim ("Standard TDD RED-first does NOT apply — there is no new behavior to assert RED").
+    Only AC-3 (preserve null-filter after fallback deletion) has a real RED->GREEN pair, and the
+    branch contains it correctly ordered (f5a3a2b AC-3 RED @17:50:37 -> 419def5 AC-3 GREEN @17:51:37).
+    The TDD gate has no accommodation for deletion-only ACs, so it could not confirm RED->GREEN
+    discipline across the suite and correctly halted rather than waving a non-RED-first run through.
+    This is a factory-design gap (gate lacks a deletion-ticket mode), not a code-quality failure.
+
+per_phase:
+  - phase: concierge
+    status: PASS
+    confidence: 90
+  - phase: design
+    status: pass
+    confidence: 90
+  - phase: grill
+    status: partial
+    confidence: 88
+    note: >
+      Grill returned 'partial' on a material, correctly-caught gap (G-1): StoreLocationBigQueryAdapterTest
+      already exists on origin/dev with 3 fallback-asserting tests that the deletion would break.
+      Grill instructed Implement to edit that file in place (brownfield gate), not create a parallel
+      test file. The branch shows this was honoured (StoreLocationBigQueryAdapterTest +/- 28 lines,
+      no parallel file). 'partial' here is a healthy verdict — the gap was surfaced and carried, not a
+      blocker. Also corrected the analyst's mis-pathed frontend grep (src/lib/app does not exist;
+      Next.js layout is app/components/lib/content) and re-verified zero cross-repo usage.
+  - phase: implement
+    status: pass
+    confidence: 90
+    note: >
+      Produced a complete, pushed branch: 7 commits, 44 files, 2002 deletions / 19 insertions. Proper
+      AC-3 RED->GREEN, AC-2 geography-cities deletion isolated in its own commit (per plan + grill so
+      review can revert independently), AC-5 test-suite sync (MapCacheConfigTest, ProximityTableConfigTest,
+      controller test, CityPerformanceServiceTest removed). The G-1 grill gap was reconciled in place.
+
+scores:
+  task_confidence: 72
+  factory_fitness: 78
+
+deductions:
+  # task_confidence (start 100 -> 72)
+  - points: 12
+    reason: >
+      task_confidence: run halted at the TDD gate, so the line never reached Review or QA. No
+      adversarial review pass and no QA verification ran on the branch. The work LOOKS complete and
+      well-sequenced from the commit graph, but 'complete + pushed' is not 'reviewed + QA-passed' —
+      the last two stations that would catch an over-deletion or a dangling reference did not execute.
+  - points: 8
+    reason: >
+      task_confidence: no execute-verify evidence on disk. The impl plan made a clean Spring context
+      start (no NoSuchBeanDefinitionException after bean-graph surgery) the CENTRAL proof for AC-1/AC-2,
+      and AC-5 demands a GREEN full suite. The commit messages assert GREEN, but retro found no
+      captured `mvn test` / `spring-boot:run` output artifact in the ticket folder or worktree to
+      confirm the suite is actually green and the context boots. Deletion-only branches are exactly
+      where a dangling reference / unsatisfied bean hides.
+  - points: 5
+    reason: >
+      task_confidence: AC-0 (pre-flight BQ data-safety: Shrimp Basket 18/18 non-null coords) was
+      verified at the concierge gate but the build-phase action ("attach BQ evidence as a Jira
+      comment/proof on KTP-677") is gated behind the post-halt main loop, which never ran. The
+      data-safety evidence is not yet on the ticket for a human reviewer.
+  - points: 3
+    reason: >
+      task_confidence: ticket-local jira/ac.yaml was not written/updated for this run (the recovery
+      save-point per project CLAUDE.md). AC progress lives only in commit messages + this telemetry,
+      so a cold-start resume would re-derive AC status from the diff rather than read it.
+  # factory_fitness (start 100 -> 78)
+  - points: 12
+    reason: >
+      factory_fitness: the TDD gate has no mode for pure deletion / dead-code-removal tickets. RED-first
+      is structurally impossible for a deletion AC, the impl plan flagged this in writing, and the gate
+      still halted — forcing a human to manually clear a run that did everything right. The gate is
+      correct to refuse to silently pass a non-RED-first run, but a factory that can't classify
+      'deletion ticket -> compile-clean + suite-stays-GREEN + absence-grep is the proof' will halt
+      every cleanup ticket. This is the dominant factory-fitness loss and the #1 next-run improvement.
+  - points: 5
+    reason: >
+      factory_fitness: telemetry filename collision. run-2026-06-11-KTP-677.yaml already existed (the
+      07:23 no-op run on the same ticket same day). The contract's naming scheme run-<DATE>-<TICKET>.yaml
+      cannot represent two runs of one ticket in one day without a manual disambiguating suffix (done
+      here: -tdd-gate). Re-runs after a halt are a normal, expected pattern (this very run is one),
+      so the scheme should account for it.
+  - points: 3
+    reason: >
+      factory_fitness: no execute-verify artifact was persisted. The build phase's own plan named
+      `mvn test` GREEN and `spring-boot:run` clean-start as the central proofs, but neither output
+      was captured to disk, so retro (and any human) must trust commit-message assertions. The factory
+      should land build/test logs under the ticket's reports/ when a phase claims GREEN.
+  - points: 2
+    reason: >
+      factory_fitness: tdd/ and review/ artifact folders were created (17:23) but left empty — the
+      gate halted before populating them. An empty contract-output folder is ambiguous ('not reached'
+      vs 'reached and produced nothing'); a stub marker would disambiguate.
+
+red_flags:
+  - "TDD gate HALTED on a ticket whose own impl plan stated in writing that RED-first does not apply (pure dead-code removal). Gate behaved correctly (un-skippable, halt mode, zero warn violations) but has no deletion-ticket mode, so it blocks every legitimate cleanup ticket."
+  - "Second run of KTP-677 on the same day collided with the existing telemetry filename run-2026-06-11-KTP-677.yaml — the contract's run-id scheme has no slot for re-runs/same-day retries."
+  - "Implement reported confidence 90 and pushed a 2002-line-deletion branch, but NO execute-verify evidence (mvn test GREEN, Spring context clean-start) was captured to disk — for bean-graph surgery, an unsatisfied bean / dangling reference is exactly the silent failure that a missing build log would hide."
+  - "Branch is pushed to origin (KTP-677-remove-dead-feature-code) but the run halted BEFORE review + QA — so unreviewed, un-QA'd deletions sit on origin. Low risk (deletions, self-contained per grill's reference-graph check) but it is code on the remote that no gate cleared."
+  - "Sequencing still live: KTP-677 and KTP-678 both edit ProximityTableConfig (spec gate said land 677 first). KTP-678 already has worktrees (.claude/worktrees/KTP-678, /private/tmp/KTP-678-review-wt) — 678 is in flight. If 677 stays halted/unmerged while 678 lands, the ProximityTableConfig collision the spec gate warned about can materialise."
+  - "jira/ac.yaml was not written — the project's prescribed per-AC recovery save-point is absent; AC status is reconstructable only from the commit graph."
+
+improvements:
+  - title: "Give the TDD gate a deletion / dead-code-removal mode"
+    detail: >
+      The gate must recognise when a ticket (or an AC) is pure removal — no new behavior to assert RED.
+      Signal it from the design/grill output (the impl plan already writes 'RED-first does NOT apply')
+      or detect it (an AC whose commits are net-deletions with no new test asserting new behavior). In
+      that mode the gate's proof contract becomes: (a) compile clean, (b) full suite STAYS green
+      (capture the before/after `mvn test` result), (c) target symbols are absent (grep), (d) any
+      PRESERVED behavior keeps a guarding test (here AC-3's null-filter, which DID get a RED->GREEN
+      pair). Pass on that evidence instead of halting for a missing RED unit that cannot exist. This is
+      the single highest-leverage fix — without it the factory halts every cleanup ticket.
+  - title: "Disambiguate same-day re-run telemetry filenames"
+    detail: >
+      run-<DATE>-<TICKET>.yaml collides whenever a ticket is re-dispatched the same day (exactly what
+      happened: 07:23 no-op then this 17:xx full run). Append a run-sequence or terminal-status suffix
+      (e.g. run-<DATE>-<TICKET>-2 or -<terminalstatus>). Update INDEX.md to carry both rows so the
+      auto-improvement loop sees the no-op AND its successful re-dispatch as distinct events.
+  - title: "Persist execute-verify evidence to the ticket reports/ when a phase claims GREEN"
+    detail: >
+      Implement asserted AC-5 suite GREEN and AC-1/AC-2 clean Spring start, but captured no log. The
+      build phase should write `mvn test` summary + `spring-boot:run` startup line to
+      tickets/{ID}/reports/implementation/ (or the worktree) so retro, review, and humans verify
+      claims against artifacts, not commit prose. For bean-graph surgery this is the proof that no
+      dangling reference / unsatisfied bean slipped through.
+  - title: "Write jira/ac.yaml as the per-AC recovery save-point during/after implement"
+    detail: >
+      Project CLAUDE.md requires ac.yaml updated after each AC — it is the resume anchor. This run left
+      it unwritten, so a cold start re-derives AC status from the diff. The implement phase (or a
+      post-implement step) should write ac.yaml mapping each AC to its commit(s) and status.
+  - title: "Clear KTP-677 through review + QA and merge BEFORE KTP-678"
+    detail: >
+      The branch is done and pushed; only the un-skippable TDD gate (correctly, per the deletion-mode
+      gap above) stopped the auto-advance. Next action: either re-run with the deletion-mode gate, or
+      manually run the remaining stations (adversarial review on the 2002-line deletion to confirm no
+      over-deletion, then `mvn test` GREEN + Spring clean-start as QA), attach AC-0 BQ evidence to
+      Jira, then MR to dev. Land it before KTP-678 (both touch ProximityTableConfig; 678 is already in
+      flight with worktrees) to avoid the spec-gate-flagged collision.
+  - title: "Emit a stub marker in tdd/ and review/ when the gate halts before populating them"
+    detail: >
+      The folders exist but are empty, which is ambiguous. On a pre-phase halt, drop a one-line marker
+      (e.g. HALTED-BEFORE-THIS-PHASE.md with the terminal status) so 'not reached' is distinguishable
+      from 'reached and produced nothing'.
+
+summary: >
+  KTP-677's re-dispatch (after the morning no-op) ran the full line — concierge/design/grill/implement
+  all healthy — and produced a complete, pushed, well-sequenced 2002-line deletion branch, then halted
+  at the TDD gate. task_confidence 72 / factory_fitness 78. The halt is the un-skippable gate working
+  correctly (halt mode, zero warn violations) on a ticket whose own plan stated RED-first cannot apply:
+  the dominant lesson is factory-side — the TDD gate needs a deletion / dead-code-removal mode (proof =
+  compile-clean + suite-stays-GREEN + absence-grep + guarded preserved behavior) so legitimate cleanup
+  tickets stop hard-halting. Secondary: capture execute-verify logs, write ac.yaml, disambiguate
+  same-day re-run telemetry, and clear 677 through review+QA and merge before KTP-678 (shared
+  ProximityTableConfig).

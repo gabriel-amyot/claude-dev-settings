@@ -1,0 +1,193 @@
+run_id: run-2026-06-15-KTP-784
+ticket: KTP-784
+title: >
+  Unify state tileset properties — align state-layer promoteId to STUSPS on the CENTERS source
+  (boundaries already done by KTP-683) and (queued separate pass) drop state extras to a minimal
+  NAME/STUSPS/COUNTRY schema. This run = FRONTEND-ONLY pass: AC-1 + AC-3. 5 ACs total, 1 SP,
+  epic KTP-558 (Refinements), Sprint 6.
+date: 2026-06-15
+terminal_status: HALT_TDD_GATE
+halt_phase: Implement
+ticket_folder: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-558/KTP-784
+session: 2e81a158-414d-4b8a-9c78-070b9cbfa38a (resolved from sessions/active/latest-answer.md; sessions/active/state.yaml session_id is still empty)
+this_run_scope:
+  belt: frontend
+  acs: [AC-1, AC-3]
+  queued_next_pass: { belt: scripting, acs: [AC-2], note: "separate sequential dark-factory pass; produces .mbtiles + script diff only, Gabriel does the manual Mapbox upload" }
+
+resume_context: >
+  This is the RE-DISPATCH the 2026-06-11 KTP-784 retro called for. That run died pre-concierge
+  (HALT_AGENT_SKIPPED, empty trace, 5/30). This run cleared the front gate with the three human
+  decisions (Q1 frontend-only now / AC-2 queued separate, Q2 factory makes .mbtiles only / Gabriel
+  uploads, Q3 accept pre-upload baseline + mark AC-3 visual_pending) folded into the concierge prompt,
+  and progressed concierge -> design -> grill -> implement. It then halted at the TDD gate.
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: true
+  note: >
+    The gate ran in default 'halt' mode with zero warn-mode violations, so the run is trustworthy in
+    the deft-falcon sense (the un-skippable gate was NOT downgraded to warn). But the gate FIRED:
+    terminal_status is HALT_TDD_GATE at the Implement phase. tddViolations(impl, requireComplete=true)
+    returned a non-empty list. Per dark-factory.workflow.js:319-340 the only ways to clear it are
+    (a) every ac_progress=='done' AC carries an ac_tdd ledger entry, AND (b) each entry has either a
+    valid RED/GREEN proof (red.failed + red.right_reason + red.artifact, green.passed) OR a
+    well-formed exempt string matching /^(not_applicable|infra_blocked)\(.+\)$/. The implement agent
+    did NOT satisfy this for AC-1/AC-3 — despite design (impl-plan.md:40,48) and grill
+    (grill-report.md A3/A4) explicitly and correctly justifying exempt:not_applicable for both
+    (source-config option + rendered-UI AC, Playwright-only repo, no extractable pure logic). Most
+    likely cause: the ac_tdd array was omitted/empty or the exempt strings were malformed (missing the
+    "(<why>)" parenthetical the regex requires).
+
+per_phase:
+  - { phase: concierge, status: PASS, confidence: 88 }
+  - { phase: design,     status: pass, confidence: 93 }
+  - { phase: grill,      status: pass, confidence: 90 }
+  - { phase: implement,  status: pass, confidence: 88 }
+per_phase_note: >
+  The handed trace stops at implement (PASS, 88) — the TDD gate is a JS check that runs AFTER the
+  implement agent returns and rec()'s, so the gate halt is NOT a phase record; it is the workflow
+  refusing to advance to Review. Review/Fix/QA/ShipPrep never ran (their ticket subfolders tdd/,
+  review/, qa/ exist but are empty).
+
+ground_truth_on_disk:
+  worktree: /Users/gabrielamyot/Developer/grp-beklever-com/grp-app/grp-frontend/app-front-portal-KTP-784
+  branch: KTP-784-state-centers-promoteid
+  pushed_to_origin: true
+  commit: "85730fc KTP-784: AC-1 align state centers source promoteId to STUSPS"
+  diff_vs_dev: "1 file changed, 1 insertion(+) — components/map/functions/setup-map-layers.tsx"
+  change: 'added `promoteId: "STUSPS"` to addUsStatesCentersTilesetSource map.addSource() at line 95, matching the boundaries source value exactly'
+  working_tree: clean
+  assessment: >
+    The actual code work for the in-scope AC (AC-1) is DONE, CORRECT, and matches the grilled plan
+    byte-for-byte (one line, exact "STUSPS" string, no scope creep into the debug logs or boundaries
+    source, branch pushed). The halt is a TELEMETRY/SELF-REPORT failure at the gate, not a code
+    failure. AC-3 (live visual) was never reached — it would only have run at QA, which the halt
+    pre-empted.
+
+scores:
+  task_confidence: 60
+  factory_fitness: 58
+
+deductions:
+  # task_confidence (start 100 -> 60)
+  - points: 18
+    reason: >
+      task_confidence: the run HALTED short of terminal READY_TO_SHIP. No Review, no Fix loop, no QA,
+      no ShipPrep/MR. AC-1's code is on a pushed branch but unreviewed and un-QA'd by the factory; the
+      ticket is not deployable as the factory left it (a human must finish review + QA + MR or
+      re-dispatch).
+  - points: 12
+    reason: >
+      task_confidence: AC-3 (live state-tier regression, US NY + CA ON via ui-probe) was never
+      executed — QA never ran. Even accepting the Q3 pre-upload baseline, zero screenshots were
+      captured, so AC-3 has no evidence at all (not even visual_pending proof). 1 of 2 in-scope ACs
+      has no factory-produced proof.
+  - points: 6
+    reason: >
+      task_confidence: AC-2 (the minimal-schema tileset regen) is explicitly out of this pass and
+      still entirely unbuilt; the ticket as a whole (5 ACs) is far from Done. The deliberate frontend
+      split is sound, but the ticket cannot close until the queued scripting pass + Gabriel's manual
+      Mapbox upload land. This run advanced only the smallest slice.
+  - points: 4
+    reason: >
+      task_confidence: AC-0's recommended confirmation comment (from the 2026-06-10 spec gate, 91/100)
+      still appears unposted on the Jira ticket — the human-decision gate was satisfied via the
+      resume decisions fed to the concierge, but the public audit trail the spec gate asked for was
+      not created.
+  # factory_fitness (start 100 -> 58)
+  - points: 22
+    reason: >
+      factory_fitness: the gate halted a run whose implementation was CORRECT and whose exemption was
+      pre-justified by TWO upstream phases. design (impl-plan.md:40,48) and grill (grill-report.md
+      A3/A4) both spelled out exempt:not_applicable verbatim with evidence, yet the implement agent
+      failed to serialize that into a well-formed ac_tdd entry the gate accepts. The factory threw
+      away correct work over a self-report SHAPE mismatch — the single biggest fitness loss: the
+      decision the gate needed was already made and written down two phases earlier, but never reached
+      the gate.
+  - points: 12
+    reason: >
+      factory_fitness: tdd_violations is in the halt object but was NOT surfaced into this retro's
+      input prompt (the prompt carried only warn_mode_violations:[], which is empty by definition in
+      halt mode and so reads falsely reassuring). Retro had to read workflow.js + the on-disk diff to
+      learn WHY the gate fired and that the code was actually fine. The halt should hand the retro the
+      exact tdd_violations list.
+  - points: 5
+    reason: >
+      factory_fitness: RECURRENCE. This is the second HALT_TDD_GATE in the telemetry
+      (run-2026-06-11-KTP-677-tdd-gate, 72/78). The gate keeps catching the implement agent failing to
+      emit a valid ac_tdd/exempt ledger even when the design correctly declares the exemption — a
+      persistent contract-4 (implement) handoff defect, not a one-off.
+  - points: 3
+    reason: >
+      factory_fitness: no bounded retry of the Implement agent's self-report before halting. A pure
+      no-unit-surface ledger (emit the two exempt entries the plan already authored) is mechanically
+      trivial to regenerate; one targeted "re-emit ac_tdd with well-formed exempt strings" retry would
+      very likely have converted this halt into a normal advance to Review.
+
+red_flags:
+  - "HALT_TDD_GATE on a run whose actual code change is correct, minimal, matches the grilled plan exactly, and is already committed + pushed (85730fc). The factory blocked on a self-report shape mismatch, not on bad code."
+  - "design and grill BOTH explicitly justified exempt:not_applicable for AC-1 (source-config option) and AC-3 (rendered-UI), with evidence (impl-plan.md:40,48; grill-report.md A3/A4) — yet the implement phase did not produce an ac_tdd ledger the gate accepts. The exemption decision was made twice upstream and lost at serialization."
+  - "The retro input prompt carried only warn_mode_violations:[] (always empty in halt mode), which reads as 'all clean' and hides the real cause. The actual tdd_violations array (the reason for the halt) was not handed to retro — it had to be reverse-engineered from workflow.js + the disk diff."
+  - "Second HALT_TDD_GATE in the run history (KTP-677 was the first, 72/78). The implement agent's ac_tdd/exempt emission is a repeat weak point."
+  - "AC-3 produced zero evidence: QA never ran, so even the Q3-accepted pre-upload baseline screenshot (the one thing AC-3 needed this pass) was never captured. A late-pipeline halt silently drops the one cheap proof that was in scope."
+  - "ac_tdd ledger files were expected at <ticket>/tdd/AC-<N>.md per contract 4 (workflow.js:463), but the tdd/ folder is empty — consistent with the implement agent never writing the ledger that would have populated a valid (even if exempt) ac_tdd array."
+  - "AC-0's spec-gate-recommended confirmation comment still appears unposted to Jira; the human-decision gate was cleared via in-run resume decisions only, leaving no public audit trail."
+
+improvements:
+  - title: "Carry exempt declarations from design/grill into the implement agent's ac_tdd contract"
+    detail: >
+      The exemption was correctly decided in contract 2 (design impl-plan.md:40,48) and re-affirmed in
+      contract 3 (grill A3/A4), then dropped. Contract 4 (4-implement.md) should instruct the implement
+      agent to READ the design's per-AC test-mapping and, for any AC the plan marked
+      exempt:not_applicable / infra_blocked, emit the corresponding ac_tdd entry with the well-formed
+      exempt string (the regex /^(not_applicable|infra_blocked)\(.+\)$/ — the "(<why>)" parenthetical
+      is mandatory). The agent must not have to re-derive an exemption two phases already justified.
+
+  - title: "Hand the retro the actual tdd_violations, not just warn_mode_violations"
+    detail: >
+      In dark-factory.workflow.js the retro-dispatch prompt should include the halt object's
+      tdd_violations array (the concrete reasons the gate fired) whenever terminal_status is
+      HALT_TDD_GATE. Today retro only receives warn_mode_violations, which is empty by construction in
+      halt mode and actively misleads ("must be empty for a trustworthy run" -> it IS empty -> looks
+      fine, while the run actually halted). Without the violations list the retro cannot tell a
+      genuine missing-RED from a malformed-exempt-string from an omitted-AC.
+
+  - title: "Retry the implement self-report once on a pure-shape TDD violation before halting"
+    detail: >
+      When tddViolations() returns ONLY shape errors (malformed exempt string, or an AC done-without-
+      ledger whose design marked it not_applicable) and there is NO missing-RED-for-real-logic, bounce
+      back to the implement agent once with the specific violations and "re-emit ac_tdd; do not change
+      code" — same bounded-retry principle as the fix loop. A no-unit-surface ledger is trivially
+      regenerable; a one-shot retry likely converts this halt into a normal advance. Keep the hard
+      halt for genuine missing RED on logic ACs.
+
+  - title: "Capture the in-scope cheap proof before a late halt drops it (AC-3 baseline)"
+    detail: >
+      AC-3's only in-scope deliverable this pass was the Q3-accepted pre-upload baseline screenshot
+      (US NY + CA ON). The TDD halt fired at Implement and pre-empted QA, so that proof was never
+      taken. Consider letting a TDD shape-only halt still run the cheap visual_pending baseline
+      capture (or attach a note that the baseline is owed) so a late-stage halt does not silently
+      forfeit evidence that was already approved and one ui-probe call away.
+
+  - title: "Finish KTP-784's frontend pass from the existing pushed branch — do not rebuild"
+    detail: >
+      The code is done and correct on KTP-784-state-centers-promoteid (85730fc, pushed). Re-dispatch
+      should RESUME, not restart: regenerate the ac_tdd ledger (both ACs exempt:not_applicable with
+      the parenthetical why), let it clear the gate, then run Review -> QA (capture the Q3 pre-upload
+      AC-3 baseline, mark visual_pending, do NOT HALT_PRESHIP) -> ShipPrep (version bump + CHANGELOG;
+      frontend CI pushes no git tag) -> MR. Then queue the AC-2 scripting pass. Also post the AC-0
+      confirmation comment via /post-comment to close the spec-gate audit gap.
+
+summary: >
+  KTP-784's frontend pass cleared the front gate (the 2026-06-11 pre-concierge dead-run is fixed) and
+  produced the CORRECT one-line change — promoteId:"STUSPS" on the state centers source, committed and
+  pushed on KTP-784-state-centers-promoteid (85730fc) — but halted at the TDD gate because the
+  implement agent did not serialize the exempt:not_applicable ledger that design and grill had already
+  justified for both source-config AC-1 and rendered-UI AC-3. task_confidence 60 (code is right but
+  unreviewed/un-QA'd, AC-3 has no proof, AC-2 unbuilt), factory_fitness 58 (the factory discarded
+  correct work over a self-report shape mismatch, and the retro was handed only the empty
+  warn_mode_violations instead of the real tdd_violations). Fix: carry design's exempt declarations
+  into contract 4's ac_tdd, hand retro the real violations, retry shape-only TDD failures once, and
+  RESUME this branch through Review/QA/MR rather than rebuilding.

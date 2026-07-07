@@ -1,0 +1,186 @@
+run_id: run-2026-06-11-KTP-725
+ticket: KTP-725
+title: >
+  Remove dead /geography/* endpoints and the mock_data_conversions dependency in app-proximity-report.
+  Pure backend dead-code deletion (java belt): 4 dead /api/v1/geography/* endpoints + GeographyDao +
+  GeographyService + orphaned CitiesResponse DTO, discovered during KTP-682. 5 Given/When/Then logic
+  ACs, 1 SP, Q2 Sprint 6, no epic. Leo spec gate READY 93/100.
+date: 2026-06-11
+terminal_status: READY_TO_SHIP
+ticket_folder: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/KTP/no-epic/KTP-725
+session: >
+  Unresolved cleanly — sessions/active/state.yaml has an empty session_id. Most-recently-active
+  session on disk is deft-falcon-2 (Measurement Map feedback-to-spec, 2026-06-11T19:13Z); the
+  dark-factory run that produced KTP-725 is not unambiguously attributable to it. Per the precedent
+  set by the 2026-06-11 sibling retros (KTP-677/704/784/791/792), the improvement handoff was written
+  to the shared sessions/active/prompts/ folder where those siblings live.
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: true
+  note: >
+    Gate ran in the default HALT mode with zero warn-mode violations, and unlike the 2026-06-11
+    Concierge-halt batch this signal is NOT vacuous: a real RED->GREEN sequence was executed and the
+    evidence is on disk. red-ac1.out shows removedGeographyStatesEndpoint_returns404 failing
+    "Status expected:<404> but was:<200>" against pre-deletion code (a genuine assertion RED, not a
+    compile error), then geography-tests.out shows the same ProximityReportControllerTest at 19/19
+    GREEN post-deletion, and full-suite-java21.out shows 485 tests / 0 failures BUILD SUCCESS. The
+    un-skippable gate did its job on a deletion ticket whose "new behavior" is route-absence (404)
+    and symbol-absence (grep == 0).
+
+per_phase:
+  - phase: concierge
+    status: PASS
+    confidence: 93
+  - phase: design
+    status: pass
+    confidence: 90
+  - phase: grill
+    status: pass
+    confidence: 93
+  - phase: implement
+    status: pass
+    confidence: 88
+  - phase: review
+    status: "criticals:0"
+    confidence: 92
+  - phase: qa
+    status: ALL_PASS
+    confidence: 93
+  - phase: ship-prep
+    status: pass
+    confidence: 90
+
+per_phase_note: >
+  Full seven-phase trace, every phase PASS, soft confidences 88-93 (mean ~91, min 88 at implement).
+  This is the cleanest dark-factory run in the recent ledger: it stands in sharp contrast to the
+  seven HALT_AGENT_SKIPPED Concierge-null halts logged earlier the same day (KTP-677/695/704/739/
+  784/791/792), which had empty traces and unresolved folders. KTP-725 produced real per-AC QA
+  artifacts (analyst/, design/impl-plan.md, design/grill-report.md, qa/red-ac1..3.out,
+  qa/geography-tests.out, qa/full-suite*.out, qa/ac5-grep.out) and a resolved ticket folder.
+
+evidence_on_disk:
+  red_proofs:
+    - "qa/red-ac1.out — removedGeographyStatesEndpoint_returns404 FAILS expected:<404> but was:<200> (real assertion RED, pre-deletion)"
+    - "qa/red-ac2.out, qa/red-ac3.out — analogous RED for cities / zip-centers / city-centers routes"
+  green_proofs:
+    - "qa/geography-tests.out — ProximityReportControllerTest 19/19 pass, BUILD SUCCESS (post-deletion)"
+    - "qa/full-suite-java21.out — 485 tests, 0 failures/errors, BUILD SUCCESS (JDK17 full module suite)"
+  ac5_symbol_absence:
+    - "qa/ac5-grep.out — GeographyDao/GeographyService/getStatesByCountry/getCitiesByState/CitiesResponse = 0 hits in src/main"
+  over_deletion_guard:
+    - "qa/ac5-grep.out anti-regression block — MapStateGeographyData/MapCountyGeographyData/MapZipGeographyData = 5 hits each, StatesResponse = 4 hits (live map code survived)"
+  jdk_gotcha_confirmed_live:
+    - "qa/full-suite.out — JDK21 run shows Errors on MapDataControllerTest CanadianRegionTests + ChannelNormalization (the exact Lombok/JDK21 TypeTag failure the design/grill flagged); the run correctly re-ran the suite on JDK17 to reach BUILD SUCCESS"
+
+scores:
+  task_confidence: 90
+  factory_fitness: 88
+
+deductions:
+  # ---- task_confidence (start 100 -> 90) ----
+  - points: 4
+    reason: >
+      task_confidence: this is a READY_TO_SHIP, not a SHIPPED, terminal state. The workflow pushed the
+      branch; the MR + Jira comment + post-merge dev validation are still owned by the main loop / a
+      human and have not occurred. The deletion's only runtime exposure (route now 404 on the deployed
+      service) is unverified on dev — execute-verify was expected to be infra_blocked locally (no
+      BigQuery creds), so there is no on-dev proof the endpoints actually 404 in the running service,
+      only the @WebMvcTest 404 + green compile. For a pure-deletion ticket this residual risk is small
+      but non-zero.
+  - points: 3
+    reason: >
+      task_confidence: implement phase soft confidence was 88 (the run's lowest). The over-deletion
+      damage vector (never delete StatesResponse / Map*GeographyData / MapDataService / exception.
+      ErrorResponse) is the single correctness risk; the anti-regression grep passed, but the margin
+      between "correct minimal deletion" and "collateral map-code damage" is exactly where an 88 lands.
+  - points: 3
+    reason: >
+      task_confidence: a known follow-up was created and left open by scope, not closed. model/response/
+      ErrorResponse.java drops to ZERO references after this ticket (the controller's dead import was
+      removed, but the now-orphaned class was conservatively kept as out-of-named-AC-scope). That is the
+      correct call, but it leaves dead code in the repo and the follow-up observation must be surfaced
+      to Gabriel / a new ticket or it silently rots. Per the "deferred AC is an open question" rule a
+      disk-only observation isn't enough.
+  # ---- factory_fitness (start 100 -> 88) ----
+  - points: 5
+    reason: >
+      factory_fitness: TDD-ledger location drift. The design plan explicitly instructed the RED proofs
+      to be captured into <ticket_folder>/tdd/AC-1.md..AC-3.md as the TDD ledger. The tdd/ directory
+      exists but is EMPTY; the RED/GREEN evidence landed in qa/*.out instead. The proof is present and
+      sound, so this is cosmetic, but it means the ledger the gate/retro expects to read is not where
+      the contract said it would be, and a future automated TDD-gate check keyed on tdd/AC-*.md would
+      find nothing.
+  - points: 4
+    reason: >
+      factory_fitness: misleading artifact name. qa/full-suite-java21.out actually contains the JDK17
+      BUILD SUCCESS run (485 tests green), while qa/full-suite.out contains the JDK21 FAILURE run. The
+      filenames are inverted relative to their contents, which would mislead any reader (human or agent)
+      auditing the proof set and could be mistaken for "the JDK21 run passed."
+  - points: 3
+    reason: >
+      factory_fitness: the JDK17 hard requirement was honored only after a JDK21 false-failure was first
+      produced (full-suite.out errors). The design and grill both flagged JDK17 as a hard gate up front,
+      yet the build station still ran at least one suite under the box-default JDK21 before switching.
+      The belt's build/test sockets should pin JAVA_HOME to temurin-17 mechanically so the wasted JDK21
+      run never happens.
+
+red_flags:
+  - "tdd/ ledger directory is EMPTY despite the design plan explicitly calling for tdd/AC-1.md..AC-3.md; the RED proofs live in qa/red-ac1..3.out instead — proof exists but not where the contract/gate expects to read it."
+  - "qa/full-suite-java21.out and qa/full-suite.out are inverted: the *-java21 file holds the JDK17 BUILD SUCCESS run, the plain file holds the JDK21 FAILURE run. Filename does not match content."
+  - "A JDK21 full-suite run (full-suite.out) was executed and false-failed on MapDataControllerTest (CanadianRegionTests + ChannelNormalization) before the JDK17 success run — the JDK17 pin was reactive, not enforced up front, even though design+grill flagged it as a hard gate."
+  - "model/response/ErrorResponse.java is left at ZERO references after this ticket (dead class) by deliberate scope choice; correct call, but the follow-up observation is disk-only (design/impl-plan.md, grill-report.md) and not yet surfaced to Gabriel or a new ticket."
+  - "Terminal state is READY_TO_SHIP, not shipped: no on-dev verification that /api/v1/geography/* actually returns 404 in the running service (execute-verify expected infra_blocked locally); the only 404 proof is @WebMvcTest."
+  - "Active session unresolvable (sessions/active/state.yaml session_id empty) — handoff attribution falls back to the shared prompts/ folder, same gap the 2026-06-11 sibling retros hit."
+
+improvements:
+  - title: "Write the TDD ledger to tdd/AC-N.md, not just qa/*.out"
+    detail: >
+      The java belt (or contract 4/implement) captured RED proofs as raw qa/red-ac1..3.out but left the
+      tdd/ directory the design plan named EMPTY. Make the build station write the failing-then-passing
+      proof for each AC into <ticket_folder>/tdd/AC-<N>.md (RED command + output snippet, then GREEN
+      command + output snippet), which is the canonical location the TDD gate and this retro look for.
+      Keep the raw .out files in qa/ as backing evidence, but the ledger is the contract artifact.
+  - title: "Name QA suite artifacts by the JDK/config they actually ran under, asserted from content"
+    detail: >
+      full-suite-java21.out contained the JDK17 success and full-suite.out the JDK21 failure — inverted.
+      Have the test socket name the file from the JAVA_HOME it actually used (e.g. full-suite-jdk17.out)
+      and write the resolved java -version as the first line of every suite .out, so the filename can
+      never lie about its contents.
+  - title: "Pin JAVA_HOME=temurin-17 mechanically in the java belt build/test sockets"
+    detail: >
+      A JDK21 full-suite run was executed and false-failed (Lombok TypeTag on MapDataControllerTest)
+      before the JDK17 run. The repo CLAUDE.md, design plan, and grill all flagged JDK17 as a hard gate.
+      The java belt should export JAVA_HOME to the temurin-17 path for every mvn invocation (compile,
+      test, run) rather than relying on the agent to remember, eliminating the wasted JDK21 cycle and
+      the risk of a JDK21 false-FAIL being mistaken for a real test failure.
+  - title: "Surface zero-reference-after-deletion classes as an explicit follow-up, not a disk-only note"
+    detail: >
+      model/response/ErrorResponse.java is now dead code (0 refs) by a correct conservative scope call.
+      Ship-prep / retro should emit such "orphaned by this ticket, deliberately out of scope" findings
+      to GABRIEL_INBOX.md (or auto-draft a 1 SP cleanup ticket) so the observation that currently lives
+      only in design/impl-plan.md and grill-report.md does not silently rot. Per the deferred-AC rule, a
+      disk-only parking note isn't enough.
+  - title: "Record an explicit ship-prep deploy-verification note for pure-deletion tickets"
+    detail: >
+      For deletion tickets whose runtime proof is @WebMvcTest 404 (local execute-verify infra_blocked),
+      ship-prep should write a one-line post-merge check ("after dev deploy, GET /api/v1/geography/states
+      must return 404") into the ship-prep output so the main-loop / human validation step has a concrete
+      on-dev assertion rather than re-deriving it. Closes the gap between @WebMvcTest 404 and on-dev 404.
+  - title: "Capture/resolve the active session for the improvement handoff"
+    detail: >
+      sessions/active/state.yaml session_id was empty again, so the handoff fell back to the shared
+      prompts/ folder (as the KTP-677/704/784/791/792 retros did). The factory should resolve and stamp
+      the originating session on each run so the retro handoff lands in that session's own prompts/ and
+      attribution is unambiguous. Recurring across every 2026-06-11 retro.
+
+summary: >
+  Cleanest dark-factory run in the recent ledger: a 1 SP pure-deletion ticket carried cleanly through
+  all seven phases (all PASS, soft confidence 88-93) to READY_TO_SHIP, with genuine on-disk RED->GREEN
+  evidence (real 404-assertion RED pre-deletion, 19/19 controller + 485-test full-suite GREEN
+  post-deletion on JDK17, AC-5 symbol-absence + over-deletion anti-regression greps). task_confidence
+  90 (residual: READY_TO_SHIP not shipped, no on-dev 404 proof, a deliberately-orphaned ErrorResponse
+  class left as disk-only follow-up). factory_fitness 88 (TDD ledger written to qa/ not tdd/, inverted
+  JDK17/JDK21 artifact filenames, and a wasted JDK21 false-fail run before the JDK17 pin). Top next-run
+  fix: pin JAVA_HOME=temurin-17 in the java belt sockets and write the TDD ledger to tdd/AC-N.md.

@@ -10,7 +10,10 @@ When more than one Chrome is connected to the MCP, you get forced into a `switch
 1. `tabs_context_mcp` first — it lists connected browsers and tabs. This is mandatory anyway.
 2. If exactly one browser: proceed.
 3. If multiple: pick the one that already has the Klever portal tab open (the user's working window), select it once, and **stay on it**. Don't re-select per action.
-4. If the right tab isn't open, ask the user to open/focus it rather than creating a fresh tab — a fresh tab in the MCP tab group may not share the authenticated session the user is looking at.
+4. If the right tab isn't open, what you do depends on mode (see SKILL.md step 1.4):
+   - **Human in the loop:** ask them to open/focus it. Don't create a tab — you'd clobber their navigation, and their tab is known-good.
+   - **Unattended:** `tabs_create_mcp` + `navigate` to the URL yourself. Cookies are profile-scoped, so a fresh tab inherits the profile's live IAP+Auth0 session and loads authenticated.
+   - Either way: a fresh tab does **not** manufacture auth. Expired session or dev nightly-off → the tab lands on the wall → `CANT-TEST(auth-wall)`. The old "a fresh tab won't share the session" framing was imprecise: it shares cookies fine; what it can't do is revive an expired session.
 
 ## Auth inheritance can still be stale
 

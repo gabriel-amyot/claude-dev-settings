@@ -1,0 +1,144 @@
+run_id: run-2026-06-09-KTP-762
+ticket: KTP-762
+title: >
+  Data Pipeline: Enable TTD Inventory Report pull into BQ — make the existing PROD TTD inventory
+  table (ttd_normalized_daily_inventory_performance, 316M rows) reachable by proximity-report in DEV
+  via one of two unresolved paths (cross-project IAM read of PROD, OR a DEV backfill job), with SITE
+  UUIDs matching Goldfish format and advertiser/campaign context queryable by a known Klever TTD
+  advertiser.
+date: 2026-06-09
+terminal_status: BLOCKED_SPEC_QUALITY
+session: crisp-stork
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: true
+  note: >
+    Gate ran in default halt mode with zero warn-mode violations. The run never reached the TDD
+    phase: it halted at the concierge front gate (BLOCKED_SPEC_QUALITY), so there is no
+    implementation, no RED->GREEN sequence to evaluate, and no opportunity for a vacuous-RED trick.
+    The halt-mode + empty-violations signal here is structurally trustworthy precisely because no
+    code phase executed.
+
+per_phase:
+  - phase: concierge
+    status: FAIL
+    confidence: 82
+    note: >
+      Correct, high-confidence stop. The concierge did live verification (bq queries + grep on a
+      0-behind origin/dev checkout) and confirmed the data premise is real: PROD table is populated
+      (316,177,073 rows, 2023-01-01..2026-06-08) and fresh, the DEV table proximity-report's
+      application-dev.properties points at (prj-d-biz-report-im9q1fvvc7) is EMPTY (0 rows), and the
+      required columns (ADVERTISER_ID, CAMPAIGN_ID, DATE, IMPRESSIONS, CLICKS, SPEND_USD, SITE,
+      SUPPLY_VENDOR) all exist (90-col schema). All 3 ACs are well-formed Given/When/Then and
+      individually testable, but each is GATED on an unresolved human/infra decision: Q1 (access
+      path: cross-project IAM grant to read PROD vs a DEV backfill job, owner repo unspecified), Q2
+      (governance approval to feed PROD biz-report data into a measurement feature), and Q3 (the
+      TTD-advertiser-id -> Klever-advertiser-id mapping, which comes from Salesforce and is not
+      self-serve). Q1 is a greenfield IAM choice on a shared PROD project — exactly the class
+      CLAUDE.md flags as human-gated. The concierge correctly refused to guess past it. Confidence
+      82 (not lower) because the analyst work is thorough and the gate reason is crisp; it is a
+      decision-blocked spec, not an ambiguous one.
+
+scores:
+  task_confidence: 22
+  factory_fitness: 90
+
+deductions:
+  # task_confidence (start 100 -> 22)
+  - points: 60
+    reason: >
+      task_confidence: the run terminated BLOCKED_SPEC_QUALITY at the front gate. Nothing was built,
+      tested, reviewed, or deployed. Zero of the 3 ACs can be proven in this run. This is the
+      dominant deduction — the TASK is not done and is not deployable as-handed.
+  - points: 10
+    reason: >
+      task_confidence: AC-1 is blocked on an unmade infra/IAM decision (Q1) AND a governance call
+      (Q2). Both are human gates with no autonomous path. The downstream ACs (AC-2 SITE UUIDs, AC-3
+      advertiser/campaign context) cascade-block on AC-1's readability, so the whole chain is stuck.
+  - points: 8
+    reason: >
+      task_confidence: AC-3's "query by a known Klever TTD advertiser" clause requires the
+      TTD->Klever advertiser-id mapping (Q3), which is sourced from Salesforce and is not available
+      locally per project memory. Even if the access path were resolved, AC-3 could not be fully
+      exercised without this mapping.
+  # factory_fitness (start 100 -> 90)
+  - points: 6
+    reason: >
+      factory_fitness: this is the kind of decision-gated infra/data-access ticket that, ideally,
+      would be caught and parked BEFORE a dark-factory run is even dispatched (its own analyst
+      classification says "NOT a self-contained code change"). The factory spent a concierge cycle
+      live-verifying BQ to confirm what the ticket's own Open Questions already declared. Worthwhile
+      diligence, but a triage filter ("ticket has unresolved Open Questions that gate every AC ->
+      route to a human-decision queue, not the code factory") would have saved the cycle. Cheap
+      points: the concierge did its job well; the gap is upstream routing.
+  - points: 3
+    reason: >
+      factory_fitness: the three blocking open questions (Q1 access path, Q2 governance, Q3
+      advertiser mapping) are correctly identified on disk in analyst/ac-list.json and
+      assumptions.json, but per the CLAUDE.md "A Deferred AC Is an Open Question" SOP, a
+      decision-gated halt should auto-emit a Jira comment on KTP-762 tagging the PO/tech-lead with
+      Q1/Q2/Q3 so the humans who own those decisions actually see them. The concierge halt did not
+      (this contract does not require it, and the analyst parked them disk-only). Disk-only parking
+      is the named failure mode in that SOP.
+  - points: 1
+    reason: >
+      factory_fitness: the active session (crisp-stork) is scoped to a DIFFERENT intent (proximity-
+      explorer PR port study), so this KTP-762 retro is being written into a session that does not
+      own the ticket. The handoff lands in crisp-stork/prompts/ per the contract's session-resolution
+      rule, but the session<->ticket mismatch is a small bookkeeping smell worth noting.
+
+red_flags:
+  - "BLOCKED_SPEC_QUALITY at the concierge front gate: all 3 ACs are gated on unresolved human/infra decisions (Q1 access path, Q2 governance, Q3 Salesforce advertiser mapping). No code phase ran."
+  - "The ticket's own analyst classification calls it 'data-access / infra-decision (NOT a self-contained code change)' — a strong signal it should have been triaged to a human-decision queue rather than dispatched to the code factory at all."
+  - "Q1 is a cross-project IAM read grant on a shared PROD project (prj-p-biz-report-fo53kywlio) — a human-gated change class per CLAUDE.md. The concierge correctly refused to choose between the IAM-grant path and the DEV-backfill path."
+  - "The three blocking open questions are parked disk-only (analyst/ac-list.json + assumptions.json) with no Jira comment tagging the decision owners — the exact 'needs PO input lives only on disk' failure mode named in the deferred-AC SOP."
+  - "Recurring shape: KTP-699 (2026-06-02 task_conf 18, 2026-06-03 task_conf 30) and now KTP-762 are both BLOCKED_SPEC_QUALITY infra/data-access tickets that consumed a concierge cycle to confirm a halt the ticket's own Open Questions already implied."
+
+improvements:
+  - title: "Add a pre-dispatch triage filter for decision-gated tickets"
+    detail: >
+      Before a ticket enters the dark-factory line, check whether it has an unresolved 'Open
+      Questions' section in Jira where the questions gate EVERY AC (as KTP-762's Q1/Q2/Q3 do, and as
+      KTP-699 did). If so, route it to a human-decision queue / GABRIEL_INBOX rather than spending a
+      concierge cycle. The analyst's own deliverable_classification field already flags
+      "NOT a self-contained code change" — wire that classification into a gate that short-circuits
+      dispatch. This is the same shape as the two KTP-699 BLOCKED_SPEC_QUALITY runs; promote it from
+      a per-run red flag to a tracked routing improvement.
+  - title: "On BLOCKED_SPEC_QUALITY, auto-emit a Jira comment tagging the decision owners"
+    detail: >
+      When the concierge halts because open questions gate the ACs, the factory should (per the
+      CLAUDE.md 'A Deferred AC Is an Open Question' SOP) auto-draft a Jira comment on the ticket via
+      /post-comment listing the blocking questions (here Q1 access path, Q2 governance, Q3
+      advertiser mapping) and tagging the PO/tech-lead, plus add an 'Open Questions / Deferred ACs'
+      line. Right now the questions live only in analyst/ac-list.json and assumptions.json on disk —
+      the humans who own Q1/Q2/Q3 never see them. Disk-only parking is the named failure mode.
+  - title: "Separate the access-path decision (Q1) into an explicit two-option proposal artifact"
+    detail: >
+      KTP-762's real blocker is a binary infra choice: (a) cross-project IAM read of the populated
+      PROD table + a proximity-report dev-profile config change, vs (b) a DEV backfill job (likely
+      Dataform/data-pipeline, NOT proximity-report). The factory has already verified both sides of
+      the gap (PROD populated, DEV empty, config points at DEV). It should write a short decision
+      memo to the ticket reports/ enumerating both paths with their owners, cost, and governance
+      implication, so the human decision is one click rather than a re-investigation. Turns a halt
+      into a teed-up decision.
+  - title: "Carry the live-verified facts forward so a re-run does not re-query BQ"
+    detail: >
+      The concierge live-verified row counts, freshness, schema, and the dev/prod config split (all
+      in assumptions.json with bq/grep sources and a 2026-06-09 date). When Q1/Q2/Q3 resolve and the
+      ticket re-enters the line, the re-run should consume those verified_facts as a cache (with a
+      freshness check on the date) instead of repeating the BQ queries. Small efficiency win for the
+      inevitable re-dispatch.
+
+summary: >
+  KTP-762 (enable TTD inventory pull into BQ) was correctly BLOCKED_SPEC_QUALITY at the concierge
+  front gate: task_confidence 22 / factory_fitness 90. All 3 ACs are well-formed and live-verified at
+  the data layer (PROD table 316M rows and populated, DEV table empty, all required columns present),
+  but every AC is gated on three unresolved human/infra decisions — Q1 the access path (cross-project
+  IAM read of PROD vs a DEV backfill), Q2 governance approval, and Q3 the Salesforce-sourced
+  TTD->Klever advertiser-id mapping. The factory performed well (high fitness): it did real BQ/grep
+  verification on a 0-behind checkout and refused to guess past a human-gated IAM choice. The two
+  improvements that would have helped most are upstream of the concierge: a pre-dispatch triage filter
+  that diverts decision-gated tickets (the analyst already classifies this as "NOT a self-contained
+  code change") and an auto-Jira-comment on halt so Q1/Q2/Q3 reach the humans who own them instead of
+  sitting disk-only.

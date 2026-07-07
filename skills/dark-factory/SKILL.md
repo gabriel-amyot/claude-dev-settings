@@ -1,11 +1,11 @@
 ---
 name: dark-factory
-version: "0.9.2"
-description: "The ticket-to-dev factory for a SINGLE ticket, orchestrated by the Workflow tool instead of prose. Gates are code (un-skippable), with a human concierge gate at the front. The concierge proposes a tool belt from the crib (java, scripting, or frontend); the build + tester sockets are equipped from that belt, so the same line handles multiple work-types without duplication. Review + bounded fix loop + QA. The workflow does code work and pushes the branch (terminal state READY_TO_SHIP); the main loop creates the MR + Jira comment and runs post-merge validate. For multi-ticket / epic DAGs use Sprint Factory (/sprint-factory). Triggers on: '/dark-factory', 'dark factory', 'ticket to dev', 'run this ticket'. Klever."
+version: "0.9.5"
+description: "The ticket-to-dev factory for a SINGLE ticket, orchestrated by the Workflow tool instead of prose. Gates are code (un-skippable), with a human concierge gate at the front. The concierge proposes a tool belt from the crib (java, scripting, frontend, or terraform-dac-infra); the build + tester sockets are equipped from that belt, so the same line handles multiple work-types without duplication. Review + bounded fix loop + QA. The workflow does code work and pushes the branch (terminal state READY_TO_SHIP); the main loop creates the MR + Jira comment and runs post-merge validate. For multi-ticket / epic DAGs use Sprint Factory (/sprint-factory). Triggers on: '/dark-factory', 'dark factory', 'ticket to dev', 'run this ticket'. Klever."
 user_invocable: true
 nav:
   bay: build
-  when: "Run a Java-service, scripting/side-effect, OR frontend (Next.js/React UI) Klever ticket through the v2 (workflow-orchestrated) factory. Code gates, front human gate, tool belt per work-type."
+  when: "Run a Java-service, scripting/side-effect, frontend (Next.js/React UI), OR terraform/DAC infra Klever ticket through the v2 (workflow-orchestrated) factory. Code gates, front human gate, tool belt per work-type."
   when_not: "SQL tickets (no belt racked yet - rack one in toolcrib/ first). Multi-ticket epics (use /sprint-factory). Overnight per-AC autonomous (use sprint-crawl). Quick ship (use /autonomous-ticket-ship)."
   personas: [amelia, quinn, winston]
   org: [klever]
@@ -39,7 +39,9 @@ verified Workflow-API limits (skills aren't reliably callable inside an agent; n
 ## Instrumentation (auto-improve loop)
 
 Every phase returns a soft `confidence` (0-100) + `confidence_deductions` (signal, not a gate). A final
-**Retro** phase runs on every terminal outcome (success or halt): it scores the run twice out of 100
+**Retro** phase runs on every scored terminal outcome — success or halt, but NOT pauses
+(`AWAITING_HUMAN`), concierge-only reviews, or headless gate exits (`GATE_REQUIRED`), where no code
+work happened. It scores the run twice out of 100
 (`task_confidence` = is the task done; `factory_fitness` = did the factory perform well), accounts for
 every lost point, lists red flags, and **writes telemetry (`runs/`) + a next-run improvement handoff**.
 So each run makes the next better. Future (roadmap): low scores trigger retry / divergent strategy /
@@ -51,8 +53,9 @@ The line (the "blueprint" / workflow spine) is single. Only two sockets are work
 **build station** (Implement) and the **tester station** (execution-verify + QA). The **concierge
 proposes a tool belt** from the crib; the build/tester steps equip it. Racked belts:
 `java` (running Java/Spring service), `scripting` (a script whose value is its output/side-effect —
-make tiles, populate BQ, transform data, change state), and `frontend` (a rendered Next.js/React UI
-change — component, Mapbox GL layer, page/route, control). Unknown work-type → honest
+make tiles, populate BQ, transform data, change state), `frontend` (a rendered Next.js/React UI
+change — component, Mapbox GL layer, page/route, control), and `terraform-dac-infra` (DAC/terraform
+infra change — dev-only, no local apply, live-resource QA via gcloud/bq). Unknown work-type → honest
 `BLOCKED_UNSUPPORTED_FLOOR` halt (rack a belt first). Rule (ADR-002): a belt swaps **tools only**; a
 work-type needing different room *logic* is a rare new floor, not a belt. Refining-phase ideas
 (dispatcher, spec/architect personas in the loop) are parked in `docs/second-floor-refining-notes.md`.
@@ -81,6 +84,23 @@ work-type needing different room *logic* is a rare new floor, not a belt. Refini
      front gate and stop — no design, no code, zero trickle. For a sprint-wide review pass over many
      tickets: one uniform `CONCIERGE_ONLY_COMPLETE` per ticket, no resume prompts, no Retro. Loop it over
      the ticket list (each invocation is independent).
+   - **Headless (0.9.4, hardened 0.9.5 — gate-as-handoff):** add `"headless": true` when the caller is
+     an unattended run (autopilot) that can never `AskUserQuestion`. Any human-shaped stop at the front
+     gate — unanswered decisions OR `spec_quality: FAIL` — returns the clean terminal
+     **`GATE_REQUIRED`** (never the `AWAITING_HUMAN` pause) carrying `gate_kind`
+     (`decisions`|`spec_quality`), `decision_packet`, `gate_of` (`dark-factory:<TICKET>`),
+     `decision_file`, and `next_steps_for_caller`. The caller writes a `type: gate` ledger handoff
+     (sessions/schema.yaml v2.2) and exits; the human answers into the decision_file at pickup as
+     `{ id, question, answer }` entries (id + question copied verbatim); **re-entry is a FRESH run**
+     (resumeFromRunId is same-session only) **passing `decision_file` back in args** — code-pinning the
+     path so a differently-bucketed ticket folder cannot silently miss the answers. The concierge
+     consumes an entry ONLY when id AND question text match a question it would raise now (the
+     staleness guard against old answers silently answering new questions), and gets the file's
+     location from the pinned arg (or globs `tickets/**/<TICKET>/factory/decisions.yaml`). Gates are
+     ALWAYS human-only (today an instruction to triage, not a mechanical block). Headless buys a clean
+     gate-EXIT only: the autonomy ceiling (no auto-merge, In Review/Testing transition ceiling,
+     proof-gated posts) is unchanged, and all other `HALT_*`/`BLOCKED_*` terminals behave exactly as
+     in attended runs.
 3. **Handle the workflow's return `status`:**
    - `CONCIERGE_ONLY_COMPLETE` (dry-run) → the front gate ran and stopped. Record the findings
      (`spec_quality`, `ac_count`, `acs` [visual/logic + fixture], `repos`, `tool_belt`, `prereqs_ok`,
@@ -139,7 +159,43 @@ original prose-driven factory). When the original was reframed into **Sprint Fac
 conductor, `/sprint-factory`), v2 took the plain **dark-factory** name as the single-ticket factory.
 Historical design docs in `docs/` may still say "v2"; that means this skill.
 
+## Batch dispatch (circuit breaker)
+
+When looping this factory over many tickets (a sprint batch), **stop the batch after the first
+`HALT_AGENT_SKIPPED`** and diagnose (read `skip_reason` + the stub trace) before dispatching the next
+ticket. The 2026-06-11 batch burned 7 runs on one systemic dispatch fault because nothing tripped.
+Concierge-only review passes are exempt (read-only, cheap).
+
+## Proof-gated external posts
+
+On terminal states that are "done but unproven" (`READY_FOR_VISUAL_QA` fallback): open the MR, but do
+NOT post a Jira status comment and do NOT transition the ticket. Park the drafted comment on disk;
+post ONE consolidated comment when real proof (verified visual/AC evidence) exists. Status-only
+updates are noise (Gab directive 2026-06-16, `feedback_no_external_status_updates_without_proof`).
+`READY_TO_SHIP` and a successful `NEEDS_VISUAL_VERIFY` render (screenshots = proof) post as usual.
+
 ## Status
+
+`0.9.4` — **headless mode / gate-as-handoff** (approved by Gab 2026-07-05, Phase 3 of the evolution
+roadmap pulled forward). `args.headless: true` converts an unanswered human gate into the clean
+terminal `GATE_REQUIRED` (gate_of + decision_file + caller steps) instead of the interactive
+`AWAITING_HUMAN` pause; the concierge consumes `<ticket_folder>/factory/decisions.yaml` before raising
+any question, making fresh-run re-entry idempotent (session ADR-004 v2.2 contract). Retro is skipped on
+gate exits (no code work to score). Autonomy ceiling unchanged.
+
+`0.9.3` — **self-evolve pass: observability + audit-trail items promoted from prose to code** (the
+retro loop kept re-proposing them; only schema/gate promotion sticks). (1) Review's
+`findings.json` path is now a **schema-required** return field (`findings_artifact`), QA spot-checks
+it on disk — three consecutive runs had returned criticals:0 with an empty `review/` folder. (2) Null
+first-agent returns get **one bounded retry** (Concierge is read-only) and every `HALT_AGENT_SKIPPED`
+now carries `skip_reason` + a stub trace entry — the 2026-06-11 batch (7 dead runs, task_conf 5) was
+undiagnosable for lack of exactly this. (3) QA returns a one-line `partial_cause` on any non-ALL_PASS,
+and triages typecheck/lint failures MINE vs PRE-EXISTING against the changed-file set. (4) The TDD
+ledger-repair retry writes a telemetry footprint (violations before/after → gate result). (5)
+Concierge step 1b: **pre-dispatch triage** consumes existing `*spec-gate*.md` verdicts (verdict <75 or
+unanswered "do not start" → needs_human routing to /post-comment; 3 dead dispatches in 8 days). (6)
+Proof-gated external posts + batch circuit breaker codified (sections above). (7) Registry sync:
+`terraform-dac-infra` belt (racked in the workflow since 2026-06-15) now listed everywhere.
 
 `0.9.2` — **multi-belt detection** (foundation for full-stack). The concierge now sets per-AC `repo` +
 `belt` in `acs`; ACs spanning >1 repo/belt are flagged "full-stack" in `summary`. In a concierge-only

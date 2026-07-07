@@ -11,6 +11,15 @@ Merges the old skill's Phase 1 (ANALYZE) and Phase 2 prerequisites/escalation in
 
 1. **Fetch the ticket.** `cd ~/.claude/skills/jira && python3 jira_skill.py get <TICKET> --full --org <ORG>`
    (substitute the org you were given). Read description, ACs, comments, linked issues.
+1b. **Consume existing spec-gate verdicts (0.9.3 pre-dispatch triage — 4 retros, 3 dead dispatches).**
+   Glob the ticket folder (and its sprint mirror if one exists) for `*spec-gate*.md` / prior Leo
+   reviews. If a spec-gate artifact exists with a verdict below ~75, or contains "do not start" /
+   "blocked pending" language whose blocking question is UNANSWERED in the live Jira comments, then:
+   set `needs_human: true` with an open_question that (a) quotes the gate's blocking question, (b)
+   recommends routing it to the PO via `/post-comment` as the unblock. Re-read the LIVE ticket first —
+   if the question was answered in Jira since the gate was written, the gate is stale: proceed and note
+   it in `summary`. A drafted-but-unposted PO question parked on disk is the known failure mode
+   (deferred-AC SOP); dispatching code work on top of it burns a full run.
 2. **Resolve the ticket folder** (absolute path) per `project-management/CLAUDE.md` placement rules:
    `<PM_ROOT>/tickets/<PREFIX>/<EPIC-or-no-epic>/<TICKET>/`. Create it if missing. Return it as
    `ticket_folder` (expanded absolute path, not `~`).

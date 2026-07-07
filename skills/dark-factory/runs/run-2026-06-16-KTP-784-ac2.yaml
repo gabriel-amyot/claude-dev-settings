@@ -1,0 +1,254 @@
+run_id: run-2026-06-16-KTP-784-ac2
+ticket: KTP-784
+title: >
+  Unify state tileset properties. THIS run is the AC-2 scripting-belt pass: reduce US state
+  features to the unified {NAME, STUSPS, COUNTRY} schema (matching the CA-province
+  normalization already in merge_geojson.py) and switch the state-boundaries tileset
+  feature id from STATEFP to STUSPS so US + CA share one feature-state key. Builds on the
+  prior frontend pass (AC-1 promoteId, AC-3 visual deferred). 5 ACs total, 1 SP, epic
+  KTP-558 (Refinements), Sprint 6.
+date: 2026-06-16
+terminal_status: HALT_PRESHIP
+terminal_phase: PreShip
+ticket_folder: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-558/KTP-784
+session: >
+  active-session pointer (sessions/active/latest-answer.md) resolved to 8723c63d-... but its
+  cwd is general/knowledge-transfer/marc-andre-2026-06-12 (a different work thread), not a
+  dark-factory session folder. Per contract 9 fallback, the handoff was written to the ticket
+  folder under reports/ rather than to an ambiguous prompts/ folder.
+tdd_gate_mode: halt
+
+relationship_to_prior_runs: >
+  Fifth KTP-784 telemetry record and the FIRST to carry the AC-2 scripting work. Lineage:
+  (1) run-2026-06-11-KTP-784 died pre-concierge (HALT_AGENT_SKIPPED, 5/30);
+  (2) run-2026-06-15-KTP-784 cleared the front gate, made the AC-1 one-line promoteId change,
+      HALTED at the TDD gate (60/58) on a ledger serialization defect;
+  (3) run-2026-06-15-KTP-784-preship resumed, applied the ledger-repair retry, cleared
+      TDD->Review->QA, HALTED at PRESHIP (72/80), package.json still 1.1.64, no AC-3 visual;
+  (4) run-2026-06-15-KTP-784-needs-visual did the mechanical version bump (1.1.64->1.1.65,
+      6de44cf) and terminated NEEDS_VISUAL_VERIFY (78/86) with AC-1 done and AC-2 explicitly
+      queued for a separate scripting pass;
+  (5) THIS run executed that queued AC-2 scripting pass. Three new commits on the same branch:
+      9455cac (AC-2 RED), c8578c5 (AC-2 GREEN), d8f6479 (AC-2 adversarial edge tests). A clean
+      RED->GREEN->adversarial TDD cycle. All pushed. Terminal HALT_PRESHIP.
+  Net: AC-1 + AC-2 are now both implemented, tested, and pushed on one branch. Remaining to
+  close the ticket: the .mbtiles regen + Gabriel's manual Mapbox upload (AC-2's deploy half),
+  the AC-3 live visual, the AC-0 spec-gate Jira comment, and the MR. PLUS a contamination
+  cleanup (see red flags) before any MR.
+
+this_run_scope:
+  belt: scripting
+  acs: [AC-2]
+  builds_on: { prior_run: run-2026-06-15-KTP-784-needs-visual, carried: [AC-1 promoteId, version bump 1.1.65] }
+  deferred_in_this_pass:
+    - "AC-2 deploy half: .mbtiles regeneration + manual Mapbox upload (Gabriel's step by design)"
+    - "AC-3 live state-tier visual (US NY + CA ON) — still needs local stack + authed Chrome"
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: true
+  note: >
+    Default 'halt' mode, zero warn-mode violations — trustworthy. AC-2 carries a genuine,
+    well-formed TDD cycle visible in the git history and the on-disk evidence: qa/AC-2-red-9455cac.out
+    shows 2 FAILED at the RED tip commit (US state props still carry the 7 Census-Bureau extras),
+    qa/AC-2-tests-tip.out shows 10 PASSED at the green tip (4 schema-unification + 6 name-merge tests).
+    This is the FIRST KTP-784 run with executable test evidence rather than exempt:not_applicable
+    dispositions — AC-2 has extractable pure logic (_normalize_us_state prop reduction) and it was
+    tested first. A test that was watched to fail, then pass.
+
+per_phase:
+  - { phase: concierge, status: PASS,          confidence: 86 }
+  - { phase: design,    status: pass,          confidence: 93 }
+  - { phase: grill,     status: pass,          confidence: 90 }
+  - { phase: implement, status: pass,          confidence: 86 }
+  - { phase: review,    status: "criticals:0", confidence: 88 }
+  - { phase: qa,        status: PARTIAL,       confidence: 88 }
+per_phase_note: >
+  Review reported criticals:0 / conf 88 but AGAIN wrote NO artifact to the ticket review/ folder
+  (it is empty) — the improvement promoted to a gate two runs ago still has no on-disk footprint.
+  More serious this run: review's clean verdict MISSED an out-of-scope deletion of a teammate's
+  542-line doc (components/map/docs/demo-data/add-demo-data.md) sitting in the diff vs origin/dev
+  (see red flags). QA returned PARTIAL: AC-2 logic tests pass (10/10) and the AC-1 typecheck is
+  clean-vs-baseline, but AC-2's tileset-regen/upload half and AC-3's visual remain unproduced.
+
+qa_partial_detail: >
+  GOOD factory behavior on the AC-2 logic, INCOMPLETE on the deploy + visual halves.
+  PROVEN: qa/AC-2-red-9455cac.out (2 failed at RED tip) -> qa/AC-2-tests-tip.out (10 passed at
+  green tip) is a real RED->GREEN cycle on the _normalize_us_state schema reduction. AC-1 typecheck
+  (qa/AC-1-typecheck.out vs qa/AC-1-typecheck-dev-baseline.out) shows the SAME 9 pre-existing TS
+  errors in the SAME 4 files (chatbot/__tests__, map/__tests__ vitest imports, e2e arg-count) on
+  both sides — ZERO new errors. qa/AC-1-build.out built clean; qa/AC-1-dev-boot.out booted clean
+  on :3007.
+  NOT PROVEN: AC-2 only changed the merge + tippecanoe SCRIPTS (merge_geojson.py, prepare_tilesets.sh);
+  it did not regenerate the .mbtiles nor upload to Mapbox (Gabriel's manual step), so the live tileset
+  still carries the OLD schema until that runs. AC-3's live render (qa/screenshots/ empty) is still
+  deferred. PARTIAL is therefore the honest verdict.
+
+ground_truth_on_disk:
+  worktree: /Users/gabrielamyot/Developer/grp-beklever-com/grp-app/grp-frontend/app-front-portal-KTP-784
+  branch: KTP-784-state-centers-promoteid
+  pushed_to_origin: true   # 0 ahead / 0 behind origin/KTP-784-state-centers-promoteid; AC-2 commits confirmed on origin
+  working_tree: clean
+  version_in_package_json: "1.1.65 (from prior run; NOT re-verified against dev tip this run)"
+  commits_this_branch:
+    - "85730fc KTP-784: AC-1 align state centers source promoteId to STUSPS"
+    - "6de44cf KTP-784: version bump + changelog (1.1.64 -> 1.1.65)"
+    - "9455cac KTP-784: AC-2 RED — US state features unified to {NAME, STUSPS, COUNTRY}"
+    - "c8578c5 KTP-784: AC-2 GREEN — unify US state schema to {NAME, STUSPS, COUNTRY}"
+    - "d8f6479 KTP-784: AC-2 adversarial edge tests for US state normalization"
+  ac2_change: >
+    merge_geojson.py: new _normalize_us_state(props) helper + _UNIFIED_STATE_KEYS constant
+    ("NAME","STUSPS","COUNTRY"); merge_states now strips US Census-Bureau extras
+    (STATEFP/STATENS/AFFGEOID/GEOID/LSAD/ALAND/AWATER) so a US state matches the normalized CA
+    province shape byte-for-byte. prepare_tilesets.sh: state_boundaries tippecanoe
+    --use-attribute-for-id changed STATEFP -> STUSPS (+ comment), aligning the feature id with the
+    promoteId set in AC-1.
+  tests_added:
+    - "test_state_schema_unification.py (4 tests: US centers + boundaries reduced to unified set, missing-optional no-crash, no-STUSPS-not-invented)"
+    - "test_state_name_merge.py (+1 US-centers-retain-name assertion in the existing CA suite)"
+  diff_vs_dev_files: "merge_geojson.py, prepare_tilesets.sh, test_state_schema_unification.py (new), test_state_name_merge.py, setup-map-layers.tsx (AC-1), CHANGELOG.md, package(-lock).json, AND add-demo-data.md DELETED (contamination — see red flags)"
+  review_artifact: absent (review/ folder still empty — 3rd consecutive run)
+  ac3_screenshots: absent (qa/screenshots/ empty — deferred to human local-stack capture by design)
+  contamination: >
+    The diff vs origin/dev DELETES components/map/docs/demo-data/add-demo-data.md (542 lines).
+    This file exists on origin/dev (merged via the docs-location-onboarding work, commits
+    cb9cf31/2297704 — the same "Doc 2 / add demo data" referenced in the live session). The deletion
+    is NOT in any of the five KTP-784 commits (verified: git show --stat on each returns 0). It is a
+    worktree-base artifact: this branch was cut before the docs-location-onboarding merge landed on
+    dev, so HEAD's tree simply never had the file, and a naive merge would silently revert a
+    teammate's freshly-merged doc. Must be reconciled (merge origin/dev into the branch) BEFORE the MR.
+  assessment: >
+    AC-1 + AC-2 logic are DONE, CORRECT, minimal, well-documented, tested (real RED->GREEN +
+    adversarial edges), reviewed (criticals:0, though with no artifact and one missed
+    out-of-scope deletion), version-bumped, committed, and pushed. HALT_PRESHIP is the right
+    terminal: AC-2's deploy half (.mbtiles regen + manual Mapbox upload) is Gabriel's step, AC-3's
+    visual still needs the local stack, and the diff carries a contamination that must be cleaned.
+    RESUME from the pushed branch; do NOT rebuild.
+
+scores:
+  task_confidence: 74
+  factory_fitness: 80
+
+deductions:
+  # task_confidence (start 100 -> 74)
+  - points: 6
+    reason: >
+      task_confidence: AC-2's DEPLOY half is not done. The scripts now emit the unified schema and
+      use STUSPS as the tileset feature id, but the .mbtiles were NOT regenerated and NOT uploaded to
+      Mapbox (Gabriel's manual step by design). Until that runs, the live state tileset still carries
+      the old STATEFP-keyed, full-Census-schema features, so AC-2's user-visible effect is unproven.
+  - points: 6
+    reason: >
+      task_confidence: AC-3 (live state-tier render, US NY + CA ON) STILL has zero captured visual
+      evidence — qa/screenshots/ empty across all five KTP-784 runs. Needs local stack + authed
+      Chrome the headless factory cannot drive.
+  - points: 6
+    reason: >
+      task_confidence: the diff vs origin/dev deletes a teammate's 542-line add-demo-data.md doc as a
+      stale-worktree-base artifact. The TASK is not safely mergeable until this is reconciled (merge
+      origin/dev into the branch); shipping as-is would silently revert just-merged work.
+  - points: 4
+    reason: >
+      task_confidence: AC-0's spec-gate-recommended Jira confirmation comment (2026-06-10 gate,
+      91/100) is STILL unposted — carried unresolved across all FIVE KTP-784 runs. No public audit
+      trail on the ticket.
+  - points: 4
+    reason: >
+      task_confidence: no MR exists yet for the pushed branch. Code is tested, version-bumped, and
+      pushed, but until the MR + scoped Jira comment land (which need the contamination cleanup +
+      visual proof), the work is not in the merge pipeline.
+  # factory_fitness (start 100 -> 80)
+  - points: 7
+    reason: >
+      factory_fitness: Review reported criticals:0 / conf 88 but wrote NO on-disk artifact for the
+      THIRD consecutive KTP-784 run (review/ empty). The needs-visual retro's improvement #1 promoted
+      this to a gate ("contract 5 may not PASS without a findings file at <ticket>/review/") and it
+      STILL did not land. A clean review with no record is indistinguishable from a skipped review.
+  - points: 6
+    reason: >
+      factory_fitness: the clean (criticals:0) review MISSED an out-of-scope deletion of a teammate's
+      542-line doc sitting in the diff vs origin/dev. A diff-vs-base scan ("does this branch delete or
+      modify files outside the stated AC scope / files it didn't author?") would have flagged it. The
+      factory has no out-of-scope-change detector, so spec-creep deletions pass review silently.
+  - points: 3
+    reason: >
+      factory_fitness: QA's PARTIAL verdict in the trace STILL carries no one-line cause string
+      (improvement deferred across three retros now), and the ledger-repair retry telemetry record is
+      still absent. A reader must reconstruct "partial = AC-2 logic green but deploy/visual deferred"
+      from the .out files and git history.
+  - points: 2
+    reason: >
+      factory_fitness: the factory still never ATTEMPTS the AC-3 visual capture (no local-stack-aware
+      ui-probe leg). Every visual AC unavoidably bounces to a human. Standing fitness ceiling for
+      visual-AC tickets.
+  - points: 2
+    reason: >
+      factory_fitness: the worktree was cut from a base predating the docs-location-onboarding merge
+      and was never re-synced with origin/dev before the AC-2 pass, which is the root cause of the
+      phantom deletion. A "fetch + verify branch is not behind origin/dev" preflight at the start of a
+      resumed pass would have surfaced it (the user's own fetch-before-read gate, applied to resumes).
+
+red_flags:
+  - "CONTAMINATION: the diff vs origin/dev DELETES components/map/docs/demo-data/add-demo-data.md (542 lines), a teammate's doc that was freshly merged to dev via the docs-location-onboarding work (cb9cf31/2297704). The deletion is NOT in any KTP-784 commit — it is a stale-worktree-base artifact (branch cut before that merge). Merging as-is would silently revert just-merged work. Reconcile (merge origin/dev into the branch) BEFORE the MR. This violates the 'you don't own other people's code' rule."
+  - "Review reported criticals:0 / conf 88 but wrote NO artifact for the THIRD run in a row (review/ empty), AND its clean verdict missed the out-of-scope teammate-doc deletion above. The improvement that was supposedly promoted to a hard gate did not land, and a real bug slipped past the clean verdict."
+  - "AC-3 visual evidence STILL empty (qa/screenshots/ has nothing) for the fifth KTP-784 run running — visual ACs always bounce to a human; the factory never attempts the capture."
+  - "AC-0 spec-gate Jira confirmation comment remains unposted across all FIVE KTP-784 runs — a persistent public audit-trail gap."
+  - "AC-2's user-visible effect is unproven: only the scripts changed; the .mbtiles regen + Mapbox upload (Gabriel's manual step) has not run, so the live tileset still carries the old schema."
+  - "package.json is 1.1.65 from the prior run and was NOT re-verified against dev's tip this run; if another merge landed first the tag could collide and CI will fail (known Klever tag-collision rule)."
+
+improvements:
+  - title: "Add an out-of-scope-change detector to Review (catch phantom deletions/edits before the MR)"
+    detail: >
+      This run's clean review missed a 542-line teammate-doc DELETION sitting in the diff vs origin/dev
+      — a real, mergeable hazard. Add a Review (contract 5) leg that runs `git diff --stat origin/dev..HEAD`
+      and flags any file that is (a) deleted or (b) modified but NOT touched by any commit on this branch
+      (`git log origin/dev..HEAD -- <file>` empty) and NOT named in the ticket's AC scope. Deletions of
+      files the branch never authored are almost always stale-base artifacts and must block PASS until
+      reconciled. Highest-priority improvement: a clean review let a silent teammate-work revert through.
+  - title: "Resume-pass preflight: fetch + verify the branch is not behind origin/dev before doing work"
+    detail: >
+      The phantom deletion's root cause is a worktree cut before the docs-location-onboarding merge and
+      never re-synced. Before any RESUMED dark-factory pass on an existing branch, run `git fetch origin`
+      then `git rev-list --count HEAD..origin/dev`; if > 0, merge origin/dev into the branch (or surface a
+      block) BEFORE implementing. This is the user's fetch-before-read gate applied to factory resumes.
+  - title: "Enforce the Review findings artifact as a hard gate (now overdue THREE runs)"
+    detail: >
+      Three consecutive KTP-784 runs reported criticals:0 with an EMPTY review/ folder. The needs-visual
+      retro already proposed promoting this to a workflow.js gate and it did not stick. Make contract 5
+      physically unable to return PASS unless a findings file exists at <ticket>/review/ (scope reviewed,
+      out-of-scope-change scan result, criticals/majors/minors counts, one-line rationale). A
+      recommendation that survives two retros unactioned must become code.
+  - title: "Make the AC-2 deploy half an explicit terminal close-out item (regen + manual Mapbox upload)"
+    detail: >
+      AC-2 split cleanly into a script change (done, tested, pushed) and a deploy step (regen .mbtiles +
+      Gabriel's manual Mapbox upload) that the factory cannot run. The terminal handoff should carry the
+      deploy half as a named, blocking close-out checklist entry (with the exact prepare_tilesets.sh
+      invocation + the mapbox upload skill), so 'AC-2 done in code' is never mistaken for 'AC-2 live'.
+  - title: "Stamp QA's PARTIAL verdict with a one-line cause string + emit the ledger-repair record"
+    detail: >
+      Still not applied across three retros. QA's verdict object should carry a cause field, e.g.
+      'partial: AC-2 logic green (10/10, real RED->GREEN), AC-1 clean vs baseline (9 pre-existing TS
+      errors, 0 new); AC-2 deploy + AC-3 visual deferred to human'. And the ledger-repair retry (when it
+      fires) should append a one-line record so its hit-rate is trackable.
+  - title: "Finish KTP-784 from the pushed branch — RECONCILE then ship; do NOT rebuild"
+    detail: >
+      Code is done, tested (AC-1 + AC-2), version-bumped (1.1.65), and pushed on
+      KTP-784-state-centers-promoteid (85730fc, 6de44cf, 9455cac, c8578c5, d8f6479). To reach shippable:
+      (1) git fetch + merge origin/dev into the branch to UNDO the phantom add-demo-data.md deletion and
+      re-verify 1.1.65 still leads dev's tip (tag-collision guard); (2) run prepare_tilesets.sh to regen
+      the state .mbtiles, then hand the upload to Gabriel via the mapping:mapbox skill; (3) start
+      /klever-local-stack and capture the AC-3 baseline (US NY + CA ON state-tier); (4) /klever-mr +
+      /post-comment honestly scoped (AC-1 + AC-2 code shipped, AC-2 tileset upload + AC-3 visual pending);
+      (5) post the still-owed AC-0 spec-gate confirmation comment. Do NOT restart the factory.
+
+summary: >
+  KTP-784's AC-2 scripting pass landed its strongest code state yet: a real RED->GREEN->adversarial TDD
+  cycle (9455cac/c8578c5/d8f6479, 10 tests green) that reduces US state features to the unified
+  {NAME, STUSPS, COUNTRY} schema and switches the boundaries tileset feature id STATEFP->STUSPS, all
+  pushed on the existing branch atop the AC-1 work. task_confidence 74 (AC-1 + AC-2 logic done/tested;
+  remaining: AC-2 .mbtiles regen + manual Mapbox upload, AC-3 visual, AC-0 comment, MR — and a
+  stale-base phantom deletion of a teammate doc to reconcile first). factory_fitness 80 (clean TDD,
+  but Review wrote no artifact for the third run AND its clean verdict missed an out-of-scope 542-line
+  teammate-doc deletion in the diff). RESUME from the pushed branch: merge dev to undo the phantom
+  deletion, regen+upload tiles, capture AC-3, MR, post AC-0 comment.

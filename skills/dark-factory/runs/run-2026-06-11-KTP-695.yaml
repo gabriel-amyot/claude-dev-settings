@@ -1,0 +1,127 @@
+run_id: run-2026-06-11-KTP-695
+ticket: KTP-695
+title: >
+  Operationalize Placer bridge table population as documented onboarding step (Story, 5 SP,
+  Epic KTP-646, Q2-Sprint-6).
+date: 2026-06-11
+terminal_status: HALT_AGENT_SKIPPED
+halted_phase: Concierge
+ticket_folder_in_run: "(unresolved)"
+ticket_folder_actual: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-646/KTP-695
+session: "(unresolved — sessions/active/state.yaml has empty session_id)"
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: true
+  note: >
+    Gate configured in default halt mode with zero warn-mode violations — but the signal is
+    VACUOUS, not earned: the run halted before any phase executed, so no implementation and no
+    RED->GREEN sequence ever reached the gate. Nothing to distrust, nothing to trust.
+
+per_phase: []
+per_phase_note: >
+  The per-phase trace is EMPTY. The workflow dispatched the Concierge agent and the agent() call
+  returned null, hitting the null-guard at dark-factory.workflow.js:407
+  ("if (!concierge) return { status: 'HALT_AGENT_SKIPPED', phase: 'Concierge', ticket }").
+  rec() only fires after a successful agent return, so a failed dispatch leaves zero trace —
+  no confidence, no attempt count, no error reason. This retro had to reconstruct everything
+  from disk.
+
+scores:
+  task_confidence: 5
+  factory_fitness: 40
+
+deductions:
+  # task_confidence (start 100 -> 5)
+  - points: 90
+    reason: >
+      task_confidence: zero phases executed. No spec validation, no design, no code, no tests, no
+      review, no QA, no branch. None of the 4 ACs was touched, let alone proven. The run produced
+      nothing toward the ticket; the task is exactly as undone as before dispatch.
+  - points: 5
+    reason: >
+      task_confidence: the known spec-drift gaps from the 2026-06-10 pre-sprint Leo gate (prod
+      bridge table dts_external_data does not exist in the prod reporting project; AC-2 documents a
+      dead skill name '/placer-entity-matcher' since consolidation into adtech:placer entity-match;
+      AC-2's Notion Step-5 precondition has no owner; AC-4 needs a snapshotted 16-row Shrimp Basket
+      baseline) remain unsurfaced as Jira open questions. The run was the natural moment for the
+      concierge to convert them into open_questions; that opportunity was lost.
+  # factory_fitness (start 100 -> 40)
+  - points: 40
+    reason: >
+      factory_fitness: the very first agent dispatch of the line returned null and the workflow
+      captured NO diagnostic — no error reason, no attempt count, no raw-response snippet. The
+      terminal payload says only 'HALT_AGENT_SKIPPED / Concierge'. Whether this was a schema-
+      validation exhaustion, a dispatch/tooling error, a permission denial, or a user skip is
+      unrecoverable from telemetry. An undebuggable infrastructure failure at the front gate is the
+      single largest fitness deduction available for a run that never started.
+  - points: 10
+    reason: >
+      factory_fitness: failed dispatches are invisible to the trace. rec() runs only on success, so
+      a dead run emits per_phase=[] and the retro contract's main input (per-phase soft confidence)
+      is empty. The trace should record the ATTEMPT (phase, status=SKIPPED, error) even when the
+      agent returns null.
+  - points: 5
+    reason: >
+      factory_fitness: terminal payload carried ticket_folder='(unresolved)' even though the folder
+      exists on disk (tickets/KTP/KTP-646/KTP-695, plus a Q2-Sprint-6 symlink, both created
+      2026-06-10 23:01). Folder resolution is delegated entirely to the concierge agent; a
+      deterministic glob fallback in workflow.js would have kept retro/handoff routing intact on
+      agent-skip terminals.
+  - points: 5
+    reason: >
+      factory_fitness: no retry. A single null return from a READ-ONLY phase (concierge does
+      validation and classification, mutates nothing) halts the entire run. One bounded retry
+      before halting is safe and would likely have absorbed a transient dispatch failure.
+
+red_flags:
+  - "SYSTEMIC, not transient: run-2026-06-11-KTP-677 hit the SAME HALT_AGENT_SKIPPED terminal the same day (see runs/INDEX.md). Two front-gate agent skips in one Sprint-6 batch points at the dispatch harness (permission mode, agent-tool availability, or schema plumbing), not at either ticket."
+  - "Concierge agent() returned null on the FIRST dispatch of the run — HALT_AGENT_SKIPPED with no captured cause (schema exhaustion? dispatch error? permission denial? user skip?). Undebuggable from telemetry."
+  - "per_phase trace is [] — failed dispatches leave no trace entry at all, so the retro's primary input (per-phase confidence) does not exist for dead runs."
+  - "ticket_folder '(unresolved)' in the terminal payload despite the folder existing on disk since 2026-06-10 23:01 — folder resolution is single-pointed on the concierge agent."
+  - "No retry on a read-only phase: one transient null kills the whole line."
+  - "A fresh, high-quality Leo pre-sprint spec gate (88/100, AMBIGUOUS_RESOLVABLE, 2026-06-10) sits in the ticket's reports/reviews/ — the run burned its slot without consuming or advancing any of it; the concierge contract has no instruction to look for existing gate artifacts."
+  - "TDD gate 'halt + zero violations' reads clean but is vacuous — no code phase ran. Do not count this run as evidence the gate works."
+
+improvements:
+  - title: "Capture the skip cause when agent() returns null"
+    detail: >
+      In dark-factory.workflow.js, when an agent() call returns null, attach a 'skip_reason' (last
+      error class: schema-validation-exhausted / dispatch-error / permission-denied / user-skip)
+      and a truncated raw last response to the HALT_AGENT_SKIPPED terminal payload. Today the
+      terminal status carries zero diagnostic; this run cannot be root-caused.
+  - title: "Record failed dispatches in the per-phase trace"
+    detail: >
+      rec() only fires on success, so a dead run emits per_phase=[]. Add a trace entry
+      { phase, status: 'SKIPPED', attempts, error } on every null agent return so retro has signal
+      even when the line dies at the front gate.
+  - title: "One bounded retry for null returns on read-only phases"
+    detail: >
+      Concierge (and Grill/Review, which mutate nothing) should get exactly one retry on a null
+      agent return before halting. A transient dispatch failure currently costs a full run slot.
+      Keep zero retries for mutating phases (Implement/Fix/ShipPrep).
+  - title: "Deterministic ticket-folder fallback in workflow.js"
+    detail: >
+      On any terminal return where concierge.ticket_folder is missing, glob
+      tickets/*/{*,no-epic}/<TICKET> (and tickets/sprints/*/<TICKET> symlinks) and stamp the result
+      into the payload. KTP-695's folder existed and was resolvable without any agent.
+  - title: "Concierge must consume existing pre-sprint spec-gate artifacts"
+    detail: >
+      Contract 1 should instruct the concierge to check
+      <ticket_folder>/reports/reviews/*spec-gate*.md before re-deriving spec quality. KTP-695 has a
+      complete 88/100 Leo gate (2026-06-10) with four resolvable gaps and verified BQ evidence
+      (dev bridge table 32 rows; prod dts_external_data nonexistent). The re-run should import
+      those gaps as defaults/open_questions instead of re-querying BQ from scratch.
+
+rerun_recommendation: >
+  Re-dispatch /dark-factory KTP-695 directly. The ticket is sprint-committed, Leo-gated at 88/100,
+  and ready: nothing about the ticket caused this halt. Before re-dispatching, optionally apply
+  improvement 1-2 so a repeat null is at least diagnosable.
+
+summary: >
+  Dead-on-arrival run: the Concierge agent dispatch returned null and the workflow's null-guard
+  halted at HALT_AGENT_SKIPPED before any phase executed — task_confidence 5, factory_fitness 40.
+  Zero work was done on a ticket that was actually ready (Leo pre-sprint gate 88/100 on disk). The
+  failure is pure factory infrastructure: no skip cause captured, no trace entry for the failed
+  dispatch, no retry on a read-only phase, and no ticket-folder fallback, making the run both
+  wasted and undebuggable.

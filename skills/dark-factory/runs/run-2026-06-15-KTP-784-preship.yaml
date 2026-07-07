@@ -1,0 +1,207 @@
+run_id: run-2026-06-15-KTP-784-preship
+ticket: KTP-784
+title: >
+  Unify state tileset properties — align state-layer promoteId to STUSPS on the CENTERS source
+  (boundaries already done by KTP-683). FRONTEND-ONLY pass: AC-1 + AC-3. 5 ACs total, 1 SP,
+  epic KTP-558 (Refinements), Sprint 6. AC-2 (minimal-schema tileset regen) queued for a
+  separate scripting-belt pass; Gabriel does the manual Mapbox upload.
+date: 2026-06-15
+terminal_status: HALT_PRESHIP
+halt_phase: ShipPrep (pre-ship gate)
+ticket_folder: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-558/KTP-784
+session: 2e81a158-414d-4b8a-9c78-070b9cbfa38a (resolved from sessions/active/latest-answer.md)
+tdd_gate_mode: halt
+
+relationship_to_prior_runs: >
+  Third KTP-784 telemetry record. run-2026-06-11-KTP-784 died pre-concierge (HALT_AGENT_SKIPPED,
+  empty trace, 5/30). run-2026-06-15-KTP-784 cleared the front gate and produced the correct one-line
+  code change but HALTED at the TDD gate (60/58) because the implement agent failed to serialize the
+  exempt:not_applicable ledger. THIS run is the resume that applied the prior retro's improvement #3
+  (a bounded ledger-repair retry for shape-only TDD halts): the cached phases replayed, a dedicated
+  repair agent re-emitted the AC-0/AC-4 sequencing-gate ledger entries with well-formed exempt strings,
+  the TDD gate CLEARED, and the run advanced through Review -> QA -> ShipPrep, halting at PRESHIP.
+  The #1 problem from the prior run (TDD gate discarding correct work over a self-report shape
+  mismatch) is FIXED and validated against the 16-case regression suite.
+
+this_run_scope:
+  belt: frontend
+  acs: [AC-1, AC-3]
+  queued_next_pass: { belt: scripting, acs: [AC-2], note: "separate sequential dark-factory pass; produces .mbtiles + script diff only, Gabriel does the manual Mapbox upload" }
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: true
+  note: >
+    The gate ran in default 'halt' mode with zero warn-mode violations AND this time it PASSED rather
+    than firing. The ledger-repair retry (prior retro improvement #3) re-emitted AC-0 and AC-4 as
+    well-formed exempt:not_applicable entries (tdd/AC-0.md, tdd/AC-4.md on disk, both matching the
+    regex /^(not_applicable|infra_blocked)\(.+\)$/ with a real parenthetical why). AC-1 (source-config
+    option) and AC-3 (rendered-UI) carry no extractable pure logic and the repo ships only Playwright,
+    so exempt:not_applicable is the correct disposition; the gate accepted it. This validates that the
+    prior run's halt was purely a serialization defect, not a missing-RED-for-real-logic.
+
+per_phase:
+  - { phase: concierge, status: PASS,        confidence: 88 }
+  - { phase: design,    status: pass,        confidence: 93 }
+  - { phase: grill,     status: pass,        confidence: 90 }
+  - { phase: implement, status: pass,        confidence: 88 }
+  - { phase: implement-ledger-repair, status: pass, confidence: null }
+  - { phase: review,    status: "criticals:0", confidence: 88 }
+  - { phase: qa,        status: PARTIAL,     confidence: 88 }
+per_phase_note: >
+  The implement-ledger-repair sub-phase is the new bounded retry; it has no soft confidence in the
+  trace (it is a shape-fix, not a judgment phase). Review reports criticals:0 / conf 88 but wrote NO
+  artifact to the ticket review/ folder (empty). QA returned PARTIAL and DID write evidence to qa/:
+  AC-1-typecheck.out, AC-1-typecheck-dev-baseline.out, AC-1-build.out, AC-1-dev-boot.out. The
+  HALT_PRESHIP is the pre-ship gate refusing to declare READY_TO_SHIP — consistent with (a) AC-3
+  visual proof never captured (qa/screenshots/ empty) and (b) no version bump / CHANGELOG entry for
+  KTP-784 (package.json still 1.1.64, same as dev's tip).
+
+qa_partial_detail: >
+  QA correctly isolated PRE-EXISTING failures. AC-1-typecheck.out shows 9 TS errors across 4 files
+  (chatbot/__tests__, map/__tests__ vitest imports, e2e/market-copy.spec.ts arg-count) — and
+  AC-1-typecheck-dev-baseline.out shows the SAME 9 errors in the SAME 4 files on the dev baseline.
+  None of them touch setup-map-layers.tsx (the changed file). So typecheck "fails" but the change
+  introduced ZERO new errors. Build succeeded (next build completed, route table emitted). Dev server
+  booted clean ("Ready in 1328ms" on :3007). This is GOOD factory behavior: QA ran a same-baseline
+  diff instead of blindly failing on pre-existing red. PARTIAL is the right verdict because the AC-3
+  live visual (US NY + CA ON state-tier render via ui-probe) was never executed — screenshots/ empty.
+
+ground_truth_on_disk:
+  worktree: /Users/gabrielamyot/Developer/grp-beklever-com/grp-app/grp-frontend/app-front-portal-KTP-784
+  branch: KTP-784-state-centers-promoteid
+  pushed_to_origin: true
+  commit: "85730fc KTP-784: AC-1 align state centers source promoteId to STUSPS"
+  diff_vs_dev: "1 file changed, 1 insertion(+) — components/map/functions/setup-map-layers.tsx"
+  change: 'added `promoteId: "STUSPS"` to addUsStatesCentersTilesetSource map.addSource(), matching the boundaries source value exactly'
+  working_tree: clean
+  version_in_package_json: "1.1.64 (UNCHANGED from dev tip — no KTP-784 bump yet)"
+  changelog_entry_for_ktp784: absent
+  assessment: >
+    AC-1's code is DONE, CORRECT, minimal, matches the grilled plan byte-for-byte, committed and
+    pushed. Review found zero criticals. QA proved no new typecheck regressions + clean build + clean
+    boot. The two remaining gaps to READY_TO_SHIP are mechanical/visual: (1) version bump + CHANGELOG
+    for KTP-784, and (2) the AC-3 pre-upload baseline screenshot (US NY + CA ON). Neither requires
+    re-running the factory from scratch — both are finish-the-pass steps from the existing branch.
+
+scores:
+  task_confidence: 72
+  factory_fitness: 80
+
+deductions:
+  # task_confidence (start 100 -> 72)
+  - points: 10
+    reason: >
+      task_confidence: HALT_PRESHIP — the run stopped one step short of READY_TO_SHIP. No version
+      bump, no CHANGELOG entry, no MR. AC-1's code is reviewed (criticals:0) and QA-clean but not yet
+      shippable as the factory left it; a human or a resume must do the version bump + CHANGELOG + MR.
+      Much smaller deduction than the prior run's halt: this one cleared TDD, Review, and QA.
+  - points: 8
+    reason: >
+      task_confidence: AC-3 (live state-tier regression, US NY + CA ON via ui-probe) produced ZERO
+      visual evidence — qa/screenshots/ is empty. Even the Q3-accepted pre-upload baseline was never
+      captured. 1 of 2 in-scope ACs still has no factory-produced visual proof. This is the recurring
+      AC-3 gap from the prior run, only partly mitigated (QA ran, but the screenshot step did not).
+  - points: 6
+    reason: >
+      task_confidence: AC-2 (minimal-schema tileset regen) is explicitly out of this pass and still
+      entirely unbuilt; the full ticket (5 ACs) cannot close until the queued scripting pass + Gabriel's
+      manual Mapbox upload land. The frontend split is sound, but this run advanced only the smallest slice.
+  - points: 4
+    reason: >
+      task_confidence: AC-0's spec-gate-recommended confirmation comment (from the 2026-06-10 spec gate,
+      91/100) still appears unposted on the Jira ticket. The human-decision gate was satisfied via the
+      resume decisions fed to the concierge, but the public audit-trail comment the spec gate asked for
+      was never created. Carried forward unresolved from the prior run.
+  # factory_fitness (start 100 -> 80)
+  - points: 8
+    reason: >
+      factory_fitness: the AC-3 visual baseline was approved (Q3) and one ui-probe call away, yet QA
+      ran the cheap typecheck/build/boot proofs and stopped before the screenshot. The pre-ship halt
+      then forfeited the one visual proof that was in scope. The factory should capture the approved
+      visual_pending baseline during QA (or emit NEEDS_VISUAL_VERIFY) rather than reaching PRESHIP with
+      an empty screenshots/ folder.
+  - points: 6
+    reason: >
+      factory_fitness: the Review phase reported criticals:0 / confidence 88 in the trace but wrote NO
+      artifact to the ticket review/ folder (it is empty). A clean review with zero on-disk record is a
+      weak audit trail — a future reader cannot see WHAT was reviewed or that the review was real. Review
+      should always drop a findings file (even "0 criticals, scope: 1-line promoteId add") to review/.
+  - points: 4
+    reason: >
+      factory_fitness: the ledger-repair retry worked, but it is a sub-phase with no soft confidence and
+      no on-disk repair report — the only trace of it is the populated tdd/AC-0.md + tdd/AC-4.md. The new
+      retry path should emit a one-line telemetry record (what violations it saw, what it re-emitted) so
+      its effectiveness is measurable run-over-run, not inferred.
+  - points: 2
+    reason: >
+      factory_fitness: ShipPrep halted at PRESHIP without first performing the mechanical, no-judgment
+      steps it could safely do — the version bump + CHANGELOG entry. Those are deterministic for a
+      frontend repo (bump patch, add a one-line changelog) and would have left the branch one human
+      click (the MR) from done. A pure mechanical pre-ship step need not gate on the human.
+
+red_flags:
+  - "HALT_PRESHIP with package.json still at 1.1.64 (dev's tip) and no CHANGELOG entry for KTP-784 — the version bump + changelog, which are mechanical and deterministic for a frontend repo, were not performed before the gate halted."
+  - "AC-3 produced ZERO visual evidence again: qa/screenshots/ is empty. QA ran the cheap typecheck/build/boot proofs but never captured the Q3-approved US-NY + CA-ON baseline. This is the same AC-3 evidence gap flagged in the prior (TDD-halt) run, only partly closed."
+  - "Review reported criticals:0 / conf 88 but wrote no artifact — the ticket review/ folder is empty. A clean review with no on-disk record is an unverifiable audit trail."
+  - "QA returned PARTIAL on a typecheck that shows 9 errors — but all 9 are PRE-EXISTING on the dev baseline (AC-1-typecheck-dev-baseline.out is byte-identical) and none touch the changed file. The PARTIAL verdict is correct, but a reader who sees only AC-1-typecheck.out (9 errors) without the baseline file could misread it as a regression. The baseline-diff is the load-bearing artifact and must travel with the failing output."
+  - "The ledger-repair retry (prior retro improvement #3) fired and succeeded but left no repair report — its only footprint is the populated tdd/AC-0.md + tdd/AC-4.md. The new retry path is invisible in telemetry, so its hit-rate can't be tracked."
+  - "AC-0's spec-gate-recommended Jira confirmation comment is STILL unposted (carried forward from the prior run) — the human-decision gate keeps being cleared via in-run resume decisions only, leaving no public audit trail across three KTP-784 runs."
+
+improvements:
+  - title: "Make ShipPrep do the mechanical version bump + CHANGELOG before halting at PRESHIP"
+    detail: >
+      For a frontend repo (package.json + CHANGELOG.md, no git tag from CI) the version patch bump and
+      a one-line changelog entry are deterministic and need no human judgment. ShipPrep should perform
+      them and commit them on the branch, so HALT_PRESHIP leaves the branch genuinely one MR click from
+      done. Today the gate halted with package.json untouched at 1.1.64, pushing mechanical work onto
+      the human/resume. Reserve the halt for the MR-creation + Jira-comment step that legitimately needs
+      a human (or the main loop).
+  - title: "Capture the approved AC-3 visual baseline during QA, or emit NEEDS_VISUAL_VERIFY"
+    detail: >
+      AC-3's only in-scope deliverable was the Q3-approved pre-upload baseline (US NY + CA ON via
+      ui-probe). QA ran typecheck/build/boot but skipped the screenshot, and PRESHIP then forfeited it
+      (screenshots/ empty). The QA contract should, for any AC marked visual_pending with an approved
+      baseline, attempt the ui-probe capture; if it cannot (dev down, auth), set terminal status
+      NEEDS_VISUAL_VERIFY (as the sibling 2026-06-15 KTP-792 run did) instead of reaching PRESHIP with
+      no visual proof at all.
+  - title: "Review must always write a findings artifact, even when criticals:0"
+    detail: >
+      The review phase reported criticals:0 / conf 88 but the ticket review/ folder is empty. Contract 5
+      (review) should require an on-disk findings file (scope reviewed, criticals/majors/minors counts,
+      one-line rationale) before returning PASS — same principle as 'QA may not PASS without a test_ref'.
+      A clean review with no record is indistinguishable from a skipped review to a future reader.
+  - title: "Emit a one-line telemetry record from the ledger-repair retry"
+    detail: >
+      The bounded ledger-repair retry (prior retro improvement #3) converted this run from HALT_TDD_GATE
+      to a normal advance — exactly as designed — but left no measurable footprint beyond the populated
+      tdd/*.md files. The retry should append a record (violations seen, AC entries re-emitted, gate
+      result after) so its hit-rate and false-positive rate are trackable across runs and the improvement
+      can be proven to be paying off.
+  - title: "Ship the QA baseline-diff alongside the failing output, and label PARTIAL with the cause"
+    detail: >
+      QA correctly proved 'no new typecheck errors' by diffing AC-1-typecheck.out against
+      AC-1-typecheck-dev-baseline.out (identical, 9 pre-existing). But the PARTIAL verdict in the trace
+      doesn't say WHY it's partial (the missing AC-3 visual, not the typecheck). QA's verdict should
+      carry a one-line cause string ('partial: AC-1 clean vs baseline; AC-3 visual not captured') so the
+      retro and the human don't have to reconstruct it from four .out files.
+  - title: "Finish KTP-784's frontend pass from the pushed branch — RESUME, do not rebuild"
+    detail: >
+      The code is done and correct on KTP-784-state-centers-promoteid (85730fc, pushed); TDD, Review,
+      and QA-no-regression are cleared. To reach READY_TO_SHIP: (1) version patch bump + CHANGELOG entry
+      for KTP-784, (2) capture the AC-3 pre-upload baseline (US NY + CA ON), mark visual_pending,
+      (3) create the MR + Jira comment via /klever-mr + /post-comment. Then post the still-owed AC-0
+      spec-gate confirmation comment. Finally, queue the AC-2 scripting-belt pass (regen .mbtiles +
+      script diff; Gabriel does the manual Mapbox upload). Do NOT restart the factory.
+
+summary: >
+  KTP-784's frontend pass RESUMED from the prior TDD-halt, applied that retro's bounded ledger-repair
+  retry (improvement #3), cleared the TDD gate (AC-0/AC-4 re-emitted as well-formed exempt:not_applicable),
+  and advanced through Review (criticals:0) and QA (PARTIAL — no new typecheck errors vs the dev baseline,
+  clean build, clean boot) before halting at PRESHIP. task_confidence 72 (correct one-line change reviewed
+  and QA-clean on a pushed branch, but no version bump/CHANGELOG, AC-3 visual still uncaptured, AC-2 unbuilt,
+  AC-0 comment still unposted); factory_fitness 80 (the TDD-gate defect is genuinely FIXED — biggest win —
+  but ShipPrep skipped the mechanical version bump, QA forfeited the approved AC-3 baseline, and Review left
+  no on-disk artifact). Finish from the existing branch: bump+changelog, capture the AC-3 baseline, MR, then
+  the AC-2 scripting pass.

@@ -18,48 +18,37 @@ Before starting, verify the base stack skill has been reviewed. This skill picks
 
 ---
 
-## Step 1. Docker and MySQL (same as base stack)
+## Step 1. MySQL (native, via the orchestrator)
 
-Check MySQL container:
+As of 2026-06-04 the local DB is **Homebrew native MySQL 8.0**, not Docker. Use the
+local-stack orchestrator to provision and start it; this skill picks up after.
+
 ```bash
-docker ps --filter name=klever-mysql-local --format "{{.Names}} {{.Status}}"
+cd ~/Developer/grp-beklever-com/grp-app/grp-frontend/app-front-portal
+./start-stop-portal-in-local.sh setup-db   # one-time provision (idempotent)
+./start-stop-portal-in-local.sh start --profile backend
 ```
 
-If `klever-mysql-local` is not running, fall back to:
+Direct connect (socket):
 ```bash
-docker ps --filter name=user-management-mysql --format "{{.Names}} {{.Status}}"
+MYSQL="$(brew --prefix mysql@8.0)/bin/mysql"
+SOCK="$HOME/.klever-local-mysql/data/mysql.sock"
+"$MYSQL" --socket="$SOCK" -uroot user_management_local -e "SELECT id, name FROM component ORDER BY id;"
 ```
 
-If neither exists, start a fresh container:
-```bash
-docker run -d --name klever-mysql-local \
-  -e MYSQL_ROOT_PASSWORD=root \
-  -e MYSQL_DATABASE=user_management_local \
-  -p 3306:3306 \
-  mysql:8.0 --lower-case-table-names=1
-```
-
-Wait for readiness:
-```bash
-docker exec klever-mysql-local mysqladmin ping -uroot -proot --wait=30
-```
+See [[klever-local-stack]] for the orchestrator. The legacy `klever-mysql-local`
+Docker container is retired.
 
 ---
 
-## Step 2. Component 9 Pre-insert (fresh DB only)
+## Step 2. Components (handled automatically)
 
-On a fresh database, Liquibase component migration only seeds 8 components (IDs 1-8). The proximity-report references component 9 (Proximity). Pre-insert it before starting UM so the FK constraint resolves.
-
-Check if component 9 exists:
+No manual component pre-insert is needed. The orchestrator boots UM with a sentinel
+Liquibase context that creates **all** components 1–9 (changeset 013 creates id 9 =
+Feedback) on a fresh DB, then applies the curated seed via `reseed`. (Earlier guidance
+to hand-insert "component 9 = Proximity" is obsolete.) Verify:
 ```bash
-docker exec klever-mysql-local mysql -uroot -proot user_management_local \
-  -e "SELECT id, name FROM component WHERE id = 9;" 2>/dev/null
-```
-
-If the row is missing:
-```bash
-docker exec klever-mysql-local mysql -uroot -proot user_management_local \
-  -e "INSERT IGNORE INTO component (id, name) VALUES (9, 'Proximity');"
+"$MYSQL" --socket="$SOCK" -uroot user_management_local -e "SELECT id, name FROM component ORDER BY id;"
 ```
 
 ---
@@ -75,9 +64,12 @@ JAVA_HOME=$(/usr/libexec/java_home -v 17) java -jar target/user-management.jar \
   --server.port=8090
 ```
 
-The `--spring.liquibase.contexts=local` flag auto-seeds test data (changeset 012). Verify seed counts after startup:
+Do NOT boot with `--spring.liquibase.contexts=local` on a fresh DB: changeset 012
+(local seed) references component 9 before changeset 013 creates it → FK failure.
+Prefer the orchestrator (`start --profile backend`), which boots with a sentinel
+context and seeds via `reseed`. Verify seed counts after startup:
 ```bash
-docker exec klever-mysql-local mysql -uroot -proot user_management_local \
+"$MYSQL" --socket="$SOCK" -uroot user_management_local \
   -e "SELECT 'users' as t, COUNT(*) as n FROM user
       UNION ALL SELECT 'advertisers', COUNT(*) FROM advertiser
       UNION ALL SELECT 'dsp_accounts', COUNT(*) FROM dsp_account;"
@@ -180,7 +172,7 @@ npm run dev
 ```
 
 Required `.env.local` vars (check, never modify):
-- `KLEVER_USER_MANAGEMENT_URL=http://localhost:8090`
+- `KLEVER_USER_MANAGEMENT_URL=http://localhost:8098` (the orchestrator binds local UM to this port)
 
 ---
 
@@ -188,7 +180,7 @@ Required `.env.local` vars (check, never modify):
 
 ```bash
 echo "=== Service Health ==="
-curl -s http://localhost:8090/user/actuator/health | python3 -m json.tool 2>/dev/null || echo "UM: no actuator"
+curl -s http://localhost:8098/user/actuator/health | python3 -m json.tool 2>/dev/null || echo "UM: no actuator"
 curl -s http://localhost:8097/proximity-report/actuator/health | python3 -m json.tool 2>/dev/null || echo "Proximity: no actuator"
 curl -s -o /dev/null -w "Portal: %{http_code}\n" http://localhost:3000
 ```
@@ -215,7 +207,7 @@ The local seed data uses specific advertiser IDs that must match BQ `KLEVER_ADVE
 
 If the smoke-test in Step 8 returns 0 rows for advertiser 51, verify the seed data IDs are correct:
 ```bash
-docker exec klever-mysql-local mysql -uroot -proot user_management_local \
+"$MYSQL" --socket="$SOCK" -uroot user_management_local \
   -e "SELECT a.id, a.name, d.provider_id FROM advertiser a
       LEFT JOIN dsp_account d ON d.advertiser_id = a.id
       WHERE a.name LIKE '%Shrimp%';"
@@ -223,7 +215,7 @@ docker exec klever-mysql-local mysql -uroot -proot user_management_local \
 
 If IDs are wrong (e.g., id=200, provider_id=`fake`), apply the known patch:
 ```bash
-docker exec -i klever-mysql-local mysql -uroot -proot user_management_local << 'EOF'
+"$MYSQL" --socket="$SOCK" -uroot user_management_local << 'EOF'
 SET FOREIGN_KEY_CHECKS=0;
 UPDATE agency SET id = 12 WHERE id = 100;
 UPDATE advertiser SET agency_id = 12 WHERE agency_id = 100;
@@ -243,10 +235,10 @@ EOF
 Print at the end:
 ```
 === Klever Local Stack (Real BQ) ===
-User Management:    http://localhost:8090  [RUNNING]
-Proximity Report:   http://localhost:8097  [RUNNING]
+User Management:    http://localhost:8098/user  [RUNNING]
+Proximity Report:   http://localhost:8097/proximity-report  [RUNNING]
 Frontend (Portal):  http://localhost:3000  [RUNNING]
-MySQL:              localhost:3306         [RUNNING]
+MySQL (native):     localhost:3306         [RUNNING]
 
 BQ Projects (dev, read-only):
   Main:     prj-d-biz-report-im9q1fvvc7

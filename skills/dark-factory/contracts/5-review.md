@@ -62,6 +62,9 @@ audit can be reconstructed without re-deriving from a raw diff. Shape:
 
 - `criticals_open`: integer ≥ 0 — count of CRITICAL findings you DEMONSTRATED with a failing test and
   that remain unresolved.
+- `findings_artifact`: the ABSOLUTE path of the `review/findings.json` you wrote above. This field is
+  **schema-required** (0.9.3): a return without it is rejected. Write the file first, then return its
+  path — never return a path you did not write. (QA spot-checks the file exists on disk.)
 - `findings`: array of `{ severity, title, file, demonstrated }`. Set **`demonstrated: true` if and
   only if** you wrote a test, ran it, and it FAILED (proving the bug). Set `demonstrated: false` for
   hunches you could not demonstrate.

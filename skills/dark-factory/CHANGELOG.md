@@ -2,6 +2,95 @@
 
 Every SKILL.md / workflow.js / contract change bumps the version and adds an entry.
 
+## 0.9.5 (2026-07-05)
+
+**Gate-loop hardening from a fresh-context adversarial review of 0.9.4** (findings #2/#3/#5/#9; the
+review also drove honesty fixes in the autopilot DESIGN-EXPLAINER, which is session-plugin scope).
+
+- **Deterministic decision-file pin (#2 HIGH):** the concierge resolves `ticket_folder` with an LLM, so
+  two fresh runs could bucket it differently and re-entry would silently MISS the human's answers. The
+  gate handoff records `decision_file`; the re-entry caller passes it back as `args.decision_file`,
+  which pins the path in code. Without the pin, the concierge globs
+  `tickets/**/<TICKET>/factory/decisions.yaml` and reuses any existing ticket folder.
+- **Staleness guard on decisions (#3 MED-HIGH):** decisions.yaml entries are `{ id, question, answer }`;
+  the concierge consumes an entry ONLY when id AND question text match a question it would raise now.
+  A leftover answer from a previous gate can no longer silently answer a NEW question.
+- **spec_quality FAIL gates in headless (#5 MED):** headless now routes BOTH unanswered decisions and a
+  failed spec gate to `GATE_REQUIRED` (with `gate_kind`), synthesizing a SPEC-1 question when
+  open_questions is empty. A bad spec parks as a gate handoff instead of dead-ending, and headless has
+  no BLOCKED_NEEDS_HUMAN_AGAIN (a still-unanswered question re-gates uniformly).
+- **Retro wording fixed (#9 LOW):** SKILL.md no longer claims Retro runs on "every terminal outcome";
+  pauses, concierge-only reviews, and gate exits are unscored by design.
+- Acknowledged, out of this skill's scope: "gates are human-only" and autopilot's guardrails are
+  instructions + a detective judge, not mechanical walls (explainer softened accordingly); a
+  PreToolUse hook blocking unattended `autopilot: approved` ledger writes is recommended to Gab as a
+  session-plugin backstop.
+
+`node --check` clean; harnesses 16/16 + 18/18.
+
+## 0.9.4 (2026-07-05)
+
+**Headless mode — the gate-as-handoff interface for unattended callers (autopilot).** Approved by Gab
+2026-07-05 ("build headless now: go for it"); implements the factory side of session ADR-004 v2.2.
+
+- `args.headless: true`: an unanswered human gate returns the clean terminal **`GATE_REQUIRED`**
+  (never the `AWAITING_HUMAN` pause, never AskUserQuestion): `decision_packet` + `gate_of`
+  (`dark-factory:<TICKET>`) + `decision_file` (`<ticket_folder>/factory/decisions.yaml`, the
+  schema.yaml convention) + `next_steps_for_caller` (write a `type: gate` ledger handoff; exit clean;
+  human answers at pickup; FRESH-run re-entry).
+- Concierge prompt gains a headless note: read `factory/decisions.yaml` (if present) BEFORE raising
+  any question and treat its entries as authoritative human answers — the schema's "headless factories
+  read this file BEFORE asking" clause. Makes re-entry idempotent without fs access in the spine
+  (agents have fs; the sandboxed spine does not).
+- `GATE_REQUIRED` skips Retro (no code work to score — same reasoning as CONCIERGE_ONLY_COMPLETE).
+- Scope guard: headless buys a clean gate-EXIT only. No auto-merge, transition ceiling unchanged,
+  proof-gated posts unchanged, gates are always human-only (never autopilot-approved), and all other
+  HALT_*/BLOCKED_* terminals behave exactly as in attended runs.
+- Not yet exercised end-to-end: the first live validation is one headless run parking at a gate and
+  resuming cleanly from a decision file (roadmap Phase 3 exit criterion). `node --check` clean; both
+  eval harnesses still pass.
+
+## 0.9.3 (2026-07-04)
+
+**Self-evolve pass — the observability/audit-trail improvements the retro loop kept re-proposing,
+promoted from prose to code.** Telemetry mining of 17 runs (06-09→06-22) showed the auto-improve loop
+half-closes: mechanical fixes get absorbed within days, but audit-trail items were re-proposed run
+after run and never stuck. The pattern that sticks = schema-required fields + JS gates (same as
+ac_tdd). Applied here:
+
+- **Review findings artifact is schema-required** (`REVIEW_SCHEMA.findings_artifact`, contract 5
+  return): contract 5 mandated `review/findings.json` since 0.5.0 in prose; 3 consecutive KTP-784 runs
+  still returned criticals:0 with an empty `review/` folder — and on 06-16 a "clean" review with no
+  on-disk record let a 542-line teammate-doc deletion pass unexamined. QA (contract 6) now spot-checks
+  the file exists (ground-truth layer). Proposed by 5 runs.
+- **Diagnosable skips + bounded Concierge retry**: every null-agent guard now records a stub trace
+  entry and returns `skip_reason` + best-known `ticket_folder` via `agentSkipped()`; the Concierge
+  (read-only, side-effect-free) gets ONE retry before halting. The 2026-06-11 batch burned 7 runs on
+  one transient dispatch fault that remained undiagnosable for lack of exactly this. Proposed by 7 runs.
+  A batch circuit-breaker rule (stop the batch on first HALT_AGENT_SKIPPED) is codified in SKILL.md
+  for callers (the loop lives outside the single-ticket workflow).
+- **QA `partial_cause`** (schema + contract 6): one-line cause string required on any non-ALL_PASS —
+  a PARTIAL was only legible by re-deriving from .out files. Proposed by 3 runs.
+- **QA MINE vs PRE-EXISTING triage** (contract 6): typecheck/lint failures diffed against
+  `git diff --name-only origin/dev...HEAD`; prevents false halts on repo debt (KTP-792's 9 pre-existing
+  TS errors) and regressions hiding among known failures.
+- **Ledger-repair telemetry footprint**: the 0.9.x shape-only TDD repair retry now traces
+  violations-before → after → gate result, so its hit-rate is measurable. Proposed by 3 runs.
+- **Concierge 1b pre-dispatch triage** (contract 1): consume existing `*spec-gate*.md` verdicts —
+  verdict <75 or unanswered "do not start" language → needs_human with a route-to-/post-comment
+  recommendation; a stale gate (question since answered in Jira) is noted and passed. 3 spec-blocked
+  dead dispatches in 8 days (KTP-699 ×2, KTP-762, KTP-739). Proposed by 4 runs.
+- **Proof-gated external posts** (SKILL.md + NEEDS_VISUAL_VERIFY fallback step): on READY_FOR_VISUAL_QA
+  the main loop opens the MR but parks the Jira comment on disk — no status-only posts, no transition,
+  until verified proof exists (Gab directive 2026-06-16).
+- **Registry sync**: `terraform-dac-infra` was racked in `SUPPORTED_BELTS` on 2026-06-15 but SKILL.md
+  prose still said three belts; all registries now agree on four.
+
+`node --check` clean; both eval harnesses pass (tdd-gate 16/16, visual-readiness 18/18). NOT applied
+(Stage-4 material, needs design/human decisions): integrity gate build, 0.10.0 fan-out, new belts
+(python/CrewAI, BQ/data), cloud-validation phase, autopilot wiring, run_scope/SHIPPED_PARTIAL_SCOPE
+terminal, eval-harness expansion.
+
 ## 0.9.2 (2026-06-10)
 
 **Multi-belt detection — the concierge can now see that a ticket is full-stack, so a sprint review surfaces

@@ -98,6 +98,23 @@ separate (see tooling.md). Relates to R5 (floor-manager as dispatcher/tool-crib)
 **Migration discipline:** new plugins/skills up → use-case-library bridge → retire old scattered
 skills last. (Plan + naming owned by a parallel planning session, not here.)
 
+## R9 — System spec-integrity engine (NORTH STAR)
+
+**What:** a reliable, up-to-date **system specification** + an **upstream** step that compares each
+ticket's AC/spec against the system spec, discerns **collision vs additive**, drives **intentional**
+spec change with human/stakeholder confirmation, **updates the spec on-branch FIRST**, then runs
+downstream implementation + **regression testing against the up-to-date spec**. Full vision:
+`docs/spec-integrity-engine-northstar.md`. Born from the **KTP-677 over-deletion** (a change locally
+correct but globally destructive — it would have killed a live, spec'd capability).
+**Why later (prerequisite-gated):** needs (1) a complete, machine-comparable system spec (agent-OS
+backfill across repos) — without it there is nothing to compare against; (2) unresolved hard design
+(semantic collision detection, the stakeholder confirmation loop, the update-spec-first inversion vs
+the existing TDD/QA gates). **Not a belt, not a floor — structural, "in the veins" (a new room/step).**
+**Buildable subset shipping first:** the **structural integrity gate**
+(`docs/system-integrity-gate-design.md`, Thread A — code-level blast-radius, catches the KTP-677
+*structural* case) is the low-hanging fruit and the **room this North Star grows into**. R9 is its own
+dedicated design session.
+
 ---
 
 ## Brainstorm hooks (future sessions)

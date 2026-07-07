@@ -70,6 +70,8 @@ Each nugget belongs in one of these section folders. Consult the curator notes i
 
 When a nugget spans multiple sections, use the primary-mode rule from the three-lane reference: identify what mode the reader is in when they need this knowledge (crisis → operations, learning → stack or domain, executing → operations).
 
+**Fit test — do not force-fit.** The section table above is a default map, not a straitjacket. Before assigning, ask: does this nugget's primary subject genuinely belong to an existing section's charter, or am I shoehorning it because no row matched? A nugget that only fits "by elimination" is a signal. When nothing fits cleanly, do NOT bury it in the least-bad section — instead route it to the closest match for now AND record a **new-section candidate** (see Step 3, option D) so the gap is visible rather than hidden. Glob the wiki's actual top-level folders first (`ls` the wiki root); the real section set may differ from the table above (e.g. Klever uses `stack/`, `sops/`, `vendors/`, `agent-hub/`), and a section may have been added since this doc was written.
+
 ### 2b. Determine Root INDEX Lane
 
 Also classify whether this nugget deserves a row in the root INDEX:
@@ -92,6 +94,13 @@ For each nugget, decide whether it:
 **B) Extends an existing file.** Use this when the section already has a file covering the same topic and the nugget adds a new gotcha or variant. Read the existing file first. Append a new section; do not rewrite content that is already accurate.
 
 **C) Belongs in a different document.** For meta-patterns about the Bibliothèque itself (like the three-lane design), the target may be `documentation/process/documentation-standards.md`, `bibliotheque/PROPOSALS.md`, or a CLAUDE.md update rather than a section file.
+
+**D) Warrants a new section.** Use this when the nugget (and ideally one or more others in the backlog) belongs to a durable theme that no existing section covers, and force-fitting it would dilute an existing section's charter.
+
+- **Create the section** (a new top-level folder + bootstrap `INDEX.md`) only when the evidence is strong: either **2+ nuggets in the current backlog share the theme**, or the theme is an obviously distinct, durable domain (a new vendor, a new product surface, a new subsystem). Name it with the same kebab-case convention. Bootstrap its `INDEX.md`, add it to the root `INDEX.md` section list, and flag the creation explicitly in the Step 8 report under **Structural changes**.
+- **Propose, do not create**, for borderline cases (a single speculative nugget, an unclear boundary, or a split of an existing section). Add the proposal to `bibliotheque/PROPOSALS.md` with: proposed name, charter (one line), the nuggets that motivated it, and which existing section(s) it would draw from. Park the nugget in the closest existing section meanwhile, and note the proposal in the Step 8 report. Never silently restructure existing content.
+
+**Reorg observations.** While placing nuggets you will see the wiki's current shape. If you notice structural drift — a section mixing unrelated concerns, the same topic split across two sections, a file that clearly belongs elsewhere, an INDEX that no longer matches its folder — do NOT move or merge existing files mid-curate (that is a separate, approval-gated operation). Instead record each observation for the Step 8 report (see **Structural Observations**). Curation places new knowledge; restructuring existing knowledge is a deliberate, human-reviewed pass.
 
 ---
 
@@ -254,6 +263,27 @@ If some nuggets from an entry were skipped (need human judgment, insufficient de
 
 ---
 
+## Step 7b: Archive Resolved Entries (garbage collection)
+
+The inbox is a **hot work queue**, not an archive. Once an entry reaches a terminal status it must leave the hot path, or the folder and ledger grow unbounded and every consumer that counts inbox files (the scheduled drain's `inbox-guard.sh`, lint check 8) reads a false backlog.
+
+After Step 7, for every entry whose final status is **terminal** (`promoted`, `done`, or `skipped` — NOT `pending` or `partial`, which stay hot until resolved):
+
+1. Determine the year from the entry's date prefix (e.g. `2026-06-08-...` → `2026`); fall back to the current year if undated.
+2. Move the raw file out of the hot path, preserving git history:
+   ```
+   mkdir -p {wiki-root}/inbox/archive/{YYYY}/
+   git -C {repo-root} mv {wiki-root}/inbox/{file} {wiki-root}/inbox/archive/{YYYY}/{file}
+   ```
+   If the file is untracked, use a plain `mv` instead of `git mv`.
+3. Move its row out of the live `inbox/INDEX.md` table and append it to `inbox/archive/INDEX.md` (create that ledger with a header if missing). Preserve the full Status cell (it holds the promotion provenance: which pages received which nuggets). The live ledger now shows ONLY `pending` and `partial` rows.
+
+**Never delete a raw entry.** Archival is a move, fully reversible via git. The promotion record also lives in `LOG.md`, so provenance survives in three places: the archived file, the archive ledger, and LOG.md.
+
+After archiving, the live inbox folder and ledger reflect true remaining work, so `inbox-guard.sh` (which counts `*.md` files at `-maxdepth 1`) and lint check 8 become accurate for free.
+
+---
+
 ## Step 7.5: Update Graph Index
 
 After all entries are promoted, regenerate the wiki link graph data file.
@@ -298,6 +328,12 @@ Output a structured report to the user:
 **Files created:** [list with one-liner on each]
 **Files updated:** [list]
 **Root INDEX rows added:** [Understand: N, Blocked: N, Do Something: N]
+
+### Structural changes
+[New sections created this run, if any: name + charter + which nuggets motivated each. Empty if none.]
+
+### Structural observations / reorg suggestions
+[Drift noticed while placing nuggets, NOT acted on: sections mixing concerns, topics split across sections, files that belong elsewhere, INDEX/folder mismatches. Also list new-section *proposals* (option D, propose-not-create) parked in PROPOSALS.md. Each line is an observation for a future approval-gated restructuring pass — never auto-executed during curate. Empty if none.]
 
 ### Needs Human Judgment
 [List any nuggets where classification was ambiguous or conflicted with existing knowledge. Propose a resolution; don't block on it.]

@@ -1,6 +1,6 @@
 ---
 name: klever-mr
-description: Create Klever GitLab merge requests with mandatory pre-flight gates. Handles all Klever repo types: Java backend (pom.xml), Node frontend (package.json), and infrastructure/terraform/DAC repos (no version file). Enforces version bump + CHANGELOG for app repos, skips those gates for infra repos. Always produces WHY + WHAT sections in the MR description. Use this skill whenever the user wants to create an MR, merge request, or PR on any Klever repo. Also use when the user says "push to dev", "ready to merge", "create MR", "open merge request", "ship this branch", "merge this to dev", or finishes a feature branch. Klever repos only (GitLab behind IAP).
+description: Create Klever GitLab merge requests with mandatory pre-flight gates. Handles all Klever repo types: Java backend (pom.xml), Node frontend (package.json), Python app (pyproject.toml), and infrastructure/terraform/DAC repos (no version file). Enforces version bump + CHANGELOG for app repos (Java, Node, Python), skips those gates for infra repos. Always produces WHY + WHAT sections in the MR description. Use this skill whenever the user wants to create an MR, merge request, or PR on any Klever repo. Also use when the user says "push to dev", "ready to merge", "create MR", "open merge request", "ship this branch", "merge this to dev", or finishes a feature branch. Klever repos only (GitLab behind IAP).
 nav:
   bay: ship
   when: "Create Klever GitLab MRs. Enforces version bump, changelog, dev sync."
@@ -21,13 +21,16 @@ Two problems this skill prevents:
 
 ## Repo Types
 
-Klever has three repo types. The skill detects which one it's in and adjusts gate behavior accordingly.
+Klever has four repo types. The skill detects which one it's in and adjusts gate behavior accordingly.
 
 | Type | Detection | Version gate | Changelog gate |
 |------|-----------|-------------|----------------|
 | **Java backend** | `pom.xml` at repo root | Required | Required |
 | **Node frontend** | `package.json` at repo root | Required | Required |
-| **Infra/DAC/terraform** | Neither file exists | Skipped | Skipped |
+| **Python app** | `pyproject.toml` at repo root (no `pom.xml`/`package.json`) | Required | Required-if-exists |
+| **Infra/DAC/terraform** | none of the above | Skipped | Skipped |
+
+**Python app repos matter:** Klever Python agent repos (e.g. `app-media-plan`, `app-agent-hub`) build a versioned Docker image and the CI's `bc-release-version` step runs `git tag $(poetry version --short)`. If the `[project] version` in `pyproject.toml` is not bumped between merges, the tag already exists and the pipeline fails on collision. So a `pyproject.toml` repo is an **app repo**, NOT infra — do not skip the version gate for it. (Learned from KTP-735: `app-media-plan` was misclassified as infra, the version gate was skipped, and the release step later failed.)
 
 Infra repos (paths containing `grp-dac`, `grp-cfg`, or repos with `.tf` files) have no versioned artifacts. Their pipelines run terraform, not Docker builds. Version bump and changelog gates do not apply.
 
@@ -50,9 +53,10 @@ Must be a git repo under `~/Developer/grp-beklever-com/`.
 Classify the repo type by checking for version files:
 - `pom.xml` exists → **Java backend**
 - `package.json` exists → **Node frontend**
-- Neither exists → **Infra/DAC**
+- `pyproject.toml` exists (and no `pom.xml`/`package.json`) → **Python app**
+- none of the above → **Infra/DAC**
 
-Store the repo type. Gates 4 and 5 use it to decide whether to run or skip.
+Store the repo type. Gates 4 and 5 use it to decide whether to run or skip. **Java backend, Node frontend, and Python app are all "app repos" (version + changelog gates apply). Only Infra/DAC skips them.**
 
 ### Gate 2: Branch Check
 
@@ -95,6 +99,10 @@ git show origin/dev:pom.xml | grep -m1 '<version>' | sed 's/.*<version>\(.*\)<\/
 
 # package.json:
 git show origin/dev:package.json | python3 -c "import sys,json; print(json.load(sys.stdin)['version'])"
+
+# pyproject.toml (Python app) — read [project] version via a real TOML parser
+# (a naive grep for 'version' also matches dependency pins). tomllib is stdlib in 3.11+.
+git show origin/dev:pyproject.toml | python3 -c "import sys,tomllib; print(tomllib.loads(sys.stdin.read())['project']['version'])"
 ```
 
 Local version MUST be strictly greater than origin/dev's version (patch increment minimum).
@@ -106,7 +114,7 @@ git tag --list | grep -F "<local-version>"
 ```
 
 If versions are equal:
-- **Auto-resolve:** Increment patch (X.Y.Z → X.Y.Z+1). For package.json, also run `npm install --package-lock-only`. Report: "Bumped version X.Y.Z → X.Y.Z+1."
+- **Auto-resolve:** Increment patch (X.Y.Z → X.Y.Z+1). For package.json, also run `npm install --package-lock-only`. For `pyproject.toml`, edit the `[project] version` line and, if a `uv.lock` is present at repo root, run `uv lock` (or note it needs regen) so the lockfile's project version tracks. Report: "Bumped version X.Y.Z → X.Y.Z+1."
 
 If tag already exists:
 - **Auto-resolve:** Find next available patch version, bump to that. Report: "Tag X.Y.Z exists, bumped to X.Y.N."
@@ -123,7 +131,9 @@ For app repos, read `CHANGELOG.md` at repo root. Verify it contains an entry mat
 
 The date should be today or recent (within 7 days). The entry must have content (at least one bullet under a category like Added/Changed/Fixed).
 
-If no CHANGELOG.md exists, STOP: "No CHANGELOG.md found at repo root."
+If no CHANGELOG.md exists:
+- **Java backend / Node frontend:** STOP: "No CHANGELOG.md found at repo root."
+- **Python app** (`pyproject.toml`): the changelog is required-if-exists, not a hard blocker (these agent repos often ship without one). Report: "No CHANGELOG.md in this Python repo — skipping the changelog gate (the version bump above is the gate that prevents the tag collision). Consider adding one." Do NOT stop.
 
 If no entry for current version:
 - **Auto-resolve:** Add a `## [X.Y.Z] - YYYY-MM-DD` section with entries from `git log --reverse --format="- %s" origin/dev..HEAD`. Report: "Added CHANGELOG entry for X.Y.Z."

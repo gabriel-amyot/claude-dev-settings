@@ -12,6 +12,7 @@ Tool names assume Chrome MCP loaded via `ToolSearch: select:mcp__claude-in-chrom
 5. Network timing (streamed vs buffered)
 6. Presets (Zustand store, Mapbox, localStorage)
 7. browser_batch composition
+8. Proof capture (screenshot → save → relocate to ticket folder)
 
 ---
 
@@ -285,3 +286,56 @@ These are starting points — the real accessor depends on what the app exposes.
 ## 7. browser_batch composition
 
 `browser_batch` runs several browser actions in one round-trip. Use it for stable, independent steps (arm sampler + read page + start network capture) to cut latency. Keep anything that depends on a prior result's value out of the batch — batches don't thread return values between steps.
+
+---
+
+## 8. Proof capture — screenshot (inline) → decode to a durable file
+
+The default deliverable. Capture **after** the reproduction has settled so the image shows the final observed state the facts describe. Skip this whole recipe if the invocation passed `--no-proof`.
+
+**Verified mechanism (2026-06-16, Claude Code + claude-in-chrome).** `computer` screenshot with `save_to_disk: true` does **NOT** write a standalone file or return a filesystem path. It delivers the image **inline into the conversation** (base64 embedded in the session transcript) and returns an **ID**. Consequences:
+
+- A **direct / interactive** caller already has the screenshot — it's inline in context. Nothing more to do for them.
+- A **subagent** caller does NOT propagate that inline image to its orchestrator (only final text returns). For automation, and for any durable artifact a human or `sprint-close` will open later, you must turn the inline image into a real file. The only handle on the bytes is the transcript, so we decode them out of it with the bundled `scripts/save_proof.py`.
+
+### Step 1 — capture (always do this)
+
+Use the **pinned portal `tabId`**. `save_to_disk: true` is what surfaces the image into the conversation:
+
+```
+computer: { action: "screenshot", save_to_disk: true, tabId: <pinned> }
+```
+
+For a small detail (a single metric, a legend swatch) prefer a tight `zoom` — it reads better as evidence:
+
+```
+computer: { action: "zoom", region: [x0, y0, x1, y1], save_to_disk: true, tabId: <pinned> }
+```
+
+The viewport is what's captured — content below the fold won't appear. If the spec target is off-screen, `scroll` it into view first, then capture.
+
+### Step 2 — decode to a durable file (when a file is needed)
+
+Needed whenever the caller is a subagent/automation, or when the proof must outlive the conversation (Jira upload, `sprint-close` evidence bundle, an orchestrator that will `Read` the path). The helper finds the most recent inline image in the session transcript and writes it where you point it. Create the dir is handled by the script. `date` in the shell is fine for the timestamp.
+
+```bash
+# Inputs: TICKET, EPIC, LABEL  (LABEL = the AC or a short slug, e.g. AC2 or service-area-render)
+DEST="tickets/KTP/${EPIC}/${TICKET}/design/screenshots/${TICKET}-${LABEL}-$(date +%Y-%m-%d).png"
+python3 ~/.claude/skills/ui-probe/scripts/save_proof.py --dest "$DEST"
+# prints the absolute path on success → put it on the report's **Proof:** line
+```
+
+No ticket context? Use the ad-hoc path and say so in the report:
+
+```bash
+DEST="tickets/_adhoc/ui-probe/$(date +%Y-%m-%d)-${LABEL}.png"
+python3 ~/.claude/skills/ui-probe/scripts/save_proof.py --dest "$DEST"
+```
+
+How the helper picks the right transcript: other sessions and background subagents write `.jsonl` files concurrently, so the single newest file in the project tree may belong to someone else and hold no image. The script walks candidates newest-first and returns the first that **actually contains an inline image** — the transcript the capturing agent just wrote. If you know your transcript path, pass `--transcript <file.jsonl>` to skip discovery entirely. The captured bytes are whatever the MCP returned (often jpeg); the file is written verbatim, so the `.png` name is cosmetic — consumers key off the path, not the magic bytes. (If a non-zero exit says "no inline image found," a screenshot wasn't captured this session — don't fabricate a file; report what you saw in words.)
+
+### Step 3 — surface it
+
+Put the **absolute** path (the script prints it) on the report's `**Proof:**` line, so a caller reads or attaches that one file without guessing the working directory. For a transition spec, capture twice (before + after the interaction) — call `save_proof.py` after each, into `…-AC2-before-…png` / `…-AC2-after-…png` — and list both paths.
+
+**Before capturing, glance at the screen for visible secrets** (a token typed into a field, an open devtools storage panel). The image records whatever is rendered and becomes a shared artifact in the ticket folder — scroll/close anything sensitive first, or fall back to `--no-proof` and describe the state in words.

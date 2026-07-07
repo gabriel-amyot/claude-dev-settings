@@ -1,0 +1,172 @@
+run_id: run-2026-06-11-KTP-791
+ticket: KTP-791
+title: >
+  DOOH screen categories: labels + coloured pins + legend. 4 Given/When/Then ACs, 3 SP, epic
+  KTP-748, Sprint 6 (Q2). Already implemented in a prior sprint-factory pass (MRs !112 backend
+  Goldfish enrichment + !269 frontend, both open/unreviewed, deferred from Sprint 5); real Sprint 6
+  work is review + dev validation + ordered merge (backend first), per Leo's spec gate.
+date: 2026-06-11
+terminal_status: HALT_AGENT_SKIPPED
+halt_phase: Concierge
+ticket_folder_reported: "(unresolved)"
+ticket_folder_actual: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-748/KTP-791
+session: unresolved (sessions/active/state.yaml has empty session_id; handoff written to shared sessions/active/prompts/ per precedent set by KTP-677/704/784 today)
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: true
+  note: >
+    Gate configured in default halt mode with zero warn-mode violations, but the signal is VACUOUS:
+    the run died at the Concierge null-guard before any code phase. No implementation occurred in
+    THIS run, so there was no RED->GREEN sequence to police. (The pre-existing MRs were built by an
+    earlier pipeline, outside this run's gate.)
+
+per_phase: []
+per_phase_note: >
+  The per-phase trace handed to retro is EMPTY ([]). rec() only fires after a successful agent
+  return; the first dispatch (Concierge) returned null and the workflow emitted
+  { status: 'HALT_AGENT_SKIPPED' } with no trace entry, no confidence, no skip reason. This retro
+  was reconstructed entirely from disk: the ticket folder (SCOPE-DECISION.md, analyst/, design/,
+  qa/, review/, reports/), Leo's sprint6-spec-gate-2026-06-10.md, and the four sibling
+  HALT_AGENT_SKIPPED telemetry files from earlier on 2026-06-11.
+
+scores:
+  task_confidence: 35
+  factory_fitness: 25
+
+deductions:
+  # task_confidence (start 100 -> 35). Unlike siblings KTP-677/695/784 (scored 5), KTP-791's task
+  # is materially advanced INDEPENDENT of this run: all 4 ACs implemented, execution-verified
+  # locally (8,514 enriched screens), two MRs open. None of that credit comes from this run.
+  - points: 25
+    reason: >
+      task_confidence: this run executed zero phases. The actual Sprint 6 work (review !112 + !269,
+      on-map dev validation, ordered merge backend-first) was not touched. The ticket is exactly as
+      done/undone as before the dispatch.
+  - points: 15
+    reason: >
+      task_confidence: both MRs remain unreviewed, and the known review landmine is still armed —
+      the Jira description says "purely a display concern" (frontend-only) while !112 adds backend
+      Goldfish catalog enrichment. The front-gate scope decision (SCOPE-DECISION.md) and Leo's gate
+      both call for a confirmation comment accepting the backend enrichment as in-scope BEFORE
+      review starts; no such comment exists, so a literal reviewer is still set up to reject !112.
+  - points: 10
+    reason: >
+      task_confidence: no dev validation. Execution verification was local-only, and !269's rebase
+      status against current dev (KTP-759 has since merged) is unverified — AC-1's raw-ID
+      supersession may not hold against the merged panel.
+  - points: 5
+    reason: >
+      task_confidence: backend failure mode unspecified (Leo Gap 2). No asserted behavior for
+      Goldfish GET /v2/location-types being unavailable on a cold cache; the !112 reviewer has
+      nothing to review that path against.
+  - points: 5
+    reason: >
+      task_confidence: nothing merged; the ordered merge (backend !112 first, then !269) has not
+      started, and KTP-792 (tier 2) is blocked behind it.
+  - points: 5
+    reason: >
+      task_confidence: the run left no resumable state of its own (folder "(unresolved)", no
+      concierge artifacts). The warm start that exists (87/100 spec gate, SCOPE-DECISION.md, QA +
+      adversarial reports) is entirely external to this run and was never consumed by it.
+  # factory_fitness (start 100 -> 25)
+  - points: 30
+    reason: >
+      factory_fitness: the factory's first station failed again. Concierge agent() returned null,
+      the null-guard (dark-factory.workflow.js:407) halted the run, and a sprint-committed 3 SP
+      ticket got zero value from a full dispatch cycle.
+  - points: 15
+    reason: >
+      factory_fitness: RECURRENCE WITHOUT REMEDIATION. This is the FIFTH identical
+      HALT_AGENT_SKIPPED at Concierge on 2026-06-11 (KTP-677, KTP-695, KTP-704, KTP-784, now
+      KTP-791). The exact fixes (skip_reason, retry-once, mechanical folder resolution, stub trace,
+      batch circuit breaker) were filed in the KTP-677 and KTP-784 retros and in two on-disk
+      handoffs; none were applied, and no circuit breaker stopped the batch before it burned a
+      fifth cycle.
+  - points: 10
+    reason: >
+      factory_fitness: HALT_AGENT_SKIPPED still carries no skip_reason. For the fifth run in a row
+      the root cause (user decline vs dispatch error vs timeout vs schema rejection) is unknowable
+      from the run record.
+  - points: 8
+    reason: >
+      factory_fitness: per-phase trace was [] — not even a stub entry for the attempted Concierge
+      dispatch. The run left no machine-readable evidence beyond its terminal status string.
+  - points: 7
+    reason: >
+      factory_fitness: ticket_folder "(unresolved)" although tickets/KTP/KTP-748/KTP-791 exists on
+      disk with the richest artifact set of any ticket in the batch (analyst/, design/, qa/,
+      review/, SCOPE-DECISION.md, spec gate). Folder resolution is agent-dependent, so the
+      pre-concierge halt orphaned every fallback artifact path.
+  - points: 5
+    reason: >
+      factory_fitness: no retry before halting. Concierge is read-only and idempotent — the
+      cheapest phase to retry once on a null return.
+
+red_flags:
+  - "Concierge agent() returned null on the FIRST dispatch; null-guard fired; run ended with zero work product."
+  - "FIFTH identical HALT_AGENT_SKIPPED observed on 2026-06-11 at retro time (KTP-677, KTP-695, KTP-704, KTP-784, KTP-791) — and the runs INDEX grew to SEVEN (adding KTP-739, KTP-792) while this retro was being written. Systemic harness-side dispatch failure; the batch was never circuit-broken and previously-filed improvements were not applied between failures."
+  - "No skip_reason captured — root cause still unknowable from telemetry, fifth occurrence today."
+  - "Per-phase trace empty ([]) — no stub record of the attempted dispatch."
+  - "ticket_folder '(unresolved)' despite tickets/KTP/KTP-748/KTP-791 existing with full prior-pipeline artifacts."
+  - "Work-shape mismatch: KTP-791 sits in TO DO with build-shaped ACs, but the work is review + dev validation + ordered merge of existing MRs !112/!269 (Leo Gap 5). A naive factory re-dispatch would rebuild what already exists."
+  - "Scope-deviation confirmation comment (backend Goldfish enrichment accepted as in-scope) still not posted on KTP-791 — SCOPE-DECISION.md flagged it 'to surface at ship time' on 2026-06-08, Leo re-flagged it 2026-06-10, and review of !112 remains set up for a spec-vs-code rejection."
+  - "!269 rebase risk: written against pre-merge KTP-759; KTP-759 is now merged to dev; raw-ID supersession unverified against current dev."
+  - "runs/INDEX.md is missing entries for run-2026-06-10-KTP-739 and run-2026-06-11-KTP-704 even though their telemetry YAMLs exist — the index is drifting from the ledger."
+
+improvements:
+  - title: "STOP the batch: circuit-break after the first HALT_AGENT_SKIPPED and diagnose the dispatcher"
+    detail: >
+      Five tickets died at the identical pre-concierge null in one day. Apply the pipeline-retry
+      circuit-breaker principle to agent dispatch: when a run terminates HALT_AGENT_SKIPPED at the
+      FIRST phase, the dispatcher (sprint-factory loop or human) must halt further ticket
+      dispatches until the harness fault is identified and fixed. Do not re-dispatch anything,
+      KTP-791 included, before this diagnosis.
+  - title: "Capture skip_reason in every HALT_AGENT_SKIPPED return"
+    detail: >
+      Extend agent() / the null-guard sites in dark-factory.workflow.js to surface WHY the return
+      was null — user_declined | dispatch_error | timeout | schema_validation_failed | unknown —
+      and include it in the halt object and the trace. Filed in the KTP-677 retro; still the top
+      diagnostic gap after four more failures.
+  - title: "Retry idempotent read-only phases once before halting"
+    detail: >
+      On a null agent() return at Concierge (or Grill), retry exactly once (same prompt, label
+      suffixed '-retry') before emitting HALT_AGENT_SKIPPED. Bounded to one retry.
+  - title: "Resolve ticket_folder mechanically in workflow.js before the concierge"
+    detail: >
+      Glob project-management/tickets/*/**/<TICKET> (archive/ fallback) at run start and carry it
+      in run context. KTP-791 resolves unambiguously to tickets/KTP/KTP-748/KTP-791; the halt
+      should never have reported '(unresolved)'.
+  - title: "Emit a stub trace entry for every attempted phase, including skips"
+    detail: >
+      Record an 'attempted' stub (phase, timestamp, outcome: skipped + skip_reason) at dispatch
+      time and finalize on return. Retro must never receive [] for a run that consumed a dispatch.
+  - title: "Concierge must detect already-implemented tickets and select a review/ship belt, not a build belt"
+    detail: >
+      KTP-791 has open MRs (!112, !269), a QA report, and an adversarial review on disk from a
+      prior pipeline. The concierge contract should check for existing branch/MR/artifacts and
+      classify the run as review+validate+merge instead of greenfield build. Without this, a
+      successful re-dispatch would still do the wrong work.
+  - title: "Re-dispatch KTP-791 as review+ship with mandatory warm-start context"
+    detail: >
+      When the dispatcher is fixed: (1) post the scope-confirmation comment on KTP-791 via
+      /post-comment (backend Goldfish enrichment in-scope per the 2026-06-08 front-gate decision;
+      also state the Goldfish-unavailable degrade-to-"Other" behavior, Leo Gap 2); (2) review !112
+      and !269, confirming the two ship-blocker fixes (snake_case location_type key; @Cacheable
+      self-invocation) are present; (3) verify !269 rebases clean on current dev with merged
+      KTP-759; (4) merge backend !112 first, then !269; (5) on-map dev validation of all 4 ACs.
+      Feed reports/reviews/sprint6-spec-gate-2026-06-10.md and SCOPE-DECISION.md to the first
+      agent as required reading.
+  - title: "Reconcile runs/INDEX.md with the runs directory"
+    detail: >
+      run-2026-06-10-KTP-739 and run-2026-06-11-KTP-704 have telemetry files but no index line.
+      Add a retro contract step (or a tiny lint) asserting one index row per YAML in runs/.
+
+summary: >
+  Fifth identical pre-concierge HALT_AGENT_SKIPPED of 2026-06-11: the first agent dispatch returned
+  null, empty trace, unresolved folder — pure harness failure, zero run output. task_confidence 35
+  (the ticket itself is well advanced from a PRIOR pipeline: 4/4 ACs implemented, MRs !112/!269
+  open but unreviewed/unmerged, scope-deviation comment still unposted) / factory_fitness 25
+  (lowest of the batch: recurrence after the fixes were already filed twice). Circuit-break the
+  batch, fix dispatch diagnostics, then re-dispatch KTP-791 as review+validate+merge work, not a
+  build.

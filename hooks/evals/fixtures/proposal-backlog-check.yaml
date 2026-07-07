@@ -1,0 +1,65 @@
+hook: proposal-backlog-check.sh
+# All cases override HOME to an isolated tmp dir so this suite never reads or
+# touches the real ~/.claude/skill-proposals backlog (read-only-on-real-fs guarantee).
+wired:
+  event: SessionStart
+  expected: true
+
+cases:
+  - name: 01-under-threshold-count-silent
+    setup: >-
+      mkdir -p {tmp}/.claude/skill-proposals &&
+      touch {tmp}/.claude/skill-proposals/p1.md {tmp}/.claude/skill-proposals/p2.md {tmp}/.claude/skill-proposals/p3.md
+    env: {HOME: "{tmp}"}
+    stdin: {}
+    expected_exit: 0
+    absent: "PROPOSAL BACKLOG"
+
+  - name: 02-at-threshold-boundary-old-audit-still-silent
+    # Exactly 5 (threshold is "-le 5"), even with a stale audit date the count
+    # check short-circuits before the date check ever runs.
+    setup: >-
+      mkdir -p {tmp}/.claude/skill-proposals &&
+      touch {tmp}/.claude/skill-proposals/p1.md {tmp}/.claude/skill-proposals/p2.md {tmp}/.claude/skill-proposals/p3.md {tmp}/.claude/skill-proposals/p4.md {tmp}/.claude/skill-proposals/p5.md &&
+      touch -t 202501010000 {tmp}/.claude/skill-proposals/.last-audit
+    env: {HOME: "{tmp}"}
+    stdin: {}
+    expected_exit: 0
+    absent: "PROPOSAL BACKLOG"
+
+  - name: 03-over-threshold-recent-audit-silent
+    setup: >-
+      mkdir -p {tmp}/.claude/skill-proposals &&
+      touch {tmp}/.claude/skill-proposals/p1.md {tmp}/.claude/skill-proposals/p2.md {tmp}/.claude/skill-proposals/p3.md {tmp}/.claude/skill-proposals/p4.md {tmp}/.claude/skill-proposals/p5.md {tmp}/.claude/skill-proposals/p6.md &&
+      touch {tmp}/.claude/skill-proposals/.last-audit
+    env: {HOME: "{tmp}"}
+    stdin: {}
+    expected_exit: 0
+    absent: "PROPOSAL BACKLOG"
+
+  - name: 04-over-threshold-stale-audit-triggers-message
+    setup: >-
+      mkdir -p {tmp}/.claude/skill-proposals &&
+      touch {tmp}/.claude/skill-proposals/p1.md {tmp}/.claude/skill-proposals/p2.md {tmp}/.claude/skill-proposals/p3.md {tmp}/.claude/skill-proposals/p4.md {tmp}/.claude/skill-proposals/p5.md {tmp}/.claude/skill-proposals/p6.md &&
+      touch -t 202501010000 {tmp}/.claude/skill-proposals/.last-audit
+    env: {HOME: "{tmp}"}
+    stdin: {}
+    expected_exit: 0
+    needle: "PROPOSAL BACKLOG"
+
+  - name: 05-over-threshold-missing-audit-file-triggers-message
+    # No .last-audit file at all -> date -r fails -> last_epoch falls back to 0 ->
+    # days_since computes to a huge number -> treated as "never audited".
+    setup: >-
+      mkdir -p {tmp}/.claude/skill-proposals &&
+      touch {tmp}/.claude/skill-proposals/p1.md {tmp}/.claude/skill-proposals/p2.md {tmp}/.claude/skill-proposals/p3.md {tmp}/.claude/skill-proposals/p4.md {tmp}/.claude/skill-proposals/p5.md {tmp}/.claude/skill-proposals/p6.md {tmp}/.claude/skill-proposals/p7.md
+    env: {HOME: "{tmp}"}
+    stdin: {}
+    expected_exit: 0
+    needle: "PROPOSAL BACKLOG"
+
+  - name: 06-no-proposals-dir-at-all-silent
+    env: {HOME: "{tmp}"}
+    stdin: {}
+    expected_exit: 0
+    absent: "PROPOSAL BACKLOG"

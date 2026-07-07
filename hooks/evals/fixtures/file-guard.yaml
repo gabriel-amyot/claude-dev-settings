@@ -1,0 +1,50 @@
+hook: file-guard.sh
+# TODO(Gabriel): file-guard.sh is NOT registered under PreToolUse in
+# ~/.claude/settings.json today (confirmed by grep against the live file). It is
+# read-only-safe to test (gated on $HOME/.claude/hooks/.protection-enabled, which
+# every case here overrides via HOME to an isolated tmp dir), but nothing dispatches
+# it at runtime. This wiring assertion is intentionally left failing to surface the
+# decision: either wire it into settings.json as the PreToolUse Edit|Write guard
+# (per its own header comment, and per its "Replaces: config-protect.sh,
+# claude-md-guard.sh" claim which is not actually true today — both of those are
+# still separately registered) or retire the script. Do not silently resolve this by
+# editing settings.json.
+wired:
+  event: PreToolUse
+  expected: true
+  note: "TODO: file-guard is not registered in settings.json — pinned as FAIL to surface the wiring decision"
+
+cases:
+  - name: 01-protection-disabled-silent-even-for-claude-md
+    env: {HOME: "{tmp}"}
+    stdin: {tool_input: {file_path: "/repo/CLAUDE.md"}}
+    expected_exit: 0
+    absent: "BLOCKED"
+
+  - name: 02-protection-enabled-blocks-claude-md
+    setup: "mkdir -p {tmp}/.claude/hooks && touch {tmp}/.claude/hooks/.protection-enabled"
+    env: {HOME: "{tmp}"}
+    stdin: {tool_input: {file_path: "/repo/nested/CLAUDE.md"}}
+    expected_exit: 2
+    needle: "CLAUDE.md is a protected configuration file"
+
+  - name: 03-protection-enabled-blocks-dot-claude-settings
+    setup: "mkdir -p {tmp}/.claude/hooks && touch {tmp}/.claude/hooks/.protection-enabled"
+    env: {HOME: "{tmp}"}
+    stdin: {tool_input: {file_path: "/repo/.claude/settings.json"}}
+    expected_exit: 2
+    needle: ".claude/settings.json is a protected configuration file"
+
+  - name: 04-protection-enabled-blocks-agent-os-sbe
+    setup: "mkdir -p {tmp}/.claude/hooks && touch {tmp}/.claude/hooks/.protection-enabled"
+    env: {HOME: "{tmp}"}
+    stdin: {tool_input: {file_path: "/repo/agent-os/sbe/some-spec.md"}}
+    expected_exit: 2
+    needle: "spec-controlled"
+
+  - name: 05-protection-enabled-unrelated-file-passes
+    setup: "mkdir -p {tmp}/.claude/hooks && touch {tmp}/.claude/hooks/.protection-enabled"
+    env: {HOME: "{tmp}"}
+    stdin: {tool_input: {file_path: "/repo/src/main.py"}}
+    expected_exit: 0
+    absent: "BLOCKED"

@@ -1,0 +1,52 @@
+hook: claude-md-guard.sh
+# NOTE: this hook reads $CLAUDE_TOOL_INPUT (an env var), NOT stdin. All cases set it
+# via env overrides; stdin content is irrelevant and left empty.
+wired:
+  event: PostToolUse
+  expected: true
+
+cases:
+  - name: 01-claude-md-basename-triggers-guard
+    stdin: {}
+    env:
+      CLAUDE_TOOL_INPUT: '{"file_path": "/repo/some/nested/dir/CLAUDE.md"}'
+    expected_exit: 0
+    needle: "CLAUDE.MD GUARD"
+
+  - name: 02-non-claude-md-file-silent
+    stdin: {}
+    env:
+      CLAUDE_TOOL_INPUT: '{"file_path": "/repo/README.md"}'
+    expected_exit: 0
+    absent: "CLAUDE.MD GUARD"
+
+  - name: 03-filepath-camelcase-fallback-triggers
+    stdin: {}
+    env:
+      CLAUDE_TOOL_INPUT: '{"filePath": "/repo/CLAUDE.md"}'
+    expected_exit: 0
+    needle: "CLAUDE.MD GUARD"
+
+  - name: 04-missing-tool-input-env-silent
+    stdin: {}
+    env:
+      CLAUDE_TOOL_INPUT: ""
+    expected_exit: 0
+    absent: "CLAUDE.MD GUARD"
+
+  - name: 05-malformed-json-fails-closed-silent
+    # python3 json.load raises, stderr redirected to /dev/null, FILE_PATH ends up empty.
+    stdin: {}
+    env:
+      CLAUDE_TOOL_INPUT: "not-json{{{"
+    expected_exit: 0
+    absent: "CLAUDE.MD GUARD"
+
+  - name: 06-guard-body-includes-authoring-standards
+    # Confirms the injected context actually pulls in the standards file content,
+    # not just the header line.
+    stdin: {}
+    env:
+      CLAUDE_TOOL_INPUT: '{"file_path": "/repo/CLAUDE.md"}'
+    expected_exit: 0
+    needle: "Review your change against these standards"

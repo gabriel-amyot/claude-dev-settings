@@ -1,0 +1,164 @@
+# Regression fixtures for session-close-operationalize-guard.sh (PreToolUse|Edit,Write).
+#
+# The guard blocks a session ledger write that sets status: closed|abandoned unless
+# /operationalize captured for THIS close. Proof = the freshest knowledge-manifest.yaml
+# (under <PM>/sessions/active/*/ or /archive/done/*/) has a last_run within the window
+# (default 15 min) AND that manifest names a bibliothèque inbox file that exists on disk
+# (or the PM has no inbox dir, in which case the inbox check is skipped).
+#
+# PM_ROOT is derived by stripping "/sessions/ledger.yaml" from file_path, so every case
+# points file_path at {tmp}/sessions/ledger.yaml and materializes the session tree under
+# {tmp}. Fresh cases stamp last_run via `setup:` using `date` (cwd defaults to {tmp}).
+# The runner runs ONLY the hook — no real session state is touched.
+#
+# All exit codes PINNED against the live hook on 2026-07-07 (see report).
+
+hook: session-close-operationalize-guard.sh
+
+wired:
+  event: PreToolUse
+  expected: true
+  note: registered as a PreToolUse Edit/Write guard on the session ledger
+
+cases:
+  # --- block: closing with stale / missing / unrouted capture ---
+  - name: 01-close-stale-manifest
+    files:
+      sessions/active/foo/knowledge-manifest.yaml: "last_run: 2020-01-01T00:00:00Z\n"
+    stdin:
+      tool_input:
+        file_path: "{tmp}/sessions/ledger.yaml"
+        new_string: "status: closed"
+    expected_exit: 2
+    needle: "stale"
+
+  - name: 02-close-no-manifest-ever
+    stdin:
+      tool_input:
+        file_path: "{tmp}/sessions/ledger.yaml"
+        new_string: "status: closed"
+    expected_exit: 2
+    needle: "has never run"
+
+  - name: 03-close-fresh-but-inbox-file-missing
+    files:
+      documentation/bibliotheque/inbox/other.md: "unrelated\n"
+    setup: "mkdir -p sessions/active/foo && printf 'last_run: %s\\ninbox_file: missing.md\\n' \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\" > sessions/active/foo/knowledge-manifest.yaml"
+    stdin:
+      tool_input:
+        file_path: "{tmp}/sessions/ledger.yaml"
+        new_string: "status: closed"
+    expected_exit: 2
+    needle: "does NOT reference"
+
+  - name: 04-close-abandoned-stale
+    files:
+      sessions/active/foo/knowledge-manifest.yaml: "last_run: 2020-01-01T00:00:00Z\n"
+    stdin:
+      tool_input:
+        file_path: "{tmp}/sessions/ledger.yaml"
+        new_string: "status: abandoned"
+    expected_exit: 2
+
+  # --- allow: fresh + routed capture, non-close writes, override ---
+  - name: 05-close-fresh-with-inbox-file
+    files:
+      documentation/bibliotheque/inbox/nugget.md: "captured nugget\n"
+    setup: "mkdir -p sessions/active/foo && printf 'last_run: %s\\ninbox_file: nugget.md\\n' \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\" > sessions/active/foo/knowledge-manifest.yaml"
+    stdin:
+      tool_input:
+        file_path: "{tmp}/sessions/ledger.yaml"
+        new_string: "status: closed"
+    expected_exit: 0
+    absent: "BLOCKED"
+
+  - name: 06-close-fresh-no-inbox-dir
+    # No bibliothèque inbox dir at all -> org doesn't use it -> inbox check skipped.
+    setup: "mkdir -p sessions/active/foo && printf 'last_run: %s\\n' \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\" > sessions/active/foo/knowledge-manifest.yaml"
+    stdin:
+      tool_input:
+        file_path: "{tmp}/sessions/ledger.yaml"
+        new_string: "status: closed"
+    expected_exit: 0
+    absent: "BLOCKED"
+
+  - name: 07-non-ledger-edit-ignored
+    stdin:
+      tool_input:
+        file_path: "{tmp}/random.md"
+        new_string: "status: closed"
+    expected_exit: 0
+
+  - name: 08-ledger-edit-not-closing
+    stdin:
+      tool_input:
+        file_path: "{tmp}/sessions/ledger.yaml"
+        new_string: "status: active"
+    expected_exit: 0
+
+  - name: 09-operationalize-skip-override
+    files:
+      sessions/.operationalize-skip: "reason: capture genuinely cannot run here\n"
+    stdin:
+      tool_input:
+        file_path: "{tmp}/sessions/ledger.yaml"
+        new_string: "status: closed"
+    expected_exit: 0
+    needle: "operationalize-skip present"
+
+  # --- RED TEAM ---
+  - name: rt-01-close-via-write-content-field
+    # Closing via the Write tool (content field, not new_string) is still CAUGHT:
+    # the hook falls back to `content` when `new_string` is absent.
+    files:
+      sessions/active/foo/knowledge-manifest.yaml: "last_run: 2020-01-01T00:00:00Z\n"
+    stdin:
+      tool_input:
+        file_path: "{tmp}/sessions/ledger.yaml"
+        content: "status: closed"
+    expected_exit: 2
+    needle: "BLOCKED"
+
+  - name: rt-02-status-no-space-caught
+    # `status:closed` (no space) is CAUGHT — [[:space:]]* matches zero spaces.
+    files:
+      sessions/active/foo/knowledge-manifest.yaml: "last_run: 2020-01-01T00:00:00Z\n"
+    stdin:
+      tool_input:
+        file_path: "{tmp}/sessions/ledger.yaml"
+        new_string: "status:closed"
+    expected_exit: 2
+
+  - name: rt-03-single-quoted-status-evades
+    # KNOWN GAP: `status: 'closed'` is NOT detected — the grep expects the bare word
+    # right after optional spaces, but finds a quote. The close slips through (exit 0).
+    files:
+      sessions/active/foo/knowledge-manifest.yaml: "last_run: 2020-01-01T00:00:00Z\n"
+    stdin:
+      tool_input:
+        file_path: "{tmp}/sessions/ledger.yaml"
+        new_string: "status: 'closed'"
+    expected_exit: 0
+
+  - name: rt-04-double-quoted-status-evades
+    # KNOWN GAP: `status: "closed"` likewise evades detection (exit 0).
+    files:
+      sessions/active/foo/knowledge-manifest.yaml: "last_run: 2020-01-01T00:00:00Z\n"
+    stdin:
+      tool_input:
+        file_path: "{tmp}/sessions/ledger.yaml"
+        new_string: 'status: "closed"'
+    expected_exit: 0
+
+  - name: rt-05-fresh-manifest-in-done-path
+    # The freshest-manifest scan also covers sessions/archive/done/* — a fresh manifest
+    # there with a routed inbox file correctly ALLOWS the close.
+    files:
+      documentation/bibliotheque/inbox/nugget.md: "captured nugget\n"
+    setup: "mkdir -p sessions/archive/done/foo && printf 'last_run: %s\\ninbox_file: nugget.md\\n' \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\" > sessions/archive/done/foo/knowledge-manifest.yaml"
+    stdin:
+      tool_input:
+        file_path: "{tmp}/sessions/ledger.yaml"
+        new_string: "status: closed"
+    expected_exit: 0
+    absent: "BLOCKED"

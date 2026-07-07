@@ -1,0 +1,39 @@
+hook: screenshot-placement-guard.sh
+wired:
+  event: PostToolUse
+  expected: true
+
+cases:
+  - name: 01-tickets-path-good-placement-silent
+    stdin: {tool_input: {name: "tickets/KTP/no-epic/KTP-609/design/screenshots/ac1.png"}}
+    expected_exit: 0
+    absent: "SCREENSHOT PLACEMENT WARNING"
+
+  - name: 02-generic-dir-component-silent
+    stdin: {tool_input: {name: "some/other/dir/foo.png"}}
+    expected_exit: 0
+    absent: "SCREENSHOT PLACEMENT WARNING"
+
+  - name: 03-bare-filename-warns
+    stdin: {tool_input: {name: "foo.png"}}
+    expected_exit: 0
+    needle: "SCREENSHOT PLACEMENT WARNING"
+
+  - name: 04-missing-name-silent
+    stdin: {tool_input: {}}
+    expected_exit: 0
+    absent: "SCREENSHOT PLACEMENT WARNING"
+
+  - name: 05-filename-camelcase-fallback-warns
+    stdin: {tool_input: {fileName: "screenshot.png"}}
+    expected_exit: 0
+    needle: "SCREENSHOT PLACEMENT WARNING"
+
+  - name: 06-dot-slash-bypasses-warning-pinned-gap
+    # PINNED BEHAVIOR (gap, not a bug fix): "./foo.png" contains a "/" so it matches
+    # the generic */* case and is treated as "probably OK", even though it still
+    # resolves to the repo root exactly like a bare filename would. Documented here
+    # so a future tightening of the guard has a regression case to update deliberately.
+    stdin: {tool_input: {name: "./foo.png"}}
+    expected_exit: 0
+    absent: "SCREENSHOT PLACEMENT WARNING"

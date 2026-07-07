@@ -31,6 +31,50 @@ suites:
     owner_skill: gitlab
     last_green: 2026-07-07
 
+  - target: gitlab/pipeline-trace
+    layer: A
+    runner: python3 ~/.claude-shared-config/skills/gitlab/evals/run_trace_evals.py
+    owner_skill: gitlab
+    last_green: 2026-07-07
+
+  - target: har-diagnostic/har-parse
+    layer: A
+    runner: python3 ~/.claude-shared-config/skills/har-diagnostic/evals/run_har_evals.py
+    owner_skill: har-diagnostic
+    last_green: 2026-07-07
+
+  - target: sprint-factory/pre-ship-gate
+    layer: A
+    runner: python3 ~/.claude-shared-config/skills/sprint-factory/evals/run_preship_evals.py
+    owner_skill: sprint-factory
+    last_green: 2026-07-07
+
+  - target: dark-factory/tdd-gate
+    layer: A
+    runner: node ~/.claude-shared-config/skills/dark-factory/tests/tdd-gate.test.mjs
+    owner_skill: dark-factory
+    last_green: 2026-07-07
+
+  - target: dark-factory/visual-readiness
+    layer: A
+    runner: node ~/.claude-shared-config/skills/dark-factory/tests/visual-readiness.test.mjs
+    owner_skill: dark-factory
+    last_green: 2026-07-07
+
+  - target: status-index/completion-calc
+    layer: A
+    runner: python3 ~/.claude-shared-config/skills/status-index/evals/run_status_evals.py
+    owner_skill: status-index
+    last_green: 2026-07-07
+
+  - target: validate-repo-links/validate
+    layer: A
+    runner: python3 ~/.claude-shared-config/skills/validate-repo-links/evals/run_link_evals.py
+    owner_skill: validate-repo-links
+    # pins a real bug: `validate` exits 0 on broken links (cases suffixed -BUG);
+    # see the suite's eval report before relying on exit codes as a CI gate.
+    last_green: 2026-07-07
+
   # --- hook suites (runner: hooks/evals/run_hook_evals.py) ---
 
   - target: hooks/external-post-gate

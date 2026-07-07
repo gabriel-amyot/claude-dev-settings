@@ -1,0 +1,116 @@
+# Regression fixtures for challenge-detect.sh (KTP-688 Layer C).
+#
+# UserPromptSubmit hook. Always exits 0 (never blocks a prompt). On stdout it
+# either injects the "CHALLENGE DETECTED" falsification directive or stays silent.
+#
+# It fires only when BOTH hold:
+#   1) the prompt matches the PUSHBACK regex (contradiction of a claim), AND
+#   2) an ASSERTION exists in the recent transcript (root cause / code ref / diagnosis).
+# If the transcript_path is empty or the file is missing, the script assumes an
+# assertion MAY exist (ASSERTED=true) and errs toward firing.
+#
+# Transcripts are materialized via `files:` and referenced through {tmp} in stdin.
+# All outcomes pinned against the live hook on 2026-07-07. Misses are labelled
+# KNOWN GAP; over-fires are labelled FALSE POSITIVE. Do not edit the hook to make
+# them green. See reports/2026-07-07-external-post-gate-and-challenge-detect.md.
+
+hook: challenge-detect.sh
+
+# It IS wired under UserPromptSubmit -> this assertion passes.
+wired:
+  event: UserPromptSubmit
+  expected: true
+  note: "challenge-detect is registered under UserPromptSubmit in settings.json"
+
+cases:
+  - name: 01-pushback-with-causal-transcript-fires
+    files:
+      transcript.jsonl: |
+        {"role":"assistant","content":"The root cause is a stale checkout; the bug is in adapter.py:42 caused by a missing param."}
+    stdin: {prompt: "that's not right, that line worked last week, don't touch it", transcript_path: "{tmp}/transcript.jsonl"}
+    expected_exit: 0
+    needle: "CHALLENGE DETECTED"
+
+  - name: 02-benign-feature-request-silent
+    files:
+      transcript.jsonl: |
+        {"role":"assistant","content":"Sure, I can add that feature. Would you like it in the sidebar?"}
+    stdin: {prompt: "can you also add a dark mode toggle to the settings page", transcript_path: "{tmp}/transcript.jsonl"}
+    expected_exit: 0
+    absent: "CHALLENGE DETECTED"
+
+  - name: 03-pushback-but-no-assertion-in-transcript-silent
+    # Scope guard: pushback wording present, but transcript holds no assertion.
+    files:
+      transcript.jsonl: |
+        {"role":"assistant","content":"Sure, I can add that feature. Would you like it in the sidebar?"}
+    stdin: {prompt: "no, that's wrong", transcript_path: "{tmp}/transcript.jsonl"}
+    expected_exit: 0
+    absent: "CHALLENGE DETECTED"
+
+  - name: 04-pushback-missing-transcript-file-fires
+    # File does not exist -> ASSERTED defaults true -> fires (err toward falsification).
+    stdin: {prompt: "you're wrong about that", transcript_path: "{tmp}/does-not-exist.jsonl"}
+    expected_exit: 0
+    needle: "CHALLENGE DETECTED"
+
+  - name: 05-pushback-empty-transcript-path-fires
+    # Empty transcript_path -> else branch -> ASSERTED true -> fires.
+    stdin: {prompt: "that's incorrect, it's not the cause", transcript_path: ""}
+    expected_exit: 0
+    needle: "CHALLENGE DETECTED"
+
+  - name: 06-empty-prompt-silent
+    files:
+      transcript.jsonl: |
+        {"role":"assistant","content":"The root cause is a stale checkout in adapter.py:42."}
+    stdin: {prompt: "", transcript_path: "{tmp}/transcript.jsonl"}
+    expected_exit: 0
+    absent: "CHALLENGE DETECTED"
+
+  - name: 07-quoting-someone-elses-pushback-FALSE-POSITIVE-fires
+    # FALSE POSITIVE: the user is quoting a reviewer, not pushing back. The hook
+    # cannot tell a quoted contradiction from a first-person one, so it fires.
+    files:
+      transcript.jsonl: |
+        {"role":"assistant","content":"The root cause is a stale checkout in adapter.py:42; diagnosis complete."}
+    stdin: {prompt: "the reviewer said 'that's not right' - should we look into it?", transcript_path: "{tmp}/transcript.jsonl"}
+    expected_exit: 0
+    needle: "CHALLENGE DETECTED"
+
+  # ---- RED TEAM ----
+  - name: R1-rephrased-pushback-no-keyword-KNOWN-GAP-silent
+    # KNOWN GAP: a genuine contradiction phrased without a PUSHBACK token
+    # ("doesn't hold up") slips past and does not fire.
+    files:
+      transcript.jsonl: |
+        {"role":"assistant","content":"The root cause is a stale checkout in adapter.py:42."}
+    stdin: {prompt: "hmm, I'm pretty sure that assumption doesn't hold up", transcript_path: "{tmp}/transcript.jsonl"}
+    expected_exit: 0
+    absent: "CHALLENGE DETECTED"
+
+  - name: R2-enthusiastic-agreement-silent
+    # Correct: agreement must never trigger falsification.
+    files:
+      transcript.jsonl: |
+        {"role":"assistant","content":"The root cause is a stale checkout in adapter.py:42."}
+    stdin: {prompt: "yes! that's exactly right, perfect, ship it", transcript_path: "{tmp}/transcript.jsonl"}
+    expected_exit: 0
+    absent: "CHALLENGE DETECTED"
+
+  - name: R3-nope-shortform-fires
+    # Minimal pushback token over an asserted transcript still fires.
+    files:
+      transcript.jsonl: |
+        {"role":"assistant","content":"The root cause is a stale checkout in adapter.py:42."}
+    stdin: {prompt: "nope", transcript_path: "{tmp}/transcript.jsonl"}
+    expected_exit: 0
+    needle: "CHALLENGE DETECTED"
+
+  - name: R4-bs-callout-fires
+    files:
+      transcript.jsonl: |
+        {"role":"assistant","content":"The root cause is a stale checkout in adapter.py:42."}
+    stdin: {prompt: "that's BS, the model isn't the cause here", transcript_path: "{tmp}/transcript.jsonl"}
+    expected_exit: 0
+    needle: "CHALLENGE DETECTED"

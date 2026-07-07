@@ -61,5 +61,27 @@ ok('T15 FAIL AC unverified does not falsely cap when PASS ACs verified',
 ok('T16 PASS with missing red_verified (absent) -> capped',
   tddVerifiedCap({ per_ac: [{ ac: 'AC-1', verdict: 'PASS' }] }, 'ALL_PASS') === 'PARTIAL')
 
+// --- edge cases added 2026-07-07: cap-boundary, multi-AC mix, malformed input (Wave 2 eval pass) ---
+ok('T17 mixed valid+invalid ACs -> only the invalid one is flagged',
+  tddViolations({ ac_tdd: [validAc('AC-1'), { ac: 'AC-2', kind: 'new', red: { failed: true, right_reason: true }, green: { passed: true } }] }, true).length === 1)
+ok('T18 malformed exempt boundary: empty parens -> violation',
+  has(tddViolations({ ac_tdd: [{ ac: 'AC-1', kind: 'new', exempt: 'not_applicable()' }] }, true), 'malformed exempt'))
+ok('T19 malformed exempt boundary: trailing text after close-paren -> violation',
+  has(tddViolations({ ac_tdd: [{ ac: 'AC-1', kind: 'new', exempt: 'infra_blocked(no DB) extra' }] }, true), 'malformed exempt'))
+ok('T20 red.artifact empty string (falsy, not missing) -> RED violation',
+  has(tddViolations({ ac_tdd: [{ ac: 'AC-1', kind: 'new', red: { failed: true, right_reason: true, artifact: '' }, green: { passed: true } }] }, true), 'no valid RED'))
+ok('T21 tddVerifiedCap: overall FAIL is never upgraded even with unverified RED (only ALL_PASS is capped)',
+  tddVerifiedCap({ per_ac: [{ ac: 'AC-1', verdict: 'FAIL', red_verified: false }] }, 'FAIL') === 'FAIL')
+ok('T22 tddVerifiedCap: one unverified PASS among many verified PASS ACs still caps (boundary = single violation)',
+  tddVerifiedCap({ per_ac: [
+    { ac: 'AC-1', verdict: 'PASS', red_verified: true },
+    { ac: 'AC-2', verdict: 'PASS', red_verified: true },
+    { ac: 'AC-3', verdict: 'PASS', red_verified: false },
+  ] }, 'ALL_PASS') === 'PARTIAL')
+ok('T23 tddVerifiedCap: truthy non-boolean red_verified (1) is not strictly true/"exempt" -> capped',
+  tddVerifiedCap({ per_ac: [{ ac: 'AC-1', verdict: 'PASS', red_verified: 1 }] }, 'ALL_PASS') === 'PARTIAL')
+ok('T24 tddVerifiedCap: malformed input (qa.per_ac absent entirely) -> no violation found, overall unchanged',
+  tddVerifiedCap({}, 'ALL_PASS') === 'ALL_PASS')
+
 console.log(`\n${pass} passed, ${fail} failed`)
 process.exit(fail ? 1 : 0)

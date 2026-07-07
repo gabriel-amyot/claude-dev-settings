@@ -12,5 +12,6 @@ projects/
 shell-snapshots/
 statsig/
 todos/
-claude-settings-temp/__pycache__/
+claude-settings-temp/
+__pycache__/
 evals/monthly-sweep/logs/

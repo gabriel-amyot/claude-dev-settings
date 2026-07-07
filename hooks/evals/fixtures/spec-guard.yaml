@@ -1,0 +1,46 @@
+hook: spec-guard.sh
+# This hook reads real stdin (unlike claude-md-guard.sh / config-protect.sh, which
+# read $CLAUDE_TOOL_INPUT). Its MAPPING path is hardcoded off $HOME, so overriding
+# HOME to an empty tmp dir is used to exercise the "mapping file missing" short-circuit
+# without touching the real mapping. Cases that need the real mapping content
+# (guards for bin/process-meeting.sh, lib/find-config.sh, bin/extract-action-items.sh)
+# deliberately run against the real $HOME since the mapping file is read-only here.
+wired:
+  event: PostToolUse
+  expected: true
+
+cases:
+  - name: 01-mapping-file-missing-short-circuits-before-stdin
+    # MAPPING existence check happens before stdin is even read. Isolated HOME with
+    # no work-assistant tree means this exits 0 regardless of what stdin contains.
+    env: {HOME: "{tmp}"}
+    stdin: {tool_input: {file_path: "{home}/Developer/gabriel-amyot/tools/work-assistant/bin/process-meeting.sh"}}
+    expected_exit: 0
+    absent: "SPEC GUARD"
+
+  - name: 02-guarded-source-match-annotates
+    stdin: {tool_input: {file_path: "{home}/Developer/gabriel-amyot/tools/work-assistant/bin/process-meeting.sh"}}
+    expected_exit: 0
+    needle: "SPEC GUARD: bin/process-meeting.sh is covered by specifications"
+
+  - name: 03-path-without-work-assistant-segment-silent
+    stdin: {tool_input: {file_path: "/repo/some/other/project/bin/process-meeting.sh"}}
+    expected_exit: 0
+    absent: "SPEC GUARD"
+
+  - name: 04-work-assistant-path-but-unmapped-source-silent
+    stdin: {tool_input: {file_path: "{home}/Developer/gabriel-amyot/tools/work-assistant/bin/unmapped-script.sh"}}
+    expected_exit: 0
+    absent: "SPEC GUARD"
+
+  - name: 05-filepath-camelcase-fallback-annotates
+    stdin: {tool_input: {filePath: "{home}/Developer/gabriel-amyot/tools/work-assistant/lib/find-config.sh"}}
+    expected_exit: 0
+    needle: "SPEC GUARD: lib/find-config.sh is covered by specifications"
+
+  - name: 06-no-tool-input-wrapper-treats-toplevel-as-input
+    # ti = data.get('tool_input', data) — if 'tool_input' key is absent, the whole
+    # top-level payload is used as the params dict. Pinning this fallback explicitly.
+    stdin: {file_path: "{home}/Developer/gabriel-amyot/tools/work-assistant/bin/extract-action-items.sh"}
+    expected_exit: 0
+    needle: "SPEC GUARD: bin/extract-action-items.sh is covered by specifications"

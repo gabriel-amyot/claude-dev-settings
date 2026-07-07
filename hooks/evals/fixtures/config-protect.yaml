@@ -1,0 +1,95 @@
+hook: config-protect.sh
+# CONFIRMED BUG (found running this suite, 2026-07-07): the inline python JSON
+# extraction is corrupted —
+#   data.get('"'"'file_path'"'"', data.get('"'"'filePath'"'"', '"'"''"'"'))
+# — this quote-escaping pattern (repeated '"'"' ) is the idiom for embedding a
+# literal single quote inside a *single-quoted* bash string. But this script's
+# python3 call is wrapped in DOUBLE quotes (python3 -c "..."), so the escaping is
+# never processed by bash and lands in the python source verbatim. The resulting
+# python code is effectively:
+#     data.get('"file_path"', data.get('"filePath"', '""'))
+# i.e. it looks up a dict key literally named `"file_path"` (quote characters
+# included), which never exists in real JSON. It falls through to the default,
+# which is the 2-character string '""' — not an empty string, so the script's own
+# `[ -z "$FILE_PATH" ]` empty-check never trips either. BASENAME then never matches
+# CLAUDE.md or settings.json, so PROTECTED stays false and the script exits 0.
+# NET EFFECT: config-protect.sh NEVER blocks anything, for ANY input, regardless of
+# the .protection-enabled flag. It is silently non-functional today.
+# Verified via: bash -x config-protect.sh with HOME overridden + .protection-enabled
+# created + CLAUDE_TOOL_INPUT='{"file_path": "/repo/CLAUDE.md"}' — FILE_PATH ends up
+# literally `""`, PROTECTED stays false, exit 0.
+# Compare claude-md-guard.sh, which does the equivalent extraction correctly with
+# plain single quotes (no botched escaping) and works as intended.
+# This fixture pins the ACTUAL (broken) behavior, not the intended one. Needs
+# Gabriel's eyes: either fix the escaping (one-line fix, mirror claude-md-guard.sh's
+# extraction verbatim) or retire the script if config-protect.sh is meant to be fully
+# superseded by file-guard.sh (which has its own separate wiring gap, see
+# file-guard.yaml).
+#
+# TODO(Gabriel): config-protect.sh is ALSO not registered under PreToolUse in
+# ~/.claude/settings.json today (confirmed by grep against the live file). Even if
+# the extraction bug above is fixed, nothing currently dispatches this hook.
+wired:
+  event: PreToolUse
+  expected: true
+  note: "TODO: config-protect is not registered in settings.json — pinned as FAIL to surface the wiring decision"
+
+cases:
+  - name: 01-protection-disabled-silent-even-for-claude-md
+    env:
+      HOME: "{tmp}"
+      CLAUDE_TOOL_INPUT: '{"file_path": "/repo/CLAUDE.md"}'
+    stdin: {}
+    expected_exit: 0
+    absent: "BLOCKED"
+
+  - name: 02-bug-protection-enabled-claude-md-does-not-actually-block
+    # INTENDED behavior would be exit 2 + "BLOCKED". ACTUAL behavior (pinned here):
+    # the extraction bug above means this always passes silently. If someone fixes
+    # the quoting bug, this case SHOULD start failing — that's the signal to update
+    # it to expected_exit: 2.
+    setup: "mkdir -p {tmp}/.claude/hooks && touch {tmp}/.claude/hooks/.protection-enabled"
+    env:
+      HOME: "{tmp}"
+      CLAUDE_TOOL_INPUT: '{"file_path": "/repo/nested/CLAUDE.md"}'
+    stdin: {}
+    expected_exit: 0
+    absent: "BLOCKED"
+
+  - name: 03-bug-protection-enabled-dot-claude-settings-does-not-actually-block
+    setup: "mkdir -p {tmp}/.claude/hooks && touch {tmp}/.claude/hooks/.protection-enabled"
+    env:
+      HOME: "{tmp}"
+      CLAUDE_TOOL_INPUT: '{"file_path": "/repo/.claude/settings.json"}'
+    stdin: {}
+    expected_exit: 0
+    absent: "BLOCKED"
+
+  - name: 04-protection-enabled-non-dot-claude-settings-json-passes
+    # This one would be correctly-unprotected even without the bug (path doesn't
+    # contain .claude/settings.json), so it's not diagnostic of the bug on its own.
+    setup: "mkdir -p {tmp}/.claude/hooks && touch {tmp}/.claude/hooks/.protection-enabled"
+    env:
+      HOME: "{tmp}"
+      CLAUDE_TOOL_INPUT: '{"file_path": "/repo/config/settings.json"}'
+    stdin: {}
+    expected_exit: 0
+    absent: "BLOCKED"
+
+  - name: 05-protection-enabled-unrelated-file-passes
+    setup: "mkdir -p {tmp}/.claude/hooks && touch {tmp}/.claude/hooks/.protection-enabled"
+    env:
+      HOME: "{tmp}"
+      CLAUDE_TOOL_INPUT: '{"file_path": "/repo/src/main.py"}'
+    stdin: {}
+    expected_exit: 0
+    absent: "BLOCKED"
+
+  - name: 06-bug-filepath-camelcase-fallback-also-does-not-block
+    setup: "mkdir -p {tmp}/.claude/hooks && touch {tmp}/.claude/hooks/.protection-enabled"
+    env:
+      HOME: "{tmp}"
+      CLAUDE_TOOL_INPUT: '{"filePath": "/repo/CLAUDE.md"}'
+    stdin: {}
+    expected_exit: 0
+    absent: "BLOCKED"

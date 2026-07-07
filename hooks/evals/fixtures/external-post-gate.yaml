@@ -1,0 +1,200 @@
+# Regression fixtures for external-post-gate.sh (KTP-907 choke-point backstop).
+#
+# The hook (PreToolUse:Bash) blocks Bash commands that CREATE externally visible
+# comments (GitLab MR notes/discussions, GitHub PR/issue comments, Jira comments,
+# Slack posts) unless a fresh /tmp/.pce-gate-pass marker (<30 min) proves the
+# /post-comment gates ran. Exit 0 = allow, exit 2 = block.
+#
+# posting = SKILL_POSTERS.match  OR  (POST_ENDPOINTS.match AND WRITE_VERB.match)
+#   not posting            -> allow (exit 0), marker never read
+#   posting + fresh marker -> allow (exit 0)
+#   posting + stale/absent -> block (exit 2)
+#
+# Every posting case (expected_exit 2, plus the fresh-marker allow) carries
+# rm/marker setup+teardown so a real session's /tmp/.pce-gate-pass cannot pollute
+# the result and the eval never leaves a marker behind.
+#
+# All exit codes below were pinned by piping the JSON to the live hook on
+# 2026-07-07; red-team misses are labelled "KNOWN GAP", the regex false positives
+# "FALSE POSITIVE". Do NOT relax the hook to make those green — they pin real,
+# accepted behavior. See reports/2026-07-07-external-post-gate-and-challenge-detect.md.
+
+hook: external-post-gate.sh
+
+# EXPECTED TO FAIL today: the hook is deliberately unwired pending the PCE handoff
+# decision. Do not flip `expected` or edit settings.json to make this green.
+wired:
+  event: PreToolUse
+  expected: true
+  note: "pending PCE handoff decision — 2026-07-07-pce-safeguards-apply-approved.md covers wiring"
+
+cases:
+  # ---- 8 command classes from the PCE build ----
+  - name: 01-gitlab-mr-note-post-block
+    stdin: {tool_input: {command: 'curl -X POST "https://gitlab.example.com/api/v4/projects/123/merge_requests/5/notes" -d @body.json'}}
+    setup: "rm -f /tmp/.pce-gate-pass"
+    teardown: "rm -f /tmp/.pce-gate-pass"
+    expected_exit: 2
+    needle: "BLOCKED by external-post-gate"
+
+  - name: 02-gitlab-mr-notes-get-allow
+    stdin: {tool_input: {command: 'curl "https://gitlab.example.com/api/v4/projects/123/merge_requests/5/notes"'}}
+    expected_exit: 0
+
+  - name: 03-jira-skill-add-comment-block
+    stdin: {tool_input: {command: 'python3 jira_skill.py add-comment KTP-907 --body "done"'}}
+    setup: "rm -f /tmp/.pce-gate-pass"
+    teardown: "rm -f /tmp/.pce-gate-pass"
+    expected_exit: 2
+    needle: "BLOCKED by external-post-gate"
+
+  - name: 04-benign-ls-allow
+    stdin: {tool_input: {command: 'ls -la tickets/'}}
+    expected_exit: 0
+
+  - name: 05-github-comments-get-allow
+    stdin: {tool_input: {command: 'curl -X GET "https://api.github.com/repos/o/r/issues/5/comments"'}}
+    expected_exit: 0
+
+  - name: 06-curl-post-jira-comment-block
+    stdin: {tool_input: {command: 'curl "https://jira.example.com/rest/api/3/issue/KTP-1/comment" -d @c.json'}}
+    setup: "rm -f /tmp/.pce-gate-pass"
+    teardown: "rm -f /tmp/.pce-gate-pass"
+    expected_exit: 2
+    needle: "BLOCKED by external-post-gate"
+
+  - name: 07-slack-skill-reply-block
+    stdin: {tool_input: {command: 'python3 slack_skill.py reply --channel C1 --text "hi"'}}
+    setup: "rm -f /tmp/.pce-gate-pass"
+    teardown: "rm -f /tmp/.pce-gate-pass"
+    expected_exit: 2
+    needle: "BLOCKED by external-post-gate"
+
+  - name: 08-github-pr-review-comment-post-block
+    stdin: {tool_input: {command: 'curl -X POST "https://api.github.com/repos/o/r/pulls/5/comments" -d @c.json'}}
+    setup: "rm -f /tmp/.pce-gate-pass"
+    teardown: "rm -f /tmp/.pce-gate-pass"
+    expected_exit: 2
+    needle: "BLOCKED by external-post-gate"
+
+  # ---- non-comment writes that must NOT block ----
+  - name: 09-mr-creation-post-allow
+    stdin: {tool_input: {command: 'curl -X POST "https://gitlab.example.com/api/v4/projects/123/merge_requests" -d @mr.json'}}
+    expected_exit: 0
+
+  - name: 10-pipeline-trigger-post-allow
+    stdin: {tool_input: {command: 'curl -X POST "https://gitlab.example.com/api/v4/projects/123/pipeline" -d @p.json'}}
+    expected_exit: 0
+
+  - name: 11-requests-post-inline-jira-block
+    stdin: {tool_input: {command: 'python3 -c "import requests; requests.post(\"https://j/rest/api/3/issue/KTP-1/comment\", json={})"'}}
+    setup: "rm -f /tmp/.pce-gate-pass"
+    teardown: "rm -f /tmp/.pce-gate-pass"
+    expected_exit: 2
+    needle: "BLOCKED by external-post-gate"
+
+  # ---- marker handling ----
+  - name: 12-fresh-marker-allow
+    stdin: {tool_input: {command: 'curl -X POST "https://gitlab.example.com/api/v4/projects/123/merge_requests/5/notes" -d @body.json'}}
+    setup: "date +%s > /tmp/.pce-gate-pass"
+    teardown: "rm -f /tmp/.pce-gate-pass"
+    expected_exit: 0
+
+  - name: 13-stale-marker-block
+    stdin: {tool_input: {command: 'curl -X POST "https://gitlab.example.com/api/v4/projects/123/merge_requests/5/notes" -d @body.json'}}
+    setup: "echo $(( $(date +%s) - 7200 )) > /tmp/.pce-gate-pass"
+    teardown: "rm -f /tmp/.pce-gate-pass"
+    expected_exit: 2
+    needle: "BLOCKED by external-post-gate"
+
+  - name: 14-absent-marker-block
+    stdin: {tool_input: {command: 'curl -X POST "https://gitlab.example.com/api/v4/projects/123/merge_requests/5/notes" -d @body.json'}}
+    setup: "rm -f /tmp/.pce-gate-pass"
+    teardown: "rm -f /tmp/.pce-gate-pass"
+    expected_exit: 2
+    needle: "BLOCKED by external-post-gate"
+
+  # ---- input robustness ----
+  - name: 15-malformed-stdin-allow
+    stdin_raw: "not-json"
+    expected_exit: 0
+
+  - name: 16-bare-command-field-allow
+    # top-level {command:...} with no tool_input wrapper (d.get fallback path)
+    stdin: {command: "ls"}
+    expected_exit: 0
+
+  # ---- RED TEAM: evasions (posting commands that dodge the regexes) ----
+  # Pinned as ALLOW = the hook misses them. KNOWN GAP: these publish comments.
+  - name: R1-glab-mr-note-KNOWN-GAP-allow
+    # KNOWN GAP: glab CLI posts an MR note; no URL/skill token -> regex misses.
+    stdin: {tool_input: {command: 'glab mr note 5 --message "hi"'}}
+    expected_exit: 0
+
+  - name: R2-gh-pr-comment-KNOWN-GAP-allow
+    # KNOWN GAP: gh CLI posts a PR comment; no matched token -> regex misses.
+    stdin: {tool_input: {command: 'gh pr comment 5 --body "hi"'}}
+    expected_exit: 0
+
+  - name: R3-python-concat-url-KNOWN-GAP-allow
+    # KNOWN GAP: requests.post matches WRITE_VERB, but the string-concatenated
+    # URL never yields a contiguous comment-endpoint substring -> posting False.
+    stdin: {tool_input: {command: 'python3 -c "import requests; requests.post(\"https://x/issue/\" + key + \"/comment\", json={})"'}}
+    expected_exit: 0
+
+  - name: R4-curl-request-post-with-data-CAUGHT-block
+    # CAUGHT: --request POST isn't a WRITE_VERB token, but the curl+-d branch
+    # fires, so this one is blocked. Pin the win.
+    stdin: {tool_input: {command: 'curl --request POST "https://gitlab.example.com/api/v4/projects/1/merge_requests/5/notes" -d @b.json'}}
+    setup: "rm -f /tmp/.pce-gate-pass"
+    teardown: "rm -f /tmp/.pce-gate-pass"
+    expected_exit: 2
+    needle: "BLOCKED by external-post-gate"
+
+  - name: R5-curl-request-post-upload-file-KNOWN-GAP-allow
+    # KNOWN GAP: --request POST with --upload-file (no -X POST, no -d/--data)
+    # dodges WRITE_VERB entirely.
+    stdin: {tool_input: {command: 'curl --request POST "https://gitlab.example.com/api/v4/projects/1/merge_requests/5/notes" --upload-file note.json'}}
+    expected_exit: 0
+
+  - name: R6-httpie-post-KNOWN-GAP-allow
+    # KNOWN GAP: httpie hits the comment endpoint but has no curl/-X/requests.post
+    # token -> WRITE_VERB misses.
+    stdin: {tool_input: {command: 'http POST "https://gitlab.example.com/api/v4/projects/1/merge_requests/5/notes" body=hi'}}
+    expected_exit: 0
+
+  - name: R7-jq-piped-curl-post-CAUGHT-block
+    # CAUGHT: jq feeds --data into curl -X POST; both WRITE_VERB branches fire.
+    stdin: {tool_input: {command: 'jq -n "{body:\"hi\"}" | curl -X POST "https://gitlab.example.com/api/v4/projects/1/merge_requests/5/notes" --data @-'}}
+    setup: "rm -f /tmp/.pce-gate-pass"
+    teardown: "rm -f /tmp/.pce-gate-pass"
+    expected_exit: 2
+    needle: "BLOCKED by external-post-gate"
+
+  # ---- RED TEAM: false positives (legit non-posting commands the hook blocks) ----
+  - name: F1-jira-get-comment-read-FALSE-POSITIVE-block
+    # FALSE POSITIVE: a READ (get-comment, singular) is blocked because SKILL_POSTERS
+    # matches the bare word "comment". list-comments (plural, F2) escapes the \bcomment\b.
+    stdin: {tool_input: {command: 'python3 jira_skill.py get-comment KTP-1'}}
+    setup: "rm -f /tmp/.pce-gate-pass"
+    teardown: "rm -f /tmp/.pce-gate-pass"
+    expected_exit: 2
+
+  - name: F2-jira-list-comments-read-allow
+    # Correct: plural "comments" fails \bcomment\b, so this read is allowed.
+    stdin: {tool_input: {command: 'python3 jira_skill.py list-comments KTP-1'}}
+    expected_exit: 0
+
+  - name: F3-echo-documents-post-FALSE-POSITIVE-block
+    # FALSE POSITIVE: echoing a runbook line (no execution) is blocked on substring match.
+    stdin: {tool_input: {command: 'echo "to post: curl -X POST .../merge_requests/5/notes -d @b.json"'}}
+    setup: "rm -f /tmp/.pce-gate-pass"
+    teardown: "rm -f /tmp/.pce-gate-pass"
+    expected_exit: 2
+
+  - name: F4-git-commit-msg-mentions-post-FALSE-POSITIVE-block
+    # FALSE POSITIVE: a commit whose message describes a posting helper is blocked.
+    stdin: {tool_input: {command: 'git commit -m "add helper: curl -X POST .../merge_requests/5/notes -d body"'}}
+    setup: "rm -f /tmp/.pce-gate-pass"
+    teardown: "rm -f /tmp/.pce-gate-pass"
+    expected_exit: 2

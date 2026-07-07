@@ -1,0 +1,189 @@
+# Regression fixtures for pm-single-trunk-guard.sh (PreToolUse|Bash).
+#
+# The guard blocks git commands that CREATE a branch/worktree when the target repo
+# is project-management. Target = the `-C <path>` arg if present, else the JSON cwd.
+# It anchors on segments that START with `git` (so echo/grep mentions are ignored),
+# and matches CREATE via: worktree add | checkout -[bB] | switch -[cC] | branch -b.
+#
+# The runner executes ONLY the hook, never the guarded git command — nothing is
+# mutated. `cwd` inside stdin is the field the hook reads (d.get("cwd")); the runner's
+# top-level `cwd:` is irrelevant to this hook, so it is omitted.
+#
+# All exit codes below are PINNED against the live hook on 2026-07-07 (see report).
+
+hook: pm-single-trunk-guard.sh
+
+wired:
+  event: PreToolUse
+  expected: true
+  note: registered as a PreToolUse Bash guard for the pm backup repo
+
+cases:
+  # --- true-positive blocks (creation targeting project-management) ---
+  - name: 01-checkout-b-via-C-flag-pm
+    stdin:
+      tool_input:
+        command: "git -C {home}/Developer/grp-beklever-com/project-management checkout -b foo"
+    expected_exit: 2
+    needle: "BLOCKED"
+
+  - name: 02-worktree-add-cwd-pm
+    stdin:
+      tool_input:
+        command: "git worktree add ../x"
+      cwd: "{home}/Developer/grp-beklever-com/project-management"
+    expected_exit: 2
+    needle: "backup-only"
+
+  - name: 03-switch-c-via-C-flag-pm
+    stdin:
+      tool_input:
+        command: "git -C {home}/Developer/grp-beklever-com/project-management switch -c foo"
+    expected_exit: 2
+
+  - name: 04-compound-cd-then-checkout-cwd-pm
+    stdin:
+      tool_input:
+        command: "cd {home}/Developer/grp-beklever-com/project-management && git checkout -b x"
+      cwd: "{home}/Developer/grp-beklever-com/project-management"
+    expected_exit: 2
+
+  # --- allow: cleanup / listing / non-creating checkout in pm ---
+  - name: 05-branch-D-cleanup-cwd-pm
+    stdin:
+      tool_input:
+        command: "git branch -D old"
+      cwd: "{home}/Developer/grp-beklever-com/project-management"
+    expected_exit: 0
+    absent: "BLOCKED"
+
+  - name: 06-worktree-remove-cwd-pm
+    stdin:
+      tool_input:
+        command: "git worktree remove ../x"
+      cwd: "{home}/Developer/grp-beklever-com/project-management"
+    expected_exit: 0
+    absent: "BLOCKED"
+
+  - name: 07-worktree-prune-cwd-pm
+    stdin:
+      tool_input:
+        command: "git worktree prune"
+      cwd: "{home}/Developer/grp-beklever-com/project-management"
+    expected_exit: 0
+
+  - name: 08-branch-a-listing-cwd-pm
+    stdin:
+      tool_input:
+        command: "git branch -a"
+      cwd: "{home}/Developer/grp-beklever-com/project-management"
+    expected_exit: 0
+
+  - name: 09-checkout-existing-branch-cwd-pm
+    stdin:
+      tool_input:
+        command: "git checkout main"
+      cwd: "{home}/Developer/grp-beklever-com/project-management"
+    expected_exit: 0
+
+  # --- allow: non-git mention, and creation targeting a code repo ---
+  - name: 10-echo-mentions-checkout-b-cwd-pm
+    stdin:
+      tool_input:
+        command: "echo \"git checkout -b foo\""
+      cwd: "{home}/Developer/grp-beklever-com/project-management"
+    expected_exit: 0
+    absent: "BLOCKED"
+
+  - name: 11-checkout-b-code-repo-allowed
+    stdin:
+      tool_input:
+        command: "git -C {tmp} checkout -b foo"
+    expected_exit: 0
+    absent: "BLOCKED"
+
+  - name: 12-compound-cd-into-pm-cwd-outside
+    # cd into pm does not change the hook's target (it reads JSON cwd, not the cd).
+    # KNOWN GAP: when cwd is not pm, a `cd <pm> && git checkout -b` slips through.
+    stdin:
+      tool_input:
+        command: "cd {home}/Developer/grp-beklever-com/project-management && git checkout -b x"
+      cwd: "{tmp}"
+    expected_exit: 0
+
+  # --- RED TEAM: evasions (catastrophe-class) ---
+  - name: rt-01-branch-newname-no-flag
+    # `git branch <name>` CREATES a branch with no checkout. The CREATE regex only
+    # matches `branch -b` (which is not even a real form), so plain-name creation
+    # is NOT blocked. KNOWN GAP — real branch creation via `git branch <name>` evades.
+    stdin:
+      tool_input:
+        command: "git -C {home}/Developer/grp-beklever-com/project-management branch newname"
+    expected_exit: 0
+
+  - name: rt-02-C-dotdot-resolves-into-pm
+    # A `-C` path that traverses through /project-management is CAUGHT: the substring
+    # test sees "/project-management" in the raw arg.
+    stdin:
+      tool_input:
+        command: "git -C {home}/Developer/grp-beklever-com/tickets/../project-management checkout -b x"
+    expected_exit: 2
+    needle: "BLOCKED"
+
+  - name: rt-03-env-var-indirection
+    # `git -C $PM ...` — target_of captures the literal "$PM" (unexpanded), which does
+    # not contain /project-management. KNOWN GAP — env-var indirection evades.
+    stdin:
+      tool_input:
+        command: "git -C $PM checkout -b x"
+      cwd: "{tmp}"
+    env:
+      PM: "{home}/Developer/grp-beklever-com/project-management"
+    expected_exit: 0
+
+  - name: rt-04-worktree-add-via-C-pm
+    # Worktree creation with -C targeting pm is CAUGHT.
+    stdin:
+      tool_input:
+        command: "git -C {home}/Developer/grp-beklever-com/project-management worktree add wt"
+    expected_exit: 2
+
+  - name: rt-05-worktree-add-path-into-pm
+    # `git worktree add <pm>/wt` from a code repo CREATES a worktree dir inside pm, but
+    # target_of only inspects `-C`/cwd, never the add-path arg. KNOWN GAP — the worktree
+    # destination path is not treated as the target.
+    stdin:
+      tool_input:
+        command: "git worktree add {home}/Developer/grp-beklever-com/project-management/wt"
+      cwd: "{tmp}"
+    expected_exit: 0
+
+  # --- RED TEAM: false-positive probes ---
+  - name: rt-06-fp-git-log-grep-worktree-add
+    # FALSE POSITIVE: `git log --grep 'worktree add'` in pm is a read-only history
+    # search, but the CREATE regex matches "worktree add" inside the quoted arg and
+    # blocks it. Pinned as the current (wrong) behavior — see report FP-1.
+    stdin:
+      tool_input:
+        command: "git log --grep 'worktree add'"
+      cwd: "{home}/Developer/grp-beklever-com/project-management"
+    expected_exit: 2
+
+  - name: rt-07-fp-git-commit-msg-checkout-b
+    # FALSE POSITIVE: a commit whose message mentions "checkout -b" is blocked in pm.
+    # Pinned as current (wrong) behavior — see report FP-2.
+    stdin:
+      tool_input:
+        command: "git commit -m \"document checkout -b usage\""
+      cwd: "{home}/Developer/grp-beklever-com/project-management"
+    expected_exit: 2
+
+  - name: rt-08-echo-worktree-add-not-git
+    # TRUE NEGATIVE: an `echo` that mentions "git worktree add" is correctly allowed
+    # (segment does not start with `git`).
+    stdin:
+      tool_input:
+        command: "echo \"git worktree add\""
+      cwd: "{home}/Developer/grp-beklever-com/project-management"
+    expected_exit: 0
+    absent: "BLOCKED"

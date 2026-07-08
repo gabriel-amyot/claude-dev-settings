@@ -1,0 +1,118 @@
+# branch-guard.sh — PreToolUse Edit|Write regression fixtures.
+#
+# The hook blocks edits on protected branches (dev/main/master/uat/staging/
+# production) or on a branch already merged to origin/dev. It path-scopes to
+# ~/Developer only and exempts project-management. Blocks with EXIT 1 (not 2 —
+# any non-zero blocks the tool; see the git-guards report note).
+#
+# Hermetic design: each case overrides HOME={tmp} so the hook's "$HOME/Developer/"
+# scope check resolves under the per-case temp dir, and hydrates the committed
+# code-repo bundle into {tmp}/Developer/repo via gitfixtures. No real repo under
+# ~/Developer is touched, and {tmp} is auto-removed by the runner (no teardown).
+# hydrate() strips the origin remote, so cases needing origin/dev recreate it with
+# `update-ref` in setup.
+hook: branch-guard.sh
+wired:
+  event: PreToolUse
+  expected: true
+  note: "must stay registered under PreToolUse Edit|Write (KTP-669 wrong-branch guard)"
+cases:
+  - name: 01-dev-branch-blocked
+    env: {HOME: "{tmp}"}
+    setup: |-
+      set -e
+      python3 {hooks_dir}/evals/gitfixtures.py --hydrate code-repo --dest {tmp}/Developer/repo
+      git -C {tmp}/Developer/repo checkout --quiet dev
+    stdin: {tool_input: {file_path: "{tmp}/Developer/repo/src/app.py"}}
+    expected_exit: 1
+    needle: "protected branch 'dev'"
+
+  - name: 02-main-branch-blocked
+    env: {HOME: "{tmp}"}
+    setup: |-
+      set -e
+      python3 {hooks_dir}/evals/gitfixtures.py --hydrate code-repo --dest {tmp}/Developer/repo
+    stdin: {tool_input: {file_path: "{tmp}/Developer/repo/README.md"}}
+    expected_exit: 1
+    needle: "protected branch 'main'"
+
+  - name: 03-master-branch-blocked
+    env: {HOME: "{tmp}"}
+    setup: |-
+      set -e
+      python3 {hooks_dir}/evals/gitfixtures.py --hydrate code-repo --dest {tmp}/Developer/repo
+      git -C {tmp}/Developer/repo checkout --quiet -b master
+    stdin: {tool_input: {file_path: "{tmp}/Developer/repo/README.md"}}
+    expected_exit: 1
+    needle: "protected branch 'master'"
+
+  - name: 04-feature-branch-ahead-allowed
+    env:
+      HOME: "{tmp}"
+      GIT_AUTHOR_NAME: eval
+      GIT_AUTHOR_EMAIL: eval@localhost
+      GIT_COMMITTER_NAME: eval
+      GIT_COMMITTER_EMAIL: eval@localhost
+    setup: |-
+      set -e
+      python3 {hooks_dir}/evals/gitfixtures.py --hydrate code-repo --dest {tmp}/Developer/repo
+      git -C {tmp}/Developer/repo update-ref refs/remotes/origin/dev refs/heads/dev
+      git -C {tmp}/Developer/repo checkout --quiet -b KTP-1-fix dev
+      echo "extra" > {tmp}/Developer/repo/src/new.py
+      git -C {tmp}/Developer/repo add -A
+      git -C {tmp}/Developer/repo commit --quiet -m "feature work ahead of dev"
+    stdin: {tool_input: {file_path: "{tmp}/Developer/repo/src/app.py"}}
+    expected_exit: 0
+    absent: "BLOCKED"
+
+  - name: 05-merged-to-dev-blocked
+    env: {HOME: "{tmp}"}
+    setup: |-
+      set -e
+      python3 {hooks_dir}/evals/gitfixtures.py --hydrate code-repo --dest {tmp}/Developer/repo
+      git -C {tmp}/Developer/repo update-ref refs/remotes/origin/dev refs/heads/dev
+      git -C {tmp}/Developer/repo checkout --quiet -b KTP-2-merged dev
+    stdin: {tool_input: {file_path: "{tmp}/Developer/repo/src/app.py"}}
+    expected_exit: 1
+    needle: "already merged to dev"
+
+  - name: 06-filePath-camelcase-on-dev-blocked
+    env: {HOME: "{tmp}"}
+    setup: |-
+      set -e
+      python3 {hooks_dir}/evals/gitfixtures.py --hydrate code-repo --dest {tmp}/Developer/repo
+      git -C {tmp}/Developer/repo checkout --quiet dev
+    stdin: {tool_input: {filePath: "{tmp}/Developer/repo/README.md"}}
+    expected_exit: 1
+    needle: "protected branch 'dev'"
+
+  - name: 07-file-outside-git-repo-allowed
+    env: {HOME: "{tmp}"}
+    setup: |-
+      set -e
+      mkdir -p {tmp}/Developer/plain
+      echo x > {tmp}/Developer/plain/notes.txt
+    stdin: {tool_input: {file_path: "{tmp}/Developer/plain/notes.txt"}}
+    expected_exit: 0
+
+  - name: 08-outside-developer-allowed
+    env: {HOME: "{tmp}"}
+    setup: |-
+      set -e
+      mkdir -p {tmp}/elsewhere
+      echo x > {tmp}/elsewhere/notes.txt
+    stdin: {tool_input: {file_path: "{tmp}/elsewhere/notes.txt"}}
+    expected_exit: 0
+
+  - name: 09-project-management-exempt-on-dev
+    env: {HOME: "{tmp}"}
+    setup: |-
+      set -e
+      python3 {hooks_dir}/evals/gitfixtures.py --hydrate code-repo --dest {tmp}/Developer/project-management/repo
+      git -C {tmp}/Developer/project-management/repo checkout --quiet dev
+    stdin: {tool_input: {file_path: "{tmp}/Developer/project-management/repo/README.md"}}
+    expected_exit: 0
+
+  - name: 10-empty-file-path-allowed
+    stdin: {tool_input: {command: "ls"}}
+    expected_exit: 0

@@ -1,0 +1,80 @@
+# worktree-guard.sh — PreToolUse Edit|Write regression fixtures.
+#
+# Blocks edits in a repo's MAIN worktree (exit 2); linked worktrees are allowed;
+# path-scoped to ~/Developer; project-management exempt. Detection compares
+# `git rev-parse --git-dir` vs `--git-common-dir`.
+#
+# Hermetic design: HOME={tmp} redirects the "$HOME/Developer/" scope check into the
+# per-case temp dir; the code-repo bundle is hydrated into {tmp}/Developer/repo.
+# {tmp} is auto-removed by the runner (no teardown, nothing under real ~/Developer).
+#
+# NOTE (macOS fixture artifact, see git-guards report): from a *subdirectory* git
+# returns an absolute --git-dir but a relative --git-common-dir; the hook's `cd&&pwd`
+# then differs only by the /var→/private symlink and falsely allows. Real ~/Developer
+# repos are not symlinked so this does not bite production. Block cases therefore
+# target a repo-ROOT file (FILE_DIR = repo root, both paths relative and identical),
+# which blocks reliably.
+hook: worktree-guard.sh
+wired:
+  event: PreToolUse
+  expected: true
+  note: "must stay registered under PreToolUse Edit|Write (main-worktree-clean guard)"
+cases:
+  - name: 01-main-worktree-blocked
+    env: {HOME: "{tmp}"}
+    setup: |-
+      set -e
+      python3 {hooks_dir}/evals/gitfixtures.py --hydrate code-repo --dest {tmp}/Developer/repo
+    stdin: {tool_input: {file_path: "{tmp}/Developer/repo/README.md"}}
+    expected_exit: 2
+    needle: "main worktree"
+
+  - name: 02-main-worktree-nonexistent-target-blocked
+    env: {HOME: "{tmp}"}
+    setup: |-
+      set -e
+      python3 {hooks_dir}/evals/gitfixtures.py --hydrate code-repo --dest {tmp}/Developer/repo
+    stdin: {tool_input: {file_path: "{tmp}/Developer/repo/BRANDNEW.md"}}
+    expected_exit: 2
+    needle: "main worktree"
+
+  - name: 03-linked-worktree-allowed
+    env: {HOME: "{tmp}"}
+    setup: |-
+      set -e
+      python3 {hooks_dir}/evals/gitfixtures.py --hydrate code-repo --dest {tmp}/Developer/repo
+      git -C {tmp}/Developer/repo worktree add --quiet {tmp}/Developer/wt dev
+    stdin: {tool_input: {file_path: "{tmp}/Developer/wt/README.md"}}
+    expected_exit: 0
+    absent: "BLOCKED"
+
+  - name: 04-project-management-exempt
+    env: {HOME: "{tmp}"}
+    setup: |-
+      set -e
+      mkdir -p {tmp}/Developer/grp/project-management
+      echo x > {tmp}/Developer/grp/project-management/CLAUDE.md
+    stdin: {tool_input: {file_path: "{tmp}/Developer/grp/project-management/CLAUDE.md"}}
+    expected_exit: 0
+
+  - name: 05-outside-developer-allowed
+    env: {HOME: "{tmp}"}
+    setup: |-
+      set -e
+      mkdir -p {tmp}/elsewhere
+      echo x > {tmp}/elsewhere/notes.txt
+    stdin: {tool_input: {file_path: "{tmp}/elsewhere/notes.txt"}}
+    expected_exit: 0
+
+  - name: 06-non-repo-file-under-developer-allowed
+    env: {HOME: "{tmp}"}
+    setup: |-
+      set -e
+      mkdir -p {tmp}/Developer/plain
+      echo x > {tmp}/Developer/plain/notes.txt
+    stdin: {tool_input: {file_path: "{tmp}/Developer/plain/notes.txt"}}
+    expected_exit: 0
+
+  - name: 07-empty-file-path-allowed
+    stdin: {tool_input: {command: "ls"}}
+    expected_exit: 0

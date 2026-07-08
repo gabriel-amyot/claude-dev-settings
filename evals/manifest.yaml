@@ -145,6 +145,31 @@ suites:
     # hooks/evals/reports/2026-07-07-cheap-hooks.md.
     last_green: null
 
+  - target: hooks/branch-guard
+    layer: A
+    runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook branch-guard
+    owner_skill: skill-evals
+    # NOTE: hook blocks with exit 1 (pinned), not the exit-2 convention.
+    last_green: 2026-07-07
+
+  - target: hooks/worktree-guard
+    layer: A
+    runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook worktree-guard
+    owner_skill: skill-evals
+    last_green: 2026-07-07
+
+  - target: hooks/deploy-identity-guard
+    layer: A
+    runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook deploy-identity-guard
+    owner_skill: deploy-identity
+    last_green: 2026-07-07
+
+  - target: deploy-identity/probe
+    layer: A
+    runner: python3 ~/.claude-shared-config/skills/deploy-identity/evals/run_probe_evals.py
+    owner_skill: deploy-identity
+    last_green: 2026-07-07
+
   # --- Layer B behavioral suites (on-demand via skill-creator grader; see /skill-evals) ---
 
   - target: klever-mr/behavioral

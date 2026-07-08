@@ -1,0 +1,142 @@
+# deploy-identity-guard.sh — PreToolUse Read|Grep regression fixtures (KTP-688 spine).
+#
+# Blocks reading a NON-deploy branch's source (exit 2) when the probe says the current
+# branch is not a deploy branch AND either (a) you are sitting on the repo's DEFAULT
+# branch (the exact KTP-688 trap) OR (b) the recent transcript shows deployed-system
+# intent. Otherwise allows (normal feature work is not blocked).
+#
+# Hermetic design (touches NO real deploy-identity registry):
+#   * HOME={tmp}. The hook locates the probe via "$HOME/.claude/skills/.../probe.sh",
+#     so setup SYMLINKS the real probe into {tmp}. The probe's own registry lookup then
+#     reads {tmp}/.claude/deploy-identity (empty) and falls back to a repo-local
+#     .deploy-identity.yaml that setup writes into the hydrated clone — a fixture config,
+#     never the real ~/.claude/deploy-identity/*.yaml files.
+#   * code-repo bundle hydrated into {tmp}/Developer/repo; deployed_sha pinned live to
+#     the dev tip so the probe resolves a real commit. {tmp} auto-removed (no teardown).
+hook: deploy-identity-guard.sh
+wired:
+  event: PreToolUse
+  expected: true
+  note: "must stay registered under PreToolUse Read|Grep (KTP-688 deploy-identity spine)"
+cases:
+  # --- BLOCK: on the default branch, which is not the deploy branch (the KTP-688 trap)
+  - name: 01-on-default-branch-mismatch-blocked
+    env: {HOME: "{tmp}"}
+    setup: |-
+      set -e
+      mkdir -p {tmp}/.claude/skills/deploy-identity
+      ln -s {home}/.claude/skills/deploy-identity/probe.sh {tmp}/.claude/skills/deploy-identity/probe.sh
+      python3 {hooks_dir}/evals/gitfixtures.py --hydrate code-repo --dest {tmp}/Developer/repo
+      SHA=$(git -C {tmp}/Developer/repo rev-parse dev)
+      printf 'deploy_branch: dev\ndefault_branch: main\nowner: sisi\nartifact_source: cache\ndeployed_sha: %s\n' "$SHA" > {tmp}/Developer/repo/.deploy-identity.yaml
+      git -C {tmp}/Developer/repo checkout --quiet main
+    stdin: {tool_input: {file_path: "{tmp}/Developer/repo/src/app.py"}, transcript_path: ""}
+    expected_exit: 2
+    needle: "NOT the deployed branch"
+
+  # --- BLOCK: feature branch (not default) but the recent transcript is about prod/deploy
+  - name: 02-feature-branch-with-deployed-intent-blocked
+    env: {HOME: "{tmp}"}
+    files:
+      transcript.jsonl: "user: why is the bi-agent failing in prod? is the deployed code wrong on the live chat?\n"
+    setup: |-
+      set -e
+      mkdir -p {tmp}/.claude/skills/deploy-identity
+      ln -s {home}/.claude/skills/deploy-identity/probe.sh {tmp}/.claude/skills/deploy-identity/probe.sh
+      python3 {hooks_dir}/evals/gitfixtures.py --hydrate code-repo --dest {tmp}/Developer/repo
+      SHA=$(git -C {tmp}/Developer/repo rev-parse dev)
+      printf 'deploy_branch: dev\ndefault_branch: main\nowner: sisi\nartifact_source: cache\ndeployed_sha: %s\n' "$SHA" > {tmp}/Developer/repo/.deploy-identity.yaml
+      git -C {tmp}/Developer/repo checkout --quiet -b KTP-9-fix main
+    stdin: {tool_input: {file_path: "{tmp}/Developer/repo/src/app.py"}, transcript_path: "{tmp}/transcript.jsonl"}
+    expected_exit: 2
+    needle: "conversation is about deployed"
+
+  # --- ALLOW: feature branch, no deployed-system intent → normal feature work
+  - name: 03-feature-branch-no-intent-allowed
+    env: {HOME: "{tmp}"}
+    setup: |-
+      set -e
+      mkdir -p {tmp}/.claude/skills/deploy-identity
+      ln -s {home}/.claude/skills/deploy-identity/probe.sh {tmp}/.claude/skills/deploy-identity/probe.sh
+      python3 {hooks_dir}/evals/gitfixtures.py --hydrate code-repo --dest {tmp}/Developer/repo
+      SHA=$(git -C {tmp}/Developer/repo rev-parse dev)
+      printf 'deploy_branch: dev\ndefault_branch: main\nowner: sisi\nartifact_source: cache\ndeployed_sha: %s\n' "$SHA" > {tmp}/Developer/repo/.deploy-identity.yaml
+      git -C {tmp}/Developer/repo checkout --quiet -b KTP-9-fix main
+    stdin: {tool_input: {file_path: "{tmp}/Developer/repo/src/app.py"}, transcript_path: ""}
+    expected_exit: 0
+    absent: "BLOCKED"
+
+  # --- ALLOW: reading the deploy branch itself → probe VERIFIED
+  - name: 04-on-deploy-branch-allowed
+    env: {HOME: "{tmp}"}
+    setup: |-
+      set -e
+      mkdir -p {tmp}/.claude/skills/deploy-identity
+      ln -s {home}/.claude/skills/deploy-identity/probe.sh {tmp}/.claude/skills/deploy-identity/probe.sh
+      python3 {hooks_dir}/evals/gitfixtures.py --hydrate code-repo --dest {tmp}/Developer/repo
+      SHA=$(git -C {tmp}/Developer/repo rev-parse dev)
+      printf 'deploy_branch: dev\ndefault_branch: main\nowner: sisi\nartifact_source: cache\ndeployed_sha: %s\n' "$SHA" > {tmp}/Developer/repo/.deploy-identity.yaml
+      git -C {tmp}/Developer/repo checkout --quiet dev
+    stdin: {tool_input: {file_path: "{tmp}/Developer/repo/src/app.py"}, transcript_path: ""}
+    expected_exit: 0
+    absent: "BLOCKED"
+
+  # --- ALLOW: repo not registered → no deployed-branch claim to protect (even on default)
+  - name: 05-no-registry-allowed
+    env: {HOME: "{tmp}"}
+    setup: |-
+      set -e
+      mkdir -p {tmp}/.claude/skills/deploy-identity
+      ln -s {home}/.claude/skills/deploy-identity/probe.sh {tmp}/.claude/skills/deploy-identity/probe.sh
+      python3 {hooks_dir}/evals/gitfixtures.py --hydrate code-repo --dest {tmp}/Developer/repo
+    stdin: {tool_input: {file_path: "{tmp}/Developer/repo/src/app.py"}, transcript_path: ""}
+    expected_exit: 0
+    absent: "BLOCKED"
+
+  # --- BLOCK: CANT_VERIFY (unresolvable deployed sha) on the default branch still fires
+  - name: 06-cant-verify-on-default-blocked
+    env: {HOME: "{tmp}"}
+    setup: |-
+      set -e
+      mkdir -p {tmp}/.claude/skills/deploy-identity
+      ln -s {home}/.claude/skills/deploy-identity/probe.sh {tmp}/.claude/skills/deploy-identity/probe.sh
+      python3 {hooks_dir}/evals/gitfixtures.py --hydrate code-repo --dest {tmp}/Developer/repo
+      printf 'deploy_branch: dev\ndefault_branch: main\nowner: sisi\nartifact_source: cache\ndeployed_sha: deadbeefdeadbeefdeadbeefdeadbeefdeadbeef\n' > {tmp}/Developer/repo/.deploy-identity.yaml
+      git -C {tmp}/Developer/repo checkout --quiet main
+    stdin: {tool_input: {file_path: "{tmp}/Developer/repo/src/app.py"}, transcript_path: ""}
+    expected_exit: 2
+    needle: "NOT the deployed branch"
+
+  # --- ALLOW: Grep target outside ~/Developer → early scope exit
+  - name: 07-outside-developer-allowed
+    env: {HOME: "{tmp}"}
+    setup: |-
+      set -e
+      mkdir -p {tmp}/.claude/skills/deploy-identity
+      ln -s {home}/.claude/skills/deploy-identity/probe.sh {tmp}/.claude/skills/deploy-identity/probe.sh
+      mkdir -p {tmp}/elsewhere
+      echo x > {tmp}/elsewhere/notes.txt
+    stdin: {tool_input: {path: "{tmp}/elsewhere/notes.txt"}, transcript_path: ""}
+    expected_exit: 0
+
+  # --- ALLOW: project-management path exempt
+  - name: 08-project-management-exempt
+    env: {HOME: "{tmp}"}
+    setup: |-
+      set -e
+      mkdir -p {tmp}/.claude/skills/deploy-identity
+      ln -s {home}/.claude/skills/deploy-identity/probe.sh {tmp}/.claude/skills/deploy-identity/probe.sh
+      mkdir -p {tmp}/Developer/grp/project-management
+      echo x > {tmp}/Developer/grp/project-management/CLAUDE.md
+    stdin: {tool_input: {file_path: "{tmp}/Developer/grp/project-management/CLAUDE.md"}, transcript_path: ""}
+    expected_exit: 0
+
+  # --- ALLOW: no target path at all
+  - name: 09-empty-path-allowed
+    env: {HOME: "{tmp}"}
+    setup: |-
+      set -e
+      mkdir -p {tmp}/.claude/skills/deploy-identity
+      ln -s {home}/.claude/skills/deploy-identity/probe.sh {tmp}/.claude/skills/deploy-identity/probe.sh
+    stdin: {tool_input: {pattern: "TODO"}, transcript_path: ""}
+    expected_exit: 0

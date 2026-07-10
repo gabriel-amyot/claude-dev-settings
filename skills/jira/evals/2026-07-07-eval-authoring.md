@@ -11,14 +11,14 @@ Evals 1-9 (pre-existing, untouched) cover fetch, ticket creation + AC gate, list
 
 | id | Behavior under test | Grounded in |
 |----|--------------------|-------------|
-| 10 | Generated Jira comment carries the `[automated]` attribution header (own line + blank line before the body), uses wiki markup not Markdown, and adding a comment does not transition the ticket. | `jira-skill-gotchas.md` "Comment formatting rules" + `JIRA_AGENT_RULES.md` |
+| 10 | Generated Jira comment carries NO `[automated]`/persona/model header, reads as Gabriel in a short human voice, uses wiki markup not Markdown, and adding a comment does not transition the ticket. | `jira-skill-gotchas.md` "Comment formatting rules" + `JIRA_AGENT_RULES.md` Rule 3/4 |
 | 11 | When invoked from outside an org path (cwd = the skill dir), the agent always passes `--org klever` to `jira_skill.py` rather than relying on cwd auto-detection. | `jira-skill-gotchas.md` "Org slug detection" |
 
-## Exact [automated] rule wording (from jira-skill-gotchas.md)
+## Exact attribution rule wording (from jira-skill-gotchas.md, reversed 2026-07-08)
 
-> All comments posted via `add-comment` must include the `[automated]` attribution header. Format: `[automated]`, blank line, then the comment body. Never skip it, even under deadline pressure.
+> Comments carry NO visible attribution header. Do NOT prefix with `[automated]`, a persona name, or a model line. Comments post under Gabriel's account, in his voice; provenance is recorded in the on-disk audit log, not in the comment text.
 
-Eval 10's expectations check for the header on its own line followed by a blank line, matching that format exactly.
+Eval 10's expectations check that no attribution header appears and that the comment is short and human, matching that rule.
 
 ## Notes / caveats
 

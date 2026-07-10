@@ -17,55 +17,55 @@ suites:
     layer: A
     runner: python3 ~/.claude-shared-config/skills/post-comment/evals/run_causal_evals.py
     owner_skill: post-comment
-    last_green: 2026-07-07
+    last_green: 2026-07-08
 
   - target: post-comment/verify-code-claims
     layer: A
     runner: python3 ~/.claude-shared-config/skills/post-comment/evals/run_code_claim_evals.py
     owner_skill: post-comment
-    last_green: 2026-07-07
+    last_green: 2026-07-08
 
   - target: gitlab/cli-core
     layer: A
     runner: cd ~/.claude-shared-config/skills/gitlab && python3 test_gitlab_skill.py
     owner_skill: gitlab
-    last_green: 2026-07-07
+    last_green: 2026-07-08
 
   - target: gitlab/pipeline-trace
     layer: A
     runner: python3 ~/.claude-shared-config/skills/gitlab/evals/run_trace_evals.py
     owner_skill: gitlab
-    last_green: 2026-07-07
+    last_green: 2026-07-08
 
   - target: har-diagnostic/har-parse
     layer: A
     runner: python3 ~/.claude-shared-config/skills/har-diagnostic/evals/run_har_evals.py
     owner_skill: har-diagnostic
-    last_green: 2026-07-07
+    last_green: 2026-07-08
 
   - target: sprint-factory/pre-ship-gate
     layer: A
     runner: python3 ~/.claude-shared-config/skills/sprint-factory/evals/run_preship_evals.py
     owner_skill: sprint-factory
-    last_green: 2026-07-07
+    last_green: 2026-07-08
 
   - target: dark-factory/tdd-gate
     layer: A
     runner: node ~/.claude-shared-config/skills/dark-factory/tests/tdd-gate.test.mjs
     owner_skill: dark-factory
-    last_green: 2026-07-07
+    last_green: 2026-07-08
 
   - target: dark-factory/visual-readiness
     layer: A
     runner: node ~/.claude-shared-config/skills/dark-factory/tests/visual-readiness.test.mjs
     owner_skill: dark-factory
-    last_green: 2026-07-07
+    last_green: 2026-07-08
 
   - target: status-index/completion-calc
     layer: A
     runner: python3 ~/.claude-shared-config/skills/status-index/evals/run_status_evals.py
     owner_skill: status-index
-    last_green: 2026-07-07
+    last_green: 2026-07-08
 
   - target: validate-repo-links/validate
     layer: A
@@ -73,7 +73,7 @@ suites:
     owner_skill: validate-repo-links
     # pins a real bug: `validate` exits 0 on broken links (cases suffixed -BUG);
     # see the suite's eval report before relying on exit codes as a CI gate.
-    last_green: 2026-07-07
+    last_green: 2026-07-08
 
   # --- hook suites (runner: hooks/evals/run_hook_evals.py) ---
 
@@ -90,43 +90,43 @@ suites:
     layer: A
     runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook challenge-detect
     owner_skill: deploy-identity
-    last_green: 2026-07-07
+    last_green: 2026-07-08
 
   - target: hooks/pm-single-trunk-guard
     layer: A
     runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook pm-single-trunk-guard
     owner_skill: skill-evals
-    last_green: 2026-07-07
+    last_green: 2026-07-08
 
   - target: hooks/session-close-operationalize-guard
     layer: A
     runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook session-close-operationalize-guard
     owner_skill: skill-evals
-    last_green: 2026-07-07
+    last_green: 2026-07-08
 
   - target: hooks/claude-md-guard
     layer: A
     runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook claude-md-guard
     owner_skill: harness
-    last_green: 2026-07-07
+    last_green: 2026-07-08
 
   - target: hooks/screenshot-placement-guard
     layer: A
     runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook screenshot-placement-guard
     owner_skill: harness
-    last_green: 2026-07-07
+    last_green: 2026-07-08
 
   - target: hooks/proposal-backlog-check
     layer: A
     runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook proposal-backlog-check
     owner_skill: harness
-    last_green: 2026-07-07
+    last_green: 2026-07-08
 
   - target: hooks/spec-guard
     layer: A
     runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook spec-guard
     owner_skill: harness
-    last_green: 2026-07-07
+    last_green: 2026-07-08
 
   - target: hooks/file-guard
     layer: A
@@ -150,25 +150,25 @@ suites:
     runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook branch-guard
     owner_skill: skill-evals
     # NOTE: hook blocks with exit 1 (pinned), not the exit-2 convention.
-    last_green: 2026-07-07
+    last_green: 2026-07-08
 
   - target: hooks/worktree-guard
     layer: A
     runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook worktree-guard
     owner_skill: skill-evals
-    last_green: 2026-07-07
+    last_green: 2026-07-08
 
   - target: hooks/deploy-identity-guard
     layer: A
     runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook deploy-identity-guard
     owner_skill: deploy-identity
-    last_green: 2026-07-07
+    last_green: 2026-07-08
 
   - target: deploy-identity/probe
     layer: A
     runner: python3 ~/.claude-shared-config/skills/deploy-identity/evals/run_probe_evals.py
     owner_skill: deploy-identity
-    last_green: 2026-07-07
+    last_green: 2026-07-08
 
   # --- Layer B behavioral suites (on-demand via skill-creator grader; see /skill-evals) ---
 
@@ -220,7 +220,11 @@ suites:
 
   # --- Layer B' trigger suites (on-demand; runner = skill-creator run_eval.py, 3 runs/query,
   #     should-trigger PASS at rate >=0.5, should-not-trigger PASS only at 0) ---
-  # Common runner prefix: python3 ~/.claude/plugins/marketplaces/claude-plugins-official/plugins/skill-creator/skills/skill-creator/scripts/run_eval.py
+  # Run from the skill-creator skill root: cd ~/.claude/plugins/marketplaces/claude-plugins-official/plugins/skill-creator/skills/skill-creator && python3 -m scripts.run_eval ...
+  # ⚠ CAVEAT (2026-07-08 spot-check): run_eval.py's first-tool-call heuristic scores 0 on
+  # should-trigger queries in this hook-heavy harness (any non-Skill first tool call =
+  # "not triggered"), so its trigger rates are NOT meaningful signal here. Routing itself
+  # verified working via manual probe. See evals/reports/2026-07-08-trigger-spot-check.md.
 
   - target: klever-sprint-exit/trigger
     layer: B'

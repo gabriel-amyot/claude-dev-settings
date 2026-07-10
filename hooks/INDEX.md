@@ -2,6 +2,19 @@
 
 Custom Claude Code hooks registered in `~/.claude/settings.json`. Each hook fires at a specific lifecycle event and either injects context (exit 0 with stdout) or blocks actions (exit non-zero with reason).
 
+## Regression Evals (added 2026-07-07)
+
+Hooks have deterministic fixture suites under `evals/` — run
+`python3 evals/run_hook_evals.py [--hook <name>]`; fixture schema is in that file's
+docstring; git-state fixtures come from `evals/gitfixtures.py` bundles. Suites are
+registered in `../evals/manifest.yaml` and swept monthly
+(`com.harness.skill-evals-monthly` launchd job; `/skill-evals` runs the sweep on
+demand). **When you change a hook, extend its fixture file and re-run its suite** —
+every incident and red-team finding becomes a permanent fixture. Dated findings
+reports live in `evals/reports/`. Note: `file-guard.sh` and `config-protect.sh` are
+currently UNWIRED; their suites carry designed-red wiring assertions pending a
+wire-or-retire decision.
+
 ## Lifecycle Events
 
 | Event | When it fires | Can block? |

@@ -109,11 +109,12 @@
     {
       "id": 10,
       "prompt": "Add a comment to KTP-115 summarizing that the proximity adapter wiring is verified and unit tests pass.",
-      "expected_output": "Drafts the comment through the posting pipeline and posts it via jira_skill.py add-comment, with the comment body prefixed by the [automated] attribution header on its own line followed by a blank line, and does not transition the ticket status.",
+      "expected_output": "Drafts the comment through the posting pipeline and posts it via jira_skill.py add-comment as Gabriel with no [automated]/persona/model header, in a short human voice, and does not transition the ticket status.",
       "files": [],
       "expectations": [
         "The agent invokes jira_skill.py with the add-comment command and the --comment flag (not comment, not --body)",
-        "The comment body begins with the '[automated]' attribution header on its own line, followed by a blank line, before the summary text",
+        "The comment body carries NO [automated] tag, no persona name, and no model line: it reads as if Gabriel wrote it",
+        "The comment is short and leads with the outcome, no chronological story or filler",
         "The comment body uses Jira wiki markup rather than Markdown if any formatting is applied (e.g. h2. / *bold*, not ## / **bold**)",
         "The agent does NOT transition the ticket to Done/Closed as part of adding the comment"
       ]

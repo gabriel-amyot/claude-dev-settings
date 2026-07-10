@@ -15,3 +15,4 @@ todos/
 claude-settings-temp/
 __pycache__/
 evals/monthly-sweep/logs/
+evals/reports/*-sweep.md

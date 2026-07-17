@@ -130,7 +130,10 @@ For each repo:
 2. Grep for keywords from ticket description/AC to find relevant source files
 3. Check git branch state: `git -C {repo} branch --show-current` then `git -C {repo} status --short`
 
-### 5d: Update README.md
+### 5d: Bibliothèque lookup (KTP-939 F19)
+Check the org bibliothèque (`project-management/documentation/bibliotheque/INDEX.md` + `ALIASES.md`) for entries on the systems the ticket touches (services, pipelines, vendors, envs). Record what the library establishes — or "library silent" — alongside the repo context; it feeds the Phase 6 gap analysis and every downstream dispatch.
+
+### 5e: Update README.md
 Add a "Repos" section to the ticket README listing each affected repo and expected changes.
 
 ---

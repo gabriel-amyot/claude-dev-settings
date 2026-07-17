@@ -189,6 +189,8 @@ Cross-org operational knowledge lives in `~/.claude/library/`. Entry point: `~/.
 - **Klever:** `~/Developer/grp-beklever-com/project-management/documentation/bibliotheque/INDEX.md`
 - **Supervisr.AI:** `~/Developer/supervisr-ai/project-management/documentation/bibliotheque/INDEX.md`
 
+**Library-first is ambient, not on-request (Learned from KTP-939 F19, 2026-07-16).** Labeling an org mechanism "UNVERIFIED"/unknown is an epistemic claim, and it is false if the bibliothèque already documents it — the user must never serve as the retrieval layer for your own knowledge base. Before declaring any org-system mechanism unknown, mapping a system's topology, or dispatching a discovery probe: check the org bibliothèque's `INDEX.md` + `ALIASES.md` (or `bibliotheque-librarian` query mode). Every system-investigation subagent prompt carries a `Library:` line — cited doc paths + what they establish, or `Library: silent (checked INDEX/ALIASES for <topic>)`; what the library establishes is context to hand over, not a question to re-probe. Mechanical backstops: `bibliotheque-recall.sh` (UserPromptSubmit — injects matching library pointers) and `library-stamp-guard.sh` (PreToolUse Agent|Task — blocks unstamped investigation dispatches). Follow the discipline proactively; the hooks only catch what slips.
+
 ## On-Demand Context Files
 
 Load these via `Read` when the context calls for it:

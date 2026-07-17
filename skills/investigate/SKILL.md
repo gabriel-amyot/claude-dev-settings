@@ -33,6 +33,7 @@ If uncertain, default to the full workflow. KTP-628 happened because "I know the
 
 Quinn owns investigation. Before anyone touches code:
 
+0. **Library first (KTP-939 F19).** Check the org bibliothèque (`documentation/bibliotheque/INDEX.md` + `ALIASES.md`, or `bibliotheque-librarian` query mode) for the failing system's documented behavior, topology, and known gotchas. Carry what it establishes into the investigation; never re-derive documented mechanisms. Any probe dispatched from here carries a `Library:` line (citations or "silent").
 1. **Invoke `superpowers:systematic-debugging`** — complete its Phase 1 (Root Cause Investigation) and Phase 2 (Pattern Analysis)
 2. Identify the **specific** file, layer, component, or endpoint causing the issue
 3. If frontend/visual: capture screenshot evidence of the current broken state

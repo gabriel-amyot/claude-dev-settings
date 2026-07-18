@@ -210,6 +210,7 @@ Run these checks (severity in parentheses):
    - **Uncertain / not found**: leave `pending`, list under "needs curate". NEVER auto-promote on weak evidence — a genuinely new nugget must survive to the next curate run.
    - Severity: INFO per reconciled entry; WARNING for genuinely-pending entries that remain.
 9. **Infrastructure files** (ERROR if INDEX.md or SCHEMA.md missing, WARNING for others) — Verify SCHEMA.md, ALIASES.md, LOG.md, GLOSSARY.md, INDEX.md exist.
+10. **Provenance coverage ratchet (WARNING on drop)** — run `python3 /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tools/bibliotheque/provenance_lint.py {wiki-root} <30-days-ago>`; compare pct against the previous lint report's value; WARNING if lower. Include unstamped-claim lines (INFO, legacy pages; WARNING for pages created after 2026-07-18) and the archive size line in the report.
 
 **GC sweep (AUTO-FIX, runs after checks):** Any entry whose Status is terminal (`promoted`/`done`/`skipped`) but whose raw file is still in the hot `inbox/` gets archived per curate-workflow Step 7b: `git mv` the file to `inbox/archive/{YYYY}/`, move its ledger row to `inbox/archive/INDEX.md`. This is what keeps the folder, the ledger, `inbox-guard.sh`, and check 8 honest. Never delete; move only.
 

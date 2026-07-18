@@ -111,10 +111,26 @@ Your prompt will specify a mode. If no mode is given, infer from the prompt cont
    - Extend existing file? Read the target file first. Append a new section.
    - **No clean fit?** Do not force-fit. If the nugget belongs to a durable theme no existing section covers, either create a new section (strong, distinct domain) or add a proposal to `bibliotheque/PROPOSALS.md` and park it in the closest section. See option D + the fit test in the curate-workflow reference. Surface this in your report.
 4. If classification is ambiguous, ask the caller: "This could go in stack/ (technical gotcha) or sops/ (operational procedure). Which fits better for how you'd look it up?"
-5. Write the file with full enrichment:
-   - YAML frontmatter (title, type, created, updated, tags, aliases, related)
-   - 3-5 `[[wikilinks]]` in body text (verify targets exist via ALIASES.md or glob)
-   - "How to apply:" line for every procedural item
+4b. **Contradiction check (BEFORE writing — battle-test P5):** sweep the target section + ALIASES.md
+   + root INDEX Quick Answers for an existing fact on the same subject (grep 2-3 distinctive
+   identifiers from the nugget). On a hit, you MUST make an explicit choice and log it:
+   - **EXTEND** — same truth, more detail → append to the existing page.
+   - **SUPERSEDE** — the nugget contradicts an existing fact because truth changed → apply the
+     SCHEMA.md supersede-with-history protocol (old page: status: superseded + banner; new page:
+     supersedes: <old-stem>).
+   - **NEW-ANYWAY** — genuinely distinct subject → new page; record why it is not a duplicate.
+   Duplicates must be a logged decision, never an accident.
+5. **Write the medallion set (the caller hands you content + source; YOU do all the ceremony — battle-test P1):**
+   a. **Bronze first:** for each raw datum behind the nugget (verbatim comment, probe output,
+      user's words), append a page via the CLI:
+      `echo '[{"id":"<source>:<entity>:<event>[:<disc>]","ts":"<ISO>","source":"<source>","entity":"<entity>","title":"<short>","body":"<verbatim excerpt>","ref":"<deep-link or path>"}]' | python3 /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tools/bibliotheque/archive_lib.py /Users/gabrielamyot/Developer/grp-beklever-com/project-management/documentation/bibliotheque/_archive <source>`
+      (dedup + atomicity are the lib's job). The body MUST carry the verbatim excerpt (stand-alone rule).
+   b. **Gold second:** write/extend the fact page with full frontmatter INCLUDING the
+      `provenance:` block (epistemic, confidence-as-given-by-caller-evidence, primary_sources,
+      raw_pages: [<the bronze ids from a>], status: active).
+   c. **Stamps:** apply the SCHEMA.md stamp predicate — any consumer-read value or claim-shaped
+      line gets `[<INFERRED|VERBATIM> ← [[back-link]] · page:<id>]`.
+   d. 3-5 wikilinks, "How to apply:" for procedural items — as before.
 6. Update the section INDEX.md with a one-liner entry.
 7. Update ALIASES.md if the file has a dated name or multiple common names.
 8. Update root INDEX.md if the nugget warrants a Quick Answers row.
@@ -123,6 +139,15 @@ Your prompt will specify a mode. If no mode is given, infer from the prompt cont
 
 **For inline (non-interactive) shelve:**
 If the prompt contains enough information (content + source + clear topic), skip the questions and classify directly. Report the classification and placement.
+
+**Conversational / user-verbatim shelve:** when the caller relays Gabriel's own stated fact
+("the code for feature A is in repo X"), treat his words as first-class raw evidence:
+bronze page `{id: gabriel:<date>:<slug>, source: gabriel, body: <his verbatim words>,
+ref: <session/transcript pointer>}` → gold fact stamped `[VERBATIM ← Gabriel@<date> · page:<id>]`
+with `epistemic: verbatim`, `primary_sources[].kind: user-verbatim`. The fact is refutable like
+any other: later corroboration upgrades confidence via that verification event; contradiction
+goes through challenge (never silently discard what Gabriel said — supersede with history).
+This is the tribal-knowledge capture path; never refuse informal input for lack of a "source."
 
 ---
 

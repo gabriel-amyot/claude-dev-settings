@@ -1,0 +1,5 @@
+- id: O1
+  stamp: OBSERVED
+  claim: "logs unattributable"
+  source: {env: prod, instance: proxrp-cos, traffic: "mixed (unattributable)"}
+  method: log-trace

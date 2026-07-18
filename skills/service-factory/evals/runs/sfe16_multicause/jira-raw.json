@@ -1,0 +1,13 @@
+{
+  "key": "KTP-939",
+  "summary": "stuck spinner + 0 locations across envs",
+  "description": "Intermittently stuck (demo) or 0 locations (prod). Prod + Demo.",
+  "reporter": "Rajan",
+  "envs_reported": ["prod", "demo-prod", "demo-dev"],
+  "symptoms": [
+    {"env": "demo-dev", "symptom": "stuck spinner"},
+    {"env": "prod", "symptom": "0 locations"},
+    {"env": "demo-prod", "symptom": "0 locations"}
+  ],
+  "source": "world.yaml/jira block"
+}

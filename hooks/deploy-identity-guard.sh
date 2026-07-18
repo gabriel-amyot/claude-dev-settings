@@ -22,13 +22,34 @@ INPUT=$(cat)
 # Extract the target path (Read.file_path or Grep.path) and the transcript path.
 # Printed on separate lines so paths containing spaces survive intact.
 EXTRACT="$(printf '%s' "$INPUT" | python3 -c "
-import sys, json
+import sys, json, os, re, shlex
 try:
     d = json.load(sys.stdin)
 except Exception:
     sys.exit(0)
 ti = d.get('tool_input', d)
 fp = ti.get('file_path') or ti.get('filePath') or ti.get('path') or ''
+cmd = ti.get('command') or ti.get('cmd') or ''
+cwd = d.get('cwd') or ''
+if not fp and isinstance(cmd, str):
+    read_cmd = re.search(
+        r'(^|[;&|]\s*)(cat|sed|head|tail|less|more|rg|grep|find|ls'
+        r'|git(?:\s+-C\s+\S+)?\s+(?:show|grep|log|diff))\b',
+        cmd,
+    )
+    if read_cmd:
+        try:
+            tokens = shlex.split(cmd)
+        except ValueError:
+            tokens = cmd.split()
+        home = os.path.expanduser('~')
+        for token in tokens:
+            candidate = os.path.expanduser(token)
+            if candidate.startswith(os.path.join(home, 'Developer') + os.sep):
+                fp = candidate
+                break
+        if not fp and cwd.startswith(os.path.join(home, 'Developer') + os.sep):
+            fp = cwd
 tp = d.get('transcript_path','')
 print(fp)
 print(tp)

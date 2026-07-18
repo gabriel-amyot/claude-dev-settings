@@ -1,0 +1,133 @@
+# Hypothesis board — KTP-939 (stores mapping empty for 842)
+
+- id: H1
+  claim: "advertiser 842 was never onboarded into the stores mapping table (data never loaded)"
+  scope: {env: prod, component: "stores-mapping BQ table"}
+  falsify_test: "exhaustive-read BQ stores_mapping table for advertiser_id=842; count rows"
+  cost: S
+  likelihood: high
+  status: UNTESTED
+  strength: weak
+  evidence: [O1]
+  verdict_scope: {env: prod}
+  origin: playbook:data-gap
+  layer: data
+  intermittent: false
+  revive_log: []
+  note: "Data-gap playbook check 1 — read source table for the missing key. ui-probe (O1) = symptom only."
+
+- id: H2
+  claim: "copy job scheduled in repo but never run / run failed for 842 — table rows absent despite job existing"
+  scope: {env: prod, component: "dataform-repo file.sql"}
+  falsify_test: "check Dataform run history / logs for copy job; look for 842 in output"
+  cost: M
+  likelihood: med
+  status: UNTESTED
+  strength: weak
+  evidence: [O3]
+  verdict_scope: {env: prod}
+  origin: differential
+  layer: data
+  intermittent: false
+  revive_log: []
+  note: "O3 [OBSERVED] copy job IS in the repo (file.sql:550-580). Copy job exists — the absence-of-job sub-claim is REFUTED by O3. Whether it has run for 842 remains unknown. Run-history probe returned NOT_IN_WORLD. Card stays UNTESTED pending run-log access."
+
+- id: H3
+  claim: "[ASSUMED] nightly Dataform DAG copies mapping from raw dataset — mechanism for populating table"
+  scope: {env: prod, component: "UNKNOWN — no citation"}
+  falsify_test: "find the Dataform DAG definition (file + schedule); confirm it references advertiser 842 or applies generically"
+  cost: M
+  likelihood: low
+  status: UNTESTED
+  strength: weak
+  evidence: []
+  verdict_scope: {env: prod}
+  origin: scout
+  layer: data
+  intermittent: false
+  revive_log: []
+  shelved: false
+  note: "[ASSUMED] — probe 'explain how mapping table populated' returned fluent narrative with citation=null (NOT_IN_WORLD). Cannot be used as evidence. This card is ASSUMED; falsify-test required before any reliance."
+
+- id: H4
+  claim: "alias mismatch — 842 is stored under a different key in the mapping table"
+  scope: {env: prod, component: "stores-mapping BQ table"}
+  falsify_test: "sweep ALL known aliases for advertiser 842 in the mapping table; check Glossary + Jira"
+  cost: S
+  likelihood: low
+  status: UNTESTED
+  strength: weak
+  evidence: [O1]
+  verdict_scope: {env: prod}
+  origin: playbook:data-gap
+  layer: data
+  intermittent: false
+  revive_log: []
+  note: "Data-gap playbook check 2 (KTP-130 B1 lesson). 0 rows on one key ≠ absent — sweep aliases."
+
+- id: HNA_ui
+  claim: "N/A — ui layer reproduced anchor (O1, 200-empty); no ui mechanism hypothesis warranted for a data-gap signature"
+  scope: {env: prod, component: "ui"}
+  falsify_test: "n/a"
+  cost: S
+  likelihood: low
+  status: SHELVED
+  strength: weak
+  evidence: [O1]
+  verdict_scope: {env: prod}
+  origin: differential
+  layer: ui
+  intermittent: false
+  revive_log: []
+  shelved: "not-refuted, skipped-for-budget"
+  note: "Layer declared: ui. Anchor reproduced. 200-empty signature points to data, not rendering. No ui mechanism card needed."
+
+- id: HNA_db
+  claim: "N/A — BQ table schema / db config not suspected; signature is missing rows not schema error"
+  scope: {env: prod, component: "BQ dataset schema"}
+  falsify_test: "n/a"
+  cost: S
+  likelihood: low
+  status: SHELVED
+  strength: weak
+  evidence: [O1]
+  verdict_scope: {env: prod}
+  origin: differential
+  layer: db
+  intermittent: false
+  revive_log: []
+  shelved: "not-refuted, skipped-for-budget"
+  note: "Layer declared: db. Table exists (app returns 200 not 500); schema is not the suspect. Data absence is the suspect."
+
+- id: HNA_infra
+  claim: "N/A — infra not suspected; app reachable, 200 returned, no config-drift signal"
+  scope: {env: prod, component: "infra"}
+  falsify_test: "n/a"
+  cost: S
+  likelihood: low
+  status: SHELVED
+  strength: weak
+  evidence: [O1]
+  verdict_scope: {env: prod}
+  origin: differential
+  layer: infra
+  intermittent: false
+  revive_log: []
+  shelved: "not-refuted, skipped-for-budget"
+  note: "Layer declared: infra. 200 response means service is up and routing correctly."
+
+- id: H5
+  claim: "backend query filters out 842 (query bug or missing join)"
+  scope: {env: prod, component: "backend query layer"}
+  falsify_test: "read the backend query for stores by advertiser; look for filter or join that could exclude 842"
+  cost: M
+  likelihood: low
+  status: UNTESTED
+  strength: weak
+  evidence: [O1]
+  verdict_scope: {env: prod}
+  origin: differential
+  layer: backend
+  intermittent: false
+  revive_log: []
+  note: "200-empty signature compatible with either missing data or a filtering bug. Backend layer must be carded (coverage_line requirement)."

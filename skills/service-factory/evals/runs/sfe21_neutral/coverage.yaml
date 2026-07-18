@@ -1,0 +1,5 @@
+in_scope: [ui, backend, data, db, infra]
+na:
+  ui: "App renders correctly; symptom is absent data, not a UI error"
+  db: "No local DB involved in vendor API query path"
+  infra: "App is up and reachable; O1 returned 0-rows (not a connection failure)"

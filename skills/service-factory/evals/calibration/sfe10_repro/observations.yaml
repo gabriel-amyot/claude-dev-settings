@@ -1,0 +1,5 @@
+- id: O1
+  stamp: OBSERVED
+  claim: "prod 200-empty for 842"
+  source: {env: prod, instance: portal}
+  method: ui-probe

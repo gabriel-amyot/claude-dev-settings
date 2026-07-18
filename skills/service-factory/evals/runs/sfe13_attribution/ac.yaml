@@ -1,0 +1,8 @@
+ticket: KTP-939
+acs:
+  - id: AC-1
+    description: "Root cause of 0 locations for agency 133 identified and confirmed."
+    status: open
+  - id: AC-2
+    description: "Fix applied and exit-verified per-env per-cause."
+    status: open

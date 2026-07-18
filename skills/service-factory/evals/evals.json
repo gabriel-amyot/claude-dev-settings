@@ -1,0 +1,71 @@
+{
+  "skill_name": "service-factory",
+  "note": "Tier 2 paper replays (Layer B). Each eval runs the orchestrator in REPLAY MODE (SKILL.md) against a scripted world under evals/replays/<fixture>/, then grades. The deterministic clauses are asserted by evals/run_replays.py (graders/replay_graders.py) over the produced evals/runs/<fixture>/ artifacts; the expectations below are the narrative counterparts for an LLM judge. Ship bar: zero fails among the five criticals SFE-10/13/15/16/21.",
+  "evals": [
+    {
+      "id": 10,
+      "fixture": "sfe10_repro",
+      "prompt": "Run the service-factory orchestrator in REPLAY MODE against evals/replays/sfe10_repro/world.yaml, writing artifacts to evals/runs/sfe10_repro/.",
+      "expected_output": "Reproduces on every fact-sheet env before any RCA or cause-probe; two distinct signatures emerge (demo-dev 500 vs prod/demo-prod 200-empty); express declines; no Cause card before an anchor exists.",
+      "files": [],
+      "expectations": [
+        "The first investigative action after intake is a reproduction (ui-probe/log) on a fact-sheet env, not an RCA or code-diff probe",
+        "Reproduction is attempted on every candidate env (prod, demo-prod, demo-dev), not just one",
+        "The express lane is declined because one cause cannot explain both signatures",
+        "No Cause-typed card is created before an anchor observation exists"
+      ]
+    },
+    {
+      "id": 13,
+      "fixture": "sfe13_attribution",
+      "prompt": "Run the service-factory orchestrator in REPLAY MODE against evals/replays/sfe13_attribution/world.yaml, writing artifacts to evals/runs/sfe13_attribution/.",
+      "expected_output": "The shared-instance log evidence is recorded with a source.traffic field marking it unattributable; because traffic cannot be attributed, no cause reaches CONFIRMED; the disqualifying caveat is surfaced; zero fix tasks are routed.",
+      "files": [],
+      "expectations": [
+        "Every observation carries a source {env, instance, traffic} field",
+        "The unattributable-traffic caveat is surfaced verbatim in a gate report or the RCA",
+        "No cause is marked CONFIRMED on the unattributable evidence (INCONCLUSIVE at best)",
+        "No fix task is routed and no remediation cites the unattributed observation as a confirmed cause"
+      ]
+    },
+    {
+      "id": 15,
+      "fixture": "sfe15_confab",
+      "prompt": "Run the service-factory orchestrator in REPLAY MODE against evals/replays/sfe15_confab/world.yaml, writing artifacts to evals/runs/sfe15_confab/.",
+      "expected_output": "The partial-read absence claim is rejected and re-dispatched for a full read (which finds the copy job at lines 550-580); the citation-less invented mechanism is held as an [ASSUMED] card with a falsify-test, never an OBSERVED row or a confirmed cause.",
+      "files": [],
+      "expectations": [
+        "A partial-read absence claim is not recorded as OBSERVED; a full/exhaustive read with line citations is required first",
+        "The exhaustive read finds and cites the copy job (lines 550-580)",
+        "The fluent, citation-less mechanism is entered only as an [ASSUMED] card with a falsify-test",
+        "The invented mechanism never appears as an OBSERVED observation or a CONFIRMED cause"
+      ]
+    },
+    {
+      "id": 16,
+      "fixture": "sfe16_multicause",
+      "prompt": "Run the service-factory orchestrator in REPLAY MODE against evals/replays/sfe16_multicause/world.yaml, writing artifacts to evals/runs/sfe16_multicause/.",
+      "expected_output": "Two confirmed causes in different envs; the WALL refuses a single-cause story; the closure matrix carries a terminal row per reported env (H1 green re-repro, H2 tracked with a real ticket key); the consolidated closing comment covers both dispositions; no phantom ticket keys.",
+      "files": [],
+      "expectations": [
+        "At least two CONFIRMED causes exist, scoped to different envs",
+        "The closure matrix has a terminal disposition for every reported env (green-rerepro or tracked-with-real-key)",
+        "The owner-handoff cause is tracked against a real ticket key, not a bare comment",
+        "The consolidated closing comment covers all dispositions and references no phantom ticket keys"
+      ]
+    },
+    {
+      "id": 21,
+      "fixture": "sfe21_alias",
+      "prompt": "Run the service-factory orchestrator in REPLAY MODE against evals/replays/sfe21_alias/world.yaml, writing artifacts to evals/runs/sfe21_alias/.",
+      "expected_output": "The zero-result vendor lookup for the corporate parent name is not treated as absence; known aliases are swept (the storefront alias returns rich data); no BLOCKED/'not in vendor' cause stands.",
+      "files": [],
+      "expectations": [
+        "A zero-result vendor lookup is treated as a hypothesis, not a confirmed blocker",
+        "Known aliases (consumer brand / storefront / parent) are swept before any absence conclusion",
+        "The alias search that returns data is recorded as an observation",
+        "No CONFIRMED 'not in vendor' / BLOCKED cause remains; any such card carries a falsify-test"
+      ]
+    }
+  ]
+}

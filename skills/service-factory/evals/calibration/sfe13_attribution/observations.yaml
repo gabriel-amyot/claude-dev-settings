@@ -1,0 +1,5 @@
+- id: O1
+  stamp: OBSERVED
+  claim: "a week of logs show empty result sets"
+  source: {env: prod, instance: proxrp-cos}
+  method: log-trace

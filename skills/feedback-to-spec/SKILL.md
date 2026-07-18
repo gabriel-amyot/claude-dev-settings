@@ -210,26 +210,23 @@ Skip this step entirely. Specs are persisted (Step 4 + 4b). Write the diff repor
 #### Mode: Comment only
 For each SBE that maps to an existing ticket, post an **informational comment** (no AC changes):
 
+Write as Gabriel, no `[automated]`/persona header, fewest words:
+
 ```
-[automated] — Message from Leo, Gab's Specification Specialist
+Spec note (informational, no AC change): {SBE title}
 
-h3. Spec Note: {SBE title}
+{one-line summary of what was found}
 
-Visual feedback review on {date} identified a related specification.
-This comment is informational only — no AC changes are being made.
+Proposed spec: {the Given/When/Then, collapsed}
 
-*Observation:* {one-line summary of what was found}
-*Proposed spec:* {the Given/When/Then, collapsed}
-*Persisted to:* agent-os/sbe/sbe-{epic}-{N}-{slug}.md
-
-When this ticket is next in scope, incorporate the above into the AC.
+Fold this into the AC when the ticket is next in scope.
 ```
 
 Post via `/post-comment`. For SBEs with no matching ticket, note them in the report as "unattached specs" but do NOT create tickets. Skip to Step 10 (Report).
 
 #### Mode: Full auto
 Execute all ticket operations without further interaction:
-- AC updates: draft comment, post via `/post-comment` with Leo's voice
+- AC updates: draft comment, post via `/post-comment` as Gabriel (no persona header)
 - New tickets: create via `/create-tickets`, scaffold via `/ticket-init`
 - Conflicts: surface to user via `AskUserQuestion` (conflicts are always interactive, even in full auto)
 
@@ -255,7 +252,7 @@ For each proposed action, show:
 - Switch mode (`just comment`, `park it` — user can downgrade at this point)
 
 Only after explicit approval, execute the approved operations:
-- For AC updates: draft comment, post via `/post-comment` with Leo's voice: `[automated] — Message from Leo, Gab's Specification Specialist`
+- For AC updates: draft comment, post via `/post-comment` as Gabriel (no `[automated]`/persona header, human voice, fewest words)
 - For new tickets: create via `/create-tickets`, scaffold via `/ticket-init`
 - For conflicts: resolve per user's direction
 

@@ -1,0 +1,12 @@
+env: prod
+cause: H1
+deterministic: true
+pre:
+  k: 1
+  n: 1
+  conditions: "vendor-search by corporate parent name 'Artistry Brand'"
+post:
+  k: 0
+  n: 1
+  conditions: "vendor-search by consumer/storefront name 'Artistry Brand' alias 'Shrimp Basket'"
+  conditions_superset: true

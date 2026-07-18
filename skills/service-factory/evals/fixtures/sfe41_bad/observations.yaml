@@ -1,0 +1,5 @@
+- id: O7
+  stamp: OBSERVED
+  claim: "panel shows 0 results for 842"
+  source: {env: prod, instance: portal-frontend}
+  method: ui-probe

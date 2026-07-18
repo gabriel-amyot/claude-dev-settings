@@ -7,6 +7,7 @@ Deterministic scripts that agents call but never modify. LLMs think and route; s
 - **write-scorecard.sh** — Validates JSON scorecard entries and safely appends to `~/.claude/harness-scorecard.yaml`. Thread-safe via mkdir-based locking. Strips markdown wrapping from agent output.
 - **curator.sh** — Context curation + toolbelt assembly for worker sub-agents. Fetches task-relevant files via keyword search, builds minimal context payload, and assigns role-based tool whitelists.
 - **track-attempts.sh** — 3-strike hard cap tracker for sub-agent tasks. Script-tracked (not LLM-tracked). Produces per-agent metrics for scorecard integration.
+- **harness-parity-check.sh** — Passive Claude/Codex SessionStart audit. Reports instruction, skill, hook, library, or adapter drift without mutating state.
 
 ## Schemas
 

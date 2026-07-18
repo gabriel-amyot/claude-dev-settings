@@ -1,0 +1,23 @@
+key: KTP-819
+summary: 'Dataform: add DSP_CAMPAIGN_ID to proximity geo-aggregate tables (KTP-746
+  prerequisite)'
+status: TO DO
+type: Story
+priority: Medium
+assignee: null
+reporter: Gabriel Amyot
+created: 2026-06-12T12:16:53.467+0000
+updated: 2026-07-17T18:26:47.899+0000
+parent_key: KTP-559
+epic_key: KTP-559
+labels: []
+components: []
+resolution: null
+estimate: 3.0
+sprint: null
+url: https://beklever.atlassian.net/browse/KTP-819
+links:
+- type: Blocks
+  direction: outward
+  key: KTP-746
+  summary: Add campaign filter to the Measurement Map

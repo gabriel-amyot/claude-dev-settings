@@ -1,0 +1,2 @@
+{"seq": 1, "phase": "P4", "action": "probe", "tool": "vendor-search", "target": "Artistry Brand", "note": "0 results"}
+{"seq": 2, "phase": "P5", "action": "rca", "tool": "self", "target": "KTP-130", "note": "BLOCKED \u2014 entity not in vendor"}

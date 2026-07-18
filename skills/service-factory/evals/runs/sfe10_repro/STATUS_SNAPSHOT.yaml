@@ -1,0 +1,6 @@
+ticket: KTP-939
+status: In Progress
+phase: P0
+summary: "POI panel intermittently stuck / 0 locations found. Prod + Demo."
+last_updated: "2026-07-17T00:00Z"
+agent: service-factory-replay

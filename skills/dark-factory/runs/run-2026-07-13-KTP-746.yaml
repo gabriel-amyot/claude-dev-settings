@@ -1,0 +1,173 @@
+run_id: run-2026-07-13-KTP-746
+ticket: KTP-746
+title: >
+  Add a Campaign filter to the Measurement Map: a campaign selector alongside the existing filters
+  that, when changed, rescopes the map + metrics to the selected campaign (default "All campaigns",
+  empty state on no data). Epic KTP-559 (Measurement Map Phase 2). Repos: app-front-portal (UI),
+  app-proximity-report (campaign param on MapDataController models), klever-data-workflow (Dataform
+  prerequisite: carry DSP_CAMPAIGN_ID/NAME through the proximity_daily_geo_* tables).
+date: 2026-07-13
+terminal_status: BLOCKED_SPEC_QUALITY
+session: unresolved
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: true
+  note: >
+    Gate ran in default halt mode with zero warn-mode violations. The run never reached the TDD
+    phase: it halted at the concierge front gate (BLOCKED_SPEC_QUALITY), so there is no
+    implementation, no RED->GREEN sequence to evaluate, and no chance of a vacuous-RED trick. The
+    halt-mode + empty-violations signal is structurally trustworthy precisely because no code phase
+    executed. No red flag from the gate itself.
+
+per_phase:
+  - phase: concierge
+    status: FAIL
+    confidence: 90
+    note: >
+      Correct, very-high-confidence stop. The concierge re-verified the blocker LIVE on 2026-07-13
+      against a fetched origin/dev checkout: (1) all three map tables (proximity_daily_geo_zip /
+      _country / _conversions) STILL lack any campaign column via bq show --schema; (2) the map
+      request models on origin/dev (MapStateDataRequest et al.) still carry only
+      advertiserId/dates/ids/country/channels — no campaign field. The core AC-3 ("changing the
+      filter updates the map and metrics to the selected campaign") therefore cannot be built by any
+      amount of frontend/backend work: the campaign data dimension does not exist in the tables that
+      feed the map. The real prerequisite is a Dataform pipeline change in klever-data-workflow (a
+      third repo, GitHub not GitLab, compiles from the prod branch, daily 8-12 UTC tag run) that has
+      NOT landed, plus an unresolved PO decision (Q2) because VISITS/DISTRIBUTED_VISITS (Placer foot
+      traffic) have no campaign attribution, making "the metrics" unsatisfiable as written. This is
+      exactly the shape a Leo pre-sprint spec gate had already scored MIS_SCOPED 46/100 on
+      2026-06-10 and recommended splitting into data -> backend -> frontend tickets. Confidence 90
+      (higher than the analogous KTP-762 stop at 82) because the blocker was both pre-documented AND
+      re-verified live today, and the concierge refused to guess past a cross-repo data prerequisite
+      it has no belt to satisfy.
+
+scores:
+  task_confidence: 18
+  factory_fitness: 85
+
+deductions:
+  # task_confidence (start 100 -> 18)
+  - points: 60
+    reason: >
+      task_confidence: the run terminated BLOCKED_SPEC_QUALITY at the front gate. Nothing was built,
+      tested, reviewed, or deployed. Zero of the 4 ACs can be proven in this run. Dominant
+      deduction — the TASK is not done and not deployable as handed.
+  - points: 12
+    reason: >
+      task_confidence: the core AC-3 (the ticket's entire purpose — filter rescopes map + metrics)
+      is data-gated on un-landed Dataform work in klever-data-workflow. That repo is a third repo,
+      on GitHub, compiling from the prod branch on a daily 8-12 UTC rhythm, and is not covered by any
+      racked dark-factory tool belt. There is no autonomous path to satisfy the prerequisite from
+      this line.
+  - points: 6
+    reason: >
+      task_confidence: AC-3 is additionally blocked on an unresolved PO decision (Q2) —
+      VISITS/DISTRIBUTED_VISITS (Placer foot traffic) carry no campaign attribution, so "updates the
+      metrics to the selected campaign" is unsatisfiable as written. A clarifying-question draft with
+      recommended defaults exists but had not been posted to the PO (still DRAFT on disk).
+  - points: 4
+    reason: >
+      task_confidence: AC-4 (empty state "no broken map") has no real spec ("no broken map" is a
+      non-goal, not a definition of what renders) and cascade-depends on AC-3's machinery existing.
+      AC-1/AC-2 (filter visible, default "All campaigns") are frontend-seedable but ship no value on
+      their own without the gated core.
+
+  # factory_fitness (start 100 -> 85)
+  - points: 8
+    reason: >
+      factory_fitness: no pre-dispatch triage. A Leo pre-sprint spec gate ALREADY scored this
+      MIS_SCOPED 46/100 on 2026-06-10, named the missing campaign column as a hard blocker, and
+      recommended a data->backend->frontend split. The ticket was nonetheless dispatched to the code
+      factory on 2026-07-13, burning another concierge cycle to re-confirm a documented blocker. This
+      is the exact pre-dispatch triage filter proposed in the KTP-762 retro (2026-06-09) and it is
+      still not wired in — a recurring, unaddressed fitness gap (KTP-699, KTP-762, now KTP-746).
+  - points: 4
+    reason: >
+      factory_fitness: on BLOCKED_SPEC_QUALITY the factory did not auto-emit a Jira comment tagging
+      the PO (Amal) with the blocking product decision (Q2 metrics attribution) and the scope split.
+      A consolidated clarifying-question draft exists at
+      reports/reviews/sprint6-question-draft-2026-06-10.md but sits DRAFT-only on disk — the exact
+      disk-only-parking failure mode named in the CLAUDE.md "A Deferred AC Is an Open Question" SOP.
+      The humans who own the decision never see it, so the ticket can re-enter the line still blocked.
+  - points: 2
+    reason: >
+      factory_fitness: session<->ticket resolution friction. sessions/active/state.yaml has an empty
+      session_id, so the retro cannot cleanly resolve the active session; the improvement handoff had
+      to fall back to the ticket's reports/ folder per the contract's fallback rule. Minor bookkeeping
+      smell, worth noting.
+  - points: 1
+    reason: >
+      factory_fitness: tool-belt coverage boundary. The core prerequisite is Dataform SQLX in
+      klever-data-workflow (GitHub, prod-branch compile). No racked belt (java/scripting/frontend/
+      terraform-dac-infra) covers it, so the concierge had no belt that could even attempt AC-3's
+      data prerequisite. The crib should document this boundary so this class of ticket is recognized
+      as out-of-line earlier.
+
+red_flags:
+  - "BLOCKED_SPEC_QUALITY at the concierge front gate: the core AC (AC-3) needs a campaign column that does not exist in any map BQ table; re-verified live 2026-07-13 that all three proximity_daily_geo_* tables and the origin/dev map request models still carry no campaign dimension."
+  - "A Leo pre-sprint spec gate ALREADY scored this MIS_SCOPED 46/100 on 2026-06-10 with a documented data->backend->frontend split recommendation, yet the ticket was dispatched to the code factory anyway — the concierge cycle only re-confirmed a weeks-old, already-written blocker."
+  - "The real prerequisite lives in a repo the factory cannot touch from this line: klever-data-workflow (Dataform, GitHub not GitLab, compiles from prod branch, daily 8-12 UTC run), not covered by any racked tool belt."
+  - "Unresolved PO product decision (Q2): VISITS/DISTRIBUTED_VISITS have no campaign attribution, so 'updates the metrics to the selected campaign' is unsatisfiable as written. The clarifying-question draft (with recommended defaults) is DRAFT-only on disk and was never posted to Amal — the named disk-only-parking failure mode."
+  - "Recurring shape: KTP-699 (2026-06-02/03), KTP-762 (2026-06-09) and now KTP-746 are all BLOCKED_SPEC_QUALITY data/decision-gated tickets that consumed a concierge cycle to confirm a halt an earlier artifact already implied. The pre-dispatch triage improvement proposed in the KTP-762 retro is still unimplemented."
+  - "sessions/active/state.yaml has an empty session_id — the retro could not resolve the owning session and fell back to writing the handoff into the ticket's reports/ folder."
+
+improvements:
+  - title: "Wire the pre-dispatch triage filter that the KTP-762 retro already proposed"
+    detail: >
+      This is now the top improvement because the same gap recurred. Before a ticket enters the
+      dark-factory line, check for a prior Leo/spec-gate report on the ticket (here
+      reports/reviews/sprint6-spec-gate-2026-06-10.md scored MIS_SCOPED 46/100) or an analyst
+      classification that flags a cross-repo data prerequisite / "NOT a self-contained code change".
+      If found, short-circuit dispatch and route to a human-decision / split queue instead of
+      spending a concierge cycle re-confirming a documented blocker. Concretely: workflow.js should,
+      at concierge entry, look for the newest reports/reviews/*spec-gate*.md and any analyst/ac.json
+      with a backend_gated/cross-repo verdict, and refuse-to-start with a pointer if the core AC is
+      gated. Promote this from a per-run red flag (three runs running) to a tracked gate change.
+  - title: "On BLOCKED_SPEC_QUALITY, auto-surface the blocking questions to the PO via Jira"
+    detail: >
+      Per the CLAUDE.md "A Deferred AC Is an Open Question" SOP, a decision-gated halt must produce a
+      Jira comment tagging the decision owner, not disk-only parking. KTP-746 already has a fully
+      drafted, PO-addressed clarifying-question comment with recommended defaults
+      (reports/reviews/sprint6-question-draft-2026-06-10.md) that was never posted. The factory should,
+      on this terminal status, hand that draft to /post-comment (human-gated preview) so Amal sees
+      Q2 (metrics attribution) and the scope split — otherwise the ticket re-enters the line still
+      blocked. Same improvement carried from the KTP-762 retro; it keeps recurring.
+  - title: "Emit a teed-up split proposal artifact instead of a bare halt"
+    detail: >
+      The blocker decomposes cleanly and the pieces are already known: (1) DATA — Dataform change in
+      klever-data-workflow to carry DSP_CAMPAIGN_ID/NAME through proximity_daily_geo_zip/_country/
+      _conversions (with the backfill + cardinality question and the TTD-vs-generic-DSP-vs-Canada
+      coverage question); (2) BACKEND — optional campaign param on MapDataController request models +
+      adapters in app-proximity-report, and the campaign-list source decision (existing
+      /api/v1/campaigns reads the DSP export dataset, not the proximity dataset); (3) FRONTEND — the
+      actual UI slice in app-front-portal (small: components/map/components/filters/ already has the
+      channel/CollapsibleFilters pattern). The concierge has verified all of this; it should write a
+      short split memo to the ticket reports/ so the human turns a halt into three dispatchable
+      tickets in one read rather than re-investigating.
+  - title: "Document the tool-belt coverage boundary for Dataform / GitHub prerequisites"
+    detail: >
+      The core prerequisite here is Dataform SQLX in a GitHub repo compiling from the prod branch on a
+      daily tag run — no racked belt (java/scripting/frontend/terraform-dac-infra) covers it. Add a
+      note to the toolcrib so this class of prerequisite is recognized as out-of-line at triage, and
+      the concierge can cite "no belt covers klever-data-workflow" as an explicit halt reason rather
+      than discovering it mid-analysis.
+  - title: "Fix session resolution so the retro handoff lands in the owning session, not the ticket folder"
+    detail: >
+      sessions/active/state.yaml had an empty session_id, so this retro could not resolve the active
+      session and fell back to writing the handoff into the ticket's reports/ folder. The retro phase
+      (or an upstream session-init step) should ensure state.yaml carries a resolvable session_id, or
+      the contract should define a deterministic fallback (e.g. newest-mtime session dir) so
+      improvement handoffs consistently reach the session that will act on them.
+
+summary: >
+  KTP-746 (add a campaign filter to the Measurement Map) was correctly BLOCKED_SPEC_QUALITY at the
+  concierge front gate: task_confidence 18 / factory_fitness 85. The core AC-3 needs a campaign
+  dimension that does not exist in any map BQ table — re-verified LIVE on 2026-07-13 that all three
+  proximity_daily_geo_* tables and the origin/dev map request models still carry no campaign field —
+  so it is gated on un-landed Dataform work in a third repo the factory cannot touch (klever-data-
+  workflow) plus an unresolved PO decision on non-attributable visit metrics. The concierge stopped
+  with justified high confidence (90). The real fitness gap is upstream and recurring: a Leo spec
+  gate had already scored this MIS_SCOPED 46/100 on 2026-06-10 and recommended the split, yet the
+  ticket was dispatched anyway — the pre-dispatch triage filter and the auto-Jira-comment-on-halt,
+  both proposed in the KTP-762 retro, remain unimplemented and would have prevented this cycle.

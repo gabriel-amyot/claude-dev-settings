@@ -132,7 +132,7 @@ For each ticket, draft a Jira comment with three sections:
 - New/modified classes and test classes
 - No local file paths (ticket folders are local-only, not in Jira)
 
-Add `_[automated] Posted by Gabriel via CI/QA tooling._` header.
+No `[automated]`/persona header. Post as Gabriel, in his voice (see JIRA_AGENT_RULES Rule 3).
 
 ### Phase 4: Post and (close mode only) Transition
 

@@ -1,0 +1,6 @@
+rows:
+  - env: prod
+    cause: H1 — vendor search key alias mismatch
+    disposition: green-rerepro
+    evidence: "O2: Shrimp Basket → 214 POIs; exit_verify exit 0"
+    ticket: null

@@ -1,0 +1,5 @@
+- id: H1
+  claim: "nightly DAG never ran"
+  scope: {env: prod, component: bq-data}
+  status: CONFIRMED
+  evidence: [O2]

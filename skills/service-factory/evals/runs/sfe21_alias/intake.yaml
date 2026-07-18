@@ -1,0 +1,11 @@
+ticket: KTP-130
+summary: "Artistry Brand flow lines missing"
+reporter: Amal
+reported_envs: [prod]
+symptom_verbatim: "The advertiser 'Artistry Brand' returns nothing from the vendor; can't plot flow lines."
+aliases_on_record:
+  primary: "Artistry Brand"
+  consumer_storefront: "Shrimp Basket"
+  source: "jira-raw.json comment + world.yaml glossary"
+library_stamp: "silent (checked INDEX/ALIASES for vendor brand-alias resolution — world self-contained)"
+gate0_result: pass

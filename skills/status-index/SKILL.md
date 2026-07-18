@@ -217,13 +217,12 @@ The ticket ID from the directory name (e.g., `SPV-22`) IS the Jira key. If jira/
 
 #### 5b. Format the comment
 
+Write as Gabriel, no `[automated]`/persona header. This is a status snapshot, so the fields below
+are legitimate structure; keep the prose tight.
+
 **Leaf ticket comment format:**
 ```
-[automated] Status Index Update — {DATE}
-
-Completion: {completion}% ({done}/{total} AC done)
-Status: {status}
-Story Points: {story_points}
+Status ({DATE}): {completion}% ({done}/{total} AC done), {status}, {story_points} SP
 
 Acceptance Criteria:
 {for each AC}
@@ -253,9 +252,7 @@ Status icons: done=✅, in_progress=🔄, pending_validation=⏳, not_started=�
 
 **Epic comment format:**
 ```
-[automated] Epic Status Index Update — {DATE}
-
-Epic Completion: {completion}%
+Epic status ({DATE}): {completion}% complete
 
 | Ticket | Title | Status | Completion | SP | Blocker |
 |--------|-------|--------|------------|-----|---------|
@@ -286,8 +283,8 @@ python3 ~/.claude-shared-config/skills/jira/jira_skill.py add-comment {JIRA_KEY}
 ```
 
 **Rules (from JIRA_AGENT_RULES.md):**
-- Always prefix with `[automated]`
-- No emojis in prose text (status icons in the AC list are OK — they're data indicators, not decoration)
+- No `[automated]`/persona header. Post as Gabriel, in his voice (Rule 3).
+- No emojis in prose text (status icons in the AC list are OK, they're data indicators, not decoration)
 - Be honest: say "code complete" not "integration complete"; say "deployed to dev" not "deployed and working"
 - Never transition tickets — only post comments
 

@@ -1,0 +1,17 @@
+ticket: KTP-939
+phase: "9-closed"
+clock_start: "2026-07-17T00:00:00Z"
+clock_end: "2026-07-17T00:40:00Z"
+loops: 1
+cap: 3
+gate_state:
+  gate0: pass
+  express: declined
+  stamp_check: pass
+  coverage_line: pass
+  exit_verify: pass
+  closure_matrix: pass
+cause_count: 2
+disposition:
+  cause_a: green-rerepro
+  cause_b: tracked-KTP-901

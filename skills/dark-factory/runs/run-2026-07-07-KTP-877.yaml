@@ -1,0 +1,172 @@
+run_id: run-2026-07-07-KTP-877
+ticket: KTP-877
+title: >
+  Scaffold Proxi repos (app-proxi-hermes, app-proxi-gbrain) + dac-gcp-back-proxi via a cfg PR.
+  Phase 1 (this run) = author + validate the cfg-app / cfg-dac-env config-as-code PR that registers
+  the three GitLab projects; Gab merges, CI provisions the empty repos. Satisfies AC-4; AC-1/2/3 are
+  Phase-2 blocked-by-sequence. Epic KTP-853 (Proxi GCP-home migration).
+date: 2026-07-07
+terminal_status: HALT_AGENT_SKIPPED
+halt_phase: Implement
+session: unresolved  # sessions/active/state.yaml session_id is empty; handoff fell back to ticket reports/
+ticket_folder: ~/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-853/KTP-877
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy_config: true
+  signal: vacuous
+  note: >
+    Gate configured in default halt mode with zero warn-mode violations, so the CONFIG is trustworthy.
+    But the SIGNAL is vacuous: the Implement (code) phase returned agent_null and never ran, so no
+    RED->GREEN sequence ever existed to evaluate. AC-4 is additionally a declarative-config exemption
+    (not_applicable RED — faking a failing terraform test is prohibited), so even a completed run would
+    have no honest unit-RED. Do not read this halt-mode PASS as a quality signal for the ticket.
+
+per_phase:
+  - phase: concierge
+    status: PASS
+    confidence: 80
+  - phase: design
+    status: pass
+    confidence: 86
+  - phase: grill
+    status: pass
+    confidence: 82
+  - phase: Implement
+    status: agent_null
+    confidence: null
+    note: >
+      Agent returned null -> workflow halted with HALT_AGENT_SKIPPED. No branch, no commit, no MR in
+      either cfg-app or cfg-dac-env (both still on main, only unrelated untracked _bmad/ artifacts).
+      review/ is empty. The Phase-1 deliverable (the cfg PR) does not exist.
+
+artifacts_produced:
+  - analyst/ac-list.json, analyst/affected-repos.json, analyst/assumptions.json (concierge/analyst)
+  - design/impl-plan.md, design/grill-report.md (design + grill; rich, exact target files + map entries)
+  - architecture/adr/ADR-draft-proxi-cfg-onboarding.md (draft ADR: models-group placement decision)
+  - tdd/AC-4.md (declarative-config exemption ledger; fmt PASS on /tmp copy, validate INFRA_BLOCKED)
+artifacts_missing:
+  - No branch / worktree / commit in grp-cfg/cfg-app or grp-cfg/cfg-dac-env
+  - No MR opened on either cfg repo
+  - review/ empty (tdd/AC-4.md forward-references a "GREEN sha in review/diff artifacts" that never came to exist)
+
+scores:
+  task_confidence: 28
+  factory_fitness: 68
+
+deductions:
+  # task_confidence (start 100 -> 28)
+  - points: 55
+    reason: >
+      task_confidence: the Implement phase was skipped (agent_null) so the Phase-1 deliverable was
+      never produced. Neither cfg-app nor cfg-dac-env has a KTP-877 branch, commit, or MR; both are on
+      main with only unrelated untracked files. The core task output (the cfg config-as-code PR that
+      registers the three projects) does not exist and nothing is deployable. Better than the
+      2026-06-11 dead runs (which halted at Concierge with zero artifacts) because three planning
+      phases produced a fully specced, ready-to-implement plan.
+  - points: 10
+    reason: >
+      task_confidence: even had Implement run, `terraform validate` is INFRA_BLOCKED (registry 401 /
+      IAP auth on cfg-app + cfg-dac-env `init -backend=false`; 15:51 ET, outside nightly downtime, so
+      an auth blocker not registry downtime). The strongest local proof (validate green) is
+      unobtainable in this environment; only `fmt -check` green + structural-clone assurance are
+      available. Proof surface is capped regardless of the skip.
+  - points: 4
+    reason: >
+      task_confidence: AC-4's true acceptance (repos exist) is inherently deferred to AFTER Gab's human
+      merge + CI provisioning, and AC-1/2/3 are Phase-2 blocked-by-sequence. Phase 1 can never fully
+      close the ticket by design, so the ticket stays open even on a perfect run.
+  - points: 3
+    reason: >
+      task_confidence: tdd/AC-4.md records `terraform fmt` run against /tmp/ktp877-cfg-app/terraform,
+      implying implement-adjacent work happened in an ephemeral temp checkout that was never persisted
+      to a branch or worktree. Any partial progress is lost with the null return; a resume starts cold.
+  # factory_fitness (start 100 -> 68)
+  - points: 15
+    reason: >
+      factory_fitness: the Implement agent returned null and the workflow halted (HALT_AGENT_SKIPPED) —
+      the same null-guard-halts-hard brittleness flagged across the 2026-06-11 batch
+      (KTP-677/695/739/784/792). The retro-proposed "retry once on a null return" fix was never landed,
+      so a single silent socket failure again burned a run — this time AFTER three successful phases,
+      discarding more invested context than a Concierge-phase skip.
+  - points: 6
+    reason: >
+      factory_fitness: the HALT_AGENT_SKIPPED return carries no skip-reason / diagnostics — no
+      classification of operator-skip vs dispatch-error vs timeout vs infra-blocked, no timestamp. The
+      recurring "carry a skip reason + partial trace through the halt return" improvement is still
+      unlanded; this retro again scores with only inferred evidence.
+  - points: 5
+    reason: >
+      factory_fitness: tdd/AC-4.md forward-references "see GREEN sha in review/diff artifacts" for both
+      cfg commits, but review/ is empty and no commit exists. The ledger was written optimistically
+      ahead of the code it documents — an artifact asserting a GREEN the run never produced. Ledger
+      writes-ahead-of-code is a trust smell.
+  - points: 4
+    reason: >
+      factory_fitness: the factory did not persist implement progress before the null return (work ran
+      in /tmp, not a committed worktree/branch), so it is unrecoverable. A WIP-commit-before-return
+      discipline would have salvaged the diff.
+  - points: 2
+    reason: >
+      factory_fitness: the TDD gate "halt mode, zero violations" is vacuously true here (no code phase
+      ran; AC is a declarative-config exemption) yet reads as clean in the INDEX. Same
+      easy-to-misread trap as prior halt-before-code runs; telemetry should mark it vacuous.
+
+red_flags:
+  - "Implement returned agent_null -> HALT_AGENT_SKIPPED after three clean phases (concierge 80 / design 86 / grill 82). A single silent socket failure at the code step discarded all three phases' momentum."
+  - "Neither cfg repo (cfg-app, cfg-dac-env) has a KTP-877 branch, commit, or MR; both still on main. The Phase-1 deliverable does not exist despite a fully specced, exact-target-file plan."
+  - "tdd/AC-4.md forward-references a 'GREEN sha in review/diff artifacts' that never came to exist (review/ is empty, no commit) — a ledger asserting a GREEN that never happened."
+  - "TDD ledger records `terraform fmt` run on /tmp/ktp877-cfg-app/terraform — implement-adjacent work in an ephemeral temp checkout, never persisted to a branch/worktree, lost on the null return."
+  - "terraform validate was INFRA_BLOCKED (registry 401 / IAP auth on both cfg repos' init) — even a completed Implement could not have produced a validate-green proof; only fmt + structural-clone assurance."
+  - "Same HALT_AGENT_SKIPPED null-guard failure mode as the 2026-06-11 batch (KTP-677/695/739/784/792). The retro-proposed 'retry once + carry skip reason' fixes are still unlanded, so the factory keeps losing runs to silent socket skips."
+  - "TDD gate 'halt / zero violations' is vacuous here (declarative-config exemption + Implement skipped) — no real RED->GREEN ran; risk of misreading as a clean signal in the INDEX."
+  - "At grill time the local cfg checkouts were 116 (cfg-app) / 37 (cfg-dac-env) commits behind origin/main; grill note N1 mandates branching from origin/main. A resumed dispatch that skips the fetch would produce a garbage diff / conflicts."
+
+improvements:
+  - title: "Retry once on a null agent return before emitting HALT_AGENT_SKIPPED (recurring — top priority)"
+    detail: >
+      A null agent result is far more likely a dispatch glitch or accidental skip than a considered
+      decision, and here it cost a run that had already completed three phases. Automatically re-dispatch
+      the same socket once (with the skip flagged) before halting. This is the SAME improvement proposed
+      in the 2026-06-11 KTP-739 retro and never landed; the identical failure at Implement this run is
+      the cost of that gap. Highest value at the Implement socket, where a full design/grill context is
+      already invested.
+  - title: "Add a resume-from-Implement path for a HALT_AGENT_SKIPPED at a post-planning phase"
+    detail: >
+      This run halted after grill with a complete plan (design/impl-plan.md, design/grill-report.md,
+      tdd/AC-4.md, draft ADR). Re-running concierge/design/grill on resume is wasteful. A
+      HALT_AGENT_SKIPPED at Implement should be directly re-dispatchable to the Implement socket,
+      consuming the existing artifacts. Cheapest concrete next action for KTP-877: re-dispatch Implement
+      only, branching each cfg repo from origin/main per grill note N1.
+  - title: "Carry a skip-reason + partial trace through the HALT_AGENT_SKIPPED return"
+    detail: >
+      Extend the workflow.js null-guard return to classify WHY the agent came back null (operator skip
+      vs dispatch failure vs timeout vs infra-blocked), a timestamp, and any partial trace. Contract 9
+      currently reconstructs the skip cause by hand from on-disk artifacts. Recurring ask across retros."
+  - title: "Implement must work in a committed worktree/branch and WIP-commit before returning; ban ephemeral /tmp"
+    detail: >
+      tdd/AC-4.md shows fmt ran in /tmp/ktp877-cfg-app — an ephemeral checkout whose work vanished with
+      the null return. Require the Implement socket to create the branch (from origin/main) in a real
+      worktree and WIP-commit before any return, so a null/halt never vaporizes a produced diff. The
+      TDD ledger should cite a real commit sha, not a forward-reference.
+  - title: "Forbid forward-references to non-existent artifacts in the TDD ledger"
+    detail: >
+      The AC-4 ledger cited 'GREEN sha in review/diff artifacts' that never existed. The ledger's GREEN
+      section must reference the actual commit sha / diff path present at write time, or mark it PENDING
+      / NOT-YET-PRODUCED. An artifact must never assert a GREEN the run has not produced."
+  - title: "Mark vacuous TDD-gate PASS in telemetry and the runs INDEX when no code phase ran"
+    detail: >
+      When the run halts before any RED->GREEN code sequence, tag the TDD gate result 'vacuous' in the
+      YAML and INDEX so a halt-before-code run is not misread as a clean quality signal. Applies to every
+      HALT before Implement, not just this ticket."
+
+summary: >
+  Near-miss run: concierge/design/grill all passed with strong confidence (80/86/82) and produced a
+  fully specced, ready-to-implement cfg PR plan (exact target files, map entries, draft ADR,
+  duplicate-key check, declarative-config TDD exemption), but the Implement agent returned null and the
+  workflow halted HALT_AGENT_SKIPPED — no branch, no commit, no MR in either cfg repo, and any /tmp work
+  lost. task_confidence 28 / factory_fitness 68. Root factory gap is the recurring one: a single silent
+  socket skip halts hard with no retry and no skip-reason diagnostics (same as the 2026-06-11 batch),
+  this time discarding three phases of good work. Cheapest recovery is a resume-from-Implement
+  re-dispatch against the existing artifacts, branching each cfg repo from origin/main.

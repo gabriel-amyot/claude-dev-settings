@@ -1,0 +1,5 @@
+- id: H1
+  claim: "agency 133 backend empty"
+  scope: {env: prod, component: app-proximity-report}
+  status: INCONCLUSIVE
+  evidence: [O1]

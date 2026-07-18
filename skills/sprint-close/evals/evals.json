@@ -53,7 +53,7 @@
         "A not-started (To Do) ticket honestly yields CANT-TEST(not-started) rather than a fabricated PASS or FAIL",
         "Never transitions any ticket's status in validate-only mode",
         "Posts an evidence comment on every reviewed ticket, including passing ones (passing tickets are not silently skipped)",
-        "All posts route through /post-comment with the [automated] header, and no autonomous-tooling language appears in the comments"
+        "All posts route through /post-comment with NO [automated]/persona/model header (human voice, as Gabriel), and no autonomous-tooling language appears in the comments"
       ]
     }
   ]

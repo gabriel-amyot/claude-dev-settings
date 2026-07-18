@@ -355,6 +355,8 @@ def api_request(endpoint, method="GET", params=None, data=None, raw=False):
                 response = requests.post(url, json=data, **kwargs)
             elif method == "PUT":
                 response = requests.put(url, json=data, **kwargs)
+            elif method == "DELETE":
+                response = requests.delete(url, **kwargs)
 
             # IAP redirect: auth problem, not transient. Don't retry.
             if response.status_code in (301, 302, 303, 307, 308):
@@ -743,6 +745,155 @@ def manage_merge_request(project_id, action, title=None, source=None, target=Non
 
     else:
         return {"error": f"Unknown MR action: {action}"}
+
+
+def encode_project_path(name_or_id):
+    """Return a project identifier usable directly as GitLab :id.
+
+    Numeric IDs pass through. A full namespace path (e.g.
+    grp-cst/grp-beklever-com/.../app-user-management) is URL-encoded so the
+    API accepts it verbatim, bypassing the name/alias index. This is what the
+    colleague-review agent uses since it already has the exact path from the
+    MR URL.
+    """
+    s = str(name_or_id)
+    if s.isdigit():
+        return s
+    return requests.utils.quote(s, safe="")
+
+
+def get_mr_review(project, mr_iid):
+    """Fetch everything needed to review an MR: metadata, diff_refs, per-file diffs.
+
+    Returns the MR object plus the `changes` array (each with `diff`, `new_path`,
+    `old_path`, and file-state flags) and `diff_refs` (base_sha/head_sha/start_sha)
+    that inline discussion positions require.
+    """
+    pid = encode_project_path(project)
+    response = api_request(f"/projects/{pid}/merge_requests/{mr_iid}/changes")
+    if isinstance(response, dict) and "error" in response:
+        return response
+
+    return {
+        "iid": response.get("iid"),
+        "title": response.get("title"),
+        "state": response.get("state"),
+        "author": (response.get("author") or {}).get("username"),
+        "source_branch": response.get("source_branch"),
+        "target_branch": response.get("target_branch"),
+        "web_url": response.get("web_url"),
+        "diff_refs": response.get("diff_refs") or {},
+        "changes": [
+            {
+                "new_path": c.get("new_path"),
+                "old_path": c.get("old_path"),
+                "new_file": c.get("new_file"),
+                "deleted_file": c.get("deleted_file"),
+                "renamed_file": c.get("renamed_file"),
+                "diff": c.get("diff"),
+            }
+            for c in (response.get("changes") or [])
+        ],
+    }
+
+
+def post_mr_note(project, mr_iid, body, new_path=None, new_line=None,
+                 old_path=None, old_line=None, base_sha=None, head_sha=None,
+                 start_sha=None):
+    """Post a discussion on an MR. Inline (anchored to a diff line) when position
+    args are supplied, otherwise a general MR discussion note.
+
+    For a comment on an added/context line, pass --new-path + --new-line. For a
+    removed line, pass --old-path + --old-line. base/head/start sha come from the
+    MR's diff_refs (see get_mr_review)."""
+    pid = encode_project_path(project)
+    data = {"body": body}
+
+    has_position = any([new_line, old_line]) and (new_path or old_path)
+    if has_position:
+        if not (base_sha and head_sha and start_sha):
+            return {"error": "inline note requires --base-sha, --head-sha, and --start-sha "
+                             "(from the MR diff_refs)"}
+        path = new_path or old_path
+        position = {
+            "base_sha": base_sha,
+            "head_sha": head_sha,
+            "start_sha": start_sha,
+            "position_type": "text",
+            "new_path": new_path or path,
+            "old_path": old_path or path,
+        }
+        if new_line:
+            position["new_line"] = int(new_line)
+        if old_line:
+            position["old_line"] = int(old_line)
+        data["position"] = position
+
+    response = api_request(f"/projects/{pid}/merge_requests/{mr_iid}/discussions",
+                           method="POST", data=data)
+    if isinstance(response, dict) and "error" in response:
+        return response
+
+    return {
+        "posted": True,
+        "inline": has_position,
+        "discussion_id": response.get("id"),
+        "path": (new_path or old_path) if has_position else None,
+    }
+
+
+def edit_mr_discussion(project, mr_iid, discussion_id, body):
+    """Replace the body of the first note in an existing MR discussion.
+
+    Used to revise a review comment in place (e.g. add a concrete fix) instead
+    of stacking replies. Resolves the note id from the discussion, then PUTs the
+    new body."""
+    pid = encode_project_path(project)
+    disc = api_request(f"/projects/{pid}/merge_requests/{mr_iid}/discussions/{discussion_id}")
+    if isinstance(disc, dict) and "error" in disc:
+        return disc
+    notes = disc.get("notes") or []
+    if not notes:
+        return {"error": f"discussion {discussion_id} has no notes to edit"}
+    note_id = notes[0].get("id")
+    response = api_request(
+        f"/projects/{pid}/merge_requests/{mr_iid}/discussions/{discussion_id}/notes/{note_id}",
+        method="PUT", data={"body": body})
+    if isinstance(response, dict) and "error" in response:
+        return response
+    return {"edited": True, "discussion_id": discussion_id, "note_id": note_id}
+
+
+def reply_mr_discussion(project, mr_iid, discussion_id, body):
+    """Add a follow-up note to an existing MR discussion thread (a reply)."""
+    pid = encode_project_path(project)
+    response = api_request(
+        f"/projects/{pid}/merge_requests/{mr_iid}/discussions/{discussion_id}/notes",
+        method="POST", data={"body": body})
+    if isinstance(response, dict) and "error" in response:
+        return response
+    return {"replied": True, "discussion_id": discussion_id, "note_id": response.get("id")}
+
+
+def delete_mr_discussion(project, mr_iid, discussion_id):
+    """Delete the first note of an MR discussion (removes the comment).
+
+    Resolves the note id from the discussion, then issues DELETE. Used to retract
+    a review comment that turned out to be a miss."""
+    pid = encode_project_path(project)
+    disc = api_request(f"/projects/{pid}/merge_requests/{mr_iid}/discussions/{discussion_id}")
+    if isinstance(disc, dict) and "error" in disc:
+        return disc
+    notes = disc.get("notes") or []
+    if not notes:
+        return {"error": f"discussion {discussion_id} has no notes to delete"}
+    note_id = notes[0].get("id")
+    result = api_request(
+        f"/projects/{pid}/merge_requests/{mr_iid}/discussions/{discussion_id}/notes/{note_id}",
+        method="DELETE")
+    if isinstance(result, dict) and "error" in result:
+        return result
+    return {"deleted": True, "discussion_id": discussion_id, "note_id": note_id}
 
 
 def list_pipelines(project_id, ref=None, status=None, per_page=10):
@@ -1167,6 +1318,47 @@ def _build_parser():
     p.add_argument("--description")
     p.add_argument("--description-file")
 
+    # mr-diff: fetch MR metadata + per-file diffs + diff_refs for review
+    p = sub.add_parser("mr-diff")
+    p.add_argument("--project", required=True, help="numeric ID or full namespace path")
+    p.add_argument("--mr-iid", required=True)
+
+    # mr-note: post a discussion on an MR (inline when position args given)
+    p = sub.add_parser("mr-note")
+    p.add_argument("--project", required=True, help="numeric ID or full namespace path")
+    p.add_argument("--mr-iid", required=True)
+    p.add_argument("--body")
+    p.add_argument("--body-file")
+    p.add_argument("--new-path")
+    p.add_argument("--new-line")
+    p.add_argument("--old-path")
+    p.add_argument("--old-line")
+    p.add_argument("--base-sha")
+    p.add_argument("--head-sha")
+    p.add_argument("--start-sha")
+
+    # mr-note-edit: replace the body of an existing discussion's note
+    p = sub.add_parser("mr-note-edit")
+    p.add_argument("--project", required=True, help="numeric ID or full namespace path")
+    p.add_argument("--mr-iid", required=True)
+    p.add_argument("--discussion-id", required=True)
+    p.add_argument("--body")
+    p.add_argument("--body-file")
+
+    # mr-note-reply: add a follow-up note to an existing discussion thread
+    p = sub.add_parser("mr-note-reply")
+    p.add_argument("--project", required=True, help="numeric ID or full namespace path")
+    p.add_argument("--mr-iid", required=True)
+    p.add_argument("--discussion-id", required=True)
+    p.add_argument("--body")
+    p.add_argument("--body-file")
+
+    # mr-note-delete: retract a discussion's comment
+    p = sub.add_parser("mr-note-delete")
+    p.add_argument("--project", required=True, help="numeric ID or full namespace path")
+    p.add_argument("--mr-iid", required=True)
+    p.add_argument("--discussion-id", required=True)
+
     # pipelines
     p = sub.add_parser("pipelines")
     p.add_argument("project", nargs="?")
@@ -1281,6 +1473,60 @@ if __name__ == "__main__":
                                              title=args.title, source=args.source,
                                              target=args.target, mr_iid=args.mr_iid,
                                              description=description)
+
+        elif cmd == "mr-diff":
+            result = get_mr_review(args.project, args.mr_iid)
+
+        elif cmd == "mr-note":
+            body = args.body
+            if args.body_file:
+                try:
+                    with open(args.body_file, "r") as f:
+                        body = f.read()
+                except FileNotFoundError:
+                    print(json.dumps({"error": f"Body file not found: {args.body_file}"}, indent=2))
+                    sys.exit(1)
+            if not body:
+                result = {"error": "mr-note requires --body or --body-file"}
+            else:
+                result = post_mr_note(
+                    args.project, args.mr_iid, body,
+                    new_path=args.new_path, new_line=args.new_line,
+                    old_path=args.old_path, old_line=args.old_line,
+                    base_sha=args.base_sha, head_sha=args.head_sha,
+                    start_sha=args.start_sha,
+                )
+
+        elif cmd == "mr-note-edit":
+            body = args.body
+            if args.body_file:
+                try:
+                    with open(args.body_file, "r") as f:
+                        body = f.read()
+                except FileNotFoundError:
+                    print(json.dumps({"error": f"Body file not found: {args.body_file}"}, indent=2))
+                    sys.exit(1)
+            if not body:
+                result = {"error": "mr-note-edit requires --body or --body-file"}
+            else:
+                result = edit_mr_discussion(args.project, args.mr_iid, args.discussion_id, body)
+
+        elif cmd == "mr-note-reply":
+            body = args.body
+            if args.body_file:
+                try:
+                    with open(args.body_file, "r") as f:
+                        body = f.read()
+                except FileNotFoundError:
+                    print(json.dumps({"error": f"Body file not found: {args.body_file}"}, indent=2))
+                    sys.exit(1)
+            if not body:
+                result = {"error": "mr-note-reply requires --body or --body-file"}
+            else:
+                result = reply_mr_discussion(args.project, args.mr_iid, args.discussion_id, body)
+
+        elif cmd == "mr-note-delete":
+            result = delete_mr_discussion(args.project, args.mr_iid, args.discussion_id)
 
         elif cmd == "pipelines":
             name = args.project_flag or args.project

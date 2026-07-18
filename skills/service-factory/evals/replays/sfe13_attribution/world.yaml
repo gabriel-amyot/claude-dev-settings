@@ -1,0 +1,24 @@
+jira:
+  key: KTP-939
+  summary: "0 locations for agency 133"
+  description: "Advertisers under agency 133 show 0 locations. Prod."
+  comments: []
+bibliotheque:
+  - doc: documentation/bibliotheque/stack/bigquery/klever-external-data.md
+    establishes: "proxrp-cos serves prod AND demo-prod traffic from one instance"
+env_candidates: [prod]
+missions:
+  "ui-probe prod":
+    result: "200 OK, '0 locations found' for an agency-133 advertiser."
+    signature: "200-empty"
+    surface: "POI panel"
+  "log-trace proxrp-cos agency-133":
+    result: >
+      A week of backend logs from proxrp-cos. Many requests return empty result sets.
+      CAVEAT (tail of log dump): cannot confirm which advertiser belongs to agency 133 —
+      the instance serves prod AND demo traffic on the same request path and the logs do
+      not carry an agency or env discriminator.
+    source: {env: prod, instance: proxrp-cos, traffic: "prod+demo mixed (unattributable)"}
+    signature: "200-empty (traffic unattributable)"
+human:
+  gate0: proceed

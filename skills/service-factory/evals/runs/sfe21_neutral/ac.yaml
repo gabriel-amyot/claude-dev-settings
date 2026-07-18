@@ -1,0 +1,10 @@
+acs:
+  - id: AC-1
+    desc: "Reproduce symptom (flow lines absent for Artistry Brand)"
+    status: pending
+  - id: AC-2
+    desc: "Identify confirmed cause with observed evidence"
+    status: pending
+  - id: AC-3
+    desc: "WALL approved + fix dispositioned"
+    status: pending

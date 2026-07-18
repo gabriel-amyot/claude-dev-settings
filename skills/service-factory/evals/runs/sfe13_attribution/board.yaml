@@ -1,0 +1,89 @@
+- id: H1
+  claim: "Agency 133 advertisers are absent from the BQ source data / location table — never onboarded or pipeline dropped them"
+  scope: {env: prod, component: klever-data-workflow/bigquery}
+  falsify_test: "exhaustive-read: SELECT COUNT(*) FROM location_table WHERE agency_id = 133; must return 0 to confirm"
+  cost: S
+  likelihood: high
+  status: UNTESTED
+  strength: weak
+  evidence: []
+  verdict_scope: {}
+  origin: playbook:data-gap
+  layer: data
+  intermittent: false
+  revive_log: []
+
+- id: H2
+  claim: "Advertiser-agency mapping in BQ does not associate any advertiser to agency 133 (wrong or missing rows)"
+  scope: {env: prod, component: klever-data-workflow/bigquery}
+  falsify_test: "exhaustive-read: query advertiser_agency mapping table for agency_id = 133; 0 rows = CONFIRMED"
+  cost: S
+  likelihood: med
+  status: UNTESTED
+  strength: weak
+  evidence: []
+  verdict_scope: {}
+  origin: playbook:data-gap
+  layer: data
+  intermittent: false
+  revive_log: []
+
+- id: H3
+  claim: "Backend query or permission filter excludes agency 133 results (e.g. hardcoded allowlist or wrong WHERE clause)"
+  scope: {env: prod, component: app-proximity-report/src}
+  falsify_test: "exhaustive-read: grep backend query-builder for agency_id filter; log-trace: request for agency-133 advertiser shows filter applied"
+  cost: M
+  likelihood: low
+  status: UNTESTED
+  strength: weak
+  evidence: []
+  verdict_scope: {}
+  origin: differential
+  layer: backend
+  intermittent: false
+  revive_log: []
+
+- id: H4
+  claim: "Agency 133 and its advertisers not present in User Management DB — backend returns no matches because UM has no records"
+  scope: {env: prod, component: app-user-management/db}
+  falsify_test: "exhaustive-read: query UM DB for agency_id = 133; 0 rows = CONFIRMED"
+  cost: S
+  likelihood: med
+  status: UNTESTED
+  strength: weak
+  evidence: []
+  verdict_scope: {}
+  origin: differential
+  layer: db
+  intermittent: false
+  revive_log: []
+
+- id: H5
+  claim: "Frontend/UI applies a filter that silently excludes agency 133 results (e.g. advertiser selection state bug)"
+  scope: {env: prod, component: app-front-portal/src}
+  falsify_test: "exhaustive-read: read POI panel component for agency-scoped filters; ui-probe: confirm 0 results visible while network response also shows 0"
+  cost: S
+  likelihood: low
+  status: UNTESTED
+  strength: weak
+  evidence: []
+  verdict_scope: {}
+  origin: differential
+  layer: ui
+  intermittent: false
+  revive_log: []
+
+- id: H6
+  claim: "proxrp-cos serves wrong BQ project or config for agency 133 queries (config drift — env vars pointing to wrong project)"
+  scope: {env: prod, component: dac-gcp-back-proxrp/config}
+  falsify_test: "exhaustive-read: read proxrp-cos env vars and BQ project config; diff vs expected prod values"
+  cost: S
+  likelihood: low
+  status: UNTESTED
+  strength: weak
+  evidence: []
+  verdict_scope: {}
+  origin: playbook:config-drift
+  layer: infra
+  intermittent: false
+  revive_log: []

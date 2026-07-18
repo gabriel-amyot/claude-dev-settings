@@ -1,0 +1,11 @@
+ticket: KTP-939
+phase: P5-WALL
+gate_state: blocked-at-wall
+loops: 0
+cap: 3
+clock_start: "2026-07-17T00:00Z"
+last_observation: "O4"
+mode: REPLAY
+wall_status: "awaiting human decision — gate5-wall.md recorded for grader inspection"
+confirmed_causes: [H1]
+open_clusters: [prod, demo-prod]

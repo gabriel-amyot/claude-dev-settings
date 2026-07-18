@@ -1,0 +1,7 @@
+rows:
+  - env: prod
+    cause: "none confirmed"
+    disposition: "comment-posted (non-terminal)"
+    ticket: null
+    evidence: "O1 anchor only; no CONFIRMED cause; awaiting BQ row-count + run-log"
+note: "Closure matrix incomplete — WALL blocked on no-cause. Human must provide next probe data."

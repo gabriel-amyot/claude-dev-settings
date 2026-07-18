@@ -1,0 +1,2 @@
+- [idea] alias-map config layer (found: P4, 32m) | drained: proposal
+- [debt] vendor client logs raw key names (found: P7, 51m) | drained: dropped — cosmetic

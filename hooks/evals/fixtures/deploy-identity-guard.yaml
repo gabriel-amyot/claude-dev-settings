@@ -1,4 +1,4 @@
-# deploy-identity-guard.sh — PreToolUse Read|Grep regression fixtures (KTP-688 spine).
+# deploy-identity-guard.sh — PreToolUse Read|Grep|Bash regression fixtures (KTP-688 spine).
 #
 # Blocks reading a NON-deploy branch's source (exit 2) when the probe says the current
 # branch is not a deploy branch AND either (a) you are sitting on the repo's DEFAULT
@@ -17,7 +17,7 @@ hook: deploy-identity-guard.sh
 wired:
   event: PreToolUse
   expected: true
-  note: "must stay registered under PreToolUse Read|Grep (KTP-688 deploy-identity spine)"
+  note: "must stay registered under PreToolUse Read|Grep|Bash (KTP-688 deploy-identity spine)"
 cases:
   # --- BLOCK: on the default branch, which is not the deploy branch (the KTP-688 trap)
   - name: 01-on-default-branch-mismatch-blocked
@@ -140,3 +140,33 @@ cases:
       ln -s {home}/.claude/skills/deploy-identity/probe.sh {tmp}/.claude/skills/deploy-identity/probe.sh
     stdin: {tool_input: {pattern: "TODO"}, transcript_path: ""}
     expected_exit: 0
+
+  # --- BLOCK: Codex shell reads carry tool_input.command instead of file_path
+  - name: 10-codex-shell-read-on-default-blocked
+    env: {HOME: "{tmp}"}
+    setup: |-
+      set -e
+      mkdir -p {tmp}/.claude/skills/deploy-identity
+      ln -s {home}/.claude/skills/deploy-identity/probe.sh {tmp}/.claude/skills/deploy-identity/probe.sh
+      python3 {hooks_dir}/evals/gitfixtures.py --hydrate code-repo --dest {tmp}/Developer/repo
+      SHA=$(git -C {tmp}/Developer/repo rev-parse dev)
+      printf 'deploy_branch: dev\ndefault_branch: main\nowner: sisi\nartifact_source: cache\ndeployed_sha: %s\n' "$SHA" > {tmp}/Developer/repo/.deploy-identity.yaml
+      git -C {tmp}/Developer/repo checkout --quiet main
+    stdin: {tool_input: {command: "sed -n '1,20p' {tmp}/Developer/repo/src/app.py"}, cwd: "{tmp}/Developer/repo", transcript_path: ""}
+    expected_exit: 2
+    needle: "NOT the deployed branch"
+
+  # --- ALLOW: a shell mutation is not a source read and must not be inferred from cwd
+  - name: 11-codex-shell-nonread-allowed
+    env: {HOME: "{tmp}"}
+    setup: |-
+      set -e
+      mkdir -p {tmp}/.claude/skills/deploy-identity
+      ln -s {home}/.claude/skills/deploy-identity/probe.sh {tmp}/.claude/skills/deploy-identity/probe.sh
+      python3 {hooks_dir}/evals/gitfixtures.py --hydrate code-repo --dest {tmp}/Developer/repo
+      SHA=$(git -C {tmp}/Developer/repo rev-parse dev)
+      printf 'deploy_branch: dev\ndefault_branch: main\nowner: sisi\nartifact_source: cache\ndeployed_sha: %s\n' "$SHA" > {tmp}/Developer/repo/.deploy-identity.yaml
+      git -C {tmp}/Developer/repo checkout --quiet main
+    stdin: {tool_input: {command: "git status --short"}, cwd: "{tmp}/Developer/repo", transcript_path: ""}
+    expected_exit: 0
+    absent: "BLOCKED"

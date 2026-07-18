@@ -1,0 +1,5 @@
+- id: H1
+  claim: "demo-dev DAC config stale"
+  scope: {env: demo-dev, component: dac-config}
+  status: CONFIRMED
+  evidence: [O1]

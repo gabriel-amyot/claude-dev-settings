@@ -53,31 +53,24 @@ Write Given/When/Then acceptance criteria:
 
 ### 5. Draft Jira Comment
 
-Format as a Leo comment:
+Write it as Gabriel: no `[automated]` tag, no persona header, no signature. The persona is an
+internal lens only. Fewest words that carry the point. This comment presents ACs, so the AC
+structure below is legitimate; everything else stays tight.
 
 ```
-[automated] -- Message from Leo, Gab's Specification Specialist
+Scaffolded ACs for this ticket from the epic context and a code scan. Correct or approve.
 
-## From What I Know
+*Read:* {one-line interpretation of what the ticket asks for}
 
-{Brief interpretation of what this ticket is asking for, grounded in epic context and code scan findings}
+*AC-1: {title}*
+Given {precondition}
+When {action}
+Then {observable outcome}
 
-## Assumed Acceptance Criteria
-
-### AC-1: {title}
-**Given** {precondition}
-**When** {action}
-**Then** {observable outcome}
-
-### AC-2: {title}
+*AC-2: {title}*
 ...
 
-## Questions for {PO name}
-
-{UX-only questions. Max 3. Each question includes Leo's proposed answer.}
-
----
-These ACs are scaffolded from epic context and codebase scan. Please correct, refine, or approve.
+*For {PO name}:* {UX-only questions, max 3, each with a proposed answer}
 ```
 
 ### 6. Post via /post-comment
@@ -92,4 +85,4 @@ Then invoke `/post-comment` to post to Jira. The skill handles template renderin
 - Never add ACs to tickets already in progress (ticket AC immutability rule).
 - Backend questions go to Gabriel, not PO.
 - Use `[~accountid:...]` Jira mention syntax for the PO.
-- Header must follow the convention: `[automated] -- Message from Leo, Gab's Specification Specialist`
+- No `[automated]`/persona header. The comment posts as Gabriel, in his voice (see JIRA_AGENT_RULES Rule 3).

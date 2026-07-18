@@ -1,0 +1,5 @@
+- id: O1
+  stamp: OBSERVED
+  claim: "vendor returned 0 for Artistry Brand"
+  source: {env: prod, instance: vendor-api}
+  method: live-probe

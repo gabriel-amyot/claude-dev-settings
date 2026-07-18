@@ -1,7 +1,5 @@
-**Status Update** ({{date}})
-
 {{body}}
 
-### Next Steps
-
-{{next_steps}}
+{{#next_steps}}
+Next: {{next_steps}}
+{{/next_steps}}

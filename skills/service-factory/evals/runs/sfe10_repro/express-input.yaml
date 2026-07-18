@@ -1,0 +1,6 @@
+env_universe: [prod, demo-prod, demo-dev]
+anchored_envs: [prod, demo-prod, demo-dev]
+parked_envs: []
+component_named: true
+recent_change_in_hand: true
+single_cause_all_envs: false

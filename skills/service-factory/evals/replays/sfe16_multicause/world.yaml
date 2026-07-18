@@ -1,0 +1,28 @@
+jira:
+  key: KTP-939
+  summary: "stuck spinner + 0 locations across envs"
+  description: "Intermittently stuck (demo) or 0 locations (prod). Prod + Demo."
+bibliotheque:
+  - doc: documentation/bibliotheque/stack/dev-backend-topology.md
+    establishes: "demo-prod shares PROD backend/BQ; demo-dev has its own DAC backend"
+env_candidates: [prod, demo-prod, demo-dev]
+known_tickets: [KTP-901]   # the pre-existing data-owner follow-up ticket
+missions:
+  "ui-probe prod": {result: "200, 0 locations for 842", signature: "200-empty"}
+  "ui-probe demo-prod": {result: "200, 0 locations for 842", signature: "200-empty"}
+  "ui-probe demo-dev": {result: "500 to retired host, stuck spinner", signature: "500/fetch-failed"}
+  "exhaustive-read dac-config demo-dev":
+    result: "demo DAC dev block missing the KTP-863 rewiring (points at retired host)."
+    source: {env: demo-dev, instance: dac-config}
+    citation: "dac-gcp-back-proxrp@abc123"
+  "exhaustive-read bq-dataset 842":
+    result: "advertiser 842 has zero rows in normalized_klever_stores_mapping (never onboarded)."
+    source: {env: prod, instance: bq-dataset}
+    citation: "klever-data-workflow@def456"
+  "verify demo-dev re-repro":
+    result: "after DAC fix: demo-dev POI panel loads, 200 OK, locations render. GREEN."
+  # H2 (data gap) is an owner handoff; owner comment posted, tracked in KTP-901
+human:
+  gate0: proceed
+  wall: approve
+  exit: approve

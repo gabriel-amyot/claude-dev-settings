@@ -116,7 +116,7 @@ Get confirmation, then dispatch.
 - **Leo persona for AC rewrites.** Read the persona file first. Given/When/Then. Include the user's verbatim bug description in the brief.
 - **All Jira content drafts go to disk first.** Write to `tickets/{PREFIX}/{TICKET-ID}/jira/`. Never post without user review.
 - **Sonnet for mechanical work, Opus for diagnosis.** Token discipline.
-- **`[automated]` tags include persona + model.** Per post-comment learned rules.
+- **No `[automated]`/persona/model tag.** Comments post as Gabriel, in his voice, fewest words. Per post-comment doctrine (JIRA_AGENT_RULES Rule 3/4).
 - **Jira posts use the jira skill** (`~/.claude/skills/jira/jira_skill.py`), not raw curl.
 
 ### As agents complete

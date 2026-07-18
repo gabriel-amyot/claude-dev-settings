@@ -52,7 +52,8 @@ This skill supports multiple Jira organizations with automatic detection based o
 
 **Before using this skill, read and follow the rules in [JIRA_AGENT_RULES.md](./JIRA_AGENT_RULES.md).** Key constraints:
 - Never transition tickets to Done/Closed without explicit human confirmation
-- All comments must include the `[automated]` attribution header
+- Comments carry NO visible `[automated]`/persona/model header — they post as Gabriel, in his voice; provenance lives in the on-disk audit log (see JIRA_AGENT_RULES Rule 3)
+- Fewest words that carry the point. Lead with the outcome or ask, no story, no filler (Rule 4)
 - Be honest about what has and has not been validated
 
 ## Instructions

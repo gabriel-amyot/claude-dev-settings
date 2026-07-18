@@ -1,0 +1,5 @@
+- id: H2
+  claim: "BQ data gap for advertiser 842"
+  scope: {env: prod, component: bq-data}
+  status: CONFIRMED
+  evidence: [O7]

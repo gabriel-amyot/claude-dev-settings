@@ -1,0 +1,39 @@
+- id: O1
+  stamp: OBSERVED
+  claim: "vendor-search 'Artistry Brand' returns 0 results in prod"
+  source: {env: prod, instance: vendor-api, traffic: probe}
+  method: live-probe
+  evidence: gate-reports/probe-O1.md
+  verified_against: "world.yaml:missions:vendor-search Artistry Brand"
+
+- id: O2
+  stamp: OBSERVED
+  claim: "vendor-search 'Shrimp Basket' returns rich results (214 POIs, flow-line data available)"
+  source: {env: prod, instance: vendor-api, traffic: probe}
+  method: live-probe
+  evidence: gate-reports/probe-O2.md
+  verified_against: "world.yaml:missions:vendor-search Shrimp Basket"
+
+- id: O3
+  stamp: OBSERVED
+  claim: "vendor UI confirms Shrimp Basket has full coverage"
+  source: {env: prod, instance: vendor-ui, traffic: probe}
+  method: ui-probe
+  evidence: gate-reports/probe-O3.md
+  verified_against: "world.yaml:missions:vendor-ui cross-check Shrimp Basket"
+
+- id: O4
+  stamp: REPORTED
+  claim: "Jira comment: storefront is branded 'Shrimp Basket' (consumer name)"
+  source: {env: n/a, instance: jira-comment, traffic: n/a}
+  method: exhaustive-read
+  evidence: jira-raw.json
+  verified_against: "world.yaml:jira:comments[0]"
+
+- id: O5
+  stamp: OBSERVED
+  claim: "Glossary: 'Artistry Brand' aka 'Shrimp Basket' — corporate parent vs storefront"
+  source: {env: n/a, instance: world-glossary, traffic: n/a}
+  method: exhaustive-read
+  evidence: world.yaml glossary block
+  verified_against: "world.yaml:glossary[0]"

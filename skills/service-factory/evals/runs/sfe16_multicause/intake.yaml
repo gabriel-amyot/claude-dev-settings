@@ -1,0 +1,14 @@
+ticket: KTP-939
+reporter: Rajan
+envs_reported: [prod, demo-prod, demo-dev]
+symptoms:
+  prod: "0 locations for advertiser 842"
+  demo-prod: "0 locations for advertiser 842"
+  demo-dev: "stuck spinner"
+intermittent: false  # symptom is consistent per env, not truly intermittent after anchor
+bibliotheque_cited: "documentation/bibliotheque/stack/dev-backend-topology.md"
+triage_note: >
+  Two distinct symptom signatures across two distinct backend topologies.
+  demo-prod shares PROD backend — same symptom, same likely cause.
+  demo-dev has own DAC — different symptom, different cause expected.
+  Express lane: MUST DECLINE (3 envs, anchors differ per env group, multi-cause shape).

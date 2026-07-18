@@ -1,0 +1,16 @@
+facts:
+  - fact: "vendor indexes entities by consumer storefront name, not corporate parent"
+    provenance: verbatim
+    raw_source: "observations.yaml#O2"
+    rca_link: rca.md
+playbook:
+  plus_one: data-gap
+  proposal: null
+retro:
+  task_confidence: 92
+  factory_fitness: 88
+  deductions:
+    - {points: 12, reason: "alias sweep only triggered by playbook, not by intake"}
+  red_flags: []
+  improvements:
+    - {title: "alias-map config layer", detail: "map corporate->storefront names at onboarding"}

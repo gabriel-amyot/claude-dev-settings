@@ -2,11 +2,11 @@
 
 This template defines what gets POSTED to GitHub as a reply to a code review comment.
 
-## Header (required, first line)
+## Header (posted output: NONE)
 
-Every response starts with the BMAD persona speaking and addresses the reviewer by name:
-If a persona assignment from the review analysis files is available use it (INDEX.md). 
-If no persona is pre-assigned, do not fill it. Load the best suited persona for handling this response in the BMAD catalog (documentation/process/bmad-persona-guide.md)
+The POSTED comment has no persona header and no attribution. It opens by addressing the reviewer
+by name, in first person, as Gabriel. The BMAD persona is an internal lens only (used to pick the
+angle in the draft file); the reviewer never sees it. See "Persona headers: draft vs posted" below.
 
 
 ## Structure (after the header)
@@ -64,9 +64,10 @@ If you disagree with this direction, let me know and we can course correct.
 ```
 
 ## Tone
-- First person, conversational, direct
+- First person, conversational, direct. Fewest words that carry the point.
+- Lead with the answer or the proposal. No preamble, no story of how you got there.
 - Always address the reviewer by name
-- No corporate speak, no "I appreciate your feedback"
+- No corporate speak, no "I appreciate your feedback". No em-dashes.
 - Talk like a colleague, not a subordinate
 - When referencing internal work: "We identified this internally (generated POJO mapping gap) and..."
 - When referencing tickets the reviewer doesn't know about: just link them naturally

@@ -1,0 +1,5 @@
+- id: H1
+  claim: "demo DAC dev block missing KTP-863 rewiring"
+  scope: {env: demo-dev, component: dac-config}
+  status: CONFIRMED
+  evidence: [O7]

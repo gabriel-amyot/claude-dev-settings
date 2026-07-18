@@ -1,0 +1,9 @@
+ticket: KTP-939
+reporter: Rajan
+symptom: "advertiser 842 has no stores; mapping table appears empty"
+envs_reported: [prod]
+intermittent: false
+surface: UI (location count) + mapping table
+gate0_result: proceed   # human.gate0 = proceed (world.yaml)
+env_fact_sheet: env-fact-sheet.md
+jira_raw: jira-raw.json

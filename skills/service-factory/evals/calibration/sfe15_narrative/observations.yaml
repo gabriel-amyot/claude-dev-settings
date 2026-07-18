@@ -1,0 +1,6 @@
+- id: O3
+  stamp: OBSERVED
+  claim: "scheduled copy query present at lines 550-580"
+  source: {env: prod, instance: dataform-repo}
+  method: exhaustive-read
+  evidence: file.sql:550-580

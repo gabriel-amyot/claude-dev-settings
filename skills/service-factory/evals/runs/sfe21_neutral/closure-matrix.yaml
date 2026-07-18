@@ -1,0 +1,7 @@
+known_tickets: [KTP-130]
+rows:
+  - env: prod
+    cause: "H1 alias-mismatch"
+    disposition: green-rerepro
+    ticket: null
+    evidence: "O2 — vendor-search Shrimp Basket returns 214 POIs post-fix"

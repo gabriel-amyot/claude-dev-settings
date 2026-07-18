@@ -145,7 +145,7 @@ Incorporate any changes the user requests, then confirm the final list before St
 
 **Input:** Confirmed ticket list from Step 4.
 
-Batch-create via the `/jira` skill. Use the `create` subcommand. Pass `--org` and `--project` flags as resolved in Step 1. Apply the `[automated]` header convention if required by the org's Jira skill gotchas.
+Batch-create via the `/jira` skill. Use the `create` subcommand. Pass `--org` and `--project` flags as resolved in Step 1. Any Jira comments post as Gabriel with no `[automated]`/persona header, in a short human voice (see JIRA_AGENT_RULES Rule 3/4).
 
 After creation, record each returned ticket key alongside its source finding. This mapping is used in Step 8 (update) and Step 9 (report).
 

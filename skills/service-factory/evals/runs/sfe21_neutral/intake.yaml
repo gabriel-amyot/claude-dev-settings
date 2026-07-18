@@ -1,0 +1,7 @@
+ticket: KTP-130
+reporter: Amal
+symptom: "Flow lines absent for 'Artistry Brand' — vendor returns nothing."
+envs_reported: [prod]
+env_universe: [prod]
+intermittent: false
+notes: "Ticket comment names 'Shrimp Basket' as the consumer storefront brand. World glossary confirms alias."

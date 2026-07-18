@@ -1,0 +1,5 @@
+- id: O2
+  stamp: OBSERVED
+  claim: "Shrimp Basket returns 214 POIs"
+  source: {env: prod, instance: vendor-api, traffic: probe}
+  method: live-probe

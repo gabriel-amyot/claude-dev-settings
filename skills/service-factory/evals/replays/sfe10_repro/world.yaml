@@ -1,0 +1,31 @@
+jira:
+  key: KTP-939
+  summary: "POI panel intermittently stuck / 0 locations found"
+  description: "Intermittently stuck spinning, or 0 locations found. Prod + Demo."
+  comments: []
+memory:
+  - "frontend-lag: the demo env runs newer builds and can lag prod; UI often the cause"
+prior_session:
+  - "quick-wren: NOT reproduced (POI panel loads fine prod+dev). One advertiser tested. Demo env NOT tested. No Jira action taken."
+bibliotheque:
+  - doc: documentation/bibliotheque/stack/dev-backend-topology.md
+    establishes: "demo-prod shares the PROD backend + BQ; demo-dev has its own DAC-wired backend"
+env_candidates: [prod, demo-prod, demo-dev]
+missions:
+  "ui-probe prod":
+    result: "200 OK. Panel renders but shows '0 locations found' for advertiser 842."
+    signature: "200-empty"
+    first_error: "n/a (200)"
+    surface: "POI panel, advertiser 842 selected"
+  "ui-probe demo-prod":
+    result: "200 OK. '0 locations found' for advertiser 842 (same as prod)."
+    signature: "200-empty"
+    first_error: "n/a (200)"
+    surface: "POI panel, advertiser 842"
+  "ui-probe demo-dev":
+    result: "500 fetch-failed. POI panel stuck spinner. Network tab: GET https://proxrp-cos-retired.dead/... -> 500."
+    signature: "500/fetch-failed"
+    first_error: "2026-07-15T09:12Z first 500 after MR!21 merged"
+    surface: "POI panel spinner never resolves"
+human:
+  gate0: proceed-on-candidates

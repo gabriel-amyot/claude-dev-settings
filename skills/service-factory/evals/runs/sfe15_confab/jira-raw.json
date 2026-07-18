@@ -1,0 +1,8 @@
+{
+  "key": "KTP-939",
+  "summary": "stores mapping empty for 842",
+  "description": "advertiser 842 has no stores; is the mapping table populated?",
+  "reporter": "Rajan",
+  "env_candidates": ["prod"],
+  "comments": []
+}

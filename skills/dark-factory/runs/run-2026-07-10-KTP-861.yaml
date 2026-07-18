@@ -1,0 +1,200 @@
+run_id: run-2026-07-10-KTP-861
+ticket: KTP-861
+title: >
+  Integrate the Media Plan Agent into the proximity portal frontend (app-front-portal), mirroring the
+  deployed BI Agent pattern. Adds proxy route /api/media-plan (permission-gated on MediaPlanAgent), a
+  self-gating collapsible MediaPlanPanel on the Planning tab, and a NATIVE React renderer (KPI tiles,
+  4-row line-items table, audience targets, budget donut) driven by a display_media_plan tool call over
+  AG-UI SSE. Dev-only ?mediaPlanFixture branch feeds the sample JSON for deterministic proof. AC-8 (live
+  clarification round-trip against the real agent) is explicitly post-merge, not a factory gate. Epic
+  KTP-536.
+date: 2026-07-10
+terminal_status: HALT_PRESHIP
+halt_phase: preship
+session: unresolved  # sessions/active/state.yaml session_id empty; handoff fell back to ticket reports/status/
+ticket_folder: ~/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-536/KTP-861
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy_config: true
+  signal: honest
+  note: >
+    Gate ran in default halt mode with zero warn-mode violations, so the config is trustworthy. The
+    SIGNAL is also honest: genuine RED captures exist (qa/red-AC-3, red-AC-3b, red-AC-4, red-AC-5b) —
+    e.g. red-AC-3 shows deriveKpis returning {0,0,0} before the impl, and tip-all-tests then shows all
+    16 media-plan-logic assertions GREEN. A real RED->GREEN sequence was demonstrated for the pure-logic
+    ACs (AC-3, AC-3b/audience, AC-4/donut aggregation, AC-5b/parse). This is the clean opposite of the
+    2026-07-07 KTP-877 vacuous case. CAVEAT: the RED->GREEN evidence covers the deterministic logic
+    layer only; the VISUAL ACs (rendered panel/dialog/donut/error states) have no runtime proof.
+
+per_phase:
+  - phase: concierge
+    status: PASS
+    confidence: 90
+  - phase: design
+    status: pass
+    confidence: 92
+  - phase: grill
+    status: pass
+    confidence: 93
+    note: >
+      Strong grill: every load-bearing plan claim independently re-verified against origin/dev
+      (0 behind at grill time), sample arithmetic reproduced by script (500000 / 44666666 / 11.19 /
+      CTV40-Video30-Display30), gate/route/mirror sources confirmed present. See design/grill-report.md.
+  - phase: implement
+    status: pass
+    confidence: 72
+    note: >
+      Second-lowest confidence of the run. Branch origin/KTP-861-media-plan-agent-ui pushed; next build
+      compiled successfully with /api/media-plan and /planning (24.4 kB) routes present. Low soft
+      confidence not explained in a persisted artifact.
+  - phase: review
+    status: "criticals:0"
+    confidence: 64
+    note: >
+      RUN LOW. criticals:0 but confidence 64 and the review/ folder is EMPTY — the review phase persisted
+      no findings document. A confidence-64 pass with zero written rationale is unauditable; this retro
+      reconstructs the review outcome from the trace alone. (Note: reports/architecture/KTP-861-review.md
+      is the PRE-factory crit/spec review, not this phase's output.)
+  - phase: qa
+    status: PARTIAL
+    confidence: 88
+    note: >
+      Proven: next build GREEN (compiled 18.0s, 26/26 static pages), 16/16 media-plan-logic unit tests
+      GREEN, AC-7 config grep GREEN (MEDIA_PLAN_AGENT_URL in route.ts + env-local-sample). NOT proven:
+      no visual/ui-probe screenshot for any rendered AC (AC-2 panel gating, AC-3 dialog render, AC-5
+      donut slices, AC-6 resilience/error states, AC-7 streaming bubble) despite the design purpose-
+      building the ?mediaPlanFixture mode precisely to enable a deterministic screenshot pass. lint:types
+      is RED (9 errors) but all in PRE-EXISTING test files unrelated to media-plan.
+
+artifacts_produced:
+  - analyst/{ac-list.json, affected-repos.json, assumptions.json} (concierge/analyst)
+  - design/impl-plan.md, design/grill-report.md (design + grill; rich, independently re-verified vs origin/dev)
+  - architecture/adr/ADR-001-media-plan-frontend.md (crit-approved architecture lock)
+  - reports/architecture/KTP-861-frontend-spec.md (hardened spec)
+  - qa/red-AC-3-cd58ee7.out, red-AC-3b-da4026e.out, red-AC-4-7745f8d.out, red-AC-5b-1601120.out (honest RED captures)
+  - qa/tip-all-tests.out (16/16 GREEN), qa/next-build.out (build GREEN), qa/AC-7-config.out (config grep), qa/lint-types.out
+  - Pushed branch origin/KTP-861-media-plan-agent-ui (code exists on the remote)
+artifacts_missing:
+  - review/ folder EMPTY — review phase (confidence 64) persisted no findings document
+  - tdd/ folder EMPTY — the RED captures landed in qa/ (red-AC-*.out) instead of tdd/
+  - No ui-probe / screenshot proof for any visual AC (AC-2/3/5/6/7 rendered states), though the fixture mode was built for it
+  - No MR, no Jira comment, no merge (expected at HALT_PRESHIP — human gate)
+
+scores:
+  task_confidence: 74
+  factory_fitness: 79
+
+deductions:
+  # task_confidence (start 100 -> 74)
+  - points: 12
+    reason: >
+      task_confidence: this is a visual, frontend-heavy ticket and NO rendered AC has runtime proof.
+      AC-2 (panel present/absent by gate), AC-3 (expandable dialog with KPI tiles + 4-row table), AC-5
+      (3-slice donut), AC-6 (RUN_ERROR / malformed-args / 401 mid-stream error states + empty-state), and
+      AC-7 (streaming assistant bubble + thinking indicator) are all backed only by pure-logic unit tests
+      — the actual rendered UI was never screenshotted. The design purpose-built ?mediaPlanFixture + a
+      dev mock-SSE agent specifically so ui-probe could screenshot the pipeline working, and that capture
+      never happened. Per Klever's "frontend ACs need screenshot evidence" rule, the rendered feature is
+      unverified and its deployability is asserted, not shown.
+  - points: 6
+    reason: >
+      task_confidence: AC-8 (a real clarification-turn round trip against the live media-plan agent) is
+      post-merge by design and did not run; the ticket cannot fully close inside the factory. And at
+      HALT_PRESHIP there is no MR, no Jira comment, and no merge yet — a human must still open the MR and
+      run the live end-to-end. Nothing is deployed.
+  - points: 5
+    reason: >
+      task_confidence: lint:types (tsc --noEmit) is RED with 9 errors. They are all PRE-EXISTING and in
+      test files unrelated to media-plan (vitest module unresolved in 3 __tests__ files, VisitorOrigin
+      .originName, and 5 stale emptyStateCopyFor(arg) signatures in e2e/market-copy.spec.ts) — none in
+      the media-plan code — but the type gate is red and was neither fixed nor attributed per the
+      "pre-existing failures in crawls" SOP, so the type-clean signal for the whole app is unavailable.
+  - points: 3
+    reason: >
+      task_confidence: implement (72) and review (64) soft confidence are the two lowest of the run, and
+      the review left no persisted findings. Residual risk that the untested visual/gate edge cases the
+      unit layer cannot reach (panel absent-from-DOM gating, mid-stream re-auth, empty-state null
+      omission) harbor defects the run neither surfaced nor closed.
+  # factory_fitness (start 100 -> 79)
+  - points: 8
+    reason: >
+      factory_fitness: artifact placement is inconsistent with the folder contract. review/ and tdd/ are
+      both EMPTY: the TDD RED captures were written to qa/ (red-AC-*.out) instead of tdd/, and the review
+      phase persisted no findings artifact at all. A confidence-64 review with zero on-disk rationale is
+      unauditable and forced this retro to reconstruct the review outcome from the trace alone.
+  - points: 6
+    reason: >
+      factory_fitness: the QA socket ran unit + build + config but skipped the fixture-mode ui-probe
+      visual capture the whole design was built to enable. For a ticket whose bulk is rendered UI, QA
+      producing no screenshot proof is the direct cause of the PARTIAL/HALT the factory could otherwise
+      have narrowed. The visual-proof step is not wired into the frontend QA socket.
+  - points: 4
+    reason: >
+      factory_fitness: pre-existing lint:types failures surfaced at QA with no factory triage — nothing
+      classifies them as pre-existing vs introduced or attributes them. A frontend QA socket should
+      baseline tsc against origin/dev and report only NEW type errors, so a red type gate is not left
+      ambiguous for the retro/human to disentangle by hand.
+  - points: 3
+    reason: >
+      factory_fitness: the review phase's low soft confidence (64, the run low) is captured only as a
+      number in the trace with no explanation persisted anywhere. A sub-threshold review confidence
+      should force a written "why I'm only 64% confident" note into review/ so the signal is actionable.
+
+red_flags:
+  - "review/ folder is EMPTY — the review phase reported criticals:0 at confidence 64 but persisted no findings document. A low-confidence pass with no written rationale is unauditable; the retro reconstructed it from the trace only."
+  - "tdd/ folder is EMPTY — the honest RED captures (red-AC-3/3b/4/5b) landed in qa/ instead of tdd/. Artifacts are misfiled relative to the phase-folder contract."
+  - "No ui-probe / screenshot proof for ANY visual AC (AC-2 panel gating, AC-3 dialog render, AC-5 donut, AC-6 error states, AC-7 streaming bubble) on a frontend-heavy ticket — even though the design built ?mediaPlanFixture + a dev mock-SSE agent expressly so a deterministic screenshot pass could run today."
+  - "QA is PARTIAL (88) and drove the HALT_PRESHIP: strong on deterministic layers (build GREEN, 16/16 unit GREEN, config grep GREEN) but the rendered-UI proof the design enabled was never captured."
+  - "lint:types is RED with 9 errors surfaced at QA with no factory triage; all are pre-existing test-file errors (vitest unresolved x3, VisitorOrigin.originName, market-copy.spec stale signature x5), none in media-plan code, but the red gate was left un-attributed per the pre-existing-failures SOP."
+  - "implement (72) and review (64) are the run's two lowest soft-confidence phases; the low review confidence has no persisted explanation."
+  - "TDD signal is honest for the LOGIC layer (real RED->GREEN) but does NOT cover the visual layer — easy to over-read a clean TDD gate as proof the rendered feature works."
+
+improvements:
+  - title: "Wire a fixture-mode ui-probe screenshot pass into the frontend QA socket (top priority)"
+    detail: >
+      The design purpose-built ?mediaPlanFixture=<variant> + a dev mock-SSE agent so every visual AC maps
+      to a deterministic, backend-free screenshot. The QA socket never invoked it, so a frontend ticket
+      reached HALT_PRESHIP with zero rendered-UI proof. For any belt=frontend run, QA should detect a
+      declared fixture/mock capability in the spec and drive ui-probe against each variant, saving a
+      screenshot per visual AC into qa/ (or design/screenshots/). Absence of a visual capture on a
+      frontend ticket should itself downgrade QA to PARTIAL with an explicit "no visual proof" reason,
+      not a silent PARTIAL.
+  - title: "Review phase must persist a findings artifact, especially when confidence is sub-threshold"
+    detail: >
+      review/ was empty while the trace recorded confidence 64 / criticals:0. A review pass must always
+      write review/findings.md (even 'no criticals; concerns: X, Y'), and when soft confidence is below a
+      threshold (e.g. <70) it must record a 'why I'm only N% confident' note. Contract 9 should not have
+      to reconstruct a review outcome from a bare trace number."
+  - title: "Enforce phase-folder placement: TDD RED/GREEN captures go in tdd/, not qa/"
+    detail: >
+      The honest RED captures (red-AC-*.out) landed in qa/ while tdd/ sat empty. The TDD gate should write
+      its RED and GREEN evidence into tdd/ (and cite them from the ledger); qa/ is for the QA socket's
+      build/lint/unit/visual outputs. Consistent placement makes the RED->GREEN trail auditable and keeps
+      the folder contract meaningful."
+  - title: "QA must baseline pre-existing type/test failures against origin/dev and report only NEW ones"
+    detail: >
+      lint:types returned 9 errors, all pre-existing and unrelated to media-plan, but nothing classified
+      them. The frontend QA socket should run tsc/lint on origin/dev first (or diff against a cached
+      baseline) and surface only errors the branch introduced, tagging pre-existing ones as such. This
+      turns an ambiguous red gate into an actionable one and honors the 'fix or attribute pre-existing
+      failures' discipline."
+  - title: "Tag TDD signal scope (logic vs visual) in telemetry so a clean gate is not over-read"
+    detail: >
+      The TDD gate was honestly GREEN for the pure-logic ACs but proves nothing about the rendered UI.
+      Telemetry (and the runs INDEX) should annotate the TDD signal with its coverage scope
+      ('logic-only', 'includes-visual') so a halt-mode/zero-violation gate on a frontend ticket is not
+      mistaken for end-to-end proof of the feature."
+
+summary: >
+  Healthy HALT_PRESHIP: concierge/design/grill were strong (90/92/93), the TDD gate ran in trustworthy
+  halt mode with a genuinely honest RED->GREEN sequence, next build compiled, all 16 media-plan-logic
+  unit tests and the AC-7 config check passed, and the branch origin/KTP-861-media-plan-agent-ui was
+  pushed — a real, ready-for-human-MR state, the clean opposite of the 2026-07-07 KTP-877 dead run.
+  task_confidence 74 / factory_fitness 79. The gap is visual proof: this frontend-heavy ticket reached
+  preship with ZERO rendered-UI screenshots even though the design built a fixture mode precisely to
+  enable them, so every visual AC is backed only by pure-logic unit tests. Compounding it, review/ and
+  tdd/ folders are empty (RED captures misfiled to qa/, review left no findings), and a pre-existing red
+  lint:types gate was left un-triaged. Top next-run fix: wire a fixture-mode ui-probe screenshot pass
+  into the frontend QA socket.

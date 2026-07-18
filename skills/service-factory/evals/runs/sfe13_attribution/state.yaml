@@ -1,0 +1,16 @@
+ticket: KTP-939
+phase: "5-wall-blocked"
+gate_state:
+  gate0: pass
+  express: declined
+  coverage: pass
+  stamp_check: pass
+  wall: blocked-no-human-answer
+loops: 1
+cap: 3
+clock_start: "2026-07-17T00:00:00Z"
+last_phase_transition: "2026-07-17T00:02:00Z"
+replay: true
+world: "evals/replays/sfe13_attribution/world.yaml"
+wall_block_reason: "world.yaml has no human.wall answer; WALL stops for grader inspection per REPLAY MODE rule 4"
+confirmed_causes: 0

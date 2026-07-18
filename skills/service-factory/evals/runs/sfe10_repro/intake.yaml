@@ -1,0 +1,8 @@
+ticket: KTP-939
+reporter: Rajan
+symptom: "POI panel intermittently stuck spinning, or shows 0 locations found"
+intermittent: true
+envs_reported: [prod, demo]
+env_candidates: [prod, demo-prod, demo-dev]
+prior_session: "quick-wren — NOT reproduced (one advertiser, demo env NOT tested). No Jira action."
+gate0_route: proceed-on-candidates

@@ -1,0 +1,12 @@
+phase: "9-closed"
+gate_state: null
+loops: 0
+cap: 3
+clock_start: "2026-07-17T00:00:00Z"
+last_boundary: "2026-07-17T00:00:00Z"
+ticket: KTP-130
+run_dir: "evals/runs/sfe21_neutral"
+mode: REPLAY
+gates_run: [gate0, express_predicate, coverage_line, loop_counter, stamp_check, exit_verify, closure_matrix]
+outcome: RESOLVED
+cause: H1-alias-mismatch

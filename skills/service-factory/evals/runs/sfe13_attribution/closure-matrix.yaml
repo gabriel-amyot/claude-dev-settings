@@ -1,0 +1,3 @@
+rows: []
+known_tickets: [KTP-939]
+note: "Cannot close. WALL blocking: zero confirmed causes. No green re-repro possible."

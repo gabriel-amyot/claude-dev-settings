@@ -1,0 +1,11 @@
+# Exit verify input — Cause A (demo-dev DAC config fix)
+deterministic: true
+pre:
+  k: 1
+  n: 1
+  conditions: "standard load, advertiser 842, demo-dev"
+post:
+  k: 0
+  n: 1
+  conditions: "standard load, advertiser 842, demo-dev"
+  conditions_superset: false

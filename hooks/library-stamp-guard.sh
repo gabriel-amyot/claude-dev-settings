@@ -29,8 +29,12 @@ except Exception:
     sys.exit(0)
 
 ti = d.get("tool_input", {}) or {}
-prompt = (ti.get("prompt") or "") + " " + (ti.get("description") or "")
-subagent = (ti.get("subagent_type") or "").lower()
+prompt = " ".join(filter(None, (
+    ti.get("prompt"),
+    ti.get("message"),
+    ti.get("description"),
+)))
+subagent = (ti.get("subagent_type") or ti.get("task_name") or "").lower()
 cwd = d.get("cwd", "") or os.getcwd()
 
 if not prompt.strip():

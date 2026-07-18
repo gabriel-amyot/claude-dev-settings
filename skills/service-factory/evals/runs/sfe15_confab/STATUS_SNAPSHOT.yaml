@@ -1,0 +1,5 @@
+ticket: KTP-939
+phase: "1-intake"
+status: IN_PROGRESS
+last_updated: "2026-07-17T00:00:00Z"
+summary: "Investigating empty stores mapping for advertiser 842 in prod"

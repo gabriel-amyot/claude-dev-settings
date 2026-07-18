@@ -1,0 +1,33 @@
+# Observations — KTP-939
+
+- id: O1
+  stamp: OBSERVED
+  claim: "prod POI panel returns 200 but shows '0 locations found' for advertiser 842"
+  source: {env: prod, instance: proxrp-cos, traffic: ui-probe}
+  method: ui-probe
+  evidence: gate-reports/repro-O1.md
+  verified_against: null
+
+- id: O2
+  stamp: OBSERVED
+  claim: "demo-prod POI panel returns 200 but shows '0 locations found' for advertiser 842 (same as prod)"
+  source: {env: demo-prod, instance: proxrp-cos, traffic: ui-probe}
+  method: ui-probe
+  evidence: gate-reports/repro-O2.md
+  verified_against: null
+
+- id: O3
+  stamp: OBSERVED
+  claim: "demo-dev POI panel stuck spinner; network tab: GET https://proxrp-cos-retired.dead/... -> 500 fetch-failed; first error 2026-07-15T09:12Z after MR!21 merged"
+  source: {env: demo-dev, instance: proxrp-cos-retired.dead, traffic: ui-probe}
+  method: ui-probe
+  evidence: gate-reports/repro-O3.md
+  verified_against: null
+
+- id: O4
+  stamp: OBSERVED
+  claim: "demo-dev backend endpoint is configured as proxrp-cos-retired.dead — a retired host. Live network traffic to that host returns 500. Domain=infra. Observed via live-probe of demo-dev network traffic during repro session."
+  source: {env: demo-dev, instance: proxrp-cos-retired.dead, traffic: live-probe}
+  method: live-probe
+  evidence: gate-reports/repro-O3.md
+  verified_against: null

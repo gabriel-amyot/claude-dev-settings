@@ -1,0 +1,3 @@
+pre: {k: 1, n: 1, conditions: "prod vendor API probe by name"}
+post: {k: 0, n: 1, conditions: "prod vendor API probe by name", conditions_superset: false}
+deterministic: true

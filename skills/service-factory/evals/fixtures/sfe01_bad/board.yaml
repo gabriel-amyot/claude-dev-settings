@@ -1,0 +1,5 @@
+- id: C1
+  claim: "root cause is stale backend"
+  scope: {env: prod, component: bq-data}
+  status: CONFIRMED
+  evidence: []

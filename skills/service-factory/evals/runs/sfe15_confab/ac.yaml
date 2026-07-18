@@ -1,0 +1,8 @@
+ticket: KTP-939
+acceptance_criteria:
+  - id: AC1
+    description: "Determine why advertiser 842 shows 0 stores in prod"
+    status: in_progress
+  - id: AC2
+    description: "Confirm or refute whether stores mapping table is populated for 842"
+    status: in_progress

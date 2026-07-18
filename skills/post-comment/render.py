@@ -77,39 +77,23 @@ def format_for_platform(content: str, platform: str) -> str:
     return text
 
 
-def build_attribution(platform: str, model: str = "", session: str = "") -> str:
-    """Build attribution line. Jira gets a header, others get a footer."""
-    parts = ["Posted via Claude Code"]
-    if model:
-        parts.append(f"model: {model}")
-    if session:
-        parts.append(f"session: {session}")
-    tag = " | ".join(parts)
-    if platform == "jira":
-        return f"[automated] {tag}\n\n"
-    return f"\n\n_{tag}_"
-
-
 def main():
     parser = argparse.ArgumentParser(description="Render a post-comment template")
     parser.add_argument("--template", required=True, help="Path to template file")
     parser.add_argument("--draft", required=True, help="Path to draft file (YAML frontmatter + body)")
     parser.add_argument("--platform", required=True, choices=["github", "gitlab", "jira", "slack"])
-    parser.add_argument("--model", default="", help="Model name for attribution")
-    parser.add_argument("--session", default="", help="Session ID for attribution")
+    # --model / --session are accepted for backward compatibility and audit logging only.
+    # They are deliberately NOT injected into the visible output: external posts carry no
+    # [automated] tag, no model name, no persona. Provenance lives in the on-disk audit log.
+    parser.add_argument("--model", default="", help="Model name (audit log only, not rendered)")
+    parser.add_argument("--session", default="", help="Session ID (audit log only, not rendered)")
     args = parser.parse_args()
 
     variables = parse_draft(args.draft)
     rendered = render_template(args.template, variables)
-    attribution = build_attribution(args.platform, args.model, args.session)
     formatted = format_for_platform(rendered, args.platform)
 
-    if args.platform == "jira":
-        output = attribution + formatted
-    else:
-        output = formatted + attribution
-
-    print(output)
+    print(formatted)
 
 
 if __name__ == "__main__":

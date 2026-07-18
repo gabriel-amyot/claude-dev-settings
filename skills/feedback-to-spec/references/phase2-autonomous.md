@@ -53,21 +53,15 @@ Each SBE maps to one or more agents based on its fix_scope:
 
 For each GAP identified in Step 5:
 
-1. Draft the Jira comment using Leo's voice:
+1. Draft the Jira comment as Gabriel (no `[automated]`/persona header, fewest words):
    ```
-   [automated] — Message from Leo, Gab's Specification Specialist
+   AC gap on {SBE title}, from the {date} feedback review.
 
-   h3. AC Amendment: {SBE title}
+   *Current AC:* {what the existing AC says}
+   *Missing:* {what's missing}
 
-   *Context:* Visual feedback review on {date} identified a gap in the current acceptance criteria.
-
-   *Current AC coverage:* {what the existing AC says}
-   *Gap identified:* {what's missing}
-
-   *Proposed AC addition:*
+   *Proposed addition:*
    {Given/When/Then in Jira wiki markup}
-
-   *Evidence:* Screenshot reference + user confirmation from feedback session.
    ```
 
 2. Post via `/post-comment` — never raw API.

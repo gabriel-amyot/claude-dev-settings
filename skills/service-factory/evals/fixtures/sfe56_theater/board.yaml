@@ -1,0 +1,5 @@
+- id: H1
+  claim: "vendor indexes by storefront name, not corporate parent"
+  scope: {env: prod, component: vendor-api}
+  status: CONFIRMED
+  evidence: [O2]

@@ -1,0 +1,4 @@
+- [investigation] prod + demo-prod: advertiser 842 returns 200-empty — BQ probe needed (H4) (found: P4, clock 25m)
+- [ticket-proposal] Create investigation ticket for prod/demo-prod 200-empty cluster — probe BQ for advertiser 842, then backend adapter if BQ has data (found: P5, clock 28m)
+- [knowledge] prior-session (quick-wren) scope gap: only one advertiser tested, demo env skipped — repro protocol should require all envs + multiple advertisers (found: P1, clock 8m)
+- [playbook-proposal] DAC URL stale after COS host rename post-MR: signature 500/fetch-failed + "retired" in network URL → check DAC config URL wiring (found: P4, clock 22m)

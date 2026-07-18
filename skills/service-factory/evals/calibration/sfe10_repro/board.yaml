@@ -1,0 +1,5 @@
+- id: H1
+  claim: "demo-prod stale backend"
+  scope: {env: demo-prod, component: app-proximity-report}
+  status: CONFIRMED
+  evidence: [O1]

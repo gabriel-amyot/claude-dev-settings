@@ -1,0 +1,10 @@
+ticket: KTP-939
+summary: "0 locations for agency 133"
+reporter: Rajan
+reported_envs: [prod]
+symptom_verbatim: "Advertisers under agency 133 show 0 locations. Prod."
+env_universe: [prod]
+intermittent: false
+bibliotheque_checked: true
+bibliotheque_docs:
+  - "documentation/bibliotheque/stack/bigquery/klever-external-data.md"

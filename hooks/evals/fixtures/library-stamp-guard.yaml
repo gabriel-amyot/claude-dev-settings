@@ -1,0 +1,47 @@
+# library-stamp-guard.sh — PreToolUse Agent|Task|spawn_agent regression fixtures.
+hook: library-stamp-guard.sh
+wired:
+  event: PreToolUse
+  expected: true
+  note: "must guard investigation dispatches in both Claude and Codex"
+cases:
+  - name: 01-claude-investigation-without-stamp-blocked
+    cwd: "{home}/Developer/grp-beklever-com/project-management"
+    stdin:
+      cwd: "{home}/Developer/grp-beklever-com/project-management"
+      tool_input:
+        prompt: "Investigate how the BigQuery ingestion pipeline populates this dataset"
+        description: "Map the pipeline"
+        subagent_type: "general-purpose"
+    expected_exit: 2
+    needle: "LIBRARY-STAMP GUARD"
+
+  - name: 02-codex-investigation-without-stamp-blocked
+    cwd: "{home}/Developer/grp-beklever-com/project-management"
+    stdin:
+      cwd: "{home}/Developer/grp-beklever-com/project-management"
+      tool_input:
+        message: "Investigate how the BigQuery ingestion pipeline populates this dataset"
+        task_name: "pipeline_probe"
+    expected_exit: 2
+    needle: "LIBRARY-STAMP GUARD"
+
+  - name: 03-codex-investigation-with-library-stamp-allowed
+    cwd: "{home}/Developer/grp-beklever-com/project-management"
+    stdin:
+      cwd: "{home}/Developer/grp-beklever-com/project-management"
+      tool_input:
+        message: "Library: documentation/bibliotheque/stack/INDEX.md establishes the topology. Investigate how the BigQuery ingestion pipeline populates this dataset."
+        task_name: "pipeline_probe"
+    expected_exit: 0
+    absent: "LIBRARY-STAMP GUARD"
+
+  - name: 04-noninvestigation-dispatch-allowed
+    cwd: "{home}/Developer/grp-beklever-com/project-management"
+    stdin:
+      cwd: "{home}/Developer/grp-beklever-com/project-management"
+      tool_input:
+        message: "Run the focused unit tests and summarize failures"
+        task_name: "test_runner"
+    expected_exit: 0
+    absent: "LIBRARY-STAMP GUARD"

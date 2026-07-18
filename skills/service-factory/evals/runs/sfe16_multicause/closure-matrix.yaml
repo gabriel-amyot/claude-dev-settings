@@ -1,0 +1,20 @@
+known_tickets: [KTP-939, KTP-901]
+
+rows:
+  - env: demo-dev
+    cause: "Cause A — DAC config stale (missing KTP-863 rewiring)"
+    disposition: green-rerepro
+    ticket: null
+    evidence: "O6 — demo-dev POST-FIX: 200 OK, locations render [OBSERVED O6]; exit_verify.py pass (deterministic)"
+
+  - env: prod
+    cause: "Cause B — advertiser 842 BQ data gap (never onboarded)"
+    disposition: tracked
+    ticket: KTP-901
+    evidence: "O5 — BQ exhaustive-read: 0 rows in normalized_klever_stores_mapping [OBSERVED O5]; tracked in KTP-901 (data-onboarding owner)"
+
+  - env: demo-prod
+    cause: "Cause B — advertiser 842 BQ data gap (shares prod backend/BQ)"
+    disposition: tracked
+    ticket: KTP-901
+    evidence: "O2 + O5 — same backend/BQ as prod; same data gap applies [OBSERVED O2, O5]; tracked in KTP-901"

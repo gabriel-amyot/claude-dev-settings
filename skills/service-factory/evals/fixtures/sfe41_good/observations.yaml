@@ -1,0 +1,11 @@
+- id: O7
+  stamp: OBSERVED
+  claim: "panel shows 0 results for 842"
+  source: {env: prod, instance: portal-frontend}
+  method: ui-probe
+- id: O8
+  stamp: OBSERVED
+  claim: "842 has zero rows in normalized_klever_stores_mapping"
+  source: {env: prod, instance: bq-dataset}
+  method: exhaustive-read
+  verified_against: "klever-data-workflow@def456"

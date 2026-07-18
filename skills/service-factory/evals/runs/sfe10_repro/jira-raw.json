@@ -1,0 +1,8 @@
+{
+  "key": "KTP-939",
+  "summary": "POI panel intermittently stuck / 0 locations found",
+  "description": "Intermittently stuck spinning, or 0 locations found. Prod + Demo.",
+  "reporter": "Rajan",
+  "comments": [],
+  "status": "In Progress"
+}

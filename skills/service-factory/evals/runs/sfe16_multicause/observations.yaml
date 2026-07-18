@@ -1,0 +1,52 @@
+# Observations ledger — KTP-939
+
+- id: O1
+  stamp: OBSERVED
+  claim: "prod: 200 response, 0 locations returned for advertiser 842"
+  source: {env: prod, instance: proxrp-cos, traffic: ui-probe}
+  method: ui-probe
+  evidence: gate-reports/probe-O1.md
+  verified_against: "world.yaml/ui-probe prod"
+  n_trials: {k: 1, n: 1, conditions: "standard load"}
+
+- id: O2
+  stamp: OBSERVED
+  claim: "demo-prod: 200 response, 0 locations returned for advertiser 842"
+  source: {env: demo-prod, instance: proxrp-cos, traffic: ui-probe}
+  method: ui-probe
+  evidence: gate-reports/probe-O2.md
+  verified_against: "world.yaml/ui-probe demo-prod"
+  n_trials: {k: 1, n: 1, conditions: "standard load"}
+
+- id: O3
+  stamp: OBSERVED
+  claim: "demo-dev: 500 to retired host, stuck spinner, fetch-failed"
+  source: {env: demo-dev, instance: proxrp-cos, traffic: ui-probe}
+  method: ui-probe
+  evidence: gate-reports/probe-O3.md
+  verified_against: "world.yaml/ui-probe demo-dev"
+  n_trials: {k: 1, n: 1, conditions: "standard load"}
+
+- id: O4
+  stamp: OBSERVED
+  claim: "demo-dev DAC config missing KTP-863 rewiring — block points at retired host"
+  source: {env: demo-dev, instance: dac-config}
+  method: exhaustive-read
+  evidence: gate-reports/probe-O4.md
+  verified_against: "dac-gcp-back-proxrp@abc123"
+
+- id: O5
+  stamp: OBSERVED
+  claim: "BQ: advertiser 842 has zero rows in normalized_klever_stores_mapping (never onboarded)"
+  source: {env: prod, instance: bq-dataset}
+  method: exhaustive-read
+  evidence: gate-reports/probe-O5.md
+  verified_against: "klever-data-workflow@def456"
+
+- id: O6
+  stamp: OBSERVED
+  claim: "demo-dev post-fix: 200 OK, POI panel loads, locations render — GREEN"
+  source: {env: demo-dev, instance: proxrp-cos, traffic: verify}
+  method: live-probe
+  evidence: gate-reports/verify-O6.md
+  verified_against: "world.yaml/verify demo-dev re-repro"

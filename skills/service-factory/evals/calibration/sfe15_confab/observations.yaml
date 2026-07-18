@@ -1,0 +1,10 @@
+- id: O1
+  stamp: OBSERVED
+  claim: "copy job not built anywhere in this repo"
+  source: {env: prod, instance: dataform-repo}
+  method: exhaustive-read
+- id: O2
+  stamp: OBSERVED
+  claim: "a nightly DAG copies the mapping from raw"
+  source: {env: prod, instance: explain-probe}
+  method: live-probe

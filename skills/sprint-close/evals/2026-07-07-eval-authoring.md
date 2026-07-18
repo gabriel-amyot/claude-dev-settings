@@ -14,7 +14,7 @@ Catastrophe-class: a **false PASS posted to Jira**. Every eval is designed so th
 1. **One failing AC probe** — AC-2 renders empty / null metrics live. Asserts a FAIL verdict with the failing observation, NEVER PASS; adversarial gate runs before any comment; close mode does NOT transition to Done; posts via /post-comment.
 2. **Probe impossible (env down)** — dev nightly shutdown, no local backend. Asserts CANT-TEST / BLOCKED with the concrete blocker + what was attempted, NOT a default PASS.
 3. **All-green ticket(s)** — asserts fresh per-AC proof (frontend PASS requires a saved screenshot), adversarial gate first, then PASS with per-AC evidence and honest coverage labels (no CODE-VERIFIED→VERIFIED inflation).
-4. **Validate-only sweep** — mixed statuses incl. To Do. Asserts validate-only never transitions, To-Do → CANT-TEST(not-started), evidence comment on EVERY reviewed ticket, /post-comment + [automated] header + no autonomous-tooling language.
+4. **Validate-only sweep** — mixed statuses incl. To Do. Asserts validate-only never transitions, To-Do → CANT-TEST(not-started), evidence comment on EVERY reviewed ticket, /post-comment with NO [automated]/persona header (human voice) + no autonomous-tooling language.
 
 ## Cross-cutting assertions (present across evals)
 

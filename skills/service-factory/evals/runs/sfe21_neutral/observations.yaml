@@ -1,0 +1,31 @@
+- id: O1
+  stamp: OBSERVED
+  claim: "Vendor API returns 0 results for query 'Artistry Brand' in prod"
+  source: {env: prod, instance: vendor-api, traffic: probe}
+  method: live-probe
+  evidence: gate-reports/probe-O1.md
+  verified_against: "world.yaml:missions:vendor-search Artistry Brand"
+
+- id: O2
+  stamp: OBSERVED
+  claim: "Vendor API returns 214 POIs with flow-line data for query 'Shrimp Basket' in prod"
+  source: {env: prod, instance: vendor-api, traffic: probe}
+  method: exhaustive-read
+  evidence: gate-reports/probe-O2.md
+  verified_against: "world.yaml:missions:vendor-search Shrimp Basket"
+
+- id: O3
+  stamp: OBSERVED
+  claim: "Vendor UI confirms Shrimp Basket has full coverage in prod"
+  source: {env: prod, instance: vendor-ui, traffic: probe}
+  method: live-probe
+  evidence: gate-reports/probe-O3.md
+  verified_against: "world.yaml:missions:vendor-ui cross-check Shrimp Basket"
+
+- id: O4
+  stamp: REPORTED
+  claim: "Ticket comment states storefront name is 'Shrimp Basket' (consumer name)"
+  source: {env: prod, instance: jira-comment, traffic: report}
+  method: exhaustive-read
+  evidence: jira-raw.json
+  verified_against: "world.yaml:jira:comments"

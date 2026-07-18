@@ -1,0 +1,76 @@
+# Hypothesis board — KTP-939
+
+- id: H1
+  claim: "demo-dev DAC config missing host-migration rewiring — points at retired host"
+  scope: {env: demo-dev, component: dac-gcp-back-proxrp}
+  falsify_test: "exhaustive-read dac-config demo-dev — diff vs expected host-migration rewiring"
+  cost: S
+  likelihood: high
+  status: CONFIRMED
+  strength: strong
+  evidence: [O3, O4]
+  verdict_scope: {env: demo-dev}
+  origin: differential
+  layer: infra
+  intermittent: false
+  revive_log: []
+
+- id: H2
+  claim: "advertiser 842 never onboarded in BQ — normalized_klever_stores_mapping has 0 rows"
+  scope: {env: prod, component: bq-dataset}
+  falsify_test: "exhaustive-read bq-dataset 842 — count rows in normalized_klever_stores_mapping"
+  cost: S
+  likelihood: high
+  status: CONFIRMED
+  strength: strong
+  evidence: [O1, O2, O5]
+  verdict_scope: {env: [prod, demo-prod]}
+  origin: differential
+  layer: data
+  intermittent: false
+  revive_log: []
+
+- id: H3
+  claim: "backend API bug returns empty on valid advertiser request"
+  scope: {env: prod, component: app-proximity-report}
+  falsify_test: "log-trace backend for advertiser 842 — check query execution, filter logic"
+  cost: M
+  likelihood: low
+  status: REFUTED
+  strength: strong
+  evidence: [O5]
+  verdict_scope: {env: [prod, demo-prod]}
+  origin: differential
+  layer: backend
+  intermittent: false
+  revive_log: []
+
+- id: H4
+  claim: "UI layer rendering bug — location data returned but not displayed"
+  scope: {env: [prod, demo-prod, demo-dev], component: app-front-portal}
+  falsify_test: "ui-probe network tab — confirm response payload is truly empty not filtered"
+  cost: S
+  likelihood: low
+  status: REFUTED
+  strength: strong
+  evidence: [O1, O2, O3]
+  verdict_scope: {env: [prod, demo-prod, demo-dev]}
+  origin: differential
+  layer: ui
+  intermittent: false
+  revive_log: []
+
+- id: H5
+  claim: "DB schema mismatch — mysql query fails silently returning empty"
+  scope: {env: prod, component: app-proximity-report}
+  falsify_test: "log-trace backend DB query for 842 — check for silent exception"
+  cost: M
+  likelihood: low
+  status: REFUTED
+  strength: weak
+  evidence: [O5]
+  verdict_scope: {env: prod}
+  origin: playbook
+  layer: db
+  intermittent: false
+  revive_log: []

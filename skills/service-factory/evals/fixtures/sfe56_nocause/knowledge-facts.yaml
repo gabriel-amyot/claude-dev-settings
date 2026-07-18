@@ -1,0 +1,15 @@
+facts:
+  - fact: "proxrp-cos serves prod+demo on one path; its logs carry no env/agency discriminator"
+    provenance: verbatim
+    raw_source: "observations.yaml#O1"
+    rca_link: rca.md
+playbook:
+  plus_one: null
+  proposal: null
+  none_reason: "no confirmed cause — run parked at WALL with no-cause package"
+retro:
+  task_confidence: 30
+  factory_fitness: 90
+  red_flags: []
+  improvements:
+    - {title: "request-id discriminator", detail: "propose env/agency tag in proxrp-cos logs"}

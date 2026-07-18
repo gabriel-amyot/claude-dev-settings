@@ -1,0 +1,6 @@
+- id: O7
+  stamp: OBSERVED
+  claim: "dev block absent from DAC config"
+  source: {env: demo-dev, instance: dac-config}
+  method: exhaustive-read
+  verified_against: "dac-gcp-back-proxrp@abc123"

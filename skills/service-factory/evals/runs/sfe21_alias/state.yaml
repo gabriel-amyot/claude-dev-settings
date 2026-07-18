@@ -1,0 +1,15 @@
+phase: "9-complete"
+gate_state: closed
+start_clock: "2026-07-17T00:00:00Z"
+last_phase_boundary: "2026-07-17T00:00:00Z"
+loops: 0
+loop_cap: 3
+last_material_observation: O2
+ticket: KTP-130
+run_dir: evals/runs/sfe21_alias
+mode: REPLAY
+final_status: CLOSED
+confirmed_causes: [H1]
+shelved_cards: [H4, H5]
+untested_cards: [H2, H3]
+closure_matrix: green

@@ -1,0 +1,5 @@
+ticket: KTP-130
+acs:
+  - id: AC-1
+    description: "Flow lines appear for Artistry Brand / Shrimp Basket advertiser"
+    status: open

@@ -1,0 +1,10 @@
+ticket: KTP-939
+acs:
+  - id: AC-1
+    desc: "Stuck spinner on demo-dev diagnosed and fixed"
+    status: completed
+    evidence: O4 (exhaustive-read dac-config) + O6 (green re-repro post-fix)
+  - id: AC-2
+    desc: "0 locations on prod/demo-prod diagnosed and owner-handed-off"
+    status: completed
+    evidence: O5 (BQ 0 rows) + tracked KTP-901

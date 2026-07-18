@@ -1,0 +1,45 @@
+- id: H1
+  claim: "Vendor queried with corporate parent name 'Artistry Brand'; correct consumer key is 'Shrimp Basket'"
+  scope: {env: prod, component: vendor-api-adapter}
+  falsify_test: "vendor-search 'Shrimp Basket' — if rich results returned, alias mismatch is the cause"
+  cost: S
+  likelihood: high
+  status: CONFIRMED
+  strength: strong
+  evidence: [O1, O2, O4]
+  verdict_scope: {env: prod}
+  origin: playbook:data-gap
+  layer: data
+  intermittent: false
+  revive_log: []
+
+- id: H2
+  claim: "Entity 'Artistry Brand' / 'Shrimp Basket' genuinely absent from vendor — never onboarded"
+  scope: {env: prod, component: vendor-api-adapter}
+  falsify_test: "vendor-ui cross-check 'Shrimp Basket' — if UI shows coverage, entity exists in vendor"
+  cost: S
+  likelihood: med
+  status: REFUTED
+  strength: strong
+  evidence: [O3]
+  verdict_scope: {env: prod}
+  origin: playbook:data-gap
+  layer: data
+  intermittent: false
+  revive_log: []
+
+- id: H3
+  claim: "Backend adapter hardcodes corporate name in vendor query string"
+  scope: {env: prod, component: app-proximity-report}
+  falsify_test: "exhaustive-read vendor API adapter — find entity name passed to vendor call"
+  cost: M
+  likelihood: med
+  status: SHELVED
+  strength: weak
+  evidence: []
+  verdict_scope: {env: prod}
+  origin: differential
+  layer: backend
+  intermittent: false
+  revive_log: []
+  shelved: "not-refuted, skipped-for-budget (H1 CONFIRMED explains full anchor)"

@@ -1,0 +1,8 @@
+{
+  "key": "KTP-939",
+  "summary": "0 locations for agency 133",
+  "description": "Advertisers under agency 133 show 0 locations. Prod.",
+  "comments": [],
+  "reporter": "Rajan",
+  "env_mentioned": ["prod"]
+}

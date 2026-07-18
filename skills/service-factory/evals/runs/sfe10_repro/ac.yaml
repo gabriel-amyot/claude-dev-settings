@@ -1,0 +1,11 @@
+ticket: KTP-939
+acs:
+  - id: AC1
+    desc: "Reproduce and anchor POI panel symptom per env"
+    status: pending
+  - id: AC2
+    desc: "Identify and confirm root cause(s) with observed evidence"
+    status: pending
+  - id: AC3
+    desc: "Fix applied and exit-verified green per env per cause"
+    status: pending

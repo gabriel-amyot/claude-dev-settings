@@ -1,0 +1,112 @@
+# Hypothesis board — KTP-939
+
+# --- demo-dev cluster (signature: 500/fetch-failed) ---
+
+- id: H1
+  claim: "demo-dev DAC config / DAC-wired backend URL points to retired host (proxrp-cos-retired.dead) after MR!21 rewiring; every request to demo-dev backend hits this dead host"
+  scope: {env: demo-dev, component: dac-gcp-back-proxrp}
+  falsify_test: "read demo-dev DAC env config, check backend URL target; diff vs MR!21"
+  cost: S
+  likelihood: high
+  status: CONFIRMED
+  strength: strong
+  evidence: [O3, O4]
+  verdict_scope: {env: demo-dev}
+  origin: differential
+  layer: infra
+  intermittent: false
+  revive_log: []
+
+- id: H2
+  claim: "demo-dev backend service itself crashed / not running after MR!21 deploy"
+  scope: {env: demo-dev, component: app-proximity-report}
+  falsify_test: "check demo-dev COS service health / logs post-MR!21"
+  cost: M
+  likelihood: low
+  status: SHELVED
+  strength: weak
+  evidence: [O3]
+  verdict_scope: {env: demo-dev}
+  origin: differential
+  layer: backend
+  intermittent: false
+  revive_log: []
+  shelved: "not-refuted, skipped-for-budget: H1 (wrong URL) explains 500 without requiring service crash; lower-likelihood alternative"
+
+- id: H3
+  claim: "demo-dev frontend build has wrong API base URL hard-coded for proxrp-cos (UI-layer config)"
+  scope: {env: demo-dev, component: app-front-portal}
+  falsify_test: "inspect demo-dev network request URL source (frontend build config vs DAC env var)"
+  cost: S
+  likelihood: low
+  status: SHELVED
+  strength: weak
+  evidence: [O3]
+  verdict_scope: {env: demo-dev}
+  origin: differential
+  layer: ui
+  intermittent: false
+  revive_log: []
+  shelved: "not-refuted, skipped-for-budget: In Klever pattern, per-env backend URLs come from DAC wiring, not frontend builds. H1 (DAC config) is the standard locus. No world mission to distinguish."
+
+# --- prod + demo-prod cluster (signature: 200-empty, advertiser 842) ---
+
+- id: H4
+  claim: "advertiser 842 has no proximity data in BQ — missing or zero-row dataset for this advertiser"
+  scope: {env: prod, component: bigquery-dataset}
+  falsify_test: "query BQ for advertiser 842 location rows; check row count"
+  cost: S
+  likelihood: high
+  status: UNTESTED
+  strength: weak
+  evidence: [O1, O2]
+  verdict_scope: {env: prod}
+  origin: differential
+  layer: data
+  intermittent: false
+  revive_log: []
+
+- id: H5
+  claim: "backend adapter returns empty result for advertiser 842 due to wrong advertiser-id mapping / filter"
+  scope: {env: prod, component: app-proximity-report}
+  falsify_test: "read backend adapter advertiser-id mapping; check if 842 maps correctly"
+  cost: M
+  likelihood: med
+  status: UNTESTED
+  strength: weak
+  evidence: [O1, O2]
+  verdict_scope: {env: prod}
+  origin: differential
+  layer: backend
+  intermittent: false
+  revive_log: []
+
+- id: H6
+  claim: "prod frontend build silently drops results (UI rendering bug) for some advertisers"
+  scope: {env: prod, component: app-front-portal}
+  falsify_test: "check browser console for JS errors on advertiser 842 load; test with another advertiser that returns data"
+  cost: S
+  likelihood: low
+  status: UNTESTED
+  strength: weak
+  evidence: [O1, O2]
+  verdict_scope: {env: prod}
+  origin: differential
+  layer: ui
+  intermittent: false
+  revive_log: []
+
+- id: H7
+  claim: "prod DB / MySQL has no record for advertiser 842 (user-management or mapping table)"
+  scope: {env: prod, component: app-user-management}
+  falsify_test: "query UM DB for advertiser 842 entity"
+  cost: M
+  likelihood: low
+  status: UNTESTED
+  strength: weak
+  evidence: [O1, O2]
+  verdict_scope: {env: prod}
+  origin: differential
+  layer: db
+  intermittent: false
+  revive_log: []

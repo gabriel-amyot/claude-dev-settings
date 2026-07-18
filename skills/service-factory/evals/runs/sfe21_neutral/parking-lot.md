@@ -1,0 +1,2 @@
+- [ticket-proposal] Alias-map config layer: corporate→consumer name mapping for vendor API queries. H3 shelved (not-refuted). Future-proof against next advertiser onboarded under wrong name. (found: phase 4, clock: fast)
+- [playbook-update] data-gap.md +1 KTP-130 — alias sweep resolved the bug in one S-cost probe; recency weight +1 for check 2 (alias sweep). (found: phase 9)

@@ -1,6 +1,6 @@
 # Hooks Catalog
 
-Custom Claude Code hooks registered in `~/.claude/settings.json`. Each hook fires at a specific lifecycle event and either injects context (exit 0 with stdout) or blocks actions (exit non-zero with reason).
+Shared harness hooks used by Claude Code and Codex. Implementations live here once. Claude maps events in `~/.claude/settings.json`; Codex maps the equivalent events in `~/.codex/hooks.json`. Each hook either injects context (exit 0 with stdout) or blocks actions (exit non-zero with reason).
 
 ## Regression Evals (added 2026-07-07)
 
@@ -33,7 +33,17 @@ wire-or-retire decision.
 | Script | Matcher | Purpose | Added |
 |--------|---------|---------|-------|
 | `branch-guard.sh` | Edit\|Write | Blocks edits to files in git repos when branch is protected (dev/main/master) or already merged to origin/dev. Defense-in-depth against wrong-branch incidents. | 2026-05-16 |
+| `deploy-identity-guard.sh` | Read\|Grep\|Bash | Blocks deployed-code reasoning from the wrong branch. Supports direct file tools and shell-based reads used by Codex. | 2026-06-29 |
+| `library-stamp-guard.sh` | Agent\|Task\|spawn_agent | Blocks investigation dispatches that omit the org-library evidence stamp. Supports Claude and Codex dispatch payloads. | 2026-07-16 |
 | `file-guard.sh` | Edit\|Write | Guards specific protected files from modification | — |
+
+### UserPromptSubmit
+
+| Script | Purpose | Added |
+|--------|---------|-------|
+| `challenge-detect.sh` | Injects fresh-context falsification when the user challenges a factual claim. | 2026-06-29 |
+| `bibliotheque-recall.sh` | Injects matching org-library pointers before investigation begins. | 2026-07-16 |
+| `rabbit-hole-guard.sh` | Converts additive session tangents into bounded probes or parked handoffs. | 2026-07-17 |
 
 ### PostToolUse (advisory context injection)
 
@@ -84,8 +94,10 @@ wire-or-retire decision.
 
 ## Adding New Hooks
 
-1. Write the script in `~/.claude/hooks/`
+1. Write the implementation in `~/.claude/hooks/`
 2. `chmod +x` it
-3. Register in `~/.claude/settings.json` under the appropriate event
-4. Add an entry to this INDEX.md
-5. Test with `echo '{"tool_input": {...}}' | ./your-hook.sh; echo $?`
+3. Register the Claude mapping in `~/.claude/settings.json`
+4. Register the Codex mapping in `~/.codex/hooks.json`, including any driver-specific matcher aliases
+5. Add an entry to this INDEX.md
+6. Add or extend a deterministic fixture under `evals/fixtures/`
+7. Run `python3 evals/run_hook_evals.py --hook <name>`

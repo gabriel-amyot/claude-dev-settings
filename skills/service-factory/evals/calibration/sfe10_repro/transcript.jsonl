@@ -1,0 +1,3 @@
+{"seq": 1, "phase": "P1", "action": "rca", "tool": "opus", "target": "KTP-939", "note": "drafted RCA from the frontend-lag memory before any live look"}
+{"seq": 2, "phase": "P4", "action": "dispatch", "tool": "adversarial-review", "target": "demo-prod-backend", "note": "review the stale-backend theory"}
+{"seq": 3, "phase": "P2", "action": "repro", "tool": "ui-probe", "target": "prod", "produces": "O1"}

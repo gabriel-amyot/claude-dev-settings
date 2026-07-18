@@ -210,10 +210,12 @@ For each ticket in the consolidation set, post a Jira comment via the `/jira` sk
 
 Comment content (adapt per ticket):
 
+Write as Gabriel, no `[automated]`/persona header:
+
 ```
-[automated] Branch {original-branch} consolidated into #{CONSOLIDATED-PR-NUMBER} ({consolidated-branch-name}).
-Original PR #{ORIGINAL-PR-NUMBER} closed. Consolidation includes: {TICKET-IDS-IN-BATCH}.
-Awaiting review and merge on the consolidated PR.
+Branch {original-branch} consolidated into #{CONSOLIDATED-PR-NUMBER} ({consolidated-branch-name}).
+Original PR #{ORIGINAL-PR-NUMBER} closed. Includes: {TICKET-IDS-IN-BATCH}.
+Review and merge on the consolidated PR.
 ```
 
 Never mention autonomous tooling, agent sessions, or crawls in Jira comments. Present outcomes only.

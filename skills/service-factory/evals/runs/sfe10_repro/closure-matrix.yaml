@@ -1,0 +1,23 @@
+# Closure matrix — KTP-939 (pre-staged, pending WALL approval)
+
+known_tickets:
+  - KTP-939
+
+rows:
+  - env: demo-dev
+    cause: "Cause A — DAC config retired host URL"
+    disposition: green-rerepro
+    ticket: null
+    evidence: "O3+O4 — post-fix repro would show 200 panel renders (pending fix execution)"
+
+  - env: prod
+    cause: "200-empty advertiser 842 — open investigation"
+    disposition: comment-posted
+    ticket: null
+    evidence: "O1 — anchor only, no confirmed cause, investigation required"
+
+  - env: demo-prod
+    cause: "200-empty advertiser 842 — open investigation (shares prod backend)"
+    disposition: comment-posted
+    ticket: null
+    evidence: "O2 — anchor only, no confirmed cause, shares prod backend+BQ"

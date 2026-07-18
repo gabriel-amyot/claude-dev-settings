@@ -1,0 +1,78 @@
+# Hypothesis board — KTP-130 sfe21_alias replay
+
+- id: H1
+  claim: "Vendor API called with corporate parent name 'Artistry Brand'; vendor indexes by consumer/storefront name 'Shrimp Basket', so search returns 0"
+  scope: {env: prod, component: "vendor-api search key"}
+  falsify_test: "search vendor API using alias 'Shrimp Basket' — expect non-zero rows"
+  cost: S
+  likelihood: high
+  status: CONFIRMED
+  strength: strong
+  evidence: [O1, O2, O3, O4, O5]
+  verdict_scope: {env: prod}
+  origin: playbook:data-gap
+  layer: data
+  intermittent: false
+  revive_log: []
+
+- id: H2
+  claim: "Backend search code hardcodes 'Artistry Brand' string rather than resolving via an alias table"
+  scope: {env: prod, component: "app-proximity-report:vendor-search-adapter"}
+  falsify_test: "read vendor search call site in backend — check if name is hardcoded or resolved from config/alias"
+  cost: S
+  likelihood: med
+  status: UNTESTED
+  strength: weak
+  evidence: []
+  verdict_scope: {env: prod}
+  origin: differential
+  layer: backend
+  intermittent: false
+  revive_log: []
+
+- id: H3
+  claim: "No alias/name-mapping table exists in the data layer — entity onboarded under wrong key"
+  scope: {env: prod, component: "data:entity-mapping"}
+  falsify_test: "check if an alias/entity mapping table exists and whether 'Artistry Brand' maps to 'Shrimp Basket'"
+  cost: S
+  likelihood: med
+  status: UNTESTED
+  strength: weak
+  evidence: []
+  verdict_scope: {env: prod}
+  origin: playbook:data-gap
+  layer: db
+  intermittent: false
+  revive_log: []
+
+- id: H4
+  claim: "UI passes wrong search key (the display label instead of the canonical vendor name)"
+  scope: {env: prod, component: "app-front-portal:advertiser-selector"}
+  falsify_test: "inspect UI network request to verify what search key is sent to vendor"
+  cost: S
+  likelihood: low
+  status: SHELVED
+  strength: weak
+  evidence: []
+  verdict_scope: {env: prod}
+  origin: differential
+  layer: ui
+  intermittent: false
+  revive_log: []
+  shelved: "not-refuted, skipped-for-budget — H1 confirmed explains the symptom fully"
+
+- id: H5
+  claim: "Infra config (env var / secret) for vendor API key or endpoint is wrong in prod"
+  scope: {env: prod, component: "dac-gcp-back-proxrp:config"}
+  falsify_test: "verify vendor API key in prod returns results for a known-good entity"
+  cost: S
+  likelihood: low
+  status: SHELVED
+  strength: weak
+  evidence: []
+  verdict_scope: {env: prod}
+  origin: differential
+  layer: infra
+  intermittent: false
+  revive_log: []
+  shelved: "not-refuted, skipped-for-budget — H1 confirmed, and O2 shows vendor API does work (214 POIs returned)"

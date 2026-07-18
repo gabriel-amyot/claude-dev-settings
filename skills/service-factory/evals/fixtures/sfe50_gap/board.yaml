@@ -1,0 +1,12 @@
+- id: H2
+  claim: bq gap
+  scope: {component: bq-data}
+- id: H3
+  claim: backend adapter
+  scope: {component: app-proximity-report}
+- id: H4
+  claim: panel state
+  scope: {component: frontend}
+- id: H5
+  claim: mysql seed
+  scope: {component: user-mgmt-db}

@@ -1,0 +1,13 @@
+ticket: KTP-939
+status: READY_FOR_REVIEW
+phase: 9-closed
+last_updated: "2026-07-17T00:40:00Z"
+summary: "Two confirmed causes. Cause A (demo-dev DAC config) — green-rerepro. Cause B (BQ data gap adv 842) — tracked KTP-901."
+causes:
+  - id: cause-a
+    env: demo-dev
+    disposition: green-rerepro
+  - id: cause-b
+    env: [prod, demo-prod]
+    disposition: tracked
+    ticket: KTP-901

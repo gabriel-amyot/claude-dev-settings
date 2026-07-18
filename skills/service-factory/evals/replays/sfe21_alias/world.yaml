@@ -1,0 +1,24 @@
+jira:
+  key: KTP-130
+  summary: "Artistry Brand flow lines missing"
+  description: "Vendor returns nothing for 'Artistry Brand'."
+  comments:
+    - "Ticket link: storefront is branded 'Shrimp Basket' (consumer name)."
+glossary:
+  - term: "Artistry Brand"
+    aka: ["Shrimp Basket"]
+    note: "corporate parent 'Artistry Brand' vs storefront 'Shrimp Basket'"
+memory:
+  - "vendor-alias SOP: sweep consumer brand, corporate parent, DBA, franchise before declaring 'not in vendor'"
+env_candidates: [prod]
+missions:
+  "vendor-search Artistry Brand":
+    result: "0 results."
+    signature: "0-rows"
+  "vendor-search Shrimp Basket":
+    result: "Rich results: 214 POIs, flow-line data available."
+    signature: "rows-present"
+  "vendor-ui cross-check Shrimp Basket":
+    result: "Vendor UI shows Shrimp Basket with full coverage."
+human:
+  gate0: proceed

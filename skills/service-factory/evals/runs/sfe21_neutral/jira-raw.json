@@ -1,0 +1,11 @@
+{
+  "key": "KTP-130",
+  "summary": "Artistry Brand flow lines missing",
+  "description": "Vendor returns nothing for 'Artistry Brand'.",
+  "reporter": "Amal",
+  "comments": [
+    "Ticket link: storefront is branded 'Shrimp Basket' (consumer name)."
+  ],
+  "status": "In Progress",
+  "source": "world.yaml:jira"
+}

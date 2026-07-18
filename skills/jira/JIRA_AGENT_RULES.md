@@ -51,38 +51,32 @@ Done/Closed requires explicit human confirmation via:
 
 ---
 
-## Rule 3: Agent Comment Attribution Format
+## Rule 3: No Attribution Header — Write as Gabriel
 
-Every comment written by the agent must start with:
+Comments carry NO visible attribution. No `[automated]` tag, no `<tool> | <model> | session` line,
+no persona name, no "Message from {persona}", no "Posted via Claude Code". They read as if Gabriel
+typed them, because he is the account posting them.
 
-```
-[automated] <tool> | <model> | session: <session-id>
----
-```
+Reason: the visible AI tag caused teammates to skip the comments unread ("I don't read AI"). The
+whole point of a comment is that it gets read. Provenance still exists, just not in the reader's
+face: the on-disk audit log (post-log) records tool, model, and session for every post.
 
-Where:
-- `<tool>`: `claude-code` (the CLI tool name)
-- `<model>`: the model ID (e.g., `sonnet-4-5`, `opus-4-6`)
-- `<session-id>`: unique session identifier from the transcript path or plan file name
-
-This header serves three purposes:
-1. **Human vs agent**: Any comment starting with `[automated]` is agent-written
-2. **Traceability**: Session ID lets you find the exact conversation that generated it
-3. **Model rating**: Model name lets you evaluate which model performed better
+(Was: a mandatory `[automated] <tool> | <model> | session` header. Reversed 2026-07-08 on Gabriel's
+instruction after backlash.)
 
 ---
 
-## Rule 4: Comment Structure
+## Rule 4: Comment Structure — Fewest Words That Carry the Point
 
-Comments should be multi-line and scannable:
+Short and readable beats complete and skipped. A wall of text disrespects the reader's time; long
+AND wrong never gets read again.
 
-- Line 1: Agent attribution header
-- Line 2: `---` separator
-- Line 3: One-sentence summary of what happened
-- Blank line
-- Body: Details broken into logical groups
-- Blank line
-- Footer: What is pending, what needs human action
+- Lead with the point (the outcome or the ask) in the first line. No preamble, no attribution line.
+- No story. Do not narrate what happened, why, what was tried, or in what order.
+- Short sentences, plain words, few adjectives, precise technical terms.
+- No filler ("I dug into", "happy to hop on a call", "let me know if you have questions").
+- No em-dashes. Structure (headers, groups) only when the content genuinely needs it, never as default.
+- Routine comment target: under ~120 words. Longer only when the content truly requires it.
 
 ---
 
@@ -108,4 +102,4 @@ This gate does not apply to spike tickets (where AC define questions to answer, 
 
 ## Future Improvement: Dedicated Agent Account
 
-When available, create a dedicated Jira account (e.g., `ai-agent@origin8cares.com`) so agent comments are visually distinct (different avatar and name). Until then, the `[automated]` header prefix handles traceability.
+A dedicated Jira account (e.g., `ai-agent@origin8cares.com`) would make agent comments visually distinct (different avatar and name) without putting an AI tag in the reader's face. Until then, comments post under Gabriel's account with no visible attribution, and traceability lives in the on-disk audit log (post-log), not in the comment text.

@@ -116,10 +116,10 @@ Challenge every estimate for:
 
 Every comment MUST have three sections:
 
-```
-[automated] — Story point estimate proposal from Leo & Bob
+Write as Gabriel, no `[automated]`/persona header:
 
-_Take this with a grain of salt. Everyone points their own tickets._
+```
+Proposed estimate. Take it with a grain of salt, everyone points their own tickets.
 
 *Proposed: X SP*
 

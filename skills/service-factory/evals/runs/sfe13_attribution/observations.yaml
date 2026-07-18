@@ -1,0 +1,16 @@
+- id: O1
+  stamp: OBSERVED
+  claim: "UI returns 200 with '0 locations found' for an agency-133 advertiser in prod"
+  source: {env: prod, instance: proxrp-cos, traffic: prod}
+  method: ui-probe
+  evidence: "world: ui-probe prod"
+  verified_against: null
+
+- id: O2
+  stamp: OBSERVED
+  claim: "proxrp-cos backend logs show many 200-empty responses over a week"
+  source: {env: prod, instance: proxrp-cos, traffic: "prod+demo mixed (unattributable)"}
+  method: log-trace
+  evidence: "world: log-trace proxrp-cos agency-133"
+  verified_against: null
+  caveat: "CAVEAT (world): logs do not carry an agency or env discriminator; cannot confirm any log line belongs to agency 133 or to prod-only traffic. Traffic is prod+demo mixed — unattributable."

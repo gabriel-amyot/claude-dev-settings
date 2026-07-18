@@ -127,8 +127,11 @@ Your prompt will specify a mode. If no mode is given, infer from the prompt cont
       `echo '[{"id":"<source>:<entity>:<event>[:<disc>]","ts":"<ISO>","source":"<source>","entity":"<entity>","title":"<short>","body":"<verbatim excerpt>","ref":"<deep-link or path>"}]' | python3 /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tools/bibliotheque/archive_lib.py /Users/gabrielamyot/Developer/grp-beklever-com/project-management/documentation/bibliotheque/_archive <source>`
       (dedup + atomicity are the lib's job). The body MUST carry the verbatim excerpt (stand-alone rule).
    b. **Gold second:** write/extend the fact page with full frontmatter INCLUDING the
-      `provenance:` block (epistemic, confidence-as-given-by-caller-evidence, primary_sources,
+      `provenance:` block (epistemic, confidence, primary_sources,
       raw_pages: [<the bronze ids from a>], status: active).
+      CONFIDENCE INVARIANT: a fresh fact starts low|medium — NEVER high at creation.
+      `high` requires a verification event: a later challenge→BACKED, or `verified_against`
+      set from a live check you actually ran (commit/table/url). Coherence is not verification.
    c. **Stamps:** apply the SCHEMA.md stamp predicate — any consumer-read value or claim-shaped
       line gets `[<INFERRED|VERBATIM> ← [[back-link]] · page:<id>]`.
    d. 3-5 wikilinks, "How to apply:" for procedural items — as before.

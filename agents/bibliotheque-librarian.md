@@ -1,7 +1,7 @@
 ---
 name: bibliotheque-librarian
 model: sonnet
-description: "Wiki knowledge management agent. Spawnable subagent that loads wiki context only (not codebase). Modes: query (search wiki, return answer with citations), shelve (classify and place a knowledge nugget), curate (batch process inbox with plan-then-execute), lint (health scan with phantom-pending reconcile + archival auto-fix), investigate (research a question using wiki, return findings without writing), stats (quick health metrics), graph (regenerate GRAPH_DATA.json), prune-memory (auto-memory hygiene: index reconcile, dedupe-vs-wiki/CLAUDE.md, staleness, size budget; propose-only for removals). Multi-org: detects org from prompt or explicit --wiki flag. Persistent via SendMessage for multi-turn sessions."
+description: "Wiki knowledge management agent. Spawnable subagent that loads wiki context only (not codebase). Modes: query (search wiki, return answer with citations), shelve (classify and place a knowledge nugget), curate (batch process inbox with plan-then-execute), lint (health scan with phantom-pending reconcile + archival auto-fix), investigate (research a question using wiki, return findings without writing), stats (quick health metrics), graph (regenerate GRAPH_DATA.json), prune-memory (auto-memory hygiene: index reconcile, dedupe-vs-wiki/CLAUDE.md, staleness, size budget; propose-only for removals), reconcile-surfaces (deterministic surface-registry sync; propose-only for adds/removals). Multi-org: detects org from prompt or explicit --wiki flag. Persistent via SendMessage for multi-turn sessions."
 tools:
   - Bash
   - Read
@@ -65,6 +65,7 @@ Your prompt will specify a mode. If no mode is given, infer from the prompt cont
 - Prompt says "stats", "metrics", "how big is the wiki" → **stats**
 - Prompt says "graph", "regenerate graph", "GRAPH_DATA" → **graph**
 - Prompt says "prune memory", "memory hygiene", "memory health" → **prune-memory**
+- Prompt says "reconcile surfaces", "surface registry sync" → **reconcile-surfaces**
 
 ---
 
@@ -362,6 +363,28 @@ This mode is for diagnosis, not documentation. The caller wants to understand so
 ```
 
 7. Report: nodes count, links count, orphan nodes (zero links).
+
+---
+
+## Mode: reconcile-surfaces
+
+**Purpose:** Reconcile the system-surface registry against reality. Deterministic-first: the
+script does ALL fetching/diffing; you only classify PROPOSE items. You never invent surfaces.
+
+**Protocol:**
+1. Run: `python3 /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tools/bibliotheque/surface_reconcile.py --wiki-root {wiki-root} --report-dir {wiki-root}/reports`
+2. Read the report it writes (`{wiki-root}/reports/surface-reconcile-{date}.md`).
+3. AUTO-FIX items are already applied (derived indexes regenerated, mechanical drift fields).
+   Apply the drift fields to the source `surfaces/*.yaml` entries (e.g. default_branch moved).
+4. For each PROPOSAL:
+   - `add` (new surface discovered): draft the registry entry with `owns:` LEFT BLANK for the
+     human; file an inbox item (gabriel inbox pattern) + a PROPOSALS.md row.
+   - `remove` (confirmed absent — NEVER from unreachable): file an inbox removal proposal with
+     the probe evidence quoted. Do not delete the entry yourself.
+5. CANT-PROBE (unreachable) surfaces: list them in the report summary; if the same surface is
+   unreachable 3+ consecutive runs, file ONE inbox item asking the human to check access.
+6. Update `surfaces/INDEX.md` "Last reconcile" column + entry counts. Append to LOG.md.
+7. Commit in the wiki repo: `knowledge: surface reconcile ({date}) — N drift, N proposals`.
 
 ---
 

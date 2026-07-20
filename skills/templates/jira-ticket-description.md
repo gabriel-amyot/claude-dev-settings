@@ -3,23 +3,37 @@
 <!--
 PHILOSOPHY
 ==========
-Every Jira Story description follows four sections, in this order:
+Anyone (PO, dev, QA) should grasp a ticket at a glance, then drill in.
 
-  1. Intent (Why)        — PO-level pain point and outcome. Plain English.
-  2. Acceptance Criteria — Observable outcomes, grouped by subsystem if cross-stack.
-  3. Blockers            — Numbered open questions the PO must answer before sprint.
-  4. Figma Prompt        — Only for tickets with a UI component.
+Only TWO sections are mandatory: Summary and Acceptance Criteria. Everything else
+is OPTIONAL and included ONLY when there is a real need. Do NOT force-fill optional
+sections and do NOT invent design notes, steps, or scope lines to fill space. If
+there is nothing genuinely useful to say, leave the section out.
 
-NON-GOALS (do NOT add these to Jira)
+Section order:
+  1. Summary (Why)                  — mandatory. Plain-English what + why.
+  2. Acceptance Criteria            — mandatory. AC-0 scope gate, then a Hero AC, then supporting ACs.
+  3. Out of scope                   — optional. Only when a real risk of confusion.
+  4. Design / Technical Recs        — optional. Where to look, not what to do.
+  5. Implementation Recs (steps)    — optional. A follow-along map for the implementer.
+  6. Figma Prompt                   — optional. UI tickets only.
+
+QUESTIONS ARE NOT A SECTION
+===========================
+Any open question goes as a COMMENT on the ticket, not baked into the description.
+The AC-0 gate is where the PO confirms scope and clears outstanding comment-questions
+before implementation starts.
+
+NON-GOALS (do NOT put these in Jira)
 ====================================
 - NO meta header block (Type / Size / Priority / Status). Those are Jira fields.
-- NO "How" / "Technical recommendation" / "Files to touch" section. That lives in
-  a local spike or DRAFT-TICKET.md, never in Jira.
-- NO "Links" section pointing at filesystem paths. Use Jira's Links field or
-  inline ticket keys (e.g., KTP-492) for cross-references.
+- NO machine-local filesystem paths (no /Users/... , no project-management-internal
+  documentation/ or tickets/ or reports/ paths). Reference internal docs by NAME.
+  Shared references ARE fine and useful: code repo paths (app-proximity-report/...),
+  class/file names, BigQuery table names, Google Sheet ids, GCP project ids, skill names.
 - NO refactoring proposals or "while we're here" cleanups. Feature tickets are
-  feature-forward only. Quirks stay unless the PO explicitly asks for cleanup.
-- NO bare typos / nits in ACs or Blockers. Ship a separate cleanup ticket.
+  feature-forward. Quirks stay unless the PO explicitly asks for cleanup.
+- NO bare typos / nits in ACs. Ship a separate cleanup ticket.
 
 FORMATTING
 ==========
@@ -28,102 +42,76 @@ Jira wiki markup, NOT GitHub markdown. Use:
   *bold*      for bold
   _italic_    for italic
   *           for bullets
-  >           for blockquotes
   #           for numbered lists
+  >           for blockquotes
+No em-dashes anywhere (use colons or commas).
+
+AC STYLE
+========
+Lead with the Hero AC: the one plain user outcome anyone understands that defines
+success. Supporting ACs follow. Each AC is a one-line outcome header, then
+Given / When / Then. No separate description line under the header (redundant with
+the header and the GWT). If a supporting AC is delivered by a subtask or blocked by
+another ticket, name that ticket on the header.
 
 Length discipline: a PO should be able to fill this skeleton in under 15 minutes.
 -->
 
-h2. Intent (Why)
+h2. Summary (Why)
 
-<one-paragraph plain-English pain point — what hurts today, who it hurts, and why>
+<one to three plain sentences: what this ticket is about and why it exists. A non-technical reader should get the point without reading the ACs.>
 
-<optional second paragraph: the outcome this ticket delivers. State it as removal of the pain, not as a feature list.>
-
-_This ticket exists to <one-sentence outcome>._
-
-h2. Acceptance Criteria (What)
+h2. Acceptance Criteria
 
 > _Gate:_ AC-0 must pass before any other AC is locked. Everything below is provisional until the PO confirms.
 
 *AC-0 — Scope confirmation (blocking gate)*
 
-* <PO name> reviews this ticket and confirms the Why, the ACs, and the open questions in the *Blockers* section.
+* <PO name> reviews this ticket and confirms the Summary, the ACs, and any open questions raised as comments.
 * Until AC-0 is signed off, the team does not start implementation.
 
-<!-- If the work is single-stack, drop the h3 headings below and list ACs flat.
-     If cross-stack, group with h3 and state implementation order explicitly. -->
+*AC-1 (Hero) — <plain user outcome anyone understands>*
 
-h3. Backend ACs (`<repo-or-service-name>`) — implement first
+* Given <context>
+* When <action>
+* Then <observable, QA-assertable result>
 
-*AC-1 — <short title>*
+*AC-2 — <outcome header>*  <!-- add "· Delivered by / Blocked by: KTP-XXX" only when true -->
 
-* Given <precondition>, when <trigger>, then <observable outcome>.
-* <additional outcome or constraint>
-* <additional outcome or constraint>
+* Given <context>
+* When <action>
+* Then <observable result>
 
-*AC-2 — <short title>*
+<!-- For cross-stack work, group supporting ACs under h3. headings and state
+     implementation order, e.g. "h3. Backend ACs (repo) — implement first". -->
 
-* Given <precondition>, when <trigger>, then <observable outcome>.
-* ⚠️ _<PO name> to confirm: <specific question>. (See Blockers Q<N>.)_
+<!-- OPTIONAL SECTIONS BELOW. Include only when relevant. Never mandatory. -->
 
-h3. Frontend ACs (`<repo-or-service-name>`) — implement second, after backend is deployed
+h2. Out of scope
 
-*AC-3 — <short title>* _(depends on AC-<N>)_
+<what this ticket explicitly does not cover, when that is a real risk of confusion.>
 
-* <observable outcome>
-* <observable outcome>
+h2. Design / Technical Recommendations
 
-*AC-4 — <short title>* _(depends on AC-<N>)_
+<where to look, not what to do: SOP names, code files, BigQuery tables, sheets, skills. Context for the implementer, not acceptance criteria. Omit if nothing worth pointing at. No machine-local paths.>
 
-* <observable outcome>
-* ⚠️ _<PO name> to confirm: <specific question>. (See Blockers Q<N>.)_
+h2. Implementation Recommendations
 
-h2. Blockers — Questions for <PO name>
-
-> _These block AC-0. Answer these before the ticket goes in-sprint._
-
-*Q1 — <short topic>.* <one-line context describing the open question>
-
-* (a) <option a>, or
-* (b) <option b>, or
-* (c) <option c>
-
-*Q2 — <short topic>.* <one-line context>
-
-* (a) <option a>, or
-* (b) <option b>
-
-*Q3 — <short topic>.* <free-form question with no preset options>
-
-*Q4 — Out-of-scope confirmation.* Not in this ticket: <list>. Confirm these stay out — each is a separate conversation.
-
-*Q<N> — <short topic>.* <context>. _This gates AC-<N>._
+<an ordered, plain list a person can follow, drawn from how we did it before. The implementer may diverge. Include where the "where do I start" map is genuinely useful (e.g. onboarding); omit otherwise.>
 
 h2. Figma Prompt
 
-<!-- Include this section ONLY when the ticket has a UI component.
-     Paste-ready prose for Figma Make. Blockquote-indented. -->
+<!-- UI tickets only. Paste-ready prose for Figma Make, blockquote-indented. -->
 
-> Design a <one-line description of the surface> for the <product name>. <Layout description: panes, grids, modals.>
-> <Header / primary controls description.>
-> <Body / content description: cards, lists, fields.>
-> <Interaction details: buttons, popovers, modals.>
-> Style: <design system, tokens, density>. <No-nos: e.g., no tabs, no breadcrumbs.>
-> Empty states: <list>. Error / success states: <list>.
+> Design a <surface> for the <product>. <Layout: panes, grids, modals.>
+> <Primary controls.> <Body / content.> <Interactions.>
+> Style: <design system, tokens, density>. Empty states: <list>. Error / success: <list>.
 
 <!--
 USER STORY (optional)
 =====================
 If the team prefers a user-story opener, place it as the first line ABOVE the
-"h2. Intent (Why)" section, with no header:
+"h2. Summary (Why)" section, with no header:
 
   As a <role>, I want <capability> so that <benefit>.
-
-Given/When/Then is supported inside any AC bullet:
-
-  * Given <precondition>
-  * When <trigger>
-  * Then <observable outcome>
-  * And <additional outcome>
 -->

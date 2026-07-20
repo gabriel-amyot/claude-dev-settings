@@ -29,6 +29,7 @@ import learning_harvest  # noqa: E402
 import lib  # noqa: E402
 import loop_counter  # noqa: E402
 import stamp_check  # noqa: E402
+import version_guard  # noqa: E402
 
 VERBOSE = "-v" in sys.argv
 RESULTS = []  # (id, tier, ok, detail)
@@ -187,9 +188,23 @@ def sfe56():
        f"theater={theater['pass']} caught_all={caught_all}")
 
 
+def sfe60():
+    good = version_guard.check(_fx("sfe60_good"))
+    bad = version_guard.check(_fx("sfe60_bad"))
+    t = " ".join(bad["reasons"])
+    # the pre-migration state must be caught on BOTH laws, not just one:
+    # the missing version ledger AND the external tether / uncarried spec.
+    caught_version = "CHANGELOG" in t
+    caught_drift = ("external spec copy" in t) or ("not self-contained" in t)
+    ev("SFE-60", "T1",
+       good["pass"] and (not bad["pass"]) and caught_version and caught_drift,
+       f"good={good['pass']} bad={bad['pass']} version={caught_version} drift={caught_drift} "
+       f"bad_reasons={bad['reasons']}")
+
+
 ALL = [sfe01, sfe02, sfe03, sfe06, sfe07,
        sfe40, sfe41, sfe43, sfe44, sfe46, sfe47, sfe50, sfe51, sfe54, sfe55,
-       sfe56]
+       sfe56, sfe60]
 
 
 def main():

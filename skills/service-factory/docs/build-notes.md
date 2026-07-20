@@ -1,8 +1,11 @@
 # Service Factory — build notes
 
-Origin: handoff `2026-07-17-build-service-factory-skill.md` (session stern-owl).
-Spec: `08-service-factory-v3.md` as amended by `14-v4-decisions-changeset.md` (D1–D10).
-Acceptance harness: `10-service-factory-evals.md`. Red-team: `11-redteam-inferred-failure-modes.md`.
+Lineage: derived from the 2026-07-16 KTP-939 fault audit (session stern-owl). The spec is
+now **carried in this skill** — `docs/spec/service-factory-spec-0.1.0.md` (v3 consolidated
+with the v4 decisions D1–D10), `docs/spec/evals-spec-0.1.0.md` (acceptance harness),
+`docs/spec/threat-model.md` (the fault→gate mapping distilled from the audit),
+`docs/spec/laws-of-execution.md`. Version history: `../CHANGELOG.md`. This is the source of
+truth; no external copy is authoritative (that would drift).
 
 ## Status — v1 spine (2026-07-17)
 
@@ -23,7 +26,7 @@ Acceptance harness: `10-service-factory-evals.md`. Red-team: `11-redteam-inferre
 - **SKILL.md** orchestrator spine: substrate law, all 10 phases wired to the gate scripts,
   caveman-all-outputs (D3), library-first load-bearing steps (F19) with the hook backstops,
   resume-after-death staleness recheck (IFM-10), governor numbers (§6), division of labor.
-- **Templates:** `rca.md` (from `13-rca-template.md`, 7 headings + express ≤10-line card),
+- **Templates:** `rca.md` (7 headings + express ≤10-line card),
   `gate-report.md` (S14). **Playbooks:** `config-drift`, `data-gap`, `fe-state` (the three
   KTP-939 already paid for). **Schemas:** `docs/schemas.md` (§4 artifact contract).
 
@@ -50,7 +53,7 @@ The paper-replay harness is built and the five Tier 2 criticals pass.
 
 **Still deferred (same fixture->replay->grade template):** the remaining Tier 2 replays
 SFE-11, 12, 14, 17, 18, 19, 20, 22-25 and the Tier 2b replays SFE-42, 45, 48, 49, 52, 53.
-Fixture roots + pass clauses fully specified in `10-service-factory-evals.md`.
+Fixture roots + pass clauses fully specified in `docs/spec/evals-spec-0.1.0.md`.
 
 ## Phase 9 self-learning — GATED (2026-07-18, pre-first-real-run)
 

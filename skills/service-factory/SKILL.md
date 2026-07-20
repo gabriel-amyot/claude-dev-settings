@@ -1,6 +1,7 @@
 ---
 name: service-factory
-version: "0.1.0"
+version: "0.2.0"
+spec_source: docs/spec/service-factory-spec-0.1.0.md
 description: "The Fix Factory — the fast, human-in-the-loop quick-bug-fix line for a SINGLE Klever bug, sibling to dark-factory (the Build Factory). A main-loop skill orchestrates; the un-skippable gates are Python scripts (stamp-check, express predicate, exit-verify, loop counter, Gate-0 completeness, layer coverage, closure matrix, board mutation) proven by an eval suite. One variable is optimized: time to resolution. Reproduce-first, falsify hypotheses on evidence, the WALL is the one guaranteed human touch, exit is same-repro red→green per env per cause. Triggers on: '/service-factory', 'service factory', 'fix factory', 'quick bug fix', 'service area', 'investigate this bug'. Klever."
 user_invocable: true
 nav:
@@ -19,11 +20,13 @@ is pilot-monitoring. Built on the real harness: this skill (the main loop) orche
 human gates are **turn boundaries**, parallel work is **gate-free background bursts**
 writing to disk, all state persists to the ticket folder.
 
-**Full spec (source of truth):** `project-management/reports/session-retros/2026-07-16-ktp939-fault-audit/`
-— `08-service-factory-v3.md` **as amended by** `14-v4-decisions-changeset.md` (D1–D10).
-Acceptance harness: `10-service-factory-evals.md`. Defends against `03-fault-report.md`
-(34 faults) + `09-bug-session-catalog.md` (25 modes) + `11-redteam-inferred-failure-modes.md`
-(IFM-1..16). Build status: `docs/build-notes.md` (v1 shipped; stage 2/3 pending).
+**Full spec (source of truth, carried in this skill — single copy, no drift):**
+`docs/spec/service-factory-spec-0.1.0.md` (v3 consolidated with the v4 decisions D1–D10).
+Acceptance harness: `docs/spec/evals-spec-0.1.0.md`. Threat model it defends (the KTP-939
+fault audit: 34 faults + 25 bug modes + 16 inferred failure modes): `docs/spec/threat-model.md`.
+Binding execution laws: `docs/spec/laws-of-execution.md`. Version history + the version↔
+improvement law: `CHANGELOG.md`. Run telemetry: `runs/INDEX.md`. Build status + lineage:
+`docs/build-notes.md`.
 
 ## Division of labor
 
@@ -89,6 +92,7 @@ a gate — run it.**
 | Closure matrix (EXIT) | `closure_matrix.py <sa-dir>` | `tracked` needs a real key; no phantom tickets (SFE-51/16) |
 | Learning harvest (Phase 9) | `learning_harvest.py <sa-dir>` | knowledge-facts (D4 schema) + playbook +1/proposal materialised + retro scored + lot drained — harvest narrated ≠ harvest done (SFE-56) |
 | Board mutation | `board_ops.py` (import) | scope-split, hunch-guard, cross-domain cap, dedupe, revive-bound (SFE-02/03/07/44/54/55) |
+| Version guard | `version_guard.py <skill-dir>` | SKILL.md version ↔ CHANGELOG top match; spec carried in `docs/spec/`; zero external spec references — the version↔improvement + no-drift law (SFE-60) |
 
 ## The flow (phase-by-phase — see §2–3 of the spec for the mermaid + full detail)
 
@@ -188,7 +192,12 @@ same ~15 lines):
   (deductions/red_flags/improvements). Improvements feed the next run.
 - Drain `parking-lot.md`: every entry gets a `| drained: proposal|ticket|dropped|noted`
   disposition (ticket proposals Leo-gated if promoted).
-Final STATUS_SNAPSHOT/ac.yaml update. Auto-collapses toward a no-op when there is genuinely
+**Then append ONE line to `runs/INDEX.md`** (the cross-run telemetry ledger): run id ·
+ticket · date · terminal status · `task_confidence` · `factory_fitness` (from the retro
+block). This is the durable self-improvement record: a low-fitness or repeated-red-flag run
+is the signal that motivates a change to the line — and any change to the line bumps
+`version:` + adds a `CHANGELOG.md` entry (enforced by `version_guard.py`). Final
+STATUS_SNAPSHOT/ac.yaml update. Auto-collapses toward a no-op when there is genuinely
 nothing to harvest — but the gate, not the agent, decides that.
 
 ## Effort governor (§6, numbers flippable)

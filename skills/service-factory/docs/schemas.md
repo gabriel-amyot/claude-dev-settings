@@ -22,6 +22,16 @@ All files under `tickets/{PREFIX}/{EPIC|no-epic}/{ID}/service-area/`. Enums are 
   layer: infra       # ui | backend | data | db | infra  (or derived from component domain)
   intermittent: false
   revive_log: []     # bounded <=2 (IFM-16); at bound -> escalate "unstable board"
+  justification:     # REQUIRED for status REFUTED | CONFIRMED | REVIVED | INCONCLUSIVE
+    why: "verdict_scope demo-prod diff matched MR!21 exactly"  # why the verdict
+    how: "read dev block, diffed vs MR!21 (O7)"               # how it was shown
+    evidence_ref: gate-reports/probe-O7.md   # OPTIONAL pointer (obs id or gate-report path)
+  # A bare status with no `justification.why`+`.how` on a non-trivial transition is a gate
+  # reject ("killed" alone is not enough). UNTESTED is exempt (nothing was shown yet).
+  how_killed: "REFUTED@demo-prod (O7); SHELVED r2 budget; REVIVED r3 on O12 new evidence"
+  # ^ lineage: the human-readable refute->shelve->revive trail, so a mermaid RENDER of the
+  #   board shows how each card died and what revived it. Rendered from board.yaml, never
+  #   authored by hand.
   # D1: a card the budget skips is status SHELVED (tag `shelved: not-refuted, skipped-for-budget`),
   #     fully revivable, EXCLUDED from the elimination log. Only genuine disproof = REFUTED.
 ```
@@ -80,3 +90,27 @@ retro:                       # dark-factory Retro, minimal
 ```
 Parking-lot drain convention (checked by the same gate): every entry line ends with
 `| drained: proposal|ticket|dropped|noted`.
+
+## Status-transition justification contract (NEW in 0.3.0)
+
+Every non-trivial status transition must be justified inline on the card. A card whose
+status is **REFUTED / CONFIRMED / REVIVED / INCONCLUSIVE** MUST carry a `justification`
+block with a short **`why`** (why this verdict) + **`how`** (how it was shown), plus an
+OPTIONAL `evidence_ref` pointer (an observation id or a `gate-reports/` path). **UNTESTED is
+exempt** — nothing has been shown yet. A bare status with no `why`+`how` is a gate reject:
+"killed" alone is not enough. Enforced by `board_ops.justify_transition` (a REFUTED/
+CONFIRMED/REVIVED/INCONCLUSIVE card missing either field is rejected).
+
+## EXIT output contract (NEW in 0.3.0)
+
+At the **factory EXIT** — the whole run's terminal state, NOT every internal turn or
+sub-run — the run MUST emit exactly three things:
+
+1. the **RCA** (`rca.md`),
+2. the **theory-map** (`board.yaml`, the durable living artifact — a mermaid tree is only
+   a render of it), and
+3. **exactly ONE** outcome of `{targeted-fix handoff | Jira ticket draft}`.
+
+Zero outcomes, or both outcomes, is an exit violation. This is an exit obligation, not a
+per-turn requirement: internal rounds emit board mutations and gate reports, only the
+terminal state owes the full triple.

@@ -164,6 +164,34 @@ def mutual_revive(cycles: int = 4) -> dict:
     }
 
 
+# --- justify-transition (0.3.0) ---------------------------------------------
+_MUST_JUSTIFY = {"REFUTED", "CONFIRMED", "REVIVED", "INCONCLUSIVE"}
+
+
+def justify_transition(card: dict) -> dict:
+    """Every non-trivial status transition must be justified inline.
+
+    A card at status REFUTED / CONFIRMED / REVIVED / INCONCLUSIVE MUST carry a
+    `justification` block with a non-empty `why` (why the verdict) AND `how`
+    (how it was shown). UNTESTED / SHELVED are exempt (nothing shown yet /
+    skipped for budget). A bare status with no why+how is a reject — "killed"
+    alone is not enough. `evidence_ref` is optional.
+    """
+    status = (card.get("status") or "").strip().upper()
+    if status not in _MUST_JUSTIFY:
+        return {"pass": True, "status": status, "reason": None, "exempt": True}
+    just = card.get("justification") or {}
+    why = str(just.get("why") or "").strip()
+    how = str(just.get("how") or "").strip()
+    missing = [k for k, v in (("why", why), ("how", how)) if not v]
+    if missing:
+        return {"pass": False, "status": status, "exempt": False,
+                "reason": f"status {status} missing justification {missing} "
+                          f"— a bare status is a gate reject"}
+    return {"pass": True, "status": status, "exempt": False, "reason": None,
+            "evidence_ref": just.get("evidence_ref")}
+
+
 def _selftest():
     # SFE-02
     r = scope_refute({"id": "H1", "scope": {"env": ["demo-dev", "demo-prod"]}},
@@ -191,6 +219,11 @@ def _selftest():
     # SFE-55
     mr = mutual_revive(4)
     assert mr["bounded_ok"] and mr["escalated"] and mr["escalated_cycle"] <= 2 and not mr["count_all_resolved"], mr
+    # justify-transition (0.3.0)
+    assert justify_transition({"status": "UNTESTED"})["pass"] is True
+    assert justify_transition({"status": "REFUTED"})["pass"] is False
+    assert justify_transition({"status": "REFUTED", "justification": {"why": "w"}})["pass"] is False
+    assert justify_transition({"status": "CONFIRMED", "justification": {"why": "w", "how": "h"}})["pass"] is True
     print("board_ops.py self-tests OK")
 
 

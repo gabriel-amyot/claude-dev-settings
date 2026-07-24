@@ -1,6 +1,6 @@
 ---
 name: service-factory
-version: "0.2.0"
+version: "0.3.0"
 spec_source: docs/spec/service-factory-spec-0.1.0.md
 description: "The Fix Factory — the fast, human-in-the-loop quick-bug-fix line for a SINGLE Klever bug, sibling to dark-factory (the Build Factory). A main-loop skill orchestrates; the un-skippable gates are Python scripts (stamp-check, express predicate, exit-verify, loop counter, Gate-0 completeness, layer coverage, closure matrix, board mutation) proven by an eval suite. One variable is optimized: time to resolution. Reproduce-first, falsify hypotheses on evidence, the WALL is the one guaranteed human touch, exit is same-repro red→green per env per cause. Triggers on: '/service-factory', 'service factory', 'fix factory', 'quick bug fix', 'service area', 'investigate this bug'. Klever."
 user_invocable: true
@@ -91,7 +91,7 @@ a gate — run it.**
 | Exit verify | `exit_verify.py <in.yaml>` | condition parity + conservative N for flaky (SFE-43) |
 | Closure matrix (EXIT) | `closure_matrix.py <sa-dir>` | `tracked` needs a real key; no phantom tickets (SFE-51/16) |
 | Learning harvest (Phase 9) | `learning_harvest.py <sa-dir>` | knowledge-facts (D4 schema) + playbook +1/proposal materialised + retro scored + lot drained — harvest narrated ≠ harvest done (SFE-56) |
-| Board mutation | `board_ops.py` (import) | scope-split, hunch-guard, cross-domain cap, dedupe, revive-bound (SFE-02/03/07/44/54/55) |
+| Board mutation | `board_ops.py` (import) | scope-split, hunch-guard, cross-domain cap, dedupe, revive-bound (SFE-02/03/07/44/54/55); justify-transition — REFUTED/CONFIRMED/REVIVED/INCONCLUSIVE need inline why+how (`board_ops.justify_transition`) |
 | Version guard | `version_guard.py <skill-dir>` | SKILL.md version ↔ CHANGELOG top match; spec carried in `docs/spec/`; zero external spec references — the version↔improvement + no-drift law (SFE-60) |
 
 ## The flow (phase-by-phase — see §2–3 of the spec for the mermaid + full detail)
@@ -110,13 +110,21 @@ shared-data notes) — cite the doc(s) or write `Library: silent (checked INDEX/
 <topic>)`. This is load-bearing (F19) and hook-backed (`bibliotheque-recall.sh`,
 `library-stamp-guard.sh`); **do not exempt your own dispatches** — carry the `Library:`
 stamp. Each observable is `[REPORTED …]` verbatim or `[OBSERVED O-id]`; an inferred guess
-is not a confirmed observable. Ticketless entry: draft a lightweight bug ticket; its
+is not a confirmed observable. **Time anchor is mandatory intake (NEW):** capture
+`reported_at` / the observed window + timezone for every reported symptom into `intake.yaml`
+— a symptom with no time anchor is an intake completeness gap; surface it (route the reporter
+question, do not proceed as if anchored). **Log-first, code-last:** the cheap thing the human
+HAS is the time + the on-screen text — ask only for that, never a HAR they don't have; then
+self-serve logs via `gcloud` and scan recent changes (`git log`) FIRST, before reading any
+code. Logs + the recent-change diff localise WHEN it started and WHAT changed faster than a
+cold code read. Ticketless entry: draft a lightweight bug ticket; its
 one-tap creation rides the first human touch. **Run `gate0_completeness.py`** — auto-pass
 only when it exits 0; otherwise route proceed-on-candidates (draft the reporter question
 via `/post-comment` AND start repro on all candidates) or bounce.
 
 **Phase 2 — Reproduce [A; Gate 1 auto-pass on attested anchor].** Open the failing app in
-EACH env on the fact sheet (`ui-probe`). **Logs/console FIRST** — find WHEN it started.
+EACH env on the fact sheet (`ui-probe`). **Logs/console + `git log` recent-change scan FIRST,
+before any code read** (Phase 1 log-first principle) — pin WHEN it started against WHAT changed.
 Two-part anchor per env: reported symptom on the reported surface (screenshot) + tech
 signature (logs/network/first-error time). Loop until each env has an anchor OR an explicit
 `parked-with-comment`. **Intermittent:** N attempts (default 10) under reporter amplifiers;
@@ -134,7 +142,12 @@ narrow by elimination keyed on the reproduced **signature per env**, never the r
 symptom. Playbooks (`playbooks/*.md`) seed cards — data, not gates; recency-weighted; **no
 single playbook >50% of cards**, and the assumption audit seeds **≥1 card per in-scope
 layer** (a load-bearing premise = a card with a falsify-test). **Run `coverage_line.py`** —
-the phase can't exit with an uncarded, non-N/A layer.
+the phase can't exit with an uncarded, non-N/A layer. **The theory map is `board.yaml`
+(NEW, explicit):** it IS the durable, schema-validated living theory map, retained as an
+investigation artifact for the whole run — nothing about it is authored by hand in prose.
+Any mermaid decision-tree you show at a gate is ONLY a rendering of `board.yaml`; regenerate
+it from the file, never hand-draw it. The per-card `how_killed`/lineage note (§4 of
+`docs/schemas.md`) is what lets the render show the refute→shelve→revive trail.
 
 **Phase 4 — Falsification [A probes; H only where routed].** Probes cheapest-and-most-
 likely first, each fresh-context. Every probe mission carries a `Library:` line (cited docs
@@ -145,12 +158,33 @@ REFUTE only, else auto-split; cross-domain refute capped weak (never drops the c
 duplicate-source evidence never upgrades strength; REVIVE bounded, mutual oscillation
 escalates. Contradiction diff on every append against ALL cards incl. REFUTED. COUNT is a
 non-blocking heartbeat: zero survivors → requeue weak-falsified FIRST, then brainstorm
-scouts. **Governor:** every re-entry runs `loop_counter.py`; a material obs (flips a card /
+scouts. **When stuck (zero survivors), re-read `board.yaml` and seed NEW theories informed
+by the prior REFUTED disproofs — never regenerate an already-refuted card** (a REFUTE is a
+new constraint, not a reset). **The round dynamic is expected and healthy (NEW):** a theory
+legitimately moves refute → SHELVE → REVIVE across rounds — a card refuted in scope X can be
+SHELVED for budget, then REVIVED later on NEW evidence (bounded by `revive_log`, IFM-16).
+This oscillation is the loop working, not thrash; the mechanics live in `board_ops`
+(scope-split, shelve, revive-bound), and the `how_killed`/lineage note on each card records
+the trail so a later round sees why a card died and what could bring it back. **Governor:** every re-entry runs `loop_counter.py`; a material obs (flips a card /
 seeds a new card) resets, a throwaway does not; at cap, or 45 min without a CONFIRMED cause,
 fire the caveman pulse (4 options; 5th if a decisive burst is in flight).
 
+**Phase 4b — Codex external adversarial review [A bursts; standard step, NEW].** After the
+agent's own falsification bursts AND its own two-context adversarial pass, and BEFORE the
+WALL, dispatch **2+ fresh-context Codex CLI reviewers** — `codex exec --sandbox read-only
+"<refutation prompt>"`, one per lens, output to `gate-reports/codex-review-<lens>.md`. Give
+them DISTINCT lenses (e.g. Lens A attacks the mechanism + anchor-timeline math; Lens B attacks
+the ruled-out items + the fix framing), each **mandated to PROVE THE RCA WRONG**. This is a
+named, reproducible protocol: `docs/codex-external-review.md`. It is **additive to (never a
+replacement for) the agent's own two-context adversarial pass** — its value is that a fresh
+reader never held the anchor and so cannot rubber-stamp it. Any load-bearing claim a reviewer
+marks BROKEN (with a real refutation) → back to the board (new/REVIVED card + falsify-test),
+never forward. A claim is WALL-eligible only when it SURVIVES every lens.
+
 **Phase 5 — The WALL [H, via crit — even for a 2-line fix].** **Run `stamp_check.py` first**
-(reject → back to the board). Present `rca.md` (from `templates/rca.md`) + auto board mermaid
+(reject → back to the board). **The WALL cannot be crossed on any load-bearing claim a Phase-4b
+Codex reviewer broke** — clearing the external review is a hard precondition alongside the
+stamp check. Present `rca.md` (from `templates/rca.md`) + auto board mermaid
 via crit. The WALL asks: compelling narrative, non-far-fetched how-introduced, and does one
 cause explain the anchor in EVERY reported env (env-coverage checklist). Soft on causation —
 the no-cause package lives under Open Questions, stamped `[INFERRED]`, never a Verdict.
@@ -173,6 +207,10 @@ N required; local if possible, else MR to dev and verify there.
 **Phase 8 — Bundled EXIT [H, ONE turn via crit].** **Run `closure_matrix.py`.** The matrix:
 every reported env/symptom → green re-repro OR tracked handoff (with a real key). Present
 matrix + rendered closing-comment draft + MR link; one reply approves all three. Gap → governor.
+**EXIT output contract (NEW, exit obligation):** at the **factory EXIT** — the whole run's
+terminal state, NOT every internal turn/sub-run — the run MUST emit three things: the RCA
+(`rca.md`) + the theory-map (`board.yaml`) + exactly ONE outcome of {targeted-fix handoff |
+Jira ticket draft}. Emitting zero outcomes, or both, is an exit violation.
 
 **Phase 9 — Close + post-mortem [A].** MR via `/klever-mr`; ONE consolidated Jira comment
 covering all dispositions via `/post-comment`. **Learning loop (D4) — gated, not narrated.**

@@ -9,6 +9,43 @@ Versions are semver. The self-improvement telemetry that motivates changes lives
 `runs/INDEX.md` (one line per run). Spec baselines are carried, version-stamped, in
 `docs/spec/` (`service-factory-spec-<version>.md`).
 
+## 0.3.0 (2026-07-24)
+
+**Five additive learnings from the market-research /marketResearch mid-stream
+investigation, 2026-07-24.** All additive — no phase removed, no existing behavior
+changed, no restructure. The line gains capability, not a rewrite.
+
+- **Codex external adversarial review — Phase 4b (NEW).** A standard, named, reproducible
+  step just before the WALL: after the agent's own falsification bursts + its own
+  two-context adversarial pass, dispatch 2+ fresh-context Codex CLI reviewers
+  (`codex exec --sandbox read-only`, output to `gate-reports/`) with DISTINCT lenses
+  (mechanism/timeline math; ruled-out items + fix framing), each mandated to PROVE THE RCA
+  WRONG. A broken load-bearing claim → back to the board; the WALL cannot be crossed on any
+  claim a reviewer broke. Additive to (not a replacement for) the agent's own pass. Protocol:
+  `docs/codex-external-review.md`; referenced from SKILL Phase 4b + Phase 5 precondition.
+- **Round dynamic codified (Phase 4).** The refute → SHELVE → REVIVE lifecycle across rounds
+  is now stated as expected/healthy (the mechanics already lived in `board_ops`), plus a
+  when-stuck rule: on zero survivors, re-read the board and seed NEW theories informed by the
+  prior REFUTED disproofs — never regenerate an already-refuted card.
+- **Log-first + time-anchor intake (Phase 1/2).** Intake now MUST capture a time anchor
+  (`reported_at`/observed window + timezone); a symptom with no anchor is a surfaced gap.
+  Principle made explicit: look at logs + recent changes (`git log`) FIRST before reading
+  code; ask the human for the cheap thing they HAVE (time + on-screen text), self-serve logs
+  via `gcloud`, never ask for a HAR they don't have.
+- **Theory-map precision (Phase 3/4 + schema).** `board.yaml` is stated explicitly as THE
+  durable, schema-validated living theory map (retained as an artifact); any mermaid tree is
+  only a render of it, never hand-authored. New per-card `how_killed`/lineage note surfaces
+  the refute→shelve→revive trail in the render.
+- **Two schema/contract additions (`docs/schemas.md`, enforced in `board_ops.py`).**
+  (a) *Justify every non-trivial status transition* — REFUTED/CONFIRMED/REVIVED/INCONCLUSIVE
+  cards carry inline `justification.why`+`.how` (+ optional `evidence_ref`); UNTESTED exempt;
+  a bare status is a gate reject (`board_ops.justify_transition`, backward-compatible pure
+  function, self-tested). (b) *EXIT output contract* — at the factory EXIT (terminal state,
+  not every turn) the run must emit the RCA + `board.yaml` theory-map + exactly ONE of
+  {targeted-fix handoff | Jira ticket draft}.
+
+Version bumped 0.2.0 → 0.3.0.
+
 ## 0.2.0 (2026-07-20)
 
 **Self-containment + explicit version↔self-improvement wiring.** The spec was documented

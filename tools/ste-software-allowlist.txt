@@ -1,0 +1,126 @@
+# STE software-term allowlist
+#
+# Terms exempt from the linter's banned_word and nominalization checks. The
+# ASD-STE100 approved dictionary is ~900 words and rejects legitimate software
+# and adtech nouns, so the "-tion/-ment/-ance/-ence of" nominalization pattern
+# and the banned-word list would false-positive on normal engineering prose.
+#
+# One term per line, lowercase, matched case-insensitively. A term listed here
+# is NOT counted as a nominalization or banned word. Everything else still fires.
+#
+# Grow-path: when a legitimate software/adtech/Klever term trips a false
+# positive during calibration or a real post, add it here in the correct
+# section and commit. Keep it sorted within a section. Do NOT add hedges,
+# marketing adjectives, or phrasal verbs here — those stay flagged by design.
+
+# --- core software nouns (-tion / -ment / -ance / -ence of ...) ---
+abstraction
+aggregation
+allocation
+application
+assertion
+authentication
+authorization
+automation
+collection
+compilation
+completion
+component
+composition
+compression
+configuration
+connection
+convention
+declaration
+definition
+dependency
+deployment
+description
+detection
+dimension
+distribution
+documentation
+element
+encryption
+endpoint
+enhancement
+enrichment
+environment
+evaluation
+exception
+execution
+extension
+function
+implementation
+increment
+information
+initialization
+injection
+instance
+instrumentation
+integration
+iteration
+management
+migration
+normalization
+notification
+operation
+optimization
+orchestration
+pagination
+partition
+permission
+persistence
+projection
+propagation
+provisioning
+reconciliation
+reference
+registration
+replacement
+representation
+requirement
+resolution
+segmentation
+selection
+serialization
+session
+specification
+statement
+transaction
+transformation
+validation
+verification
+version
+
+# --- data / analytics / adtech ---
+attribution
+audience
+catchment
+classification
+conversion
+correlation
+enrichment
+geofence
+geolocation
+impression
+ingestion
+intelligence
+interaction
+measurement
+mediation
+observation
+optimization
+placement
+prediction
+proximity
+retention
+segmentation
+visitation
+
+# --- Klever / platform proper terms ---
+bibliotheque
+dataform
+datasophia
+placer
+proximity

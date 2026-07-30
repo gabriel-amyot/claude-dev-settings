@@ -25,6 +25,12 @@ suites:
     owner_skill: post-comment
     last_green: 2026-07-18
 
+  - target: ste/linter
+    layer: A
+    runner: python3 ~/.claude-shared-config/evals/ste/run_ste_evals.py
+    owner_skill: ste
+    last_green: 2026-07-30
+
   - target: gitlab/cli-core
     layer: A
     runner: cd ~/.claude-shared-config/skills/gitlab && python3 test_gitlab_skill.py

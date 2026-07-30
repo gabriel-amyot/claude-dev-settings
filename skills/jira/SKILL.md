@@ -84,6 +84,7 @@ Use this skill to interact with Jira issues through simple CLI commands. All com
 - `transitions KEY` - List available transitions for an issue
 - `update KEY [--description DESC] [--summary SUMMARY] [--assignee USER] [--labels LABEL1,LABEL2] [--parent KEY] [--estimate N] [--sprint SPRINT_ID] [--force]` - Update issue fields (hierarchy-validated)
 - `sprints --project PROJECT [--state active,future]` - List sprints for a project (returns ID, name, state, dates)
+- `sprint-board (--project KEY | --board ID) [--max N]` - Active-sprint issues with key, summary, status, **assignee**, story points, epic in ONE call (Agile board API; avoids the broken openSprints JQL). `--project KTP` auto-discovers the board (Klever = board 248). Default max 100.
 - `link KEY1 KEY2 [--type "Relates"]` - Create a link between two issues (default: Relates)
 - `link-types` - List all available issue link types
 - `retype KEY --type "Story"` - Change an issue's type (e.g., Epic to Story)

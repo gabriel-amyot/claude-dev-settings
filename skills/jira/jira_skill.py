@@ -562,6 +562,82 @@ def list_sprints(project=None, state="active,future"):
         return {"error": str(e)}
 
 
+def sprint_board_issue(issue):
+    """Slim sprint-board row: key, summary, status, assignee, story points, epic.
+
+    Custom fields are read with getattr — search_issues can return a restricted
+    field set where a customfield attribute is absent (not just None).
+    """
+    fields = issue.fields
+    story_points = getattr(fields, "customfield_10028", None)
+    if story_points is None:
+        story_points = getattr(fields, "customfield_10016", None)
+    return {
+        "key": issue.key,
+        "summary": getattr(fields, "summary", None),
+        "status": safe_get(getattr(fields, "status", None), "name") or "Unknown",
+        "assignee": get_assignee_name(getattr(fields, "assignee", None)),
+        "storyPoints": story_points,
+        "epic": getattr(fields, "customfield_10014", None),
+    }
+
+
+def sprint_board(project=None, board_id=None, max_results=100):
+    """Active-sprint issues with owner + status + story points, in one call.
+
+    Resolves the active sprint via the Agile board API (the path that works on
+    Jira Cloud), then queries its issues by explicit `sprint = <id>`. Deliberately
+    avoids the `currentUser() AND openSprints()` JQL, which is broken on Cloud.
+
+    Give either --board <id> (exact) or --project KEY (discovers the board). For
+    Klever, --project KTP resolves to board 248.
+    """
+    try:
+        # Resolve the active sprint.
+        active_sprint = None
+        resolved_board = None
+        if board_id is not None:
+            try:
+                board_id = int(board_id)
+            except (TypeError, ValueError):
+                return {"error": f"--board must be numeric (got {board_id!r}); or use --project KEY."}
+            sprints = jira.sprints(board_id, state="active", maxResults=50)
+            if sprints:
+                active_sprint, resolved_board = sprints[0], board_id
+        else:
+            if not project:
+                return {"error": "sprint-board requires --project KEY or --board ID. "
+                                 "Klever: --project KTP (board 248)."}
+            boards = jira.boards(projectKeyOrID=project, maxResults=10)
+            if not boards:
+                return {"error": f"No board found for project '{project}'."}
+            for board in boards:
+                try:
+                    sprints = jira.sprints(board.id, state="active", maxResults=50)
+                except Exception:
+                    continue  # Kanban / non-sprint board
+                if sprints:
+                    active_sprint, resolved_board = sprints[0], board.id
+                    break
+
+        if not active_sprint:
+            return {"board": resolved_board, "project": project,
+                    "activeSprint": None, "issues": [],
+                    "note": "no active sprint found"}
+
+        issues = jira.search_issues(f"sprint = {active_sprint.id}", maxResults=max_results)
+        rows = [sprint_board_issue(i) for i in issues]
+        return {
+            "board": resolved_board,
+            "project": project,
+            "activeSprint": {"id": active_sprint.id, "name": safe_get(active_sprint, "name")},
+            "count": len(rows),
+            "issues": rows,
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
 def transition_issue(key, status_name):
     """Transition an issue to a new status"""
     try:
@@ -1546,6 +1622,27 @@ try:
             result = {"error": "sprints requires --project. Usage: sprints --project KTP [--state active,future]"}
         else:
             result = list_sprints(project=project, state=state)
+
+    elif command == "sprint-board":
+        project = None
+        board_id = None
+        max_results = 100
+        if "--project" in sys.argv:
+            idx = sys.argv.index("--project")
+            if idx + 1 < len(sys.argv):
+                project = sys.argv[idx + 1]
+        if "--board" in sys.argv:
+            idx = sys.argv.index("--board")
+            if idx + 1 < len(sys.argv):
+                board_id = sys.argv[idx + 1]
+        if "--max" in sys.argv:
+            idx = sys.argv.index("--max")
+            if idx + 1 < len(sys.argv):
+                try:
+                    max_results = int(sys.argv[idx + 1])
+                except ValueError:
+                    pass
+        result = sprint_board(project=project, board_id=board_id, max_results=max_results)
 
     elif command == "link-types":
         result = list_link_types()

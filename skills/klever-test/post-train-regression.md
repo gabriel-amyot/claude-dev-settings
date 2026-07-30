@@ -5,7 +5,7 @@ Validate **app-front-portal on prod after a dev→prod release train lands**. Tw
 1. **Always-on core smoke** — a fixed set that runs EVERY time, independent of the diff. This is the "did a major thing break even though the train didn't touch it" guard. Do not skip it because the diff looks small.
 2. **Diff-targeted feature checks** — inferred from the train's actual code delta, so you validate exactly the features that shipped without re-running the world.
 
-This is the interim, human-in-the-loop form of what becomes validation-as-code in the front-portal CICD (see the plan: `documentation/architecture/portal-regression-cicd-plan.md`). It reuses **ui-probe** for live execution and the existing **Playwright suite** (`npm run test:e2e`) as the long-term core.
+This is the interim, human-in-the-loop form of what becomes validation-as-code in the front-portal CICD (see the plan: `documentation/architecture/portal-regression-cicd-plan.md`). It reuses **ui-probe** for live execution. The existing Playwright suite (`e2e/*.spec.ts`) is NOT yet a deploy signal — it hardcodes `localhost:3000`, needs a seeded local stack, and several specs test pure functions, not the deployed surface. A curated `release-smoke` subset is the long-term anchor; do not treat the raw suite as post-deploy validation.
 
 ## When to use
 
@@ -36,11 +36,13 @@ python3 ~/.claude/skills/klever-test/scripts/train-diff-to-testplan.py \
 python3 ~/.claude/skills/klever-test/scripts/train-diff-to-testplan.py --repo . --range <old>..<new>
 ```
 
-If the train was a merge (not a clean tag bump), use `origin/main..origin/dev` at assembly time, or `<prev_main_sha>..<new_main_sha>`. The script:
-- emits **core_smoke** (always) + **targeted_areas** (only what changed),
-- lists **unmapped_code_files** — eyeball these; if a genuinely new feature area appears, extend `FEATURE_MAP` in the script (that's how the inference gets smarter over time).
+Use the ACTUAL promoted delta (old prod tag .. new prod tag). Do **not** use `origin/main..origin/dev` — dev holds deliberately-excluded work and trains are cherry-picked, so that range over-reports. If there is no clean tag pair, use `<prev_main_sha>..<new_main_sha>` of the merge that shipped. The script:
+- emits **core_smoke** (always) + **targeted_areas** (only what the portal diff touched),
+- sets **fail_closed=true** when a shared/config/CI/dependency file changed → run the FULL set,
+- prints a standing **cross_repo_warning**,
+- lists **unmapped_code_files** — eyeball these; extend `FEATURE_MAP` if a new area appears.
 
-**Read the plan critically.** The inference is a starting point, not gospel. If you know the train shipped a behaviour the file-map didn't catch (e.g. a pure copy change, or a backend-only feature whose UI lives elsewhere), add it manually.
+**The diff is a SECONDARY signal — the train manifest / roll-call is primary.** A backend / user-management / DAC / dataform change ships NO portal diff yet can break a portal feature (this is exactly the AI Insights failure). Read what the train *declared* it ships and validate those consumers directly, especially data-backed ones. An empty portal diff is never "nothing to test."
 
 ## Step 2 — execute on prod via ui-probe
 
@@ -49,7 +51,13 @@ Load `ui-probe` and run, in order:
 2. **Each targeted area**: drive its `checks` live, one proof screenshot per area, capture `/api/*` status + console for errors.
 3. Negative checks matter: mode-switcher must be ABSENT for a client login; demo spotlight must be OFF outside Demo. A feature that should be hidden and isn't is a failure.
 
-**Data-layer gate (KTP-739 lesson — do not skip).** For any area with a `data_layer` block, verify the data source BEFORE you judge the UI. A panel that renders nothing can be (a) a UI regression or (b) an empty/missing data table — these are different findings. Query BQ read-only (like the TC6 pattern) to confirm the table exists and has rows for the entity under test. If the data isn't there, the verdict is "data not wired," not "UI pass" and not "UI fail" — file it as its own follow-up (see the AI Insights handoff for the template).
+**Data-layer gate (KTP-739 lesson — do not skip, and trigger it from the MANIFEST not the diff).** A data-backed panel that renders nothing can be (a) a UI regression or (b) an empty/missing data table — different findings. Query BQ read-only (TC6 pattern) to confirm the table exists and has rows for the entity under test. **Critical:** the AI Insights bug shipped with ZERO frontend changes, so the diff would never flag it. Fire the data check from what the **train declares it ships** (backend/dataform tickets in the roll-call or manifest), not from portal file paths. If the data isn't there, the verdict is "data not wired," not "UI pass" and not "UI fail" — file a follow-up (see the AI Insights handoff template).
+
+**Fail-closed scope (do not over-narrow).** If `train-diff-to-testplan.py` reports `fail_closed=true` (a shared/config/CI/dependency file changed), the diff-targeting is not trustworthy — run the FULL feature set, not just `targeted_areas`. The script prints this; honor it.
+
+**Deploy-identity.** front-portal prod is MIG-backed (`igm-p-front-portal-usea1-front-portal`, verified). Confirm the served image from the live template, but derive the target from the applied DAC output rather than assuming topology; treat demo-prod as a distinct target when its config changed.
+
+**Core smoke is behaviour, not just "route renders."** Each core check names a flow + its expected API calls + the role identity it needs. A route can render while export / permission mutation / advertiser selection / an API proxy is broken. One internal login cannot prove the client-negative permission case — mark roles you cannot test as BLOCKED, never PASS. "No new console errors" needs a captured prior baseline to compare against, not a gut check.
 
 ## Step 3 — report
 

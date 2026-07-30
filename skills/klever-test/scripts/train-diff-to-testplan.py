@@ -18,10 +18,19 @@ broke even though the diff didn't touch it" — it is deliberately fixed.
 
 Usage:
   train-diff-to-testplan.py --repo <path-to-app-front-portal> --range <base>..<head> [--json]
-  train-diff-to-testplan.py --repo . --range 1.1.79..1.1.86           # by deployed tags
-  train-diff-to-testplan.py --repo . --range origin/main..origin/dev   # while assembling
+  train-diff-to-testplan.py --repo . --range 1.1.79..1.1.86           # by deployed prod tags (CORRECT)
 
-Exit 0 always (a plan is always produced; core smoke runs even on an empty diff).
+IMPORTANT — the range must be the ACTUAL PROMOTED delta: previously-deployed prod tag ..
+newly-deployed prod tag. Do NOT use `origin/main..origin/dev` for a real train: dev holds
+deliberately-EXCLUDED work, and trains are cherry-picked, so that range over-reports. The
+authoritative answer to "what shipped" is the train manifest, not any single-repo diff.
+
+LIMITS (read before trusting output):
+- This sees ONLY app-front-portal. A backend/UM/DAC/dataform change ships no frontend diff
+  yet can break a portal feature (KTP-739). Portal-diff is a SECONDARY signal.
+- If a shared/config/CI file changed, the plan sets fail_closed=true → run the FULL set.
+
+Exit codes: 0 = plan produced. 2 = git diff failed (bad range/repo).
 """
 import argparse
 import json
@@ -140,50 +149,97 @@ CORE_SMOKE = {
 
 
 def changed_files(repo, rng):
+    """Return [(status, path)] for the range. Uses --name-status -z with rename/copy
+    detection so renames map BOTH sides (a file moving out of a feature area must not
+    silently vanish from that area's plan). Statuses: A/M/D/Rxxx/Cxxx."""
     try:
         out = subprocess.check_output(
-            ["git", "-C", repo, "diff", "--name-only", rng],
-            stderr=subprocess.DEVNULL, text=True)
+            ["git", "-C", repo, "diff", "--name-status", "-z",
+             "--find-renames", "--find-copies", rng],
+            stderr=subprocess.PIPE, text=True)
     except subprocess.CalledProcessError as e:
-        print(f"git diff failed for range {rng!r} in {repo!r}: {e}", file=sys.stderr)
+        print(f"git diff failed for range {rng!r} in {repo!r}: {e.stderr or e}", file=sys.stderr)
         sys.exit(2)
-    return [l.strip() for l in out.splitlines() if l.strip()]
+    toks = [t for t in out.split("\0") if t != ""]
+    entries = []
+    i = 0
+    while i < len(toks):
+        status = toks[i]
+        code = status[0]
+        if code in ("R", "C"):  # rename/copy: status \0 oldpath \0 newpath
+            old, new = toks[i + 1], toks[i + 2]
+            entries.append((status, old))   # keep old side so the source area still fires
+            entries.append((status, new))
+            i += 3
+        else:                              # A/M/D/T: status \0 path
+            entries.append((status, toks[i + 1]))
+            i += 2
+    return entries
 
 
-def infer_areas(files):
+def infer_areas(entries):
     hit = {}
-    for f in files:
+    for status, f in entries:
         for prefix, area in FEATURE_MAP:
-            if prefix in f:
-                hit.setdefault(area, []).append(f)
+            if f.startswith(prefix) or ("/" + prefix) in f or f == prefix:
+                hit.setdefault(area, []).append(f"{status}:{f}")
     return hit
 
 
+# Paths that FAIL CLOSED: a change here can affect any feature, so the plan must
+# fall back to a FULL pass, not a diff-narrowed one. (Codex review: a shared-context,
+# CI, dependency, or config change can silently invalidate the diff-targeting.)
+FAIL_CLOSED_PREFIXES = [
+    "app/(frontend)/context/",   # AppProvider et al — cross-app mode/permission/preview state
+    "lib/",                       # shared libs/utils
+    "middleware.ts", "next.config", "package.json", "package-lock.json",
+    ".gitlab-ci.yml", "Dockerfile", "tsconfig",
+]
+
+
 def build_plan(repo, rng):
-    files = changed_files(repo, rng)
-    hit = infer_areas(files)
-    unmapped = [f for f in files
-                if not any(p in f for p, _ in FEATURE_MAP)
-                and (f.endswith(".ts") or f.endswith(".tsx") or f.endswith(".js") or f.endswith(".jsx"))]
+    entries = changed_files(repo, rng)                 # [(status, path)]
+    paths = [p for _, p in entries]
+    hit = infer_areas(entries)
+    code_exts = (".ts", ".tsx", ".js", ".jsx")
+    unmapped = sorted({p for _, p in entries
+                       if not any(p.startswith(pre) or ("/" + pre) in p or p == pre
+                                  for pre, _ in FEATURE_MAP)
+                       and p.endswith(code_exts)})
+    fail_closed_hits = sorted({p for p in paths
+                               if any(p.startswith(fp) or ("/" + fp) in p for fp in FAIL_CLOSED_PREFIXES)})
     targeted = []
     for area, area_files in hit.items():
         meta = dict(AREAS.get(area, {"title": area, "checks": []}))
         meta["area"] = area
-        meta["changed_files"] = sorted(set(area_files))[:12]
+        meta["changed_files"] = sorted(set(area_files))   # expose ALL, no truncation
         targeted.append(meta)
     return {
         "range": rng,
         "repo": repo,
-        "changed_file_count": len(files),
+        "changed_file_count": len(paths),
+        "fail_closed": bool(fail_closed_hits),
+        "fail_closed_files": fail_closed_hits,
         "core_smoke": CORE_SMOKE,
         "targeted_areas": targeted,
         "targeted_area_keys": sorted(hit.keys()),
-        "unmapped_code_files": unmapped[:30],
+        "unmapped_code_files": unmapped,
+        "all_changed": [f"{s}:{p}" for s, p in entries],
+        "scope_warning": (
+            "FAIL CLOSED: a shared/config/dependency/CI file changed. Diff-targeting is NOT trustworthy for "
+            "this train — run the FULL feature set, not just targeted_areas."
+        ) if fail_closed_hits else None,
+        "cross_repo_warning": (
+            "This tool sees ONLY app-front-portal files. A backend / user-management / DAC / dataform change "
+            "ships NO frontend diff yet can break a portal feature (KTP-739 AI Insights = exactly this). "
+            "Portal-diff inference is a SECONDARY signal — the train manifest (all releasing repos + data "
+            "contracts) is the primary source of what to validate. Do NOT treat an empty portal diff as 'nothing to test'."
+        ),
         "notes": [
-            "Run core_smoke ALWAYS. Run targeted_areas for what the diff touched.",
-            "unmapped_code_files did not match FEATURE_MAP — eyeball them; if a new feature area appears, extend FEATURE_MAP.",
-            "For any area with a data_layer block, verify the data source BEFORE asserting the UI should render (KTP-739 lesson: a panel hidden because its BQ table is empty/absent is a data problem, not a UI pass/fail).",
-            "playwright specs listed per area are the long-term CICD anchor; run them locally against dev to complement the live-prod ui-probe pass.",
+            "Run core_smoke ALWAYS. If fail_closed, run the FULL feature set. Else run targeted_areas.",
+            "unmapped_code_files did not match FEATURE_MAP — eyeball them; extend FEATURE_MAP if a new area appears.",
+            "Data-backed areas: verify the data source from the TRAIN MANIFEST declaration (producer/table/advertiser/freshness), NOT from frontend paths. A backend-only release triggers no area here but can still ship a broken data-backed panel (KTP-739).",
+            "playwright specs per area are logic/e2e tests of MIXED fidelity — several test pure functions, not the deployed surface. Do not treat them as deployment signal without curating a release-smoke subset.",
         ],
     }
 
@@ -200,6 +256,10 @@ def main():
         return
     print(f"# Post-train regression plan  ({plan['range']})")
     print(f"{plan['changed_file_count']} changed files -> areas: {', '.join(plan['targeted_area_keys']) or '(none — core smoke only)'}\n")
+    print("!! " + plan['cross_repo_warning'] + "\n")
+    if plan.get('scope_warning'):
+        print("!! " + plan['scope_warning'])
+        print("   triggered by: " + ", ".join(plan['fail_closed_files']) + "\n")
     print(f"## {plan['core_smoke']['title']}")
     for c in plan['core_smoke']['checks']:
         print(f"  - [ ] {c}")

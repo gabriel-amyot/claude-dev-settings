@@ -42,6 +42,16 @@ Run these gates in order. Gates are **check-and-fix**, not blockers.
 
 **Structural failures** (wrong branch type, no repo detected): report and stop. These indicate work started wrong.
 
+### PROD-PROMOTION gate (MR targets `main`) — the version-bump-on-main trap
+
+`main` pipelines on Klever app repos do **NOT build an image** — they only re-deploy an image that already exists in the approved registry. An MR that puts a version on `main` whose image no `dev` pipeline ever built (cherry-pick + version bump is the classic path) will deploy a nonexistent tag → **prod 502** (2026-07-29 outage). Before creating or advising a `main`-targeted MR, run:
+
+```bash
+bash ~/.claude/skills/klever-mr/scripts/promotion-image-preflight.sh --repo <repo> --ref <promotion-branch-or-HEAD>
+```
+
+RED (tag absent) → STOP. Two valid paths only: (1) promote a **dev** version whose image dev already built (full dev→main), or (2) build a **snapshot** from a feature branch (`KLEVER_DEPLOY_SNAPSHOT=prod`) and deploy that snapshot tag. Never invent a new version number on `main`.
+
 ### Gate 1: Repo Detection and Type Classification
 
 ```bash

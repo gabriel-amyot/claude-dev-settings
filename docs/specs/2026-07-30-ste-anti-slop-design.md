@@ -3,7 +3,7 @@
 - **Date:** 2026-07-30
 - **Owner:** Gabriel Amyot
 - **Scope:** User-level harness (`~/.claude-shared-config/`)
-- **Status:** Approved to write; pending spec review, then implementation plan.
+- **Status:** Implemented 2026-07-30 (both layers live). The hard gate shipped as **slop-subset, zero tolerance** (not the phased advisory-first plan) per the calibration finding — see `2026-07-30-ste-calibration.md`. Grammar/voice checks are advisory; the six AI-slop patterns block. Tune via `evals/ste/gate_benchmark.py`.
 - **Source material:** woosal1337/blog `videos/ep01-the-cure-for-ai-slop` — ships `ste-lint.py` (deterministic linter) and `ste-writing-skill.md` (ASD-STE100 subset, strict + flavored modes). Published result: −74% violations on Claude.
 
 ## Problem

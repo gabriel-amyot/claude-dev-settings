@@ -41,4 +41,14 @@ The better gate splits the score:
 - **slop-subset score** = marketing + hedge + phrasal + banned + nominalization. Gabriel's corpus = ~0. Gate this near zero to block AI drift without touching his voice.
 - **grammar checks** (long sentence, contraction, passive, semicolon) = keep advisory (shown, not blocked), or soften contraction to a soft marker like em-dash.
 
-Decision pending (see gate options presented to Gabriel).
+## Decision (shipped 2026-07-30)
+
+Gate = **slop-subset, zero tolerance**: block if any of marketing / hedge / phrasal / banned / nominalization fires. Rationale from the 151-post benchmark (`gate_benchmark.py`):
+
+| gate mode | block-rate at N>3 | block-rate at N>0 |
+|---|---|---|
+| full | 71% | 100% |
+| no-contraction | 55% | 100% |
+| slop-subset | 0% | 3% |
+
+Only 9% of posts carry any AI-slop hit. A full gate would police Gabriel's contractions and sentence length, not slop. The slop-subset gate blocks the real target and leaves his voice alone. Grammar checks stay advisory (shown, not blocking). Aggressive by design; `gate_benchmark.py` is the instrument to dial up (to `no-contraction` or `full`) or regress if needed. Past posts are not the quality bar, so block-rate is a disruption measure, not a target to minimize.

@@ -65,3 +65,7 @@ The slow part is never the browser — it's sequential single tool calls with ma
 - **The DOM sampler** (recipes.md #1) runs in the page on its own timer, so arming it costs one call and reading it costs one call — the entire reproduction in between is free. This is the single biggest speedup; prefer it over polling with repeated `read_page` calls.
 
 Keep the interactive loop short: arm → one reproduction → one read-back → report. Resist the urge to over-instrument.
+
+## Measurement Map: pin click is intercepted — use the sidebar
+
+On the Klever Measurement Map, **clicking a "My locations" pin never opens the Store Detail Panel**: the ZIP choropleth layer sits on top of the pins and intercepts the click, opening **ZIP Demographics** instead. The Store Detail Panel and its flow lines are only reachable via the left sidebar **"Show points of interest"** location list. Any probe/screenshot/AC-validation of the store panel or flow lines must **start from the sidebar list, not the map pin** — the obvious pin click fails silently. Full recipe + PO-facing UX-defect note: Klever bibliothèque `documentation/bibliotheque/maps-proximity/measurement-map-ui-navigation-gotchas.md`. (KTP-695, 2026-07.)

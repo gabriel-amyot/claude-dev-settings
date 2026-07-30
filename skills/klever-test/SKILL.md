@@ -34,6 +34,7 @@ When invoked without arguments, present this menu and ask the user which option:
 | 4 | **Frontend: UX Dogfood (Sally)** | First-user walkthrough with Sally persona. Finds what looks broken or confusing. Severity-rated report. | Chrome MCP | [frontend-ux-dogfood.md](frontend-ux-dogfood.md) |
 | 5 | **Backend: API E2E Tests** | Runs Python scripts that call proximity-report endpoints with assertions. 22 tests total. | Python (`python3`) | [backend-api-tests.md](backend-api-tests.md) |
 | 6 | **Sprint Proof Runner** | Generates per-ticket proof artifacts (screenshots, API logs, unit test results, grep checks) in Jira wiki markup. AC-driven: maps every acceptance criterion to a test layer and produces evidence. Covers full sprint or single ticket. | run-proof.sh | [proof-runner.md](proof-runner.md) |
+| 7 | **Post-Train Prod Regression** | Validates app-front-portal on prod AFTER a dev→prod release train. Two layers: always-on core smoke (fixed) + diff-targeted feature checks inferred from the train's code delta. Verifies the shipped features AND that nothing major broke. Live execution via ui-probe; data-layer BQ checks where applicable. | train-diff-to-testplan.py + ui-probe | [post-train-regression.md](post-train-regression.md) |
 
 ## Auto-Selection Heuristics
 
@@ -48,6 +49,7 @@ If the user provides context, skip the menu:
 | "dogfood", "Sally look at this", "UX review", "how does it look" | #4 Frontend: UX Dogfood |
 | "test the backend", "test the API", "run backend tests" | #5 Backend: API E2E |
 | "generate proof", "proof artifacts", "sprint proof", "AC evidence", "proof for KTP-XXX", "prove the sprint", "test the sprint", "run proof", "ticket proof" | #6 Sprint Proof Runner |
+| "post-train regression", "validate the portal after the train", "regression after prod deploy", "did the release break anything", "post-deploy portal check" | #7 Post-Train Prod Regression |
 
 ## Autonomous Agent Usage
 

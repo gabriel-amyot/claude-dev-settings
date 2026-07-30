@@ -27,9 +27,20 @@ import json
 import os
 import re
 import sys
+import time
 
 DEFAULT_ALLOWLIST = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                  "ste-software-allowlist.txt")
+
+# The six AI-slop patterns. The hard gate defaults to this subset because these
+# checks target machine-generated drift, not a human's grammar or voice.
+SLOP_CHECKS = {"marketing_adjective", "modal_hedge", "phrasal_verb",
+               "banned_word", "nominalization"}
+GATE_MODES = {
+    "full": lambda k: True,
+    "no-contraction": lambda k: k != "contraction",
+    "slop-subset": lambda k: k in SLOP_CHECKS,
+}
 
 BANNED = [
     "begin", "begins", "commence", "commences", "initiate", "initiates", "originate",
@@ -159,6 +170,13 @@ def lint(text, allowlist=None):
     }
 
 
+def gate_score(r, mode):
+    keep = GATE_MODES[mode]
+    total = sum(v for k, v in r["violations"].items() if keep(k))
+    wc = r["words"] or 1
+    return round(total * 100.0 / wc, 2)
+
+
 def format_report(name, r):
     lines = [f"{name}: {r['words']} words · {r['total']} violations · "
              f"{r['score_per_100w']} per 100w"]
@@ -179,6 +197,9 @@ def main(argv=None):
                     help="fail (exit 1) if any file scores above this per-100w value")
     ap.add_argument("--marker", default=None,
                     help="write this marker file when all files pass the threshold")
+    ap.add_argument("--gate-mode", choices=sorted(GATE_MODES), default="full",
+                    help="which checks count toward the threshold (default: full). "
+                         "slop-subset gates only the six AI-slop patterns.")
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args(argv)
 
@@ -200,23 +221,29 @@ def main(argv=None):
         inputs.append(("<stdin>", sys.stdin.read()))
 
     results = [(name, lint(text, allowlist)) for name, text in inputs]
-    worst = max((r["score_per_100w"] for _, r in results), default=0.0)
+    for _, r in results:
+        r["gate_mode"] = args.gate_mode
+        r["gate_score"] = gate_score(r, args.gate_mode)
+    worst = max((r["gate_score"] for _, r in results), default=0.0)
 
     if args.json:
         print(json.dumps({"results": [{"file": n, **r} for n, r in results],
                           "worst_score": worst,
+                          "gate_mode": args.gate_mode,
                           "threshold": args.threshold}, indent=2))
     else:
         for name, r in results:
             print(format_report(name, r))
         if args.threshold is not None:
-            print(f"\nworst score {worst} per 100w · threshold {args.threshold}")
+            print(f"\ngate-mode {args.gate_mode} · worst gated score {worst} "
+                  f"per 100w · threshold {args.threshold}")
 
     passed = args.threshold is None or worst <= args.threshold
     if args.marker and passed:
         try:
             with open(args.marker, "w", encoding="utf-8") as fh:
-                fh.write(f"ste-lint pass worst={worst} threshold={args.threshold}\n")
+                fh.write(f"{int(time.time())} ste-lint pass mode={args.gate_mode} "
+                         f"worst={worst} threshold={args.threshold}\n")
         except OSError as exc:
             print(f"ste-lint: cannot write marker {args.marker}: {exc}", file=sys.stderr)
             return 2

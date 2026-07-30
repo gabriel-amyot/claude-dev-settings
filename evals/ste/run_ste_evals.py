@@ -125,6 +125,28 @@ def main():
           f"{round(sum(corpus_scores) / len(corpus_scores), 2)} per 100w "
           f"(ceiling {SOFTWARE_FP_CEILING})")
 
+    # 4. GATE — the shipped hard gate is slop-subset, zero tolerance. Assert it
+    # blocks every AI-slop fixture and passes every clean / software / human-voice
+    # sample. Grammar-only slop fixtures (run_on, passive, semicolon) pass the
+    # gate by design — they are advisory, not blocking.
+    GATE_MODE, GATE_THRESHOLD = "slop-subset", 0
+    print(f"\n=== gate ({GATE_MODE}, threshold {GATE_THRESHOLD}) ===")
+    for label, text, must_fire in SLOP:
+        gs = ste_lint.gate_score(score(text), GATE_MODE)
+        is_slop = any(c in ste_lint.SLOP_CHECKS for c in must_fire)
+        if is_slop and gs <= GATE_THRESHOLD:
+            failures.append(f"GATE {label}: AI-slop fixture should block, gate score {gs}")
+        if not is_slop and gs > GATE_THRESHOLD:
+            failures.append(f"GATE {label}: grammar-only fixture should pass gate, got {gs}")
+    for i, text in enumerate(SOFTWARE_CORPUS):
+        gs = ste_lint.gate_score(score(text), GATE_MODE)
+        if gs > GATE_THRESHOLD:
+            failures.append(f"GATE corpus[{i}]: should pass, gate score {gs}")
+    human_voice = "I don't think it's ready; we won't ship it today."
+    if ste_lint.gate_score(score(human_voice), GATE_MODE) > GATE_THRESHOLD:
+        failures.append("GATE human-voice: contractions must not block the slop gate")
+    print("  slop fixtures block, clean/software/human-voice pass")
+
     print("\n=== result ===")
     if failures:
         for f in failures:

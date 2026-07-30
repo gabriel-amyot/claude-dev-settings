@@ -69,7 +69,18 @@ if [ "$RESULT" = "BLOCK" ]; then
     echo "wants isolation (dark-factory, sprint-factory, Workflow isolation:worktree),"
     echo "run it against an actual code repo under ~/Developer/, never here."
     echo ""
-    echo "Just edit files directly on main and let them be committed."
+    echo "If you meant to create a worktree for a CODE repo (not project-management)"
+    echo "but git resolved to here because your cwd is project-management, target the"
+    echo "code repo EXPLICITLY so git operates on it, not on the current directory:"
+    echo ""
+    echo "  git -C ~/Developer/.../<repo> worktree add <path> <branch>"
+    echo ""
+    echo "A bare 'git worktree add' (or checkout -b / switch -c) run from here always"
+    echo "targets project-management — that is what this guard blocks. Retarget with"
+    echo "'git -C <code-repo>' (or cd into the repo first), then re-run."
+    echo ""
+    echo "For project-management itself: just edit files directly on main and let"
+    echo "them be committed."
   } >&2
   exit 2
 fi

@@ -38,6 +38,7 @@ For the full framework (compaction strategies, note-taking patterns, subagent ar
 - **Exception:** Small lookups (a few rows, a single API response under ~50 lines) that directly answer a question can be loaded into context. When in doubt, script it.
 
 # Core Rules
+- **ALWAYS render MR / PR / Jira references as clickable links — every time, in every output (chat, tables, reports, docs, external posts). No exceptions.** Never write a bare `!131`, `KTP-951`, or `#267`. Format: `[!131](<full MR/PR URL>)`, `[KTP-951](https://beklever.atlassian.net/browse/KTP-951)`. Jira base: `https://beklever.atlassian.net/browse/<KEY>` (Klever) / `https://origin8cares.atlassian.net/browse/<KEY>` (Supervisr). GitLab MR: `<project web_url>/-/merge_requests/<iid>`. GitHub PR: `<repo url>/pull/<n>`. If the URL is unknown, fetch it before emitting the reference; do not fall back to a bare number.
 - **Skills use `Skill` tool. Agents use `Agent` tool.** Any `plugin:skill` colon-named thing (e.g. `agent-browser:dogfood`, `ralph-loop:ralph-loop`) goes through the `Skill` tool. Only names from the Agent tool's registered agent list go in `Agent` `subagent_type`. Wrong tool = instant error + wasted tokens.
 - Never pipe git commands. Run them sequentially (e.g., `git fetch` then `git status`, not `git fetch && git status`).
 - When only incomplete or contradictory instructions/context is available, read the README.md.
@@ -216,6 +217,8 @@ Load these via `Read` when the context calls for it:
 | Apollo Gateway routing, subgraph URLs, managed federation | `~/.claude/library/context/apollo-gateway-architecture.md` |
 | Running multi-hour jobs, nohup patterns, tool timeout limits | `~/.claude/library/context/long-running-process-pattern.md` |
 | Improving the harness, transcript mining, auto cost monitoring, batch API for crawls | `~/.claude/library/context/harness-self-management.md` |
+| Creating a worktree from a project-management cwd, `could not lock config file ~/.gitconfig` in parallel fleets | `~/.claude/library/context/worktree-fleet-ops.md` |
+| Uploading files to Google Drive via claude-in-chrome, transient 529 on browser tools | `~/.claude/library/context/browser-automation-sops.md` |
 | Granting GCP or GitLab access to a new Klever user | `~/.claude/library/context/klever-infra-access.md` |
 | Writing/reviewing ADRs, placing docs, migrating agent-os/, doc standards | `~/.claude/library/context/documentation-standards-quick-ref.md` |
 | Performance gap local≠production, "fast locally slow on server", AI framework latency, OTEL/tracing timeouts | Project-level `documentation/bibliotheque/stack/debugging-production-perf.md` |

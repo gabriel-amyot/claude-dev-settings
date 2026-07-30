@@ -257,6 +257,8 @@ The MR description always contains these five sections in this order: **Why**, *
 
 Write the full MR description to `.mr-description.md` in the repo root. This file is ephemeral, not committed. If `.gitignore` doesn't already contain `.mr-description.md`, add it.
 
+**STE anti-slop lint (advisory).** Run `python3 ~/.claude-shared-config/tools/ste_lint.py .mr-description.md` before creating the MR. Show the score (violations per 100 words) and revise obvious hits in the Why/What prose: hedges, marketing adjectives, phrasal verbs, run-ons, nominalizations. Advisory for now (no block) while the threshold is calibrated. See `docs/specs/2026-07-30-ste-anti-slop-design.md`.
+
 #### Automatic mode (default)
 
 Create the MR via the GitLab API:

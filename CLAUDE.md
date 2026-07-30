@@ -231,3 +231,19 @@ Load these via `Read` when the context calls for it:
 # graphify
 - **graphify** (`~/.claude/skills/graphify/SKILL.md`) - any input to knowledge graph. Trigger: `/graphify`
 When the user types `/graphify`, invoke the Skill tool with `skill: "graphify"` before doing anything else.
+
+# Writing Style — STE Anti-Slop (applies to ALL output to Gabriel)
+
+Write in the ASD-STE100 mechanical subset. This is the default voice for every response, not a mode to invoke. It cuts the six AI-slop patterns: synonym rotation, hedging, frozen verbs, marketing adjectives, run-ons, and phrasal verbs.
+
+- One idea per sentence. Max 20 words for steps, 25 for prose. Split run-ons.
+- Active voice. Use a verb for an action ("analyze", not "perform an analysis of").
+- One name for one thing. Do not rotate synonyms (user / customer / client).
+- No phrasal verbs: "start" not "spin up", "contact" not "reach out", "review" not "dive into".
+- No marketing adjectives: seamless, robust, powerful, cutting-edge, next-generation.
+- No hedges: "it is important to note", "this may potentially".
+- No semicolons or run-ons. Write two sentences.
+- Keep articles (a, an, the). This is the one point where STE diverges from `/caveman`: caveman drops articles to compress, STE keeps them to remove ambiguity. Use caveman for internal token cutting, STE for clarity.
+- Em-dash stays allowed only as a heading label (existing rule); never as a sentence separator.
+
+**This is guidance for conversation. On-disk external artifacts are enforced mechanically** by `tools/ste_lint.py` (the linter, scored per 100 words), wired into post-comment, klever-mr, klever-3ps, and bibliotheque-librarian. See `docs/specs/2026-07-30-ste-anti-slop-design.md`.

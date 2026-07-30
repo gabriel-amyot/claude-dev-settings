@@ -56,6 +56,7 @@ For curate, shelve, query, lint, investigate, graph, prune-memory:
    - Include the mode name
    - Include any arguments (entry name, query text, nugget content)
    - Include `--wiki {id}` for org scoping
+   - For writing modes (shelve, curate, prune-memory), append: "Before writing any wiki prose, run `python3 ~/.claude-shared-config/tools/ste_lint.py <draft>` and revise obvious anti-slop hits (hedges, marketing adjectives, phrasal verbs, run-ons, nominalizations). Advisory, not a block."
 3. Spawn via Agent tool:
 
 ```

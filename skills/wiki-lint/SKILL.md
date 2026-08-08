@@ -94,7 +94,7 @@ Pages with no `[[wikilinks]]`, no `[markdown](links.md)`, and no `related:` fron
 **Output:** Count and top 10 examples.
 
 ### Check 8: Inbox Backlog
-Count entries whose final Status cell in `inbox/INDEX.md` is `pending` (not the raw file count, and not rows already `promoted/done/skipped`). Flag if any are >7 days old. Run Check 8.5 first so this reflects true remaining work.
+Count entries whose final Status cell in `inbox/INDEX.md` is `pending` (not the raw file count, and not rows already `promoted/done/skipped`). Flag if any are >7 days old. Run Checks 8.5 and 8.6 first so this reflects true remaining work: 8.5 clears rows whose content already shipped, 8.6 surfaces entries on disk that never got a row.
 
 **Severity:** WARNING if >5 pending, ERROR if any >14 days old.
 
@@ -105,10 +105,38 @@ The drift killer. `shelve` and direct session writes place knowledge into pages 
 
 **Severity:** INFO per reconciled entry; WARNING for genuinely-pending entries remaining.
 
+### Check 8.6: Ledger-vs-Disk Two-Way Diff (READ-ONLY)
+Check 8.5 reconciles ledger → disk (rows that say `pending` when the content already shipped). Nothing
+reconciled the other direction, so a file sitting in the hot inbox with no ledger row, or with a row
+appended into the wrong table, stayed invisible. That drift recurred on five consecutive runs
+(2026-08-03 through 2026-08-08) before being caught. This check closes the gap.
+
+Build two sets and diff both ways:
+- **Disk:** `ls {wiki}/inbox/*.md`, excluding `INDEX.md`.
+- **Ledger:** filenames in the `## Pending` table rows only, i.e. between the `## Pending` heading and
+  the `<!-- END-PENDING-ROWS -->` marker. Do not scan the whole file: a row found outside that range
+  is the bug, not the record.
+
+Report:
+- **On disk, no Pending row** → ERROR, "unrecorded inbox entry". Most likely its row was appended
+  below the frozen historical table. Grep the file for the filename to find a stray row.
+- **Pending row, no file on disk** → WARNING, "orphan ledger row". Either the file was archived
+  without moving its row, or the row is a typo.
+- **Filename appears anywhere outside the Pending row range** → ERROR, "row in the wrong table".
+
+Also verify the header carries **no** stored pending/partial count. A count in the header is derived
+data that goes stale on the next append. It was the 5-of-5 failure mode and was deliberately removed.
+- **Header contains a pending/partial count** → ERROR, "reintroduced stored count; delete it, counts
+  live in the tables".
+
+**Severity:** ERROR on any unrecorded entry, misplaced row, or reintroduced header count. WARNING on
+orphan rows. Read-only: report the drift, do not auto-fix it. Repair belongs to curate, which has the
+context to tell a stray row from a genuinely new entry.
+
 ### GC Sweep (AUTO-FIX)
 Any entry whose Status is terminal (`promoted`/`done`/`skipped`) but whose raw file is still in the hot `inbox/`: `git mv` it to `inbox/archive/{YYYY}/` and move its ledger row to `inbox/archive/INDEX.md`. Keeps the folder, ledger, `inbox-guard.sh`, and Check 8 honest. Never delete; move only.
 
-> **This skill now mutates** (Check 8.5 + GC sweep only): they edit `inbox/INDEX.md`, move files, and create `inbox/archive/`. Stage and commit with `knowledge: lint reconcile + archive ({wiki})`. Checks 1-8 and 9 remain read-only.
+> **This skill now mutates** (Check 8.5 + GC sweep only): they edit `inbox/INDEX.md`, move files, and create `inbox/archive/`. Stage and commit with `knowledge: lint reconcile + archive ({wiki})`. Checks 1-8, 8.6 and 9 remain read-only.
 
 ### Check 9: Wiki Infrastructure Files
 Verify the wiki has all required files: SCHEMA.md, ALIASES.md, LOG.md, GLOSSARY.md, INDEX.md.

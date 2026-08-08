@@ -173,6 +173,9 @@ Map the project slug to its org using this table:
 
 **After each file write:**
 1. Update `inbox/INDEX.md` with a row: `| {filename} | {date} | transcript-miner | pending |`
+   Insert it into the `## Pending (awaiting curation)` table, directly above the
+   `<!-- END-PENDING-ROWS -->` marker. Never append to the end of the file (the last table is a frozen
+   historical record). Never write a pending/partial count in the header.
 2. Place sentinel: create empty file `~/.claude/projects/{project-dir}/.{session-id}.mined`
 
 **Sentinel placement is mandatory.** If writing fails, do NOT place sentinel. Sentinel = "this session's knowledge is safely on disk."

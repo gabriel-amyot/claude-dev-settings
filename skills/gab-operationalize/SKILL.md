@@ -102,6 +102,11 @@ Format:
 
 **Update `inbox/INDEX.md`** with a row per entry (file, date, source, status=pending).
 
+Insert each row into the `## Pending (awaiting curation)` table, directly above the
+`<!-- END-PENDING-ROWS -->` marker. Do **not** append to the end of the file: the last table there is
+a frozen historical record, and rows landed in it by mistake on 2026-08-07 and 2026-08-08. Do **not**
+write a pending/partial count in the header or anywhere else. Counts live in the tables only.
+
 **Exceptions (bypass inbox, write directly):**
 
 | Scope | Write Target | When |

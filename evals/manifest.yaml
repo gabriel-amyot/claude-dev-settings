@@ -311,6 +311,24 @@ suites:
     owner_skill: adversarial-cascade
     last_green: null
 
+  - target: notion/nx-cli
+    layer: A
+    runner: python3 ~/.claude-shared-config/skills/notion/evals/run_nx_evals.py
+    owner_skill: notion
+    last_green: null
+    note: >
+      Includes a wiring TRIPWIRE for notion-read-guard.sh that FAILS by design until the
+      hook is wired in settings.json. A red run here may be the tripwire, not a regression.
+
+  - target: notion/read-behavior
+    layer: B
+    runner: python3 ~/.claude-shared-config/skills/notion/evals/run_behavior_evals.py
+    owner_skill: notion
+    last_green: null
+    note: >
+      Live headless agent runs (4). On-demand only, not for the unattended sweep.
+      Grades whether SKILL.md prose induces the read ladder and staleness disclosure.
+
 exclusions:
   - target: superpowers:brainstorming
     reason: Plugin skill; trigger-only coverage would require writing into the plugin tree.

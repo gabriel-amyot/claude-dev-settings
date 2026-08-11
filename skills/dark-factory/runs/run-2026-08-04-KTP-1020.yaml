@@ -1,0 +1,203 @@
+run_id: run-2026-08-04-KTP-1020
+ticket: KTP-1020
+title: >
+  Tiered media-plan rendering in the media-plan chat UI (app-front-portal): group line items by
+  tier (1->2->3) as an additive/cumulative plan, render per-line columns (Tactic/Channel/Objective/
+  KPI/Geo/CPM/Budget/Impressions), highlight proximity lines (green #00b279) and the selected tier,
+  hide internal fields, show per-tier + cumulative flight totals, handle the streamed tool call and
+  the REASONING_MESSAGE_* progress trace, all in brand styling across light and dark themes.
+date: 2026-08-04
+terminal_status: HALT_PRESHIP
+ticket_folder: ~/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-536/KTP-1020
+session: >
+  root sessions/active/state.yaml session_id empty again (live id fa5f4883 sits in current_focus);
+  no per-slug folder for the top session, so the handoff lands in the canonical
+  sessions/active/prompts/ folder alongside every prior dark-factory-improvements-*.md.
+
+code_location_note: >
+  All 10 KTP-1020 commits (RED/GREEN per AC + adversarial edges) live on branch
+  KTP-1020-tiered-media-plan-rendering at 895d403 inside
+  app-front-portal/.worktrees/KTP-1020-tiered-media-plan-rendering. HALT_PRESHIP means the workflow
+  stopped before the READY_TO_SHIP push, so the branch is NOT on origin. The main checkout is on dev
+  (176fca1) with no KTP-1020 commits — the work is one `git worktree prune`/`git clean` from loss.
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: true
+  note: >
+    Gate in default halt mode, zero warn-mode violations. Real RED->GREEN evidence on disk:
+    qa/red-AC1-run.out, red-AC3, red-AC5 each captured a failing run before the GREEN commit, and
+    the branch log shows the matched pairs (6e8b551 AC-1 RED -> 614443c AC-1 GREEN; ba2ff95 AC-3 RED
+    -> dddda4c AC-3 GREEN; c2826fb AC-5 RED -> f36e3c5 AC-5 GREEN). Structurally trustworthy.
+
+per_phase:
+  - phase: concierge
+    status: PASS
+    confidence: 92
+    note: >
+      Strong front gate. Resolved a single code target (app-front-portal), read all wiring facts via
+      git show origin/dev:<path> after finding the local checkout 44 commits behind origin/dev, and
+      verified the backend payload contract (tier, proximity, selected_tier, objective,
+      optimization_point) on app-media-plan origin/dev before committing to build. Library/memory
+      cited (project_media_plan_agent_repo: main is default but dev deploys). AC-list carries a
+      resolved mockup-vs-ticket discrepancy (AC-5 "/ MO" dropped in favor of flight totals) and two
+      non-blocking backend-owned notes. 92 is fair for a clean, single-repo, fully-wired spec.
+  - phase: design
+    status: pass
+    confidence: 88
+    note: >
+      impl-plan + grill-report + a draft ADR (reasoning-pipeline reuse and brand-green) and mockup
+      screenshots on disk. Design correctly framed most ACs as reuse of the KTP-861 streaming
+      assembly plus a tier-grouping layer, keeping the change surface tight.
+  - phase: grill
+    status: pass
+    confidence: 91
+    note: >
+      Highest non-concierge confidence. grill-report.md present; the AC-list's resolved discrepancy
+      and the "objective/optimization_point already exist from KTP-861" findings show the grill
+      sharpened scope against the existing domain model rather than rubber-stamping.
+  - phase: implement
+    status: pass
+    confidence: 83
+    note: >
+      Lowest phase confidence, and the honest one. Ten commits, AC-by-AC, with TDD pairs. Built on a
+      44-commit-stale local tree, mitigated by reading origin/dev via git show — good discipline, but
+      the staleness is a latent wiring risk (the branch was cut from the worktree, not verified
+      against the freshest origin/dev at build time).
+  - phase: review
+    status: "criticals:0"
+    confidence: 85
+    note: >
+      Verdict is criticals:0, but the ticket's review/ folder is EMPTY — no review artifact was
+      written to disk. The pass is unauditable: a downstream reader cannot see what was reviewed, at
+      what scope, or which non-critical findings (if any) were noted. Confidence 85 with no artifact
+      is a soft number with nothing behind it.
+  - phase: qa
+    status: PARTIAL
+    confidence: 90
+    note: >
+      Logic surface fully green: qa/tip-all-logic-tests.out and tip-media-plan-logic.out both show
+      43 passed (normalizeTier, groupByTier, cumulative totals, selected-tier resolution,
+      hasProximity, extended-payload parse tolerance, adversarial edges, formatMoney). PARTIAL
+      because 6 of 8 ACs (AC-1,2,3,5,7,8) are visual and carry ZERO screenshot proof, and
+      qa/typecheck.out reports 9 pre-existing TS errors in 4 unrelated files. The correct call to
+      halt preship, but 90 overstates a run where half the acceptance surface is unverified.
+
+scores:
+  task_confidence: 68
+  factory_fitness: 79
+
+deductions:
+  # ---- task_confidence: start 100 -> 68 ----
+  - points: 12
+    reason: >
+      task_confidence: 6 of 8 ACs are visual (AC-1 tier grouping, AC-2 line columns, AC-3 proximity +
+      selected-tier treatments, AC-5 totals labelling, AC-7 reasoning trace, AC-8 brand styling in
+      both themes) and have NO screenshot evidence. The "43 passed" logic suite proves the helpers,
+      not the rendered plan. Half the ticket's acceptance surface is unverified at halt.
+  - points: 10
+    reason: >
+      task_confidence: terminal HALT_PRESHIP. Not shipped, no MR, no Jira comment. The ticket is
+      code-complete on a branch but not deployable and not visible to any reviewer.
+  - points: 4
+    reason: >
+      task_confidence: branch KTP-1020-tiered-media-plan-rendering (895d403) is committed only inside
+      app-front-portal/.worktrees/ and was never pushed to origin (preship halt is before the
+      READY_TO_SHIP push). Per the CLAUDE.md durability rule, uncommitted-to-origin work is one
+      worktree prune / git clean from loss; there is no durable recovery point.
+  - points: 4
+    reason: >
+      task_confidence: qa/typecheck.out shows 9 TypeScript errors in 4 files (market-copy.spec.ts,
+      read-sse-stream.test.ts, format-helpers.test.ts, calculate-flow-lines.test.ts). None are
+      KTP-1020 files, but the repo-wide typecheck is red, so the merge CI typecheck gate will trip
+      and block a clean ship of this branch until they are isolated or attributed.
+  - points: 2
+    reason: >
+      task_confidence: implement phase confidence 83 (lowest) on a 44-commit-stale local checkout.
+      Wiring facts were read via git show origin/dev (good), but the branch itself was built off the
+      stale tree, leaving a small residual risk that a component moved on origin/dev since the cut.
+
+  # ---- factory_fitness: start 100 -> 79 ----
+  - points: 8
+    reason: >
+      factory_fitness: the review gate returned criticals:0 but wrote NO artifact to the ticket's
+      review/ folder (empty). A zero-findings verdict with no on-disk record of scope or checks is
+      unauditable — the factory cannot prove the review happened or covered the change. A verdict is
+      a gate output; a gate output with no artifact is a blind spot.
+  - points: 6
+    reason: >
+      factory_fitness: QA ran typecheck across the whole repo and folded 9 unrelated pre-existing
+      failures into the ticket's QA signal without isolating or attributing them. A changed-files
+      typecheck (or an explicit "pre-existing, not mine" attribution per the CLAUDE.md pre-existing-
+      failures rule) would give a clean PARTIAL-vs-PASS read instead of a muddied one.
+  - points: 5
+    reason: >
+      factory_fitness: QA halted PARTIAL for missing visual proof on 6 ACs, yet the seedable fixture
+      mechanism it needed was known present (analyst notes cite app/api/media-plan/fixtures.ts; the
+      run itself added tiered + reasoning fixture variants in commit 363112f). The factory could have
+      auto-seeded and screenshotted the visual ACs in both themes rather than block on evidence it
+      was already equipped to generate.
+  - points: 2
+    reason: >
+      factory_fitness: implement was the lowest-confidence phase (83) because it built on a 44-commit-
+      stale local checkout. The git-show mitigation worked, but a fresh worktree cut from origin/dev
+      at build entry would remove the friction and the residual risk entirely.
+
+red_flags:
+  - "Review gate verdict is 'criticals:0' but the ticket's review/ folder is EMPTY — no review report on disk. The pass cannot be audited: nothing records what was reviewed or at what scope."
+  - "Repo-wide typecheck is red: 9 TS errors in 4 unrelated files (market-copy.spec.ts, read-sse-stream.test.ts, format-helpers.test.ts, calculate-flow-lines.test.ts). Pre-existing, not KTP-1020 code, but they trip the merge CI typecheck gate and were folded into the QA PARTIAL signal without attribution."
+  - "6 of 8 ACs are visual (AC-1,2,3,5,7,8) with zero screenshot proof at halt. The '43 passed' logic suite covers the helpers, not the rendered tiered plan — roughly half the acceptance surface is unverified."
+  - "Branch KTP-1020-tiered-media-plan-rendering (895d403) lives only in app-front-portal/.worktrees/, never pushed to origin. HALT_PRESHIP stops before the READY_TO_SHIP push, so the work is one worktree prune / git clean from loss with no durable recovery point."
+  - "QA halted PARTIAL for visual proof the factory could have produced: the seedable fixture mechanism exists and the run itself added tiered + reasoning fixture variants (commit 363112f), yet no screenshots were rendered."
+  - "sessions/active/state.yaml session_id is empty again (live id fa5f4883 sits in current_focus) — recurring defect flagged across many prior runs; handoff falls back to the shared prompts/ folder."
+  - "Positive signals worth keeping: TDD gate ran in halt mode with zero warn-mode violations, real RED->GREEN pairs are on disk (qa/red-AC1/AC3/AC5 + matched GREEN commits), the concierge read all wiring via git show origin/dev on a 44-commit-stale tree, and the preship halt correctly refused to auto-ship visual ACs without evidence. The gate did its job."
+
+improvements:
+  - title: "QA should auto-seed the known fixtures and screenshot the visual ACs (both themes) before halting PRESHIP for missing proof"
+    detail: >
+      KTP-1020 halted PARTIAL on 6 visual ACs while the fixture mechanism it needed was present and
+      the run had already added tiered + reasoning fixture variants (app/api/media-plan/fixtures.ts,
+      commit 363112f). The QA phase, when a visual AC is marked fixture:seedable, should start the
+      local surface with the seeded variant, capture a light-theme and dark-theme screenshot per
+      visual AC into the ticket design/screenshots/ folder, and only then decide PASS vs PARTIAL. A
+      preship halt for proof the factory can generate itself is wasted human latency.
+  - title: "Review phase must always write an artifact to review/, even on criticals:0"
+    detail: >
+      The review gate returned criticals:0 but left review/ empty, making the pass unauditable. Every
+      review terminal (including zero-findings) must persist a review/report.md recording: files/
+      diff reviewed, checks run (logic, contract, security, over-engineering), and the findings list
+      (empty is fine, but explicit). A verdict with no artifact should be a workflow.js error, not an
+      accepted PASS."
+  - title: "Scope the QA typecheck to changed files, or attribute repo-wide pre-existing failures"
+    detail: >
+      qa/typecheck.out folded 9 pre-existing TS errors from 4 unrelated files into KTP-1020's QA
+      signal. QA should run a changed-files typecheck (tsc on the branch's touched files / project
+      references) for the ticket verdict, and separately record repo-wide pre-existing failures as an
+      attributed 'not introduced by this ticket' note (per the CLAUDE.md pre-existing-failures rule).
+      This keeps PARTIAL-vs-PASS honest and flags the repo debt without blaming the ticket.
+  - title: "On HALT_PRESHIP, push the worktree branch to origin as a durable recovery point"
+    detail: >
+      HALT_PRESHIP leaves fully-committed work stranded in .worktrees/, one prune/clean from loss.
+      The preship halt handler should push the branch to origin (no MR yet — that stays a human/
+      main-loop step) so the 10 commits survive worktree cleanup and are recoverable by branch name.
+      This matches the CLAUDE.md 'subagent outputs must be committed immediately' durability intent,
+      extended to 'and pushed' for terminal halts that hold real code."
+  - title: "Fix the empty session_id so retro handoffs land in a discoverable per-session prompts folder"
+    detail: >
+      Recurring across many prior runs (KTP-708 same day, KTP-1030, and earlier): sessions/active/
+      state.yaml session_id is empty while the live id sits in current_focus. Repair the session-init/
+      state-write step, or have Retro derive the session from current_focus, so handoffs are
+      discoverable by /session:pickup instead of relying on the shared prompts/ fallback."
+
+summary: >
+  KTP-1020 (tiered media-plan rendering, app-front-portal) reached HALT_PRESHIP correctly:
+  task_confidence 68 / factory_fitness 79. The build is code-complete on branch
+  KTP-1020-tiered-media-plan-rendering (895d403, worktree-only, unpushed) with a trustworthy TDD run
+  — halt-mode gate, zero warn violations, real RED->GREEN pairs, and a 43-passing logic suite. It
+  halted because 6 of 8 ACs are visual with no screenshot proof, the repo-wide typecheck carries 9
+  pre-existing unrelated errors, and the review gate passed (criticals:0) without writing any
+  artifact. The halt is the right call; the factory's fixable gaps are that it could have rendered
+  the visual proof it blocked on, should have attributed the pre-existing typecheck debt instead of
+  folding it into QA, must persist a review artifact even on a clean pass, should push the branch on
+  preship halt, and still ships the empty-session_id defect.

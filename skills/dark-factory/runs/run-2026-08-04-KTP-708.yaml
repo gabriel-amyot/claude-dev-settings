@@ -1,0 +1,186 @@
+run_id: run-2026-08-04-KTP-708
+ticket: KTP-708
+title: >
+  TTD trading tooling for traders inside Claude (Powers Interactive seat): pull ad-group data
+  (spend, max/min bid, decision power, flight end date) and push max-bid/min-bid adjustments to
+  The Trade Desk API, with a change log, a feedback log, an off-limits campaign list, and
+  methodology documentation. Greenfield — no existing repo, surface, or trading-API credential.
+date: 2026-08-04
+terminal_status: BLOCKED_SPEC_QUALITY
+ticket_folder: ~/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-3/KTP-708
+session: "(unresolved — sessions/active/state.yaml session_id empty again; ledger's only active session is prime-hawk/KTP-571, unrelated)"
+orchestrator_trace_note: >
+  The orchestrator passed ticket folder "(unresolved)" to this retro, yet the concierge itself
+  created and populated tickets/KTP/KTP-3/KTP-708/analyst/ during the run. The trace lost a fact
+  the run produced; the retro had to rediscover the folder by filesystem search.
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: true
+  note: >
+    Gate configured in default halt mode with zero warn-mode violations. The run halted at the
+    concierge front gate, so no code phase executed and no RED->GREEN sequence exists to evaluate.
+    Structurally trustworthy (vacuously — nothing reached the gate). No red flag from the gate.
+
+per_phase:
+  - phase: concierge
+    status: FAIL
+    confidence: 82
+    note: >
+      Correct stop. The Jira description contains NO acceptance criteria; the concierge extracted 6
+      implied deliverables and explicitly marked the extraction "NOT a buildable spec" (analyst/
+      ac-list.json). No affected repo resolves — the deliverable (a TTD trading-API write surface
+      for traders inside Claude) has no home in the Klever repo map and no racked tool belt covers
+      it (analyst/affected-repos.json). Credential audit: TTD sandbox login and an offline-data-
+      provider key exist in 1Password, but no production trading-API token with bid-write scope for
+      the Powers seat was located — properly recorded as UNVERIFIED-NEGATIVE with an assumption
+      audit ("access not located", not "access does not exist"). Library-first check ran and was
+      cited (bibliotheque documents TTD as Tier-1 DSP, no existing trading-API write integration).
+      Tech lead Rajan Takiar asked "Share more info on this" and "create a spike if needed" on
+      2026-07-27; verified unanswered as of run date. Confidence 82 is fair: the halt is certain,
+      but the epistemically honest UNVERIFIED-NEGATIVE on the credential and the unresolved repo/
+      surface question keep it below the KTP-746-style 90.
+
+scores:
+  task_confidence: 15
+  factory_fitness: 83
+
+deductions:
+  # ---- task_confidence: start 100 -> 15 ----
+  - points: 60
+    reason: >
+      task_confidence: run terminated BLOCKED_SPEC_QUALITY at the front gate. Nothing was designed,
+      built, tested, or reviewed. Zero of the 6 implied deliverables progressed. Dominant deduction:
+      the task is not done and nothing is deployable.
+  - points: 10
+    reason: >
+      task_confidence: no buildable spec exists at all. The Jira description carries zero explicit
+      ACs, no AC-LOCAL.md, no jira/ac/ folder; the 6-item list on disk is the concierge's implied-
+      deliverable extraction, self-marked spec-quality FAIL. Even after this run, KTP-708 cannot
+      re-enter the line without human spec work (or the spike Rajan proposed).
+  - points: 8
+    reason: >
+      task_confidence: greenfield with no resolvable home. analyst/affected-repos.json is empty —
+      no app-agent-skills checkout, no TTD-named repo, no workspace-map entry. The repo/surface
+      decision (open question Q2) is a human architecture call; no tool belt can be equipped until
+      it is made.
+  - points: 5
+    reason: >
+      task_confidence: production access is unestablished for the ticket's core write path. No TTD
+      trading-API token with bid-write scope for the Powers seat was located (UNVERIFIED-NEGATIVE,
+      Q3), and AC-2 is a money-moving write to a live DSP seat with approval/rollback semantics
+      unspecified. Even a perfect spec cannot be executed until access and guardrails exist.
+  - points: 2
+    reason: >
+      task_confidence: the tech lead's 2026-07-27 ask ("Share more info", "create a spike if
+      needed") is still unanswered after this run. The run gathered exactly the requested info and
+      left it on disk; from Jira's perspective the ticket is precisely as stuck as before.
+
+  # ---- factory_fitness: start 100 -> 83 ----
+  - points: 6
+    reason: >
+      factory_fitness: on BLOCKED_SPEC_QUALITY the factory again surfaced nothing externally — no
+      Jira reply draft routed to /post-comment, no Gabriel-inbox item, no handoff in the session
+      ledger. This is the sharpest instance yet of the disk-only-parking failure mode: the TL
+      explicitly requested "more info" and a spike decision, the concierge produced the verified
+      answer (credential inventory, no-repo finding, risk shape), and it is invisible to every
+      human who owns the decision. Same improvement proposed in the KTP-762 and KTP-746 retros;
+      still unwired.
+  - points: 4
+    reason: >
+      factory_fitness: pre-dispatch triage is still missing (recurring: KTP-699 x2, KTP-762,
+      KTP-746, now KTP-708). A ticket whose description contains zero AC-shaped content AND whose
+      newest comments hold an unanswered TL "create a spike if needed" should never reach the
+      concierge. A cheap workflow.js entry check (AC-presence + unanswered-owner-question scan)
+      would have short-circuited this cycle.
+  - points: 3
+    reason: >
+      factory_fitness: the blocking open questions (Q2 repo/surface, Q3 production credential; a Q1
+      is implied by numbering) are referenced across assumptions.json and affected-repos.json but
+      never persisted as a single open-questions artifact, and the ticket folder was left without
+      README/reports scaffolding (3 analyst files only). The next run — or the human — must
+      reassemble the question list from cross-references.
+  - points: 2
+    reason: >
+      factory_fitness: orchestrator trace handed this retro "Ticket folder: (unresolved)" although
+      the concierge created tickets/KTP/KTP-3/KTP-708/ during the run. A fact produced by phase 1
+      was lost before phase 9; the retro re-derived it by filesystem search.
+  - points: 2
+    reason: >
+      factory_fitness: recurring session-bookkeeping defect. sessions/active/state.yaml session_id
+      is empty again (flagged on 2026-06-11, 2026-06-22, 2026-07-13, 2026-08-03 runs); the ledger's
+      only active session is unrelated (prime-hawk/KTP-571), so this handoff falls back to the
+      ticket reports/ folder per the contract's fallback rule.
+
+red_flags:
+  - "Jira description contains NO acceptance criteria — the on-disk 6-AC list is the concierge's implied-deliverable extraction, self-marked 'NOT a buildable spec'. The ticket entered the code factory with zero AC-shaped content."
+  - "AC-2 (implied) is a production money-moving write: push max/min bid changes to a live TTD seat (Powers). Approval flow, rollback, dry-run, and blast-radius limits are all unspecified. Highest-risk deliverable shape the factory has seen, with the least spec."
+  - "Greenfield with no home: affected-repos resolves to []. No repo, no surface, no racked tool belt covers 'TTD trading API inside Claude'. Repo/surface decision (Q2) is an unmade human architecture call."
+  - "No production TTD trading-API token with bid-write scope located for the Powers seat — correctly recorded as UNVERIFIED-NEGATIVE with an assumption audit (access 'not located', not 'nonexistent'); resolving it (Q3) needs the human or the TTD partner portal."
+  - "Rajan Takiar's 2026-07-27 Jira comments ('Share more info on this', 'create a spike if needed') were verified unanswered — and this run, which produced exactly the requested info, still posted no reply. Disk-only parking, third retro in a row to flag it."
+  - "Fifth BLOCKED_SPEC_QUALITY concierge cycle spent confirming a halt that upstream signals already implied (KTP-699 x2, KTP-762, KTP-746, KTP-708). The pre-dispatch triage filter first proposed in the KTP-762 retro (2026-06-09) remains unimplemented."
+  - "Open questions Q2/Q3 referenced across analyst artifacts but no open-questions file exists; ticket folder has no README, no reports/ tree — below the ticket-init scaffold standard."
+  - "Orchestrator trace lost the ticket folder ('(unresolved)') that the run's own concierge created at tickets/KTP/KTP-3/KTP-708."
+  - "sessions/active/state.yaml session_id empty again — handoff falls back to the ticket reports/ folder instead of a per-session prompts folder discoverable by /session:pickup."
+  - "Positive signals worth keeping: library-first check ran and was cited; the credential negative carried a proper assumption audit; the concierge refused to guess a repo home or invent ACs. The gate did its job."
+
+improvements:
+  - title: "On BLOCKED_SPEC_QUALITY, auto-draft the owner reply and route it to /post-comment (promote from proposal to gate change — third recurrence)"
+    detail: >
+      The terminal handler for BLOCKED_SPEC_QUALITY should compose a Jira reply from the analyst
+      artifacts and hand it to /post-comment for human-gated posting. KTP-708 is the sharpest case:
+      Rajan asked 'Share more info / create a spike if needed' on 2026-07-27, and the concierge's
+      verified findings (sandbox cred exists, no bid-write production token located, no repo home,
+      zero ACs, money-moving risk) ARE the answer — sitting invisible on disk. Also drop a pending/
+      item in general/inboxes/gabriel/ so the decision enters the human queue. Proposed in the
+      KTP-762 and KTP-746 retros; unwired both times.
+  - title: "Pre-dispatch triage: refuse concierge entry when the ticket has zero AC-shaped content or an unanswered owner question proposing a spike/split"
+    detail: >
+      workflow.js, at concierge entry: (1) scan the Jira description + AC-LOCAL.md for AC-shaped
+      content (Given/When/Then, bullet criteria, or a jira/ac/ folder) — zero hits routes to a
+      spec/spike queue, not the build line; (2) scan the newest comments for an unanswered TL/PO
+      question ('create a spike', 'share more info', 'split this') — an unanswered one blocks
+      dispatch with a pointer. Five concierge cycles (KTP-699 x2, KTP-762, KTP-746, KTP-708) have
+      now been spent confirming halts these signals already implied.
+  - title: "Concierge must classify spike-shaped tickets and recommend the spike track, not just FAIL"
+    detail: >
+      KTP-708's shape — greenfield vendor WRITE API, no repo home, no production credential,
+      unspecified guardrails on money-moving operations — is a research/spike deliverable, exactly
+      what Rajan proposed. Add a concierge output field verdict: BUILDABLE | SPIKE_SHAPED |
+      DECISION_GATED; on SPIKE_SHAPED, name the track (/api-spike for the TTD sandbox: auth against
+      the 1Password sandbox login, enumerate ad-group read + bid-write endpoints, document scopes
+      needed for the Powers seat) so the halt hands the human a next action instead of a bare FAIL.
+  - title: "Persist a single open-questions.json (and the ticket-init scaffold) whenever the concierge blocks"
+    detail: >
+      Q2 (repo/surface home) and Q3 (production bid-write credential) exist only as cross-references
+      inside assumptions.json and affected-repos.json; a Q1 is implied by numbering but nowhere
+      enumerated. On any blocking terminal, the concierge must write analyst/open-questions.json
+      ({id, question, owner, blocking: true/false}) and run the ticket-init scaffold (README,
+      reports/ tree) so the re-entry check ('are the open_questions answered?') proposed in the
+      KTP-699 retro has a deterministic file to read.
+  - title: "Carry the ticket folder through the orchestrator trace to Retro"
+    detail: >
+      The concierge created tickets/KTP/KTP-3/KTP-708/ but the retro prompt received 'Ticket
+      folder: (unresolved)'. The workflow should propagate the concierge's resolved ticket_folder
+      output into the shared run state so later phases (and this retro) receive it instead of
+      re-deriving it by filesystem search.
+  - title: "Fix the empty session_id so retro handoffs land in a per-session prompts folder"
+    detail: >
+      Fifth run flagged (2026-06-11, 2026-06-22, 2026-07-13, 2026-08-03, 2026-08-04):
+      sessions/active/state.yaml session_id is empty while the live id sits in current_focus.
+      Repair the session-init/state-write step, or have Retro derive the session from
+      current_focus, so handoffs are discoverable by /session:pickup instead of falling back to
+      ticket reports/.
+
+summary: >
+  KTP-708 (TTD trading tooling for traders inside Claude, Powers seat) was correctly
+  BLOCKED_SPEC_QUALITY at the concierge front gate: task_confidence 15 / factory_fitness 83. The
+  ticket has zero acceptance criteria, no repo or surface home, no located production bid-write
+  credential, and its core deliverable is a money-moving write to a live DSP seat with unspecified
+  guardrails — the tech lead had already proposed a spike on 2026-07-27. The concierge's analysis
+  was epistemically strong (library-first cited, assumption-audited negative on the credential),
+  but the factory's recurring gaps all fired again: no external surfacing of the halt (Rajan's
+  explicit info request remains unanswered while its answer sits on disk), no pre-dispatch triage
+  (fifth wasted concierge cycle on this shape), open questions unpersisted, the ticket folder lost
+  from the orchestrator trace, and the empty session_id defect for the fifth time.

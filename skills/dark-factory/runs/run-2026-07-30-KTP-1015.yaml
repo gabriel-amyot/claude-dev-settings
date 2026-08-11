@@ -1,0 +1,190 @@
+run_id: run-2026-07-30-KTP-1015
+ticket: KTP-1015
+title: >
+  Insight blurbs should support Markdown formatting — the AI Insights panel on the home Campaign
+  Overview renders insight.insightText through react-markdown + remark-gfm instead of as a plain
+  <p> text node, so bold/lists/etc. render formatted rather than showing literal asterisks. 1 AC
+  (visual/pure-render), single repo (app-front-portal), single file.
+date: 2026-07-30
+terminal_status: NEEDS_VISUAL_VERIFY
+halted_phase: none
+ticket_folder: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/KTP/no-epic/KTP-1015
+repo: grp-app/grp-frontend/app-front-portal
+default_branch: dev
+changed_file: components/home/campaign-insights/campaign-insights-panel.tsx
+green_commit: "cb29bab — KTP-1015: render insight blurbs as markdown"
+session: >
+  sessions/active/state.yaml session_id is empty (current_focus carries 2b790e98-...). The most
+  recent active session folder (bold-jackal, 2026-07-30) is dedicated to unrelated Proxi work — its
+  prompts/ folder holds only proxi-* handoffs. Because no active session maps to this KTP-1015
+  factory run, the next-run handoff was written to the ticket folder under reports/ per the
+  contract's fallback, not into the Proxi session's prompts/.
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: true
+  note: >
+    Gate ran in default halt mode with zero warn-mode violations — trustworthy. Unit RED is an
+    honest not_applicable exemption: the change is a render-node swap (<p>{insightText}</p> ->
+    <ReactMarkdown>), the markdown->DOM transform is delegated entirely to react-markdown (a
+    library, not our code), and the repo ships no component-render unit harness (only
+    @playwright/test — no jest/vitest/@testing-library/jsdom, confirmed vs origin/dev:package.json).
+    A "does react-markdown turn **x** into <strong>" test would assert library behavior
+    (tautology / synthetic-data anti-pattern) and was deliberately NOT manufactured. Backward-compat
+    is proven: e2e/campaign-insights-logic.spec.ts (5 selectVisibleInsight + 2 formatUpdatedAgo)
+    stayed 7-passed before and after the change. Correct exemption, no fake test written.
+
+per_phase:
+  - phase: concierge
+    status: PASS
+    confidence: 85
+  - phase: design
+    status: pass
+    confidence: 92
+  - phase: grill
+    status: pass
+    confidence: 93
+  - phase: implement
+    status: pass
+    confidence: 86
+  - phase: review
+    status: "criticals:0"
+    confidence: 88
+  - phase: qa
+    status: PARTIAL
+    confidence: 88
+  - phase: ship-prep
+    status: pass
+    confidence: 90
+
+artifacts_on_disk:
+  analyst: [ac.json, assumptions.json, affected-repos.json]
+  design: [grill-report.md, impl-plan.md]
+  tdd: [AC-1.md]
+  qa: [AC-1-build.out, AC-1-typecheck.out, AC-1-compat-e2e.out]
+  review: [diff.patch]
+  review_note: >
+    review/ holds only diff.patch — the review phase reported criticals:0 but left no review-report
+    artifact explaining what was checked or why it passed. The verdict lives in the trace only.
+
+scores:
+  task_confidence: 85
+  factory_fitness: 85
+
+deductions:
+  # ---- task_confidence (start 100 -> 85) ----
+  - points: 10
+    reason: >
+      task_confidence: terminal status is NEEDS_VISUAL_VERIFY, not READY_TO_SHIP. The single AC is
+      ac_kind=visual (pure render) and the frontend belt defines its acceptance proof as a live
+      ui-probe screenshot showing the blurb rendered with <strong>/<li> and no literal ** / leading
+      "- " in the visible text. QA (PARTIAL, conf 88) ran only build / typecheck / compat-e2e — it
+      produced NO visual or DOM-level render assertion at all. The change is high-confidence to work
+      (react-markdown is proven, build green, pattern mirrors the in-repo ReleasesClient idiom) but
+      "deployable with proof" is not yet true for the one thing this ticket exists to fix.
+  - points: 3
+    reason: >
+      task_confidence: grill note N2 (multi-paragraph blurb spacing — the p override intentionally
+      omits ReleasesClient's mb-3, so a multi-paragraph blurb would render with no inter-paragraph
+      gap) was explicitly handed to QA to eyeball if a multi-paragraph blurb is available. There is
+      no evidence QA looked. Low-probability (blurbs are usually one short paragraph) but an
+      unverified visible-spacing edge on the exact node that changed.
+  - points: 2
+    reason: >
+      task_confidence: the local app-front-portal checkout was 9 commits behind origin/dev at gate
+      time. Grill and analyst re-verified every claim via `git show origin/dev:...` and implement
+      built from a clean worktree, but there is no single artifact stamping "the plain
+      <p>{insightText}</p> node was still the render site at build-time HEAD" — a residual (small)
+      window where a newer origin/dev commit could have moved the node.
+  # ---- factory_fitness (start 100 -> 85) ----
+  - points: 6
+    reason: >
+      factory_fitness: for a visual/pure-render AC the factory's autonomous QA had no lane to
+      produce a DOM-level render proof and punted entirely to human/ui-probe verification. The
+      analyst itself flagged the fixture as trivially available ("a fixture blurb string with
+      **bold** reproduces the render trivially — pure component render transform"). A Playwright
+      run driving local /home with a mocked markdown insight and asserting <strong>/<li> in the DOM
+      needs neither Gab's authenticated Chrome nor dev — the factory could have self-certified the
+      transform and left only pixel/UX eyeballing to the human. It did not; QA stopped at
+      build+typecheck+compat-e2e.
+  - points: 4
+    reason: >
+      factory_fitness: grill "parked notes for implement/QA" (N1 remark-gfm provenance mis-cite,
+      N2 multi-paragraph spacing eyeball) were not propagated into a QA checklist. The grill handed
+      QA a specific action (eyeball a multi-paragraph blurb) and there is no evidence it surfaced in
+      the QA phase. Grill->QA handoff of parked notes is lossy prose, not a structured checklist the
+      QA gate consumes.
+  - points: 3
+    reason: >
+      factory_fitness: qa/AC-1-typecheck.out shows 9 tsc errors across 4 files (vitest
+      module-not-found in chatbot/format-helpers/flow-lines tests; emptyStateCopyFor arity +
+      VisitorOrigin.originName in market-copy.spec / calculate-flow-lines.test). ALL are pre-existing
+      on origin/dev and none are in the changed file — but the QA gate surfaced them as a raw wall of
+      red with no triage note distinguishing MINE vs PRE-EXISTING. A reader must manually prove they
+      are not regressions. Same recurring gate-noise flagged in the KTP-792 retros. (Build passes
+      because they live outside the Next build graph.)
+  - points: 2
+    reason: >
+      factory_fitness: implement's first dev-boot used a symlinked node_modules from the
+      9-commits-behind main checkout and failed with `Cannot find module 'next/dist/pages/_app'` — a
+      webpack dev-bundler artifact of the symlink, needing a clean `npm ci` in the worktree to
+      recover. Minor recurring worktree-hygiene brittleness (behind-checkout node_modules symlink),
+      independent of the change but a wasted retry.
+
+red_flags:
+  - "NEEDS_VISUAL_VERIFY: the sole AC is a rendered-UI AC whose belt-defined proof is a live markdown-render screenshot, and QA (PARTIAL, conf 88) captured NONE — it ran build/typecheck/compat-e2e only. The run cannot self-certify the one behavior the ticket exists to fix."
+  - "QA for an ac_kind=visual produced zero visual/DOM assertion even though the analyst said a fixture blurb with **bold** reproduces the render trivially — a fixture-driven Playwright DOM check (asserting <strong>/<li>, no literal ** ) was available and autonomous, and was not done."
+  - "Grill note N2 (multi-paragraph blurb spacing — no inter-paragraph gap because the p override drops mb-3) was handed to QA to eyeball; no evidence QA acted on it. Grill->QA parked-note handoff is lossy."
+  - "qa/AC-1-typecheck.out has 9 errors in 4 files, ALL pre-existing on origin/dev (vitest missing, emptyStateCopyFor arity, VisitorOrigin.originName) and none in the changed file — the QA gate did not triage MINE vs PRE-EXISTING, forcing manual proof they are not regressions."
+  - "First dev-boot failed (`Cannot find module 'next/dist/pages/_app'`) due to a node_modules symlink from the 9-commits-behind main checkout; needed a clean npm ci to recover — recurring behind-checkout worktree-hygiene smell."
+  - "review/ holds only diff.patch — the criticals:0 verdict has no on-disk review-report artifact; a future reader cannot reconstruct what was reviewed or why it passed."
+  - "TDD unit RED = not_applicable (honest for a library-delegated render), so there is zero automated regression guard on the behavior change itself — it now relies entirely on human/ui-probe visual verify. Correct call, but it concentrates all acceptance risk in the one phase that did not run."
+
+improvements:
+  - title: "Give the factory an autonomous fixture-render QA lane for ac_kind=visual"
+    detail: >
+      Contract 6 (QA) currently punts every visual AC to human ui-probe because ui-probe needs Gab's
+      authenticated Chrome, which a headless run cannot drive. But a pure-render transform (like this
+      markdown swap) can be proven autonomously: spin the local dev server (or a Playwright
+      component/route mount), inject a fixture insight whose insightText contains `**bold**` and
+      `- item`, navigate /home, and assert the rendered DOM contains <strong>/<li> and NO literal
+      `**` or leading `- ` in visible text. That needs neither dev nor Gab's Chrome. Add this lane so
+      visual/pure-render ACs get a DOM-level PASS and NEEDS_VISUAL_VERIFY is reserved for genuinely
+      pixel/UX-judgment ACs, not transforms a fixture can prove.
+  - title: "Propagate grill parked-notes into a structured QA checklist"
+    detail: >
+      The grill produced actionable QA items (N2: eyeball a multi-paragraph blurb for the dropped
+      inter-paragraph gap). These lived as prose in design/grill-report.md and never reached QA.
+      Contract 3 (grill) should emit a machine-readable qa_checklist[] (each item: what to verify,
+      why, blocking?) that Contract 6 (QA) is required to tick through and record a result for.
+      Parked notes that vanish between phases are the failure mode.
+  - title: "QA gate should triage typecheck/lint failures against the changed file set"
+    detail: >
+      Contract 6 runs lint:types and got 9 errors here, ALL pre-existing on origin/dev and none in
+      the branch's one changed file. The gate should diff failing files against
+      `git diff --name-only origin/dev...HEAD` and annotate each MINE (regression, blocks) vs
+      PRE-EXISTING (repo debt, does not block). A raw wall of tsc red forces manual proof and risks a
+      false halt or a missed real regression. (Third run in a row — KTP-792 x2, now KTP-1015 — with
+      the same untriaged pre-existing-typecheck noise; worth fixing upstream, not re-flagging.)
+  - title: "Worktree hygiene: fresh npm ci, never symlink node_modules from a behind checkout"
+    detail: >
+      Implement's first dev-boot failed because node_modules was symlinked from the main checkout
+      (9 commits behind), producing `Cannot find module 'next/dist/pages/_app'`. The concierge/build
+      setup for a frontend belt should always run a clean `npm ci` inside the worktree and never
+      reuse a symlinked node_modules from a stale main checkout. Cheap to enforce, removes a recurring
+      wasted retry.
+  - title: "Write a review artifact even when criticals:0"
+    detail: >
+      Contract 5 (review) left only diff.patch in review/. It should always drop
+      review/review-report.md (what was checked, the criticals:0 verdict, any non-blocking nits) so
+      the pass is reconstructable on disk, not trace-only. Recurring across runs.
+
+summary: >
+  KTP-1015 ran clean end-to-end: a minimal, well-verified single-file frontend change (plain <p>
+  blurb -> react-markdown + remark-gfm with Klever-token overrides, mirroring the in-repo
+  ReleasesClient idiom), build green, compat e2e 7-passed, TDD gate in halt mode with an honest
+  not_applicable exemption and zero warn-mode violations. task_confidence 85 / factory_fitness 85.
+  The only gap between this and READY_TO_SHIP is proof of the render itself — the sole AC is visual
+  and QA captured no DOM/screenshot evidence. Next step is a fixture-driven render check (or a
+  ui-probe on the pushed branch), not more code.

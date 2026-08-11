@@ -1,0 +1,378 @@
+run_id: run-2026-08-11-KTP-1062
+ticket: KTP-1062
+date: 2026-08-11
+terminal_status: HALT_PRESHIP
+ticket_folder: ~/Developer/grp-beklever-com/project-management/tickets/KTP/no-epic/KTP-1062
+
+title: >
+  Powers MCP P1 read tools against the TTD sandbox seat. THIS RUN BUILT SLICE B ONLY (the Python
+  FastMCP stdio client, python-service belt, new repo app-powers-bid-mcp): two read tools
+  get_campaign_pacing and get_ad_group_bids, neither exposing a seat, partner id or environment, a
+  token minted at app-klever-api-token-proxy and never at Auth0, and a fail-closed missing-credential
+  path. Slice A (the media-api Java guards) shipped in the previous run, run-2026-08-10-KTP-1062.
+
+sibling_run: >
+  run-2026-08-10-KTP-1062.yaml scored slice A (READY_TO_SHIP, 62/68). This file scores slice B only.
+  Read both for the ticket as a whole. Slice A artifacts were archived to
+  factory/slice-a-artifacts/ before slice B overwrote design/impl-plan.md and design/grill-report.md,
+  which is good hygiene and worth keeping.
+
+code_location_note: >
+  Repo grp-faas/grp-app/grp-backend/grp-mcp/app-powers-bid-mcp, created LOCALLY this run. Branch
+  KTP-1062-powers-bid-mcp-read-tools at 1107003, 12 commits on top of the init commit ee28e8e, checked
+  out in .worktrees/KTP-1062-powers-bid-mcp-read-tools. THE REPO HAS NO REMOTE: 'git remote -v' is
+  empty because the GitLab project does not exist (creation is Gabriel's human gate through CFG).
+  Everything is committed, nothing is pushed, so the only copy of this work is local disk.
+  Python 3.12.8, uv with a committed uv.lock, 33 tests green.
+
+terminal_cause: >
+  preShipBlockers fired on 'feature branch was not pushed'. This is a CORRECT halt against a real
+  human gate, not a factory failure. QA was ALL_PASS and review criticals_open was 0; the only
+  blocker was the missing remote. The failure is that the gate was knowable at the front door:
+  STATUS_SNAPSHOT.yaml already listed 'app-powers-bid-mcp does not exist in GitLab. Repo creation is
+  a human gate' as a slice B blocker before the run started.
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: true
+  note: >
+    Default halt mode, zero warn-mode violations, and QA re-derived every RED rather than trusting the
+    ledger. For AC-B1/B2/B3/B4 QA ran 'git show --stat' on each claimed RED commit (890bf38, 9db7ef2,
+    b143ddd, 305cf98) to confirm it touches the test file only, checked it out, ran the tests, captured
+    the failure text (qa/AC-B*-red-recheck.out), and confirmed 'git diff <red>..tip' on that test file
+    is EMPTY so the same assertions went red then green. The REDs are behavioural, not stub raises:
+    the implement phase wrote a deliberately wrong-but-plausible naive draft first (token minted from
+    Auth0, execute returning {}, a caller-supplied seat parameter, no credential validation), so
+    AC-B3's RED fails with auth0_hosts == ['beklever-client.us.auth0.com'] and AC-B2's RED fails with
+    offenders {'get_ad_group_bids': ['seat'], 'get_campaign_pacing': ['seat']}. AC-B5's
+    red_verified: exempt is legitimate: its only production surface is a one-line mcp.run() plus the
+    pyproject entry point, and the tool-list assertion it needs is already carried red-then-green by
+    AC-B2. This is the second consecutive run with a clean, independently re-derived TDD chain.
+
+per_phase:
+  - phase: concierge
+    status: PASS
+    confidence: 85
+    note: >
+      Slice B inherited the four gate answers from the slice A concierge (factory/decisions.yaml),
+      including Q1 which is still marked provisional-needs-ratification. Q4 (language: Python 3.12
+      with FastMCP) is backed by a real assessment doc,
+      reports/architecture/local-mcp-language-assessment-2026-08-10.md. Confidence is high because the
+      slice split is documented and AC-LOCAL-slice-b-mcp.md now EXISTS (the previous run's retro
+      recorded it as referenced-but-never-written, so that gap closed). What the gate did NOT do is
+      act on its own blocker list: the same STATUS_SNAPSHOT that authorised the run also said the
+      GitLab repo does not exist, which made the HALT_PRESHIP terminal certain before a line was
+      written.
+  - phase: design
+    status: pass
+    confidence: 78
+    note: >
+      Lowest-confidence phase, and correctly so. design/impl-plan.md specified two things that cannot
+      be built as written, both caught downstream by the grill: no seam existed to install a mocked
+      transport (so four of five ACs had no proof method), and the token cache as planned was dead in
+      production while its AC-B3 test could not pass. It also proposed proving AC-B2 with a throwaway
+      canary tool, which implement rejected on the correct ground that a deleted canary is not
+      reproducible by QA. The plan was directionally right and tactically wrong in two load-bearing
+      places.
+  - phase: grill
+    status: partial
+    confidence: 85
+    note: >
+      The strongest phase again. 13 load-bearing claims re-verified, several by execution (the FastMCP
+      API surface and the stdio handshake), 10 gaps filed with severities. G1 and G2 are the two HIGH
+      gaps that would have sunk the build, and both were resolved before code with a decision and a
+      draft ADR (architecture/adr/ADR-draft-mcp-test-seam-and-token-cache-scope.md). It also corrected
+      a false claim in the plan (G3: the pacing document is NOT verbatim, two date literals became
+      $start/$end, and the variable type names were never named) and caught a dependency-table error
+      (G4) that would have silently broken 'uv run pytest'. partial because two of its own
+      carry-forward items, G9 (refresh STATUS_SNAPSHOT.yaml) and G10 (rescue the /tmp evidence file),
+      were handed to phase 4 and never discharged.
+  - phase: implement
+    status: partial
+    confidence: 80
+    note: >
+      12 commits, RED-first per AC, 33 tests green, compile gate and import gate clean, uv.lock
+      committed so the environment reproduces. It executed the grill's carry-forwards on the code
+      side: module-scope token cache, dependency-groups dev table, substring error assertions, frozen
+      clock for the today-UTC window, httpx>=0.28.1. It also pushed back on the plan where the plan
+      was wrong (canary tool rejected in favour of a reproducible test-only RED). partial because it
+      could not push (no remote, the human gate), because it did NOT discharge the grill's
+      documentation carry-forwards G9 and G10, and because 10 self-written adversarial edge tests
+      found zero defects while an independent reviewer found six in the same code — a suite that finds
+      nothing is a signal, per the project CLAUDE.md.
+  - phase: review
+    status: "criticals:0"
+    confidence: 82
+    note: >
+      Substantively the best review in the run log AND the phase carrying the worst structural defect.
+      Substance: six findings, five DEMONSTRATED with a named probe test, an observed failure message,
+      and the command that produced it. It found that _parse guards a MISSING root key but not a NULL
+      one, so the primary not-found and seat-isolation path answers 'Output validation error:
+      outputSchema defined but no structured output returned'; that an empty-body 200 (exactly what
+      the slice A server produces via .defaultIfEmpty) escapes as 'Expecting value: line 1 column 1';
+      and that the execute-verify harness HANGS on failure because _drain_stderr reads to EOF while
+      the child is still alive. Structure: review/findings.json exists in the ticket folder, but the
+      reviewer wrote it inside project-management/.claude/worktrees/wf_64a4c927-236-5/ and the copy in
+      the ticket is byte-identical, i.e. hand-recovered. workflow.js still contains zero
+      existsSync/readFileSync, so the schema still validates the STRING and never the FILE. The gate
+      passed on luck, not on a check. Separately, all five probe files were deleted after the run, so
+      no demonstrated finding is reproducible from the repo.
+  - phase: qa
+    status: ALL_PASS
+    confidence: 85
+    note: >
+      Independent worktree, its own evidence. All five ACs proven with a command, an output file and a
+      code ref. It drove both tools through a real fastmcp Client session rather than reading decorator
+      metadata, read the tool schemas over the protocol with a recursive walk for seat/partnerId/
+      environment at any nesting depth, asserted the token URL positively AND asserted negatively over
+      recorded hosts that nothing ends with auth0.com, and ran scripts/execute_verify_stdio.py itself
+      with every KLEVER_* variable stripped. It labelled AC-B1 'MOCKED media-api only ... Jira AC-1
+      stays OPEN' rather than writing 'verified' unqualified, and it re-checked both GraphQL documents
+      against the KTP-708 and KTP-1047 findings docs to confirm no field was invented. It also did the
+      thing the previous run's retro asked for: it REPRODUCED the reviewer's HIGH finding at the branch
+      tip independently (qa/null-root-probe.out) instead of restating it, and its
+      review_artifact_spot_check reads present: true, size_bytes 10653, criticals_open 0. The ALL_PASS
+      is honest under the ACs as written; the three unfixed defects genuinely fall outside every
+      slice B AC's words.
+  - phase: ship-prep
+    status: not_reached
+    confidence: null
+    note: >
+      preShipBlockers halted before ShipPrep, so no version bump, no CHANGELOG entry beyond what
+      implement wrote, no MR and no Jira comment. Correct for a HALT terminal.
+
+scores:
+  task_confidence: 56
+  factory_fitness: 65
+
+deductions:
+  # ---- task_confidence: start 100 -> 56 ----
+  - points: 14
+    reason: >
+      task_confidence: the MCP has never talked to anything real. Every slice B proof is against a
+      mocked media-api and a mocked token proxy. No live media-api, token-proxy, Auth0 or TTD call was
+      made or was possible. Jira AC-1 (the MCP read returns data from the sandbox seat) and Jira AC-5
+      (token obtained through the proxy) therefore stay OPEN, which is the entire user-facing point of
+      the ticket. QA labelled this correctly rather than hiding it, but honest labelling does not close
+      an AC.
+  - points: 10
+    reason: >
+      task_confidence: HALT_PRESHIP with nothing pushed and nowhere to push. app-powers-bid-mcp exists
+      only as a local git repo with no remote, so 12 commits of real work live on one laptop's disk
+      inside a worktree. It is not deployable, not reviewable by anyone else, and not backed up. The
+      repo-creation gate is legitimately Gabriel's, but the run produced no durability measure (no
+      bundle, no tarball, no second location) for work it knew it could not push.
+  - points: 8
+    reason: >
+      task_confidence: three demonstrated defects on the first-live-call path ship unfixed. HIGH, the
+      null root value: a campaign the pinned seat cannot see arrives as {"campaign": null}, _parse
+      returns None, and FastMCP's outputSchema rejects it, so the trader gets 'Output validation error'
+      instead of 'that campaign is not on this seat'. MEDIUM, the empty-body 200: the slice A server
+      this client talks to ends with .defaultIfEmpty(ResponseEntity.status(OK).build()), and an
+      unguarded response.json() on that turns into 'Expecting value: line 1 column 1 (char 0)'. LOW,
+      transport errors are unwrapped so a bad KLEVER_MEDIA_API_BASE_URL never names the variable at
+      fault. Review rated none of them CRITICAL, so the bounded fix loop never ran and the factory
+      walked past all three.
+  - points: 5
+    reason: >
+      task_confidence: the pacing document's $start and $end are declared DateTime! and that type name
+      was never validated against the live TTD schema. The KTP-1047 findings evidence covers the
+      literal form only, and the where filter is documented as ReportingDateTimeOperationFilterInput
+      with no scalar named. If the scalar differs, the very first live call fails GraphQL validation
+      and Jira AC-1 stays blocked on a one-line bug nobody can see offline. Filed LOW with a suggested
+      bogus-id probe, but no probe is queued anywhere a human will run it.
+  - points: 4
+    reason: >
+      task_confidence: slice B's own prerequisites are still unmet and one of them can invalidate its
+      code. The Auth0 ttd:read scope and read-only M2M client do not exist, the new client id is not in
+      klever.api-gateway.auth0.allowed-client-ids, and the API Gateway stanza is unapplied, so nothing
+      is reachable end to end. Separately, POWERS_GRAPHQL_PATH in media_api.py encodes the provisional
+      Q1 route-shape ruling, which is still unratified; overturning it changes the client too (one
+      line, but it is not settled).
+  - points: 3
+    reason: >
+      task_confidence: the deferred-AC obligation is now two runs old and still undischarged.
+      jira/comments.yaml is [] and the drafted comment sits unposted at
+      factory/jira-comment-draft.md, while Jira AC-3 ('the media API rejects ANY GraphQL mutation')
+      demonstrably does not hold on the legacy passthrough under the shape that was built. The PO
+      cannot see the divergence. This is exactly the disk-only parking failure the project CLAUDE.md
+      names by name.
+
+  # ---- factory_fitness: start 100 -> 65 ----
+  - points: 10
+    reason: >
+      factory_fitness: review/findings.json reached the ticket folder by a manual copy, not by the
+      factory. The reviewer wrote it into project-management/.claude/worktrees/wf_64a4c927-236-5/,
+      and the ticket copy is byte-identical with the same 01:06 timestamp. dark-factory.workflow.js
+      still contains no existsSync, no readFileSync and no statSync anywhere, so REVIEW_SCHEMA still
+      validates a string of minLength 1 and never stats the file. The previous retro wrote this exact
+      fix as improvement #1 and the code was not changed. The run passed the gate on luck. The good
+      news is that the root cause is now identified (worktree-local writes), so the fix is finally
+      specifiable.
+  - points: 5
+    reason: >
+      factory_fitness: the run created an eighth stranded worktree under
+      project-management/.claude/worktrees/ (wf_64a4c927-236-5), which now holds review artifacts for
+      16 tickets. The project CLAUDE.md states in its first section that no .claude/worktrees/ should
+      ever exist in this repo. The factory creates one per run, writes phase output into it, and never
+      cleans up, so the forbidden directory grows by one every time the line runs and cannot be deleted
+      without destroying artifacts.
+  - points: 5
+    reason: >
+      factory_fitness: the front-loaders are still stale at a terminal, for the second run in a row and
+      after the grill filed it explicitly. README.md says 'Factory phase: Concierge complete' and
+      'Implementation: Not started'. STATUS_SNAPSHOT.yaml says factory_phase:
+      concierge_complete_slice_a, implementation_started: false, active_slice A, tool_belt java, and
+      still lists 'AC-LOCAL-slice-b-mcp.md is referenced by AC-LOCAL.md but has not been written' as a
+      slice B blocker when that file exists. G9 in the grill report said 'STATUS_SNAPSHOT.yaml is stale
+      and will misreport this run' and 'phase 4 must carry forward: refresh STATUS_SNAPSHOT.yaml'. It
+      was named by the grill, named by the previous retro, and dropped by both.
+  - points: 4
+    reason: >
+      factory_fitness: the HALT_PRESHIP was structurally predestined and knowable at the front gate.
+      The ticket's own STATUS_SNAPSHOT listed 'app-powers-bid-mcp does not exist in GitLab. Repo
+      creation is a human gate' as a slice B blocker before the run began. The factory still spent
+      design, grill, implement, review and QA to discover 'feature branch was not pushed' at
+      preShipBlockers. This is the same fitness gap recorded on KTP-781: no gate consumes a
+      pre-existing, on-disk blocker diagnosis to down-scope the run or pick an honest terminal up front.
+  - points: 4
+    reason: >
+      factory_fitness: there is no routing for a demonstrated non-CRITICAL finding. The reviewer proved
+      a HIGH defect with a probe test and an observed failure message, plus two MEDIUMs, and because
+      criticals_open is 0 the bounded fix loop never ran, QA correctly scored them outside the ACs, and
+      the run walked to a terminal with all three live. The factory has exactly two dispositions,
+      CRITICAL-blocks and everything-else-evaporates. A HIGH needs a third: fix it now, or emit a
+      drafted follow-up ticket, or record accepted-with-reason.
+  - points: 3
+    reason: >
+      factory_fitness: G10 was carried forward and dropped. The only live proof of the load-bearing
+      unwrapped-envelope premise, on which the whole _parse design rests, still lives at
+      /tmp/ktp1062-new-route-live.json. The grill flagged the /tmp fragility itself and told phase 4 to
+      rescue the file into the ticket. It was not rescued and /tmp does not survive a reboot. QA did
+      rescue its own probe source to qa/null_root_probe.py, which shows the behaviour is achievable
+      when a phase owns it.
+  - points: 2
+    reason: >
+      factory_fitness: sessions/active/state.yaml session_id is EMPTY again, with the live id
+      809b7fe9-03d0-496e-983f-388671cbf023 buried inside the current_focus JSON blob. Flagged on
+      KTP-1030, KTP-708, KTP-1020 and both KTP-1062 runs, with a written improvement every time. It
+      also forced a filename collision this run: dark-factory-improvements-KTP-1062.md already exists
+      from the slice A retro, so this retro's handoff had to be suffixed -slice-b to avoid destroying
+      it.
+  - points: 2
+    reason: >
+      factory_fitness: none of the review's demonstrated findings is reproducible. All five probe files
+      (test_review_probe.py, test_review_probe2.py, test_review_probe3.py) were deleted after the run,
+      leaving a quoted command that names a file that no longer exists. The evidence standard the
+      factory asks for elsewhere is a test someone else can re-run; a deleted probe is a claim with a
+      transcript.
+
+red_flags:
+  - "review/findings.json is only in the ticket folder because it was hand-copied out of project-management/.claude/worktrees/wf_64a4c927-236-5/. The two files are byte-identical. workflow.js still has zero existsSync/readFileSync, so the gate checked a string, not a file. The previous retro's #1 improvement was not implemented in code."
+  - "The factory left an eighth forbidden worktree under project-management/.claude/worktrees/, now holding review artifacts for 16 tickets. The project CLAUDE.md's first rule is that this directory must never exist here. One is created per run and none is ever cleaned up."
+  - "The HALT was predestined: the ticket's own STATUS_SNAPSHOT.yaml named 'app-powers-bid-mcp does not exist in GitLab' as a blocker before the run started, and the factory still ran five phases to rediscover it at preShipBlockers."
+  - "12 commits of real work exist only on local disk, in a repo with no remote, inside a worktree. No bundle, no tarball, no second copy. A 'git clean', a worktree prune, or a disk failure loses the whole slice."
+  - "A demonstrated HIGH finding shipped: a null root value (the primary not-found AND seat-isolation path) surfaces to the trader as 'Output validation error: outputSchema defined but no structured output returned'. criticals_open was 0, so nothing in the factory could act on it."
+  - "The MEDIUM empty-body finding is not hypothetical: the slice A server this client talks to ends with .defaultIfEmpty(ResponseEntity.status(OK).build()), so the two components built for this ticket are already known to mis-handshake on the no-data path."
+  - "The execute-verify harness HANGS on failure (_drain_stderr reads to EOF while the child is alive, terminate() is in the finally after the except). The gate that exists to prove the server serves converts a red into a 180-second-plus hang. It passed this run, so nobody felt it."
+  - "Front-loaders stale for the second consecutive run: README says 'Implementation: Not started' and STATUS_SNAPSHOT says implementation_started: false with 12 commits on disk, and it still lists AC-LOCAL-slice-b-mcp.md as unwritten when the file exists. The grill filed this as G9 and the previous retro filed it as an improvement."
+  - "Grill carry-forwards G9 and G10 were both dropped. Code-side carry-forwards (G1-G8) were all executed. No phase owns the documentation-side ones."
+  - "The implement phase's own 10 adversarial edge tests found zero defects; an independent reviewer found six in the same code minutes later. A self-written suite that finds nothing is the smell the project CLAUDE.md names."
+  - "All five review probe files were deleted after the run, so not one demonstrated finding can be re-run from the repo."
+  - "jira/comments.yaml is still [] and factory/jira-comment-draft.md is still unposted, two runs after the deferred-AC divergence was recorded. The Jira AC-3 divergence remains invisible to the PO."
+  - "The KTP-1062 inbox item exists at general/inboxes/gabriel/pending/ but is NOT linked from general/inboxes/gabriel/INDEX.md, so the one artifact carrying the ratification decision and the four human prerequisites is unreachable from the index Gabriel is told to read first."
+  - "Positive signals worth keeping: the TDD gate ran in halt mode with zero warn violations and QA re-derived every RED (checked out 890bf38/9db7ef2/b143ddd/305cf98, ran them, captured the failures, proved the test files are byte-identical at the tip); the implement phase wrote a deliberately wrong naive draft so every RED is a behavioural failure rather than a stub raise; QA independently REPRODUCED the reviewer's HIGH finding at the tip instead of restating it, which is exactly what the previous retro asked for; QA labelled AC-B1 'MOCKED media-api only' rather than 'verified'; both GraphQL documents were re-checked against the KTP-708/KTP-1047 findings with no invented field; the grill caught two HIGH design gaps before a line of code; slice A artifacts were archived before slice B overwrote them; the ticket INDEX.md is current; and every human gate held under a full-yolo overnight authorisation."
+
+improvements:
+  - title: "Phase artifacts must be written to the REAL ticket path and verified with existsSync — and the factory must stop creating worktrees inside project-management"
+    detail: >
+      Root cause is now known, so this stops being a prose note. Two changes. (1) Path: the review and
+      QA prompts must write to an ABSOLUTE ticket path resolved outside the Workflow worktree, not to
+      a relative tickets/... path that resolves inside project-management/.claude/worktrees/wf_*/.
+      Pass the absolute ticket_folder into the prompt and require the artifact path returned to start
+      with it. (2) Check: add a post-return validator on review and QA that does existsSync on
+      findings_artifact and qa/result.yaml, parses the JSON/YAML, and asserts the parsed findings
+      length equals the returned findings length. On failure, fail the gate and re-dispatch with the
+      miss quoted. workflow.js currently has zero existsSync/readFileSync/statSync. Then add a cleanup
+      step that removes the run's wf_* worktree after the terminal, and do a one-off recover-then-prune
+      pass over the eight stranded ones (they hold artifacts for 16 tickets — recover before deleting).
+  - title: "Give a demonstrated HIGH finding somewhere to go"
+    detail: >
+      criticals_open == 0 is currently the only thing that can trigger the fix loop, so a HIGH with a
+      probe test, an observed failure string and a named file evaporates. Change contract 5 so every
+      finding of severity HIGH or MEDIUM carries a required disposition field: fix-now (enters the
+      bounded fix loop), follow-up-drafted (the reviewer writes a ticket draft to
+      reports/reviews/followups/ and ship-prep surfaces it in the MR description), or
+      accepted-with-reason (one sentence). Add a workflow.js assertion that rejects a review whose HIGH
+      findings have no disposition. On KTP-1062 this would have caught the null-root defect, which is
+      the client's primary not-found path against a server that is already known to return an empty
+      200 on exactly that case.
+  - title: "Every terminal, including a HALT, writes the front-loaders back"
+    detail: >
+      README.md and STATUS_SNAPSHOT.yaml are the documented recovery save point and they have now
+      misreported two consecutive terminals ('Implementation: Not started' against 12 pushed-nowhere
+      commits, plus a stale blocker naming a file that exists). Add a workflow.js post-terminal hook
+      that rewrites factory_phase, active_slice, implementation_started, tool_belt, branch, head sha,
+      terminal status and the produced-artifact list from the run trace, and clears any blocker whose
+      named file now exists. It must run on HALT_* terminals too, which is where a resuming agent is
+      most likely to read them.
+  - title: "The concierge must consume the ticket's own blocker list and pick the terminal up front"
+    detail: >
+      STATUS_SNAPSHOT.yaml said the GitLab repo does not exist before the run started, and
+      preShipBlockers rediscovered it five phases later. Contract 1 should read slice_b_blockers /
+      outstanding_human_actions / prereqs from the ticket folder and, when a listed blocker maps to a
+      known preShipBlocker (no remote, branch cannot be pushed, no dev environment), either down-scope
+      the run explicitly or declare the expected terminal at the gate: 'this run will end at
+      HALT_NO_REMOTE, the code will be real and committed, proceed?'. Same class as the KTP-781 finding
+      that no gate consumed the existing on-disk diagnosis.
+  - title: "Unpushable work needs a durability artifact, not just a halt"
+    detail: >
+      When impl.pushed is false because no remote exists, HALT_PRESHIP leaves the only copy of the work
+      on local disk inside a worktree that a prune or a clean would take. Before halting, the factory
+      should write 'git bundle create <ticket-folder>/factory/<branch>.bundle --all' into the ticket
+      folder (which IS backed up by project-management's git) and name the bundle plus the exact
+      'git remote add / git push -u' recipe in the halt output and in the inbox item. Restoring from a
+      bundle is one command; rebuilding 12 TDD commits is a night.
+  - title: "Grill carry-forwards must be a checklist the terminal verifies"
+    detail: >
+      G1 to G8 were code-side and all executed. G9 (refresh STATUS_SNAPSHOT) and G10 (rescue the /tmp
+      evidence file) were documentation-side and both dropped, and G9 was ALSO an improvement from the
+      previous retro. Contract 3 should emit its carry-forwards as a structured list
+      ({ id, action, owner_phase }) rather than prose, and the terminal step should assert each one is
+      either done or explicitly waived. While there: any evidence path under /tmp is not evidence —
+      require the phase that cites it to copy it into the ticket folder first.
+  - title: "Discharge the deferred-AC obligation, second ask"
+    detail: >
+      jira/comments.yaml is [] across both runs while factory/jira-comment-draft.md sits ready and
+      STATUS_SNAPSHOT lists 'post the deferred-AC question to Jira' as outstanding. The project
+      CLAUDE.md forbids the phrase 'needs PO input' existing on disk without a matching Jira comment.
+      Ship-prep (and the HALT path, since this run never reached ship-prep) should scan the ticket for
+      deferred/provisional markers and refuse a clean terminal until each has either a drafted comment
+      queued for /post-comment or a pending inbox file. Also enforce the inbox rule the run half-kept:
+      the KTP-1062 pending item exists but was never linked from general/inboxes/gabriel/INDEX.md, so
+      it is invisible from the entry point.
+  - title: "Fix the empty session_id at the source, fifth time of asking"
+    detail: >
+      sessions/active/state.yaml session_id is empty while the live id sits inside the current_focus
+      JSON blob. Flagged on KTP-1030, KTP-708, KTP-1020 and both KTP-1062 runs. It also caused a
+      handoff filename collision this run (dark-factory-improvements-KTP-1062.md already existed from
+      the slice A retro, so this one had to be suffixed). Either fix the session-init write, or have
+      contract 9 parse current_focus and resolve the per-session prompts folder itself, and make the
+      handoff name include the date so two runs on one ticket cannot collide.
+
+summary: >
+  KTP-1062 slice B halted correctly at HALT_PRESHIP on a real human gate (the GitLab repo does not
+  exist, so nothing could be pushed): task_confidence 56 / factory_fitness 65. The build itself is
+  strong. Twelve commits, halt-mode TDD with QA re-deriving all four REDs from behavioural failures,
+  33 tests green, a reproducible uv environment, an executed stdio handshake with every KLEVER_*
+  variable stripped, and a review that demonstrated six real findings with probe tests. It scores low
+  on task because the client has never spoken to anything real (Jira AC-1 and AC-5 stay open, all
+  proof is mocked), because the only copy of the work is local disk with no remote, and because three
+  demonstrated defects on the first-live-call path ship unfixed, including a null-root handling gap
+  against a server already known to answer with an empty 200. It scores low on factory because
+  review/findings.json again only reached the ticket by hand-copy out of a forbidden
+  project-management worktree (now eight of them) while workflow.js still has no file check, because
+  the halt was predestined by a blocker the ticket already documented, because a demonstrated HIGH has
+  nowhere to go when criticals_open is 0, and because the front-loaders and the grill's own G9/G10
+  carry-forwards were dropped for the second run running.

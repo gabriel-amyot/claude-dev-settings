@@ -1,0 +1,185 @@
+run_id: run-2026-08-03-KTP-1030
+ticket: KTP-1030
+title: >
+  Measurement Map channel filter zeros untagged-channel advertisers. Un-ticking any channel (or any
+  non-empty subset) blanked a server-non-zero state to 0/0/0 for advertisers whose delivery is not
+  channel-tagged (conversions.byChannel keyed "UNKNOWN"). Client-side channel-apply bug introduced by
+  KTP-992. Fixture: adv 442 (Humane Society SW Washington, DV360), Jul 1-23 2026, WA server truth
+  clicks 1,484 / impressions 319,633 / spend $3,378.
+date: 2026-08-03
+terminal_status: HALT_PRESHIP
+ticket_folder: ~/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-559/KTP-1030
+repo: grp-app/grp-frontend/app-front-portal
+worktree: app-front-portal-KTP-1030-wt
+tool_belt: frontend/scripting
+epic: KTP-559
+lineage: caused-by KTP-992 (channel-apply path regression)
+session_id: "(unresolved — sessions/active/state.yaml session_id is empty; current_focus embeds ffc10dc2-b899-4f47-8a05-596ccf076cef)"
+
+terminal_status_note: >
+  Terminal HALT_PRESHIP with qa=PARTIAL. The primary bug (AC2) is fixed and TDD-verified, AC1 regression
+  guard stays green, and the AC3 happy-path stale-response race is guarded and green. The pre-ship halt is
+  driven by one demonstrated-and-UNFIXED MEDIUM finding on the AC3 error path (a late stale ERROR response
+  clobbers the newest committed selection) plus the absence of a live browser/hover-card verification that
+  the AC-LOCAL explicitly prescribes. The correct human decision point: ship the AC2 fix now and track the
+  AC3 error-path residual, or close the residual first.
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: true
+  note: >
+    Gate ran in default halt mode with zero warn-mode violations. The signal is NOT vacuous: qa/ holds real
+    RED captures that fail FIRST for the right reason — AC-2-RED-08e062c.out (resolveOnDemandRequestChannels
+    sent a channel filter, 2 failed) and AC-3-RED-b2583d6.out (a slower earlier response overwrote the newest
+    selection, Expected 1484 / Received 999, 1 failed) — followed by tip-all-specs.out showing 11/11 GREEN.
+    tdd/AC-2.md and tdd/AC-3.md record the RED->GREEN commit pairs (AC3: RED b2583d6 -> GREEN 118384c ->
+    adversarial edges 97819f2). A genuine RED->GREEN sequence exists on disk. Trustworthy.
+
+per_phase:
+  - phase: concierge
+    status: PASS
+    confidence: 88
+  - phase: design
+    status: pass
+    confidence: 80
+  - phase: grill
+    status: pass
+    confidence: 86
+  - phase: implement
+    status: pass
+    confidence: 85
+  - phase: review
+    status: "criticals:0"
+    confidence: 83
+  - phase: qa
+    status: PARTIAL
+    confidence: 82
+
+qa_detail: >
+  PARTIAL, and it reflects two distinct gaps. (1) A demonstrated MEDIUM AC3 gap: the request-generation
+  guard (`if (get().stateFetchGeneration !== requestGeneration) return;`) sits only in the try/success path;
+  the catch block sets `stateMapData: null` with no generation check, so a superseded older request that
+  fails late (HTTP 500) blanks a state a newer request already loaded — violating AC3 ("a slower/out-of-order
+  response never overwrites the newest selection"). Preserved failing test: review/ktp-1030-stale-error-
+  clobber.spec.ts; residual capture qa/AC-3-error-path-residual.out shows Expected 1484 / Received undefined.
+  Left UNFIXED. Same asymmetry exists in the county (:775-786) and zip (:892-903) fetch actions. (2) No live
+  ground-truth verification: the AC-LOCAL ships a console harness (POST /api/map/data/state) and a hover-card
+  read against the running app as the required proof; QA proved logic at the store layer only (mocked fetch),
+  never executed the spec's live check, and captured no hover-card screenshot. Also note qa/lint-types.out:
+  9 pre-existing TS errors in 4 files UNRELATED to KTP-1030 (market-copy.spec.ts, read-sse-stream,
+  format-helpers, calculate-flow-lines) — repo-wide tsc, not scoped to the change.
+
+scores:
+  task_confidence: 78
+  factory_fitness: 86
+
+deductions:
+  # ---- task_confidence: start 100 -> 78 ----
+  - points: 10
+    reason: >
+      task_confidence: an in-scope AC3 edge is demonstrated broken and UNFIXED. AC3 requires that a
+      slower/out-of-order /api/map/data/state response never overwrites the newest selection. The generation
+      guard covers only the success commit; a late-failing superseded request runs the catch block, which
+      sets stateMapData:null unconditionally and blanks a state a newer request loaded. Reproduced by a
+      failing Playwright store test (review/ktp-1030-stale-error-clobber.spec.ts; qa/AC-3-error-path-
+      residual.out). Narrow trigger (transient error on the stale request), hence MEDIUM not CRITICAL, but
+      it is a real open defect on a delivered AC. The same asymmetry is present in the county and zip paths.
+  - points: 8
+    reason: >
+      task_confidence: no live end-to-end verification for a frontend UI ticket. The AC-LOCAL explicitly
+      prescribes runtime ground truth — a console harness returning WA clicks 1,484 / impressions 319,633 /
+      spend $3,378 and a hover-card read against the running app (with a documented tooltip-recompute gotcha).
+      QA proved the fix at the store/logic layer via mocked fetch only; it never ran the AC-LOCAL harness live
+      nor captured a hover-card screenshot. The user-visible behavior the ticket describes was not observed
+      running, only logically inferred. qa=PARTIAL reflects this.
+  - points: 4
+    reason: >
+      task_confidence: terminal HALT_PRESHIP — the run did not reach ship-prep, no MR opened, not deployable
+      as-is. Correct given the open AC3 residual and missing live proof, but the ticket is not done.
+  # ---- factory_fitness: start 100 -> 86 ----
+  - points: 5
+    reason: >
+      factory_fitness: the review socket correctly IDENTIFIED and DEMONSTRATED the AC3 error-path clobber
+      (a failing test committed to review/), yet the bounded fix loop closed at criticals:0 and the run
+      halted pre-ship with the finding left open. A demonstrated finding on an in-scope AC — especially one
+      whose fix is a two-line symmetric guard in the catch block — should re-open the fix loop for at least
+      one bounded iteration rather than be carried out as a HALT_PRESHIP residual. The factory found the bug
+      and then shipped around it.
+  - points: 4
+    reason: >
+      factory_fitness: the QA type-check ran a repo-wide tsc that surfaced 9 pre-existing TS errors in 4
+      files unrelated to KTP-1030 (qa/lint-types.out). This muddies the gate signal — a reader cannot tell
+      from the output whether THIS change is type-clean. The check should diff against the origin/dev
+      baseline (or scope to changed files) so only NEW type errors count.
+  - points: 3
+    reason: >
+      factory_fitness: no live-verification socket was engaged for a frontend ticket whose AC-LOCAL requires
+      runtime proof. The factory had ui-probe / the AC-LOCAL console harness available but the frontend QA
+      belt stopped at store-level logic tests, so it structurally could not produce the ground-truth read
+      the spec demands. The belt under-covers "frontend ticket with a prescribed live harness."
+  - points: 2
+    reason: >
+      factory_fitness: recurring session-bookkeeping defect. sessions/active/state.yaml session_id is empty
+      (the live id ffc10dc2-b899-4f47-8a05-596ccf076cef is buried in current_focus), so no per-session
+      prompts folder resolves and this retro handoff falls back to the ticket reports/ folder. Same defect
+      flagged on the 2026-06-11 and 2026-06-22 runs; still unrepaired.
+
+red_flags:
+  - "AC3 error-path clobber (MEDIUM, demonstrated, UNFIXED): the generation guard is in the try/success path only; the catch block sets stateMapData:null with no generation check, so a late stale HTTP 500 on a superseded request blanks a state a newer request loaded. Failing test preserved at review/ktp-1030-stale-error-clobber.spec.ts; residual at qa/AC-3-error-path-residual.out (Expected 1484 / Received undefined). Same asymmetry in county (:775-786) and zip (:892-903)."
+  - "Guard-symmetry miss: the AC3 fix added a monotonic per-fetch-type generation counter but applied it only to the success commit, not the symmetric error/catch commit. Classic 'guarded one path, not all commit paths'."
+  - "No live browser/hover-card verification. The AC-LOCAL ships a console harness + hover-card read against the running app as the REQUIRED ground truth (with an explicit tooltip-recompute gotcha), but QA proved only store-level logic via mocked fetch. No screenshot, no live server-total read captured."
+  - "qa/lint-types.out: 9 TS errors across 4 files unrelated to KTP-1030 (market-copy.spec.ts, read-sse-stream, format-helpers, calculate-flow-lines). Repo baseline is not type-clean; a repo-wide tsc gate cannot distinguish new breakage from pre-existing noise, and could block CI type-check on merge."
+  - "HALT_PRESHIP carried a known demonstrated MEDIUM open rather than closing it. Correct to defer the ship decision to a human, but the residual is a real AC3 edge with a tiny fix."
+  - "Regression lineage: this bug was CAUSED by KTP-992 (per the AC-LOCAL header). The client channel-apply path has now broken twice; it is a fragility hotspot worth a durable guard, not just a point fix."
+  - "sessions/active/state.yaml session_id is empty again (live id ffc10dc2-b899-4f47-8a05-596ccf076cef lives only in current_focus). The retro handoff falls back to the ticket reports/ folder instead of a per-session prompts folder discoverable by /session:pickup."
+
+improvements:
+  - title: "A demonstrated in-scope-AC finding must re-open the fix loop, not become a HALT_PRESHIP residual"
+    detail: >
+      The review socket produced a failing test proving the AC3 error-path clobber, then the run halted
+      pre-ship with the finding open. Contract 5/6 should treat a DEMONSTRATED finding (has a failing test)
+      on an in-scope AC as loop-reopening for at least one bounded iteration before pre-ship halt is allowed,
+      especially when the fix is small. Here the fix is two lines: add the same
+      `if (get().stateFetchGeneration !== requestGeneration) return;` generation check at the top of the
+      catch block in the state, county, and zip fetch actions of map-store.tsx.
+  - title: "Guard-symmetry check for race/generation/AbortController fixes"
+    detail: >
+      When the implement phase adds a request-generation or AbortController guard, add a belt check that
+      asserts the guard is applied on ALL commit paths — success AND error/catch (and finally, if it writes
+      state) — not just the happy path. The exact defect here was a guard in try{} with none in catch{}.
+      A grep-level assertion ('every state-committing branch of a guarded fetch references the captured
+      generation') would have caught it at build time.
+  - title: "Scope the QA type-check to the change (baseline-diff tsc), not the whole repo"
+    detail: >
+      qa/lint-types.out surfaced 9 pre-existing TS errors in 4 files unrelated to KTP-1030, adding noise and
+      masking whether the change itself is clean. Compare tsc output against the origin/dev baseline (or run
+      on changed files) so only NEW type errors gate. Optionally record the baseline error count so the delta
+      is auditable.
+  - title: "Engage a live-verification socket for frontend tickets whose AC-LOCAL prescribes a runtime harness"
+    detail: >
+      KTP-1030's AC-LOCAL ships a console harness (POST /api/map/data/state expecting WA clicks 1,484 /
+      impressions 319,633 / spend 3,378.20) and a hover-card read as the REQUIRED proof. The frontend QA belt
+      stopped at store-level logic tests. Add a frontend-belt QA step that, when an AC-LOCAL contains a
+      runnable harness or hover-card check, runs it live (ui-probe against portal.dev or the local stack) and
+      captures a hover-card screenshot as evidence — otherwise a logically-correct fix ships without ever
+      being observed running.
+  - title: "Repair the empty session_id so retro handoffs land in a per-session folder"
+    detail: >
+      sessions/active/state.yaml session_id has been empty across the 2026-06-11, 2026-06-22, and this
+      2026-08-03 run; the live id sits in current_focus (ffc10dc2-...). Fix the session-init/state-write step,
+      or have Retro derive the session from current_focus/latest-answer.md, so the improvement handoff lands
+      in the session's prompts/ folder and is discoverable by /session:pickup instead of falling back to the
+      ticket reports/ folder.
+
+summary: >
+  A clean, TDD-honest bug fix for the primary defect: AC2 (a channel subset must not zero a server-non-zero
+  state) is fixed via resolveOnDemandRequestChannels always returning undefined so no channel filter reaches
+  the backend, with real RED->GREEN captures, 11/11 specs green, and the AC1 regression guard held. Held to
+  task_confidence 78 / HALT_PRESHIP by two gaps: a demonstrated-and-unfixed MEDIUM on the AC3 error path (the
+  generation guard covers the success commit but not the catch block, so a late stale HTTP 500 blanks the
+  newest selection — same asymmetry in county and zip), and the absence of the live hover-card / console-
+  harness verification the AC-LOCAL prescribes. factory_fitness 86: the pipeline found and demonstrated the
+  AC3 gap but shipped around it instead of re-opening the fix loop, ran a repo-wide tsc that surfaced 9
+  unrelated pre-existing errors, engaged no live-verification socket for a frontend ticket, and hit the
+  recurring empty-session_id bookkeeping defect. The fix for the residual is two lines per fetch action.

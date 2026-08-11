@@ -1,0 +1,294 @@
+run_id: run-2026-08-10-KTP-1062
+ticket: KTP-1062
+title: >
+  Powers MCP P1 read tools against the TTD sandbox seat. THIS RUN BUILT SLICE A ONLY (AC-LOCAL.md,
+  java belt, app-klever-media-api): a new route POST /media/api/ttd/v1/powers/graphql that requires
+  the ttd:read scope (403 otherwise), rejects every non-query GraphQL document (400), pins the seat
+  to sandbox lklghjp and the environment to sandbox server-side, and leaves the legacy
+  /ttd/v1/graphql passthrough byte-for-byte unchanged. Slice B (the Python FastMCP client, Jira AC-1
+  and AC-5) was deliberately not run.
+date: 2026-08-10
+terminal_status: READY_TO_SHIP
+ticket_folder: ~/Developer/grp-beklever-com/project-management/tickets/KTP/no-epic/KTP-1062
+session: >
+  sessions/active/state.yaml session_id is EMPTY again (the live id 809b7fe9 sits inside
+  current_focus). No per-slug folder resolves for this run, so the handoff lands in the canonical
+  sessions/active/prompts/ folder next to dark-factory-improvements-KTP-1020.md.
+
+code_location_note: >
+  Branch KTP-1062-powers-sandbox-read-guards at 85c044f, worktree
+  .worktrees/media-api-KTP-1062, base origin/dev@2d9ec2a. The branch IS pushed and tracks
+  origin/KTP-1062-powers-sandbox-read-guards, so the work is durable. Repo is
+  grp-faas/grp-app/grp-backend/grp-ms/app-klever-media-api; dev is the deploy branch. Version bumped
+  0.11.0 -> 0.12.0 with a CHANGELOG entry. Build requires JDK 17 (temurin-17); the system default
+  JDK 21 breaks Lombok in this repo.
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: true
+  note: >
+    Gate in default halt mode, zero warn-mode violations, and QA independently RE-VERIFIED the REDs
+    rather than trusting the ledger. For AC-A1/A2/A3 QA ran git show --stat on each claimed RED
+    commit (ce45c52, 56910c0, 2c671e6) to confirm it touches the test file only, checked the commit
+    out, ran the tests there, captured the failure text (qa/AC-A1-red.out, AC-A2-red.out,
+    AC-A3-red.out), and confirmed the same methods are byte-identical and green at HEAD. AC-A4's
+    red_verified:exempt is legitimate: it asserts UNCHANGED behaviour on a production file this
+    branch does not modify, and QA reproduced the dev baseline instead
+    (qa/AC-A4-baseline-dev-controller.out). This is the strongest TDD evidence chain in the run log.
+
+per_phase:
+  - phase: concierge
+    status: PASS
+    confidence: 69
+    note: >
+      Lowest-confidence phase, and honestly scored. The concierge is the HUMAN front gate; Gabriel
+      was asleep under a "full yolo overnight" authorisation, so the run answered all four gate
+      questions itself (factory/decisions.yaml). Q2/Q3/Q4 are defensible as
+      settled-by-standing-instruction (do not touch the prod tenant, do not open a DAC MR, do not
+      create a GitLab repo). Q1 is a real architecture call: build a NEW route instead of restricting
+      the existing passthrough, because that passthrough carries live Salesforce production
+      mutations today (verified from the Postman collection). The run marked it
+      status: provisional-needs-ratification and recorded a transfer path if overturned. Good
+      judgement, but a human gate was answered by the machine and no ratification hold exists.
+  - phase: design
+    status: pass
+    confidence: 81
+    note: >
+      design/impl-plan.md plus a draft ADR (ADR-draft-readonly-guard-placement.md) and
+      factory/DESIGN-slice-a.md. The AC-LOCAL slice split is well documented: header states an
+      INTENTIONAL DIVERGENCE that is a scope slice, not a rewrite, and maps every Jira AC to a slice.
+      Correct handling under the AC-LOCAL rule.
+  - phase: grill
+    status: partial
+    confidence: 88
+    note: >
+      Highest-value phase of the run. The grill did not rubber-stamp: it built a working stand-in of
+      the whole slice and PROVED five mechanisms the plan had only asserted (that
+      ApiGatewayUserinfoFilter is registered inside a @WebMvcTest slice, that MockMvc plus a
+      Mono-returning MVC handler needs asyncDispatch, that ResponseStatusException resolves to 403/400
+      synchronously, that @Import of two plain @Component guards loads, that verifyNoInteractions on
+      reject paths holds). It also corrected a plan fact (graphql-java 22.3) and reordered the build.
+      partial because open items G7 (the owed Jira comment and inbox item) were carried forward, and
+      that carry-forward was never discharged.
+  - phase: implement
+    status: pass
+    confidence: 88
+    note: >
+      11 commits, RED-first per AC, 41 tests green. Used graphql.parser.Parser (already on the
+      compile classpath via spring-boot-starter-graphql) instead of a regex for operation-type
+      detection, so no new dependency. Read BOTH Auth0 claim shapes (space-delimited scope string and
+      the RBAC permissions array) after verifying token_dialect=access_token_authz on
+      dac-gcp-front-au0api@origin/dev. Version bump and CHANGELOG done per the Klever MR convention.
+      Branch pushed.
+  - phase: review
+    status: "criticals:0"
+    confidence: 80
+    note: >
+      THE WEAK LINK. The verdict is criticals:0 and the schema-required findings_artifact path was
+      returned, but the file was never written: the ticket's review/ folder holds only diff.patch,
+      and reports/reviews/ holds only INDEX.md. This is the exact defect flagged on KTP-784 (three
+      consecutive runs), then again on KTP-1020 six days earlier, where the fix was already written
+      as an improvement. The 0.9.3 schema change made the PATH required but never stats the FILE, so
+      a returned string satisfies the gate. A criticals:0 pass with no artifact is unauditable.
+  - phase: qa
+    status: ALL_PASS
+    confidence: 85
+    note: >
+      Excellent evidence, one gating failure. Every guard proven twice: JUnit/MockMvc at the branch
+      tip (41 tests, per-AC captures in qa/*.out) AND live HTTP against the service actually running
+      from this branch (execution_verified, "Started KleverMediaApiApplication in 3.029 seconds",
+      9 curl cases in qa/live-curl.out: 403 for missing/wrong/prefix-only scope, 400 for plain,
+      comment-prefixed, multi-op and subscription documents, 200 with real TTD sandbox data while the
+      client asked for environment=prod and a foreign seat). It used javap to prove
+      GqlTTDRequestDTO has exactly 4 properties so pinnedToSandboxSeat drops nothing. It labelled
+      AC-A1 as SERVER-SIDE ONLY rather than writing "verified" unqualified. THE FAILURE: QA is the
+      designated ground-truth layer for review/findings.json, it correctly recorded present:false,
+      and then returned ALL_PASS with the note "Flagged, not scored against any AC". The one layer
+      built to catch the review hole saw it and declined to gate.
+  - phase: ship-prep
+    status: pass
+    confidence: 88
+    note: >
+      Branch pushed and tracking origin, version bumped, CHANGELOG written, gateway stanza prepared
+      as an artifact (factory/dac-gateway-contract-addition.yaml) rather than applied, no DAC MR
+      opened, no Auth0 object created, no GitLab repo created. Every human gate was respected. What
+      ship-prep did NOT do is discharge the two outstanding communication obligations the run itself
+      recorded (the Jira deferred-AC comment and the Gabriel inbox item).
+
+scores:
+  task_confidence: 62
+  factory_fitness: 68
+
+deductions:
+  # ---- task_confidence: start 100 -> 62 ----
+  - points: 12
+    reason: >
+      task_confidence: KTP-1062 is not done. Only slice A shipped. Jira AC-1 (MCP read returns data)
+      and AC-5 (token via the proxy) live in slice B, the Python FastMCP client, which was not built
+      and cannot start: app-powers-bid-mcp does not exist in GitLab (repo creation is a human gate),
+      the token-proxy allowlist has no entry for the read client, and AC-LOCAL-slice-b-mcp.md is
+      referenced by AC-LOCAL.md but was never written. Roughly half the ticket's acceptance surface
+      is untouched.
+  - points: 8
+    reason: >
+      task_confidence: AC-A1 (Jira AC-4, "403 without ttd:read") is proven SERVER-SIDE ONLY. The
+      Auth0 ttd:read scope, the read-only M2M client and its grant do not exist, and the run was
+      correctly forbidden from creating them. The 403 is proven by a hand-built base64url
+      X-Apigateway-Api-Userinfo header, not by a real token through the real gateway. Honest proof,
+      but not the AC's end state.
+  - points: 6
+    reason: >
+      task_confidence: the new route is unreachable from outside. Google API Gateway serves only the
+      paths listed in klever-media-api-gateway-contract.yaml in dac-gcp-front-au0api, and the stanza
+      is prepared as an artifact, deliberately not applied. Until a human opens that DAC merge
+      request, nothing about this branch is observable on dev, so no live end-to-end evidence is
+      possible for any AC.
+  - points: 6
+    reason: >
+      task_confidence: the load-bearing architecture decision (Q1, new dedicated route versus
+      restricting the existing passthrough) is PROVISIONAL and unratified. Both the ratified plan
+      (PAGE5-implementation-plan-2026-08-10.md) and SPIKE-CONCLUSION-2026-08-07.md specify the
+      in-place restriction. If Gabriel rules the other way the parsing and scope logic transfers
+      unchanged, but the controller it hangs off moves and the shipped route is deleted.
+  - points: 3
+    reason: >
+      task_confidence: the deferred-AC obligation was never discharged. Jira AC-3 ("the media API
+      rejects any GraphQL mutation") passes on the new Powers route and NOT on the legacy
+      passthrough, by design (AC-A4). The run recorded that divergence in STATUS_SNAPSHOT.yaml,
+      decisions.yaml and qa/result.yaml, and recorded that the Jira comment is unperformed. Live Jira
+      has zero comments (jira/comments.yaml: []) and no KTP-1062 file exists in
+      general/inboxes/gabriel/pending/. The PO cannot see the divergence, which is precisely the
+      disk-only parking failure the project CLAUDE.md names.
+  - points: 3
+    reason: >
+      task_confidence: a known defect is reachable on the shipped route. pinnedToSandboxSeat copies
+      request.getVariables() verbatim, so a document with no variables hits the same pre-existing
+      library NPE the legacy route shows (GqlTTDServiceImpl:30 -> DefaultGraphQlClient.variables,
+      HTTP 500, live CASE 9). QA called it out as an observation. The Powers MCP will hit it on its
+      first no-variables query and no follow-up ticket or guard exists.
+
+  # ---- factory_fitness: start 100 -> 68 ----
+  - points: 10
+    reason: >
+      factory_fitness: the review gate passed criticals:0 while review/findings.json does not exist.
+      The 0.9.3 hardening made findings_artifact a schema-REQUIRED string, but REVIEW_SCHEMA only
+      checks minLength:1 on the path; dark-factory.workflow.js contains no existsSync/readFileSync
+      anywhere, so a returned string satisfies the gate with nothing on disk. This is the fourth-plus
+      recurrence (KTP-784 x3, KTP-1020 on 2026-08-04) of a defect whose fix was already written as a
+      retro improvement. The improvement loop is not closing.
+  - points: 8
+    reason: >
+      factory_fitness: QA is contract 6's designated ground-truth layer for that artifact, it DID
+      detect the miss (review_artifact_spotcheck: present:false), and it still returned ALL_PASS with
+      "Flagged, not scored against any AC". A spot-check that observes a failed schema obligation and
+      does not gate is decoration. Both defence layers were present and both let it through.
+  - points: 6
+    reason: >
+      factory_fitness: the factory has no mechanism to hold or route a PROVISIONAL concierge answer.
+      The run answered a human gate on a real architecture call, self-labelled it
+      provisional-needs-ratification, and then proceeded to READY_TO_SHIP with no artifact that
+      forces the ratification. There is no "provisional ruling" terminal, no automatic inbox item, no
+      MR-description warning. The provisional flag exists only inside decisions.yaml.
+  - points: 4
+    reason: >
+      factory_fitness: the ticket front-loaders are stale at a READY_TO_SHIP terminal. README.md
+      still says "Factory phase: Concierge complete" and "Implementation: Not started";
+      STATUS_SNAPSHOT.yaml still says factory_phase: concierge_complete_slice_a and
+      implementation_started: false, and calls the gateway stanza "an outstanding deliverable, not a
+      produced artifact" when factory/dac-gateway-contract-addition.yaml exists. Per the project
+      CLAUDE.md these are the recovery save point; a resuming agent would rebuild work that is
+      already pushed.
+  - points: 2
+    reason: >
+      factory_fitness: no review report was written to reports/reviews/ either (INDEX.md only), so
+      neither the structured nor the prose review record exists. The two communication obligations the
+      grill carried forward as G7 (Jira comment, inbox item) were tracked only in prose and silently
+      dropped at ship-prep, with no phase owning them.
+  - points: 2
+    reason: >
+      factory_fitness: sessions/active/state.yaml session_id is empty AGAIN (live id 809b7fe9 sits in
+      current_focus). This exact defect was flagged on KTP-1030, KTP-708 and KTP-1020, with a written
+      improvement each time. The retro handoff falls back to the shared prompts/ folder instead of a
+      discoverable per-session folder.
+
+red_flags:
+  - "review/findings.json does not exist, yet the review gate returned criticals:0 with a schema-required findings_artifact path. REVIEW_SCHEMA validates the STRING (minLength:1) and never stats the FILE; there is no existsSync anywhere in dark-factory.workflow.js. Fourth-plus recurrence (KTP-784 x3, KTP-1020) of a defect that already has a written fix."
+  - "QA saw it and did not gate: review_artifact_spotcheck records present:false and the run still returned ALL_PASS with the note 'Flagged, not scored against any AC'. The designated ground-truth layer declined to act."
+  - "The concierge HUMAN gate was answered by the machine on all four questions. Q1 is a genuine architecture call that contradicts both the ratified plan and the spike conclusion, is self-labelled provisional-needs-ratification, and the run still reached READY_TO_SHIP with no ratification hold."
+  - "Deferred-AC SOP unperformed. jira/comments.yaml is [] and no KTP-1062 item exists under general/inboxes/gabriel/pending/, while STATUS_SNAPSHOT.yaml itself lists 'post the deferred-AC question to Jira' and 'create the matching inbox item' as outstanding. The Jira AC-3 divergence is disk-only and invisible to the PO."
+  - "Front-loaders are stale at a READY_TO_SHIP terminal: README.md says 'Implementation: Not started' and STATUS_SNAPSHOT.yaml says implementation_started: false, with 11 commits pushed to origin. The recovery save point points at the wrong state."
+  - "Half the ticket is unbuilt and its prerequisites are human-gated: slice B needs a GitLab repo that does not exist, a token-proxy allowlist entry, and an AC-LOCAL-slice-b-mcp.md that AC-LOCAL.md references but nobody wrote."
+  - "A known NPE is reachable on the shipped route: pinnedToSandboxSeat forwards null variables into the same library path that returns HTTP 500 on the legacy route (live CASE 9). Flagged as an observation, no follow-up created, and the Powers MCP will hit it first thing."
+  - "sessions/active/state.yaml session_id empty again (live id in current_focus) - recurring across KTP-1030, KTP-708, KTP-1020 with a written improvement each time."
+  - "Positive signals worth keeping: TDD gate ran in halt mode with zero warn violations and QA RE-DERIVED every RED (checked out ce45c52/56910c0/2c671e6, ran them, captured the failures) instead of trusting the ledger; execution was verified by actually running the service and curling it (9 live cases); javap was used to prove the DTO has no silently-dropped field; AC-A1 was labelled SERVER-SIDE ONLY rather than 'verified'; and every human gate (Auth0 tenant, DAC MR, repo creation, prod mutations) was respected under a full-yolo authorisation. The evidence discipline in this run is the best in the run log."
+
+improvements:
+  - title: "Make findings_artifact a FILE check, not a string check, in workflow.js"
+    detail: >
+      dark-factory.workflow.js has no existsSync/readFileSync at all. Add a post-return validator on
+      the review phase: resolve findings_artifact, assert the file exists, assert it parses as JSON,
+      and assert its findings array length matches the returned findings length. On failure, fail the
+      gate and re-dispatch the reviewer with the miss quoted. This defect has now cost four-plus runs
+      (KTP-784 x3, KTP-1020, KTP-1062) and each retro wrote the same prose fix. Prose does not stick;
+      the same lesson that made ac_tdd stick applies here. Apply the identical check to
+      qa/result.yaml.
+  - title: "QA's artifact spot-check must gate, not annotate"
+    detail: >
+      Contract 6 tells QA to confirm review/findings.json exists and is non-empty. On KTP-1062 QA
+      confirmed it does NOT exist and returned ALL_PASS anyway. Change contract 6 so a failed
+      artifact spot-check forces raw_overall != ALL_PASS with partial_cause "review artifact missing",
+      and add a workflow.js assertion that rejects the pair (review_artifact_spotcheck.present=false,
+      raw_overall=ALL_PASS). A ground-truth layer that only annotates is not a layer.
+  - title: "Add a PROVISIONAL_RULING terminal (or mandatory ratification artifact) for machine-answered concierge questions"
+    detail: >
+      When the concierge answers its own gate question and marks it
+      status: provisional-needs-ratification on a real architecture call, READY_TO_SHIP is too clean a
+      terminal. Contract 1 should require that any provisional answer emits (1) a
+      general/inboxes/gabriel/pending/ file with the question, the ruling, the reasoning and the
+      transfer path if overturned, plus an INDEX.md refresh, and (2) a PROVISIONAL RULING banner in
+      the MR description. Q1 on KTP-1062 (new route versus restricting the passthrough, contradicting
+      both the ratified plan and the spike conclusion) is exactly the class that must not merge on a
+      machine's own say-so.
+  - title: "Ship-prep must discharge the deferred-AC obligations it recorded, not just record them"
+    detail: >
+      STATUS_SNAPSHOT.yaml listed 'post the deferred-AC question to Jira' and 'create the inbox item'
+      as outstanding human actions, the grill carried the same as G7, and both were dropped. Contract
+      8 (ship-prep) should scan the ticket folder for deferred/provisional/needs-input markers and
+      refuse READY_TO_SHIP until each has either a drafted Jira comment queued for /post-comment or a
+      pending inbox file on disk. The project CLAUDE.md already forbids the phrase 'needs PO input'
+      existing on disk without a matching Jira comment; the factory should enforce its own house rule.
+  - title: "Every terminal phase writes the front-loaders back"
+    detail: >
+      README.md said 'Implementation: Not started' and STATUS_SNAPSHOT.yaml said
+      implementation_started: false with 11 commits pushed. Add a small ship-prep step (or a
+      workflow.js post-terminal hook) that rewrites factory_phase, implementation_started, branch,
+      head sha, and the artifact list from the run trace. These files are the documented recovery save
+      point; a resuming agent reading them today would redo finished work.
+  - title: "Turn QA's observations_not_ac_failures into real follow-ups"
+    detail: >
+      QA wrote a precise, actionable defect (null variables forwarded into the library NPE, live
+      HTTP 500, and 'the Powers MCP will hit it the first time it sends a document with no variables')
+      and it died in a YAML field. Contract 6 should require each entry in
+      observations_not_ac_failures to carry a disposition: guard-it-now, follow-up-ticket-drafted, or
+      accepted-with-reason. Ship-prep surfaces any drafted follow-up in the MR description.
+  - title: "Repair the empty session_id once, at the source"
+    detail: >
+      Flagged on KTP-1030, KTP-708, KTP-1020 and now KTP-1062: sessions/active/state.yaml session_id
+      is empty while the live id sits inside the current_focus JSON blob. Either fix the session-init
+      write, or have contract 9 parse current_focus and resolve the per-session prompts folder itself.
+      Four consecutive retros writing the same line is the signal that this needs a code fix, not
+      another note.
+
+summary: >
+  KTP-1062 slice A reached READY_TO_SHIP with the best evidence discipline in the run log and the
+  weakest gate hygiene: task_confidence 62 / factory_fitness 68. The build is real and pushed
+  (KTP-1062-powers-sandbox-read-guards @ 85c044f, 41 tests green, halt-mode TDD with QA re-deriving
+  every RED, the service actually run and curled for 9 live cases), and every human gate under a
+  full-yolo overnight authorisation was respected. It scores low on task because only half the ticket
+  exists (slice B's Python MCP is unbuilt and repo-blocked), AC-A1 is server-side-only until the Auth0
+  ttd:read scope exists, the route is unreachable until a human applies the gateway stanza, and the
+  load-bearing route-shape decision is a provisional machine ruling. It scores low on factory because
+  the review gate passed criticals:0 with no findings.json on disk for the fourth-plus time, QA saw
+  that and returned ALL_PASS anyway, the deferred-AC Jira comment and inbox item were recorded and
+  never sent, and the front-loaders still say implementation not started.

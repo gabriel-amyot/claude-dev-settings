@@ -1,7 +1,7 @@
 ---
 name: dark-factory
 version: "0.9.5"
-description: "The ticket-to-dev factory for a SINGLE ticket, orchestrated by the Workflow tool instead of prose. Gates are code (un-skippable), with a human concierge gate at the front. The concierge proposes a tool belt from the crib (java, scripting, frontend, or terraform-dac-infra); the build + tester sockets are equipped from that belt, so the same line handles multiple work-types without duplication. Review + bounded fix loop + QA. The workflow does code work and pushes the branch (terminal state READY_TO_SHIP); the main loop creates the MR + Jira comment and runs post-merge validate. For multi-ticket / epic DAGs use Sprint Factory (/sprint-factory). Triggers on: '/dark-factory', 'dark factory', 'ticket to dev', 'run this ticket'. Klever."
+description: "The ticket-to-dev factory for a SINGLE ticket, orchestrated by the Workflow tool instead of prose. Gates are code (un-skippable), with a human concierge gate at the front. The concierge proposes a tool belt from the crib (java, scripting, frontend, terraform-dac-infra, or python-service); the build + tester sockets are equipped from that belt, so the same line handles multiple work-types without duplication. Review + bounded fix loop + QA. The workflow does code work and pushes the branch (terminal state READY_TO_SHIP); the main loop creates the MR + Jira comment and runs post-merge validate. For multi-ticket / epic DAGs use Sprint Factory (/sprint-factory). Triggers on: '/dark-factory', 'dark factory', 'ticket to dev', 'run this ticket'. Klever."
 user_invocable: true
 nav:
   bay: build
@@ -54,8 +54,10 @@ The line (the "blueprint" / workflow spine) is single. Only two sockets are work
 proposes a tool belt** from the crib; the build/tester steps equip it. Racked belts:
 `java` (running Java/Spring service), `scripting` (a script whose value is its output/side-effect —
 make tiles, populate BQ, transform data, change state), `frontend` (a rendered Next.js/React UI
-change — component, Mapbox GL layer, page/route, control), and `terraform-dac-infra` (DAC/terraform
-infra change — dev-only, no local apply, live-resource QA via gcloud/bq). Unknown work-type → honest
+change — component, Mapbox GL layer, page/route, control), `terraform-dac-infra` (DAC/terraform
+infra change — dev-only, no local apply, live-resource QA via gcloud/bq), and `python-service` (a
+long-running Python process that serves a protocol — an MCP server, a FastAPI/ASGI app, a worker
+loop; proof is a live protocol handshake, not a produced artifact). Unknown work-type → honest
 `BLOCKED_UNSUPPORTED_FLOOR` halt (rack a belt first). Rule (ADR-002): a belt swaps **tools only**; a
 work-type needing different room *logic* is a rare new floor, not a belt. Refining-phase ideas
 (dispatcher, spec/architect personas in the loop) are parked in `docs/second-floor-refining-notes.md`.

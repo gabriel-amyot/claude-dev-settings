@@ -1,0 +1,163 @@
+<?xml version="1.0"?>
+<ruleset name="Klever Java Rules"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+
+  <description>
+    Java standards for Klever services. Consumed by the PMD quality gate hook
+    (~/.claude/hooks/pmd-java-gate.py) and reusable by maven-pmd-plugin in CI.
+
+    Thresholds are deliberately tighter than PMD defaults. PMD ships cyclomatic
+    at 10 and cognitive at 15. At those levels this codebase reported 2 and 0
+    violations respectively, which is silence, not health.
+
+    Rules marked ADVISORY in the hook config report but do not block.
+  </description>
+
+  <!-- ================================================================
+       Custom rules. Each encodes a specific, repeated review objection.
+       ================================================================ -->
+
+  <rule name="NoRawObjectReturn"
+        language="java"
+        message="Method returns raw Object. Declare the type the caller actually needs."
+        class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+    <description>
+      A raw Object return pushes the cast to every caller and erases the contract.
+      A ClassType that is a direct child of MethodDeclaration is the return type.
+      Parameter types sit deeper, under FormalParameters, so they do not match.
+    </description>
+    <priority>2</priority>
+    <properties>
+      <property name="xpath">
+        <value><![CDATA[//MethodDeclaration[ClassType[@SimpleName='Object']]]]></value>
+      </property>
+    </properties>
+    <example><![CDATA[
+// Bad
+private Object execute(String seat, String document) { ... }
+
+// Good
+private GqlTTDResponse execute(String seat, String document) { ... }
+    ]]></example>
+  </rule>
+
+  <rule name="NoNullReturn"
+        language="java"
+        message="Returns null. Use Optional for absence, or throw for failure."
+        class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+    <description>
+      A null return makes absence invisible in the signature. The caller learns
+      about it from a NullPointerException at runtime, or from a comment that
+      goes stale. Optional puts it in the type.
+
+      This also catches the null-means-success idiom, where a method returns a
+      refusal reason and null signals approval. Prefer an explicit result type
+      carrying both the verdict and the reason.
+    </description>
+    <priority>2</priority>
+    <properties>
+      <property name="xpath">
+        <value><![CDATA[//ReturnStatement[NullLiteral]]]></value>
+      </property>
+    </properties>
+    <example><![CDATA[
+// Bad
+String refusalReason(String seat) {
+    if (allowed(seat)) return null;
+    return "seat is read-only";
+}
+
+// Good
+SeatVerdict isWritable(String seat) {
+    return allowed(seat) ? SeatVerdict.writable()
+                         : SeatVerdict.refused("seat is read-only");
+}
+    ]]></example>
+  </rule>
+
+  <rule name="NoUncheckedThrow"
+        language="java"
+        message="Unchecked exception thrown. Consider a checked exception, or document why unchecked is right."
+        class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+    <description>
+      ADVISORY by default, and deliberately so.
+
+      Requested as "every throw should be checked". Recorded here, but shipped
+      advisory because the blanket form conflicts with the framework this service
+      runs on. Spring's entire DataAccessException hierarchy is unchecked on
+      purpose: checked exceptions at scale produced empty catch blocks. A
+      @RestController method also cannot propagate a checked exception cleanly.
+
+      IllegalStateException for "this state should be impossible" is idiomatic,
+      not sloppy. The real objections behind the request are swallowed exceptions
+      and lost stack traces, which EmptyCatchBlock and PreserveStackTrace below
+      catch directly and block on.
+
+      Flip to blocking in the hook config if you disagree after seeing real hits.
+    </description>
+    <priority>4</priority>
+    <properties>
+      <property name="xpath">
+        <value><![CDATA[
+        //ThrowStatement/ConstructorCall/ClassType[
+          @SimpleName = ('RuntimeException','IllegalStateException',
+                         'IllegalArgumentException','UnsupportedOperationException',
+                         'NullPointerException')]
+        ]]></value>
+      </property>
+    </properties>
+  </rule>
+
+  <!-- ================================================================
+       Built-in rules covering the same objections.
+       ================================================================ -->
+
+  <!-- "Excessive javadoc is a smell, it goes stale. One-liners explaining WHY
+       are the exception, not the norm." Length is the measurable proxy. -->
+  <rule ref="category/java/documentation.xml/CommentSize">
+    <priority>3</priority>
+    <properties>
+      <property name="maxLines" value="6"/>
+      <property name="maxLineLength" value="120"/>
+    </properties>
+  </rule>
+
+  <!-- "Use constants rather than literals, everywhere." -->
+  <rule ref="category/java/errorprone.xml/AvoidDuplicateLiterals">
+    <priority>3</priority>
+    <properties>
+      <property name="maxDuplicateLiterals" value="3"/>
+    </properties>
+  </rule>
+
+  <!-- Real bugs: placeholder count mismatches in log statements. -->
+  <rule ref="category/java/errorprone.xml/InvalidLogMessageFormat">
+    <priority>2</priority>
+  </rule>
+
+  <!-- The actual objection behind "no unchecked throws": failures that vanish. -->
+  <rule ref="category/java/errorprone.xml/EmptyCatchBlock">
+    <priority>2</priority>
+  </rule>
+  <rule ref="category/java/bestpractices.xml/PreserveStackTrace">
+    <priority>2</priority>
+  </rule>
+
+  <!-- Complexity. Tightened from PMD defaults, see ruleset description. -->
+  <rule ref="category/java/design.xml/CyclomaticComplexity">
+    <priority>3</priority>
+    <properties>
+      <property name="methodReportLevel" value="8"/>
+      <property name="classReportLevel" value="60"/>
+    </properties>
+  </rule>
+  <rule ref="category/java/design.xml/CognitiveComplexity">
+    <priority>3</priority>
+    <properties>
+      <property name="reportLevel" value="10"/>
+    </properties>
+  </rule>
+
+</ruleset>

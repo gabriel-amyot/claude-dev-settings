@@ -369,7 +369,7 @@ After setting auto-merge, the skill continues with deployment to dev. This is **
 |---|---|---|---|
 | `app-front-portal` | `dac-gcp-front-portal` | `build_docker_tag_version` | `dev` |
 | `app-proximity-report` | `dac-gcp-back-proxrp` | `cpe_cos_version` | `dev` |
-| `app-user-management` | `dac-gcp-back-usrmgt` | `cpe_cos_version` | `dev` |
+| `app-user-management` | `dac-gcp-back-usermg` | `cpe_cos_version` | `dev` |
 | `app-proximity-explorer` | `dac-gcp-back-proexp` | `cpe_cos_version` | `dev` |
 
 If the app repo is not in this table, skip deploy. Report: "No DAC mapping for this repo. Deploy manually."

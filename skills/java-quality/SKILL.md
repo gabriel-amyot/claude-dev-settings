@@ -37,12 +37,18 @@ a green check over code nobody checked.
 
 ## Two engines, one door
 
-| | Gate (PMD) | Typecheck (jdtls) |
+| | Gate: PMD + Checkstyle | Typecheck (jdtls) |
 |---|---|---|
 | When | automatic, every Java edit | you ask |
-| Cost | ~1s | ~8s warm, ~10s cold |
+| Cost | ~2s (PMD 1.0s + Checkstyle 0.6s) | ~8s warm, ~10s cold |
 | State | none | cached workspace index |
-| Catches | raw `Object` return, `return null`, complexity, magic literals, javadoc bloat, swallowed exceptions | does not compile, type mismatch, undefined method, wrong arity, unresolved import |
+| Catches | raw `Object` return, `return null`, complexity, magic literals, javadoc bloat, swallowed exceptions, unused imports, naming, fall-through, equals/hashCode | does not compile, type mismatch, undefined method, wrong arity, unresolved import |
+
+The gate runs two engines because neither covers the other. PMD has the custom
+rules and complexity metrics; Checkstyle has import hygiene, naming, and a set
+of real bug checks (`FallThrough`, `EqualsHashCode`, `MissingSwitchDefault`)
+that PMD does not report. On real code Checkstyle adds few findings, which is
+the point: it was scoped to non-overlapping checks rather than bulk-imported.
 
 Measured on a probe file: **PMD 0 findings, jdtls 4 errors.** They are
 complementary, not redundant. Neither is a code review.
@@ -118,6 +124,22 @@ review objection. Standards: `[[feedback-java-code-standards]]` in memory.
 | `EmptyCatchBlock`, `PreserveStackTrace` | swallowed failures |
 | `CyclomaticComplexity`, `CognitiveComplexity` | complexity, at 8 and 10 |
 
+Checkstyle side (`klever-checkstyle.xml`):
+
+| Rule | Catches |
+|---|---|
+| `FallThrough`, `MissingSwitchDefault` | switch bugs |
+| `EqualsHashCode` | overriding one without the other, breaks every HashMap |
+| `StringLiteralEquality` | `s == "literal"`. Does **not** catch `a == b` between two String variables |
+| `UnusedImports`, `RedundantImport`, `AvoidStarImport` | import cruft |
+| `NeedBraces`, `OneStatementPerLine`, `EmptyBlock` | statement hazards |
+| `TypeName`, `MethodName`, `MemberName`, … | naming consistency |
+| `MethodLength` (60), `ParameterNumber` (7) | loose size backstops below PMD's complexity rules |
+
+**No `Javadoc*` checks, deliberately.** Stock `sun_checks.xml` and
+`google_checks.xml` REQUIRE javadoc on public members, which is the opposite of
+the standard here. Never swap in a stock config.
+
 **`NoUncheckedThrow` is advisory on purpose.** The ask was "every throw should
 be checked", but the blanket form conflicts with Spring, whose
 `DataAccessException` hierarchy is unchecked by design, and a `@RestController`
@@ -162,6 +184,21 @@ Two reasons, worth stating if asked to make it automatic:
 2. **A language server is stateful.** Its index goes stale on a branch switch
    or pom change and produces confident wrong answers. Tolerable when a human
    asked and is reading the answer. Not tolerable silently blocking edits.
+
+## Budget
+
+~2s per Java edit is the whole budget, accepted explicitly. Both engines are
+JVM-based with no daemon, so a third would break it. To halve the cost set
+`checkstyle_binary` to `""` in the config, which disables that engine alone.
+
+## Secret scanning is separate
+
+`gitleaks` runs at **commit** time, not edit time, via a global
+`core.hooksPath` at `~/.claude/git-hooks/`. A secret is not a code-quality
+problem: once committed and pushed it lives in history and every clone, so the
+boundary that matters is the commit, not the keystroke. That hook chains to
+each repo's own hooks rather than replacing them. Kill switch:
+`GITLEAKS_SKIP=1` or `~/.claude/.gitleaks-off`.
 
 ## Limits
 

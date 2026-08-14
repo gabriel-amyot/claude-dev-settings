@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PMD Java quality gate. PostToolUse hook on Edit and Write.
+Java quality gate: PMD + Checkstyle. PostToolUse hook on Edit and Write.
 
 WHY THIS EXISTS
     Java produced in the agent loop was landing with raw Object returns, null
@@ -10,14 +10,18 @@ WHY THIS EXISTS
     the file is written, while the agent still has the context to fix it.
 
 PERFORMANCE NOTE  (read this before deciding to keep the hook)
-    Measured on app-klever-media-api, 43 files, Apple Silicon:
+    Measured on app-klever-media-api, Apple Silicon:
 
-        PMD on 1 file    0.97s
-        PMD on 43 files  1.12s
+        PMD on 1 file          0.97s
+        PMD on 43 files        1.12s
+        Checkstyle on 1 file   0.57s
+        BOTH, via this hook    2.04s
 
-    The cost is JVM startup, not analysis. PMD has no daemon mode, so there is
-    a hard floor near one second per invocation and it does not warm up.
-    Roughly 1s is added to every Java file edit.
+    The cost is JVM startup, not analysis. Neither tool has a daemon mode, so
+    there is a hard floor of roughly two seconds per Java edit and it does not
+    warm up. That figure was accepted explicitly ("even if it takes 2s per
+    edit"), and it is the whole budget: adding a third JVM-based engine would
+    break it.
 
     This was accepted with an explicit budget of about 2s per edit and an
     explicit agreement to revert if it feels heavy in practice. If edits start
@@ -27,17 +31,24 @@ PERFORMANCE NOTE  (read this before deciding to keep the hook)
         1. scope: "changed-lines"  (default) already limits REPORTED output,
            but PMD still parses the whole file. Cheap win only on noise.
         2. enabled: false in the config below. Instant off switch.
-        3. Move the gate to pre-commit or CI, where a 1s cost is invisible.
+        3. Disable one engine (checkstyle_binary: "") to halve the cost.
+        4. Move the gate to pre-commit or CI, where the cost is invisible.
 
     Do not try to fix this by trimming the ruleset. Rule count is not the cost.
 
 CONFIGURATION  (no need to edit this script)
     Global defaults:  ~/.claude/pmd-java-gate.json
     Per-repo override: <repo>/.claude/pmd-gate.json   (merged over global)
-    Rules + thresholds: <repo>/config/pmd/klever-java-rules.xml
+    PMD rules:        ~/.claude/skills/java-quality/klever-java-rules.xml
+    Checkstyle rules: ~/.claude/skills/java-quality/klever-checkstyle.xml
 
-    A repo opts in simply by having the ruleset file. No ruleset, no gate.
-    That keeps this hook inert for every non-Java project on the machine.
+    Rules are PERSONAL config and apply to every Java file edited, in any repo.
+    A repo-level <repo>/config/pmd/klever-java-rules.xml means the team ratified
+    its own rules and takes precedence.
+
+    Checkstyle carries ONLY checks PMD cannot do, and deliberately no Javadoc*
+    checks: stock configs require javadoc, which is the opposite of the standard
+    here. Set checkstyle_binary to "" to disable that engine alone.
 
 SUPPRESSION
     @SuppressWarnings("PMD.NoNullReturn")   on the method or class
@@ -51,6 +62,7 @@ EXIT CODES
 
 import json
 import os
+import re
 import subprocess
 import sys
 import shutil
@@ -90,6 +102,41 @@ def load_config(repo_root):
 
 
 USER_RULESET = Path.home() / ".claude" / "skills" / "java-quality" / "klever-java-rules.xml"
+CHECKSTYLE_CONFIG = Path.home() / ".claude" / "skills" / "java-quality" / "klever-checkstyle.xml"
+CHECKSTYLE_LINE = re.compile(r"^\[(\w+)\]\s+(.+?):(\d+):(?:\d+:)?\s+(.*?)\s+\[(\w+)\]\s*$")
+
+
+def run_checkstyle(config, file_path):
+    """Checkstyle covers what PMD cannot see: unused imports, naming, fall-through,
+    equals/hashCode pairing, one-statement-per-line.
+
+    Same fail-open contract as PMD. Returns (violations, error).
+    """
+    binary = config.get("checkstyle_binary", "checkstyle")
+    cfg = Path(config.get("checkstyle_config", str(CHECKSTYLE_CONFIG))).expanduser()
+    if not cfg.is_file():
+        return [], None
+    if not shutil.which(binary):
+        return [], None
+    try:
+        out = subprocess.run(
+            [binary, "-c", str(cfg), str(file_path)],
+            capture_output=True, text=True, timeout=config["timeout_seconds"],
+        )
+    except subprocess.TimeoutExpired:
+        return [], "Checkstyle timed out."
+    except (subprocess.SubprocessError, OSError) as exc:
+        return [], f"Checkstyle could not run: {exc}"
+
+    # Checkstyle exits non-zero when it finds violations, which is not an error.
+    found = []
+    for line in out.stdout.splitlines():
+        m = CHECKSTYLE_LINE.match(line.strip())
+        if not m:
+            continue
+        _sev, _f, lineno, message, rule = m.groups()
+        found.append({"line": int(lineno), "rule": rule, "message": message})
+    return found, None
 
 
 def resolve_ruleset(config, repo_root):
@@ -280,6 +327,15 @@ def main():
                 pass
 
     violations = collect_violations(report, allowed_lines)
+
+    cs_violations, cs_error = run_checkstyle(config, file_path)
+    if cs_error:
+        print(f"Checkstyle DEGRADED: {cs_error}", file=sys.stderr)
+    if allowed_lines is not None:
+        cs_violations = [v for v in cs_violations if v["line"] in allowed_lines]
+    violations.extend(cs_violations)
+    violations.sort(key=lambda x: x["line"])
+
     if not violations:
         return 0
 
@@ -300,7 +356,7 @@ def main():
 
     if blocking:
         msg = [
-            f"PMD quality gate: {len(blocking)} violation(s) in code you just wrote.",
+            f"Java quality gate: {len(blocking)} violation(s) in code you just wrote.",
             "",
             render(blocking),
         ]

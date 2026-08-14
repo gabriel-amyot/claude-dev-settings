@@ -1,0 +1,106 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+    "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+    "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<!--
+  Checkstyle rules for Klever Java. Runs alongside PMD in the /java-quality gate.
+
+  SCOPE RULE: this file may only contain checks PMD cannot do. Every rule here
+  earns its place by catching something the PMD ruleset misses. Duplicating a
+  PMD rule would double the reported noise for one defect and make the gate feel
+  twice as loud for no extra coverage.
+
+  Left to PMD: complexity, return null, raw Object returns, magic literals,
+  javadoc length, empty catch blocks, lost stack traces.
+
+  DELIBERATELY ABSENT: every Javadoc* check. Stock sun_checks.xml and
+  google_checks.xml REQUIRE javadoc on public members. That is the opposite of
+  the standard here, which is that excessive javadoc is a smell because it goes
+  stale and a one-liner explaining WHY is the exception rather than the norm.
+  Adopting a stock config would have enforced the reverse of the intent.
+
+  ALSO ABSENT: whitespace, indentation, line length, brace placement. Pure
+  formatting was never the complaint, and formatting rules are the fastest way
+  to make a gate resented. Formatting belongs to a formatter, not a gate.
+-->
+<module name="Checker">
+  <property name="severity" value="error"/>
+  <property name="fileExtensions" value="java"/>
+
+  <module name="TreeWalker">
+
+    <!-- ============ Real bugs. These are why Checkstyle is here. ============ -->
+
+    <!-- Catches `s == "literal"` only, NOT `a == b` between two String
+         variables (verified 2026-08-13). Identity comparison compiles fine,
+         passes review, then fails at runtime looking like bad data. The
+         variable-to-variable case stays uncovered by any rule here. -->
+    <module name="StringLiteralEquality"/>
+
+    <!-- Overriding one of equals/hashCode without the other silently breaks
+         every HashMap and HashSet the type is put into. -->
+    <module name="EqualsHashCode"/>
+
+    <!-- A switch case falling through without an explicit comment is almost
+         always a missing break rather than an intention. -->
+    <module name="FallThrough"/>
+
+    <!-- An unhandled enum/int value silently does nothing. -->
+    <module name="MissingSwitchDefault"/>
+
+    <!-- Assigning to a parameter makes the argument and the local diverge, so
+         the caller's value and the one in the debugger stop matching. -->
+    <module name="ParameterAssignment"/>
+
+    <!-- `if (x) doThing();` then later someone adds a second statement and it
+         runs unconditionally. Classic and expensive. -->
+    <module name="NeedBraces">
+      <property name="tokens" value="LITERAL_IF,LITERAL_ELSE,LITERAL_FOR,LITERAL_WHILE,LITERAL_DO"/>
+    </module>
+
+    <!-- Empty if/else/try/finally. PMD covers empty catch; this covers the rest. -->
+    <module name="EmptyBlock">
+      <property name="option" value="text"/>
+      <property name="tokens" value="LITERAL_IF,LITERAL_ELSE,LITERAL_TRY,LITERAL_FINALLY,LITERAL_WHILE,LITERAL_FOR"/>
+    </module>
+
+    <!-- ============ Cruft PMD does not report ============ -->
+
+    <module name="UnusedImports">
+      <property name="processJavadoc" value="false"/>
+    </module>
+    <module name="RedundantImport"/>
+    <!-- A star import hides which type is actually in scope and breaks silently
+         when two packages export the same simple name. -->
+    <module name="AvoidStarImport"/>
+
+    <module name="OneStatementPerLine"/>
+
+    <!-- ============ Naming. The standard is self-documenting code. ============ -->
+    <!-- Names carry the explanation, which is only sustainable if they are
+         consistent. These are the plain Java conventions, nothing exotic. -->
+
+    <module name="TypeName"/>
+    <module name="MethodName"/>
+    <module name="LocalVariableName"/>
+    <module name="MemberName"/>
+    <module name="ParameterName"/>
+    <module name="ConstantName"/>
+    <module name="PackageName"/>
+
+    <!-- ============ Size. Loose on purpose. ============ -->
+    <!-- PMD owns complexity at 8 cyclomatic / 10 cognitive, which is the sharper
+         signal. These are backstops for the case that stays simple but sprawls,
+         so they sit well above where PMD would already have fired. -->
+
+    <module name="MethodLength">
+      <property name="max" value="60"/>
+      <property name="countEmpty" value="false"/>
+    </module>
+    <module name="ParameterNumber">
+      <property name="max" value="7"/>
+    </module>
+
+  </module>
+</module>

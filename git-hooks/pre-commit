@@ -1,0 +1,83 @@
+#!/bin/bash
+# Secret scanning on staged content, before anything can be committed.
+#
+# WHY THIS EXISTS
+#     A committed secret is not undone by deleting it in a later commit: it
+#     lives in git history and, once pushed, in every clone and every CI cache.
+#     The only cheap moment to stop it is before the commit object exists.
+#     Everything after that is credential rotation.
+#
+# WHY PRE-COMMIT AND NOT THE AGENT LOOP
+#     The PMD Java gate runs at edit time because the agent can fix a violation
+#     while it still has context. A secret is different: it is usually pasted or
+#     generated deliberately, and the question is not "is this code good" but
+#     "is this about to become permanent". Commit is that boundary.
+#
+# BEHAVIOUR
+#     Exit 1 blocks the commit. gitleaks exits 1 on findings, 0 when clean.
+#     Fails OPEN if gitleaks is missing or errors: never block a commit because
+#     a tool is absent. A missing scanner is a tooling problem, not the author's.
+#
+# KILL SWITCHES
+#     GITLEAKS_SKIP=1 git commit ...          one commit
+#     touch ~/.claude/.gitleaks-off           until removed
+#     git commit --no-verify                  bypasses all hooks (git built-in)
+#
+# ALLOWLISTING
+#     Put a .gitleaks.toml at the repo root. gitleaks picks it up automatically.
+#     Prefer that over disabling the hook: it keeps the exception reviewable.
+
+[ -n "$GITLEAKS_SKIP" ] && exit 0
+[ -f "$HOME/.claude/.gitleaks-off" ] && exit 0
+
+GITLEAKS="$(command -v gitleaks 2>/dev/null)"
+if [ -z "$GITLEAKS" ]; then
+    . "$(dirname "$0")/_chain.sh"
+fi
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+[ -z "$REPO_ROOT" ] && exit 0
+
+# `git --staged` is the current form. `protect` is the deprecated 8.18-era name
+# and is not what 8.30 documents. --redact keeps the secret out of the terminal
+# and out of any scrollback or screen recording.
+REPORT="$(mktemp -t gitleaks-precommit)"
+"$GITLEAKS" git "$REPO_ROOT" --staged --no-banner --redact \
+    -f json -r "$REPORT" >/dev/null 2>&1
+STATUS=$?
+
+if [ "$STATUS" -eq 1 ] && [ -s "$REPORT" ]; then
+    echo ""
+    echo "  COMMIT BLOCKED — secret detected in staged content"
+    echo ""
+    python3 - "$REPORT" <<'PY' 2>/dev/null || cat "$REPORT"
+import json, sys
+try:
+    findings = json.load(open(sys.argv[1]))
+except Exception:
+    sys.exit(1)
+for f in findings:
+    print(f"    {f.get('File','?')}:{f.get('StartLine','?')}  "
+          f"[{f.get('RuleID','?')}]  {f.get('Description','')}")
+print()
+print(f"    {len(findings)} finding(s). Values are redacted above by design.")
+PY
+    echo ""
+    echo "  Unstage it, move it to an env var or 1Password, and re-commit."
+    echo "  False positive? Add a .gitleaks.toml allowlist at the repo root,"
+    echo "  which keeps the exception in review. Only as a last resort:"
+    echo "  GITLEAKS_SKIP=1 git commit ..."
+    echo ""
+    rm -f "$REPORT"
+    exit 1
+fi
+
+rm -f "$REPORT"
+
+# Anything other than 0 or 1 is a gitleaks fault, not a finding. Say so, but
+# do not block: a broken scanner must not stop work.
+if [ "$STATUS" -ne 0 ] && [ "$STATUS" -ne 1 ]; then
+    echo "  gitleaks failed (exit $STATUS). Commit allowed, secrets NOT scanned." >&2
+fi
+
+. "$(dirname "$0")/_chain.sh"

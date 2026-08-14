@@ -1,0 +1,5 @@
+#!/bin/bash
+# Passthrough. core.hooksPath REPLACES .git/hooks, so without this file the
+# repo's own hook of this name would silently stop firing (e.g. graphify's
+# post-commit graph rebuild). This adds no behaviour, it only preserves theirs.
+. "$(dirname "$0")/_chain.sh"

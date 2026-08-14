@@ -1,23 +1,12 @@
 #!/usr/bin/env python3
 """
-Control panel CLI for the PMD Java quality gate.
+Gate engine for /java-quality. Not invoked directly — java_quality.py is the
+entry point and maps the user-facing verbs (relax/strict) onto these functions.
 
+Drives PMD for the rules it owns, and Checkstyle for the checks PMD cannot do.
 Every knob is edited here rather than by hand, so a typo cannot silently
-disable the gate. Writes are validated before they land: a ruleset change is
-rejected if PMD refuses to load the result, and the previous version is
-restored.
-
-Commands
-    status                       what is on, what repos opted in
-    on | off                     master switch
-    scope <changed-lines|whole-file>
-    rules                        active rules, blocking vs advisory
-    advisory <Rule>              stop a rule blocking
-    block <Rule>                 make a rule block
-    threshold <Rule> <prop> <n>  tune a built-in rule threshold
-    scan [path]                  run the ruleset now, no editing
-    adopt <repo-path>            copy the ruleset into another repo
-    doctor                       verify the whole gate end to end
+disable the gate. Ruleset writes are validated before they land: rejected and
+rolled back if PMD refuses to load the result.
 """
 
 import json
@@ -33,6 +22,33 @@ CONFIG = Path.home() / ".claude" / "pmd-java-gate.json"
 HOOK = Path.home() / ".claude" / "hooks" / "pmd-java-gate.py"
 SETTINGS = Path.home() / ".claude" / "settings.json"
 USER_RULESET = Path(__file__).resolve().parent / "klever-java-rules.xml"
+CHECKSTYLE_CONFIG = Path(__file__).resolve().parent / "klever-checkstyle.xml"
+
+
+def checkstyle_rules():
+    """Rule names active in the Checkstyle config, in file order."""
+    if not CHECKSTYLE_CONFIG.is_file():
+        return []
+    names = re.findall(r'<module name="(\w+)"', CHECKSTYLE_CONFIG.read_text())
+    return [n for n in names if n not in ("Checker", "TreeWalker")]
+
+
+def run_checkstyle_scan(cfg, target):
+    """Checkstyle findings under a path, as {rule: count}."""
+    binary = cfg.get("checkstyle_binary", "checkstyle")
+    if not binary or not shutil.which(binary) or not CHECKSTYLE_CONFIG.is_file():
+        return {}
+    try:
+        out = subprocess.run([binary, "-c", str(CHECKSTYLE_CONFIG), str(target)],
+                             capture_output=True, text=True, timeout=300)
+    except (subprocess.SubprocessError, OSError):
+        return {}
+    counts = {}
+    for line in out.stdout.splitlines():
+        m = re.search(r"\[(\w+)\]\s*$", line.strip())
+        if m and line.strip().startswith("["):
+            counts[m.group(1)] = counts.get(m.group(1), 0) + 1
+    return counts
 
 GREEN, RED, YELLOW, DIM, RESET = "\033[32m", "\033[31m", "\033[33m", "\033[2m", "\033[0m"
 
@@ -157,7 +173,7 @@ def cmd_toggle(cfg, args, value):
     state = GREEN + "ON" + RESET if value else RED + "OFF" + RESET
     print(f"Gate is now {state}.")
     if not value:
-        print(f"{DIM}Java edits will no longer be checked. Re-enable with: /pmd on{RESET}")
+        print(f"{DIM}Java edits will no longer be checked. Re-enable with: /java-quality on{RESET}")
 
 
 def cmd_scope(cfg, args):
@@ -180,13 +196,16 @@ def cmd_rules(cfg, args):
     custom, refs = parse_rules(ruleset)
     advisory = set(cfg.get("advisory_rules", []))
     print(f"{DIM}{ruleset}{RESET}\n")
-    print(f"{'RULE':<28}{'SOURCE':<10}EFFECT")
+    print(f"{'RULE':<28}{'SOURCE':<12}EFFECT")
     for name in custom:
         eff = (YELLOW + "advisory" + RESET) if name in advisory else (RED + "blocks" + RESET)
-        print(f"{name:<28}{'custom':<10}{eff}")
+        print(f"{name:<28}{'custom':<12}{eff}")
     for name in refs:
         eff = (YELLOW + "advisory" + RESET) if name in advisory else (RED + "blocks" + RESET)
-        print(f"{name:<28}{'built-in':<10}{eff}")
+        print(f"{name:<28}{'built-in':<12}{eff}")
+    for name in checkstyle_rules():
+        eff = (YELLOW + "advisory" + RESET) if name in advisory else (RED + "blocks" + RESET)
+        print(f"{name:<28}{'checkstyle':<12}{eff}")
 
 
 def cmd_advisory(cfg, args, make_advisory):
@@ -286,6 +305,11 @@ def cmd_scan(cfg, args):
             rule = v.get("rule", "?")
             counts[rule] = counts.get(rule, 0) + 1
             rows.append((fname, v.get("beginline"), rule))
+
+    for rule, n in run_checkstyle_scan(cfg, target).items():
+        counts[rule] = counts.get(rule, 0) + n
+        rows.extend([(str(target), 0, rule)] * n)
+
     if not rows:
         print(f"{GREEN}Clean. No violations.{RESET}")
         return

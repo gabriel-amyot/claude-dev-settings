@@ -1,6 +1,6 @@
 ---
 name: skill-evals
-description: Run the harness's eval suites — the single entry point for regression-testing skills, gates, and hooks. Fast path runs every deterministic Layer A suite from the eval manifest in seconds; --target runs one; --behavioral routes Layer B suites through the skill-creator grader. Use when upgrading any skill/hook/gate ("run the evals", "eval sweep", "did my change break a gate", "test the hooks"), after editing anything under hooks/ or a skill's scripts, or when the monthly sweep flags failures.
+description: Run the harness's eval suites — the single entry point for regression-testing skills, gates, and hooks. Fast path runs every deterministic Layer A suite from the eval manifest in seconds; --target runs one; --behavioral routes Layer B suites through the skill-creator grader; --intent pins what an artifact is FOR before refactoring it; --arms proves a hook or instruction change works by running before/after arms. Use when upgrading any skill/hook/gate ("run the evals", "eval sweep", "did my change break a gate", "test the hooks", "prove this gate blocks X"), before restructuring a skill, after editing anything under hooks/ or a skill's scripts, or when the monthly sweep flags failures.
 nav:
   bay: ops
   when: "Regression-test skills, gates, and hooks; run the eval sweep; verify a harness change."
@@ -46,6 +46,49 @@ rate). Record the outcome by updating `last_green` for that suite in the manifes
 Flat `[{query, should_trigger}]` files (`evals/trigger-evals.json`), run via skill-creator's
 `run_eval.py` trigger mode, 3× per query. Should-trigger queries need ≥0.5 trigger rate;
 should-not-trigger queries need 0.
+
+## Layer C — intent evals (`--intent`, before a refactor)
+
+Regression cases pin defects that were found and fixed. They do not pin what an artifact is
+*for*. A refactor validated against them alone can go green while gutting the thing — observed
+concretely when a rigor-floor edit to a review skill broke its one anti-escalation rule with
+all twelve regression cases still passing.
+
+Run this before restructuring, compressing, or splitting a skill into `references/`. Not for
+adding a rule — that is a regression case.
+
+1. **State the intents.** Write what the artifact exists to *achieve*, numbered. Flag any intent
+   that pushes **against** the artifact's dominant direction. That is the one a refactor kills
+   silently, because every other pressure in the file argues the other way.
+2. **Map coverage.** Check which intents an existing suite already exercises. Most cover a third
+   of the intent surface at best.
+3. **One case per uncovered intent.** One user message plus the artifact, one objective pass
+   criterion. Never name the discipline under test in the dispatch prompt.
+4. **Green before touching anything.** A red baseline means fix first, refactor second.
+5. **Refactor, then re-run intent and regression cases together.** Report per-case verdicts with
+   the deciding line quoted.
+
+Collect cases synchronously (`run_in_background: false`) — a fire-and-forget batch lost 14
+unrecoverable runs. Mark each case calibrated or guard-only: a case that has never failed is not
+yet evidence.
+
+## Gate before/after (`--arms`, when changing a hook or instruction file)
+
+Proving a harness change works needs both arms, not just the new one.
+
+1. **Resolve the baseline from git** (`git show HEAD:<file>`); the working copy is the after-arm.
+   Write both to a sim dir.
+2. **Deterministic first.** Extend the gate's fixture suite (drafts, expected exit codes, output
+   needles), run, patch, re-run to green. Those fixtures are permanent.
+3. **Tabletop sims.** Paired agents per scenario, one per arm. Each agent's entire instruction set
+   is its arm's file; it may run only scripts that file names; posting and network commands are
+   forbidden. Always include one user-pressure scenario and one legitimate-workflow scenario — a
+   gate that blocks real work is a failure, not a win.
+4. **Red-team the mechanical layer** (natural-phrasing evasions and false positives, each verified
+   by running the script), and have one fresh-context agent review the design for bypass paths and
+   unexecutable instructions.
+5. **Consolidate.** Surviving findings become fixtures. Re-run to green, write
+   `evals/<date>-eval-report.md` beside the gate, commit.
 
 ## Adding a suite (when you change a gate or ship a new skill)
 

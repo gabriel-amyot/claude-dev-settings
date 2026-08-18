@@ -27,6 +27,14 @@ Never bulk-load. Progressive disclosure only.
 | `library/archive/` | Retired agents, plugin snapshots, historical audits |
 | `library/inbox/` | Unprocessed nuggets pending promotion |
 
+## Presentations
+
+| Deck | Audience | Path |
+|------|----------|------|
+| "How I use AI, day to day" | Business / mixed, non-technical | [`docs/presentations/2026-08-ai-harness/`](docs/presentations/2026-08-ai-harness/README.md) |
+
+A ~12-minute talk explaining the harness to a non-technical room. Present from `deck-presenter.html`, hand out `deck-audience.html`. Run `refresh-numbers.sh` before re-presenting — the deck quotes counts that go stale. The embedded knowledge graph is anonymised; read the README's sensitive-data section before building any new copy.
+
 ## Master Catalog
 
 For the full floor plan and topic cross-reference, read [`library/CATALOG.md`](library/CATALOG.md).

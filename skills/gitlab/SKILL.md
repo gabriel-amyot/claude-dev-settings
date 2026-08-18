@@ -51,7 +51,9 @@ python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org <ORG> <COMMA
 - `search QUERY [--max N]` — Search repositories
 - `pipelines PROJECT [--ref BRANCH] [--status STATUS] [--count N]` — List recent pipelines
 - `jobs PROJECT --pipeline ID [--logs]` — Get jobs for a pipeline
-- `trace PROJECT --job ID [--filter KEYWORD]` — Get raw job trace
+- `trace PROJECT --job ID [--filter KEYWORD] [--full] [--tail N]` — Get raw job trace
+
+> ⚠️ **Traces are capped by default.** `trace` shows the first 500 lines (100 for `--filter`). When it cuts, the output now ends with an explicit `... TRUNCATED: showing X of Y` marker — do not report on a trace whose output carries that line. A terraform plan is ~1000 lines and puts `Plan: N to add, M to change, D to destroy` near the **end**, so a default read can miss a destroy. Every trace read surfaces a `summary` field with those counts when the job is a plan. For the whole log use `--full` (writes a temp file, returns the path) or `--tail N`.
 
 > ⚠️ **CAUTION:** `pipeline` (singular) TRIGGERS a new pipeline. `pipelines` (plural) LISTS existing ones. To check status, use `pipelines` or `jobs --pipeline ID`. Never use `pipeline` to check status.
 

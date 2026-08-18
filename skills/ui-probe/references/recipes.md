@@ -13,6 +13,9 @@ Tool names assume Chrome MCP loaded via `ToolSearch: select:mcp__claude-in-chrom
 6. Presets (Zustand store, Mapbox, localStorage)
 7. browser_batch composition
 8. Proof capture (screenshot → save → relocate to ticket folder)
+9. Mapbox map handle via fiber (layers, sources, features)
+10. Mapbox tile health and status (why the network panel shows nothing)
+11. Fetch body spy (request payload shape proof)
 
 ---
 
@@ -274,6 +277,8 @@ Sanitized snapshots of app state. All return shapes/counts, not raw values.
 })();
 ```
 
+The Klever Measurement Map exposes no global map ref. Use recipe 9 to get the handle.
+
 ```js
 // localStorage shape (keys + lengths only, never values)
 (() => Object.keys(localStorage).map(k => ({ key: k, len: localStorage.getItem(k)?.length ?? 0 })))();
@@ -339,3 +344,138 @@ How the helper picks the right transcript: other sessions and background subagen
 Put the **absolute** path (the script prints it) on the report's `**Proof:**` line, so a caller reads or attaches that one file without guessing the working directory. For a transition spec, capture twice (before + after the interaction) — call `save_proof.py` after each, into `…-AC2-before-…png` / `…-AC2-after-…png` — and list both paths.
 
 **Before capturing, glance at the screen for visible secrets** (a token typed into a field, an open devtools storage panel). The image records whatever is rendered and becomes a shared artifact in the ticket folder — scroll/close anything sensitive first, or fall back to `--no-proof` and describe the state in words.
+
+---
+
+## 9. Mapbox map handle via fiber — layers, sources, features
+
+The highest-leverage move for any live Klever map question. The app keeps no global ref, so read the `Map` instance out of the React fiber tree and stash it for reuse.
+
+**Do not anchor on `.mapboxgl-map`.** That container carries no `__reactFiber$` key. Anchor on the first node in the document that has one, then climb.
+
+```js
+(() => {
+  if (window.__mref) return { cached: true, zoom: window.__mref.getZoom() };
+  const isMap = o => o && typeof o.getStyle === 'function'
+    && typeof o.queryRenderedFeatures === 'function' && typeof o.getZoom === 'function';
+
+  // 1. find any node with a fiber key, climb to root
+  let node = [...document.querySelectorAll('*')]
+    .find(el => Object.keys(el).some(k => k.startsWith('__reactFiber$')));
+  if (!node) return { error: 'no react fiber on any node' };
+  let fiber = node[Object.keys(node).find(k => k.startsWith('__reactFiber$'))];
+  while (fiber.return) fiber = fiber.return;
+
+  // 2. DFS the tree; check stateNode, memoizedProps, and the hook chain
+  const seen = new Set(); const stack = [fiber];
+  while (stack.length) {
+    const f = stack.pop();
+    if (!f || seen.has(f)) continue; seen.add(f);
+    if (isMap(f.stateNode)) { window.__mref = f.stateNode; break; }
+    for (const v of Object.values(f.memoizedProps || {})) if (isMap(v)) { window.__mref = v; break; }
+    let hook = f.memoizedState;
+    while (hook && !window.__mref) {
+      if (isMap(hook.memoizedState?.current)) window.__mref = hook.memoizedState.current;
+      hook = hook.next;
+    }
+    if (window.__mref) break;
+    stack.push(f.child, f.sibling);
+  }
+  return window.__mref
+    ? { found: true, zoom: window.__mref.getZoom(), layers: window.__mref.getStyle().layers.length }
+    : { error: 'map not found in fiber tree' };
+})();
+```
+
+Once `window.__mref` exists, inspect it. Return shapes and counts, never raw feature payloads.
+
+| Question | Call |
+|---|---|
+| Which layers exist, are they visible | `__mref.getStyle().layers` — read `id`, `layout.visibility`, `paint` |
+| What GeoJSON is bound to a source | `__mref.getSource(id)._data` |
+| What properties do tileset features carry | `__mref.querySourceFeatures(srcId, {sourceLayer})` |
+| Where does a coordinate land on screen | `__mref.project([lng, lat])` — container pixels, not screenshot pixels |
+
+The Chrome bridge blocks keys **and values** that look like tokens. Map every return through `typeof` / `length` / boolean before handing it back.
+
+This recipe found the Canada-province "no NAME field" root cause and the metrics-circles-to-conversions binding in minutes each.
+
+---
+
+## 10. Mapbox tile health and status
+
+**The trap:** Mapbox fetches `.vector.pbf` tiles from a worker thread. Both `read_network_requests` and main-thread Resource Timing miss them entirely. The network panel looks empty and you conclude "no tiles are loading" when they are loading fine.
+
+Read tile state off the map object instead. Requires `window.__mref` from recipe 9.
+
+```js
+// Health: no network needed
+(() => {
+  const caches = window.__mref.style._sourceCaches;
+  return Object.entries(caches).map(([k, c]) => {
+    const tiles = Object.values(c._tiles || {});
+    return {
+      cache: k,
+      total: tiles.length,
+      loaded: tiles.filter(t => t.state === 'loaded').length,
+      errored: tiles.filter(t => t.state === 'errored').length,
+    };
+  });
+})();
+```
+
+All `loaded` with zero `errored` is healthy. Read the live TileJSON with `__mref.getSource(id)` and check `minzoom` / `maxzoom` / `tiles` / `vectorLayerIds`.
+
+To check one tile's real status, resolve the URL first:
+
+```js
+const url = window.__mref._requestManager
+  .normalizeTileURL('mapbox://tiles/<acct>.<tileset>/<z>/<x>/<y>.vector.pbf');
+fetch(url, { mode: 'cors' }).then(r => ({ status: r.status, type: r.headers.get('content-type') }));
+```
+
+Never pass a raw `mapbox://` string through `transformRequest` — it yields a null origin.
+
+Reading the result:
+
+| Observation | Meaning |
+|---|---|
+| 404 with a 28-byte body | Empty tile. Benign. Mapbox records it as `loaded` and fires no error event. |
+| 200 with `application/x-protobuf` | Real tile with data. |
+| 200 above the source `maxzoom` | Overzoom. Expected, not a defect. |
+
+A 404 here is the normal way Mapbox says "nothing in this square." Do not report it as a tile failure.
+
+---
+
+## 11. Fetch body spy — request payload shape proof
+
+Use when the claim to verify is about the **shape of a request body** — a key present or absent in a POST — and `read_network_requests` cannot answer it, because it exposes no body, or tracking armed after the request fired, or a store cache suppressed the refetch.
+
+Order matters. A reload kills both the page cache and the spy, so reload **first**, then arm, then drive the UI.
+
+```js
+// Step 2: arm, after the reload
+(() => {
+  window.__probe = [];
+  const orig = window.fetch;
+  window.fetch = function (input, init) {
+    const url = typeof input === 'string' ? input : input?.url ?? '';
+    if (url.includes('/api/map/') && init?.body) {
+      try {
+        const keys = Object.keys(JSON.parse(init.body));
+        window.__probe.push({ path: new URL(url, location.origin).pathname, bodyKeys: keys,
+                              hasChannels: keys.includes('channels') });
+      } catch { window.__probe.push({ path: url, bodyKeys: null, parseFailed: true }); }
+    }
+    return orig.apply(this, arguments);
+  };
+  return { armed: true };
+})();
+```
+
+Record key names and booleans only. Never push raw body strings — the sensitive-value blocker will reject the read, and the values do not belong in a transcript.
+
+Then drive the UI (advertiser select, date change), and read back `window.__probe` as the fact timeline.
+
+The spy does not survive navigation. Re-arm after any `navigate`, and say so in the report so a reader knows the window each observation covers.

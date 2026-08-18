@@ -21,6 +21,39 @@ BLOCKED_REFS = {"main", "master", "prod", "production", "uat"}
 BLOCKED_SCOPES = {"production", "prod", "uat", "main", "master"}
 MAX_API_RETRIES = 2
 INDEX_FILE = os.path.join(os.path.dirname(CONFIG_FILE), "dac_index.json")
+TRACE_HEAD_LINES = 500
+
+
+def _trace_output(shown, total, unit):
+    """Join trace lines, appending a loud marker when the output was cut.
+
+    Silent truncation is the defect this guards. A terraform plan puts its
+    'Plan: N to add, M to destroy' summary near the END of a ~1000 line trace,
+    so a head-capped read can miss a destroy entirely.
+    """
+    text = "\n".join(shown)
+    if total > len(shown):
+        text += (f"\n\n... TRUNCATED: showing {len(shown)} of {total} {unit}. "
+                 f"Use --full for the whole trace, or --tail N for the end.")
+    return text
+
+
+def _write_full_trace(job_id, lines):
+    """Write the cleaned trace to a temp file. Returns the path."""
+    import tempfile
+    fd, path = tempfile.mkstemp(prefix=f"gitlab-trace-{job_id}-", suffix=".log")
+    with os.fdopen(fd, "w") as fh:
+        fh.write("\n".join(lines))
+    return path
+
+
+def _terraform_plan_summary(lines):
+    """Return the terraform plan stats for a trace, or None if it is not a plan.
+
+    Surfaced on every trace read so a plan's add/change/destroy counts are
+    visible even when the summary line falls outside the shown window.
+    """
+    return extract_plan_dict("trace", "\n".join(lines))
 
 
 def load_index():
@@ -1386,6 +1419,10 @@ def _build_parser():
     p.add_argument("--project", dest="project_flag")
     p.add_argument("--job", required=True)
     p.add_argument("--filter")
+    p.add_argument("--full", action="store_true",
+                   help="write the whole cleaned trace to a temp file and return its path")
+    p.add_argument("--tail", type=int, metavar="N",
+                   help="return the last N lines instead of the first 500")
 
     # pipeline (trigger)
     p = sub.add_parser("pipeline")
@@ -1570,12 +1607,28 @@ if __name__ == "__main__":
                         if args.filter:
                             kw = args.filter.lower()
                             filtered = [f"L{i}: {l.rstrip()}" for i, l in enumerate(lines) if kw in l.lower()]
+                            shown = filtered[:100]
                             result = {"job_id": args.job, "total_lines": len(lines),
                                       "filter": kw, "matched_lines": len(filtered),
-                                      "output": "\n".join(filtered[:100])}
-                        else:
+                                      "output": _trace_output(shown, len(filtered), "--filter matches")}
+                        elif args.full:
+                            path = _write_full_trace(args.job, lines)
                             result = {"job_id": args.job, "total_lines": len(lines),
-                                      "output": "\n".join(lines[:500])}
+                                      "full_trace_path": path,
+                                      "summary": _terraform_plan_summary(lines),
+                                      "output": f"Full trace written to {path} "
+                                                f"({len(lines)} lines). Read that file, not this field."}
+                        elif args.tail:
+                            shown = lines[-args.tail:]
+                            result = {"job_id": args.job, "total_lines": len(lines),
+                                      "showing": f"last {len(shown)}",
+                                      "summary": _terraform_plan_summary(lines),
+                                      "output": "\n".join(shown)}
+                        else:
+                            shown = lines[:500]
+                            result = {"job_id": args.job, "total_lines": len(lines),
+                                      "summary": _terraform_plan_summary(lines),
+                                      "output": _trace_output(shown, len(lines), "lines")}
                     else:
                         result = {"error": "Unexpected response type from trace endpoint"}
 

@@ -1,6 +1,6 @@
 ---
 name: cloudflare-pages
-description: Query Cloudflare Pages deployments, build logs, and D1 database for the Compostela Guide project. Use this skill whenever the user mentions Cloudflare, deployment status, build logs, "is the site deployed", "check the deploy", "why isn't my site updating", subscriber count, D1 database, or anything related to the compostelaguide.com hosting and deployment pipeline. Also triggers on "check deployments", "deploy status", "build failed", "site not updating", "Danielle's changes not showing".
+description: Read Cloudflare Pages deployments, build logs, and the D1 database for compostelaguide.com. Requires the user to name Cloudflare, Pages, D1, wrangler, or compostelaguide explicitly. Do NOT use for deploy or build questions about any other project — Klever ships through GitLab CI, and Supervisr through GCP.
 ---
 
 # Cloudflare Pages Skill

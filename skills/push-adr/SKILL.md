@@ -1,5 +1,6 @@
 ---
 name: push-adr
+description: Formalize an architectural decision into a repo's agent-os/ tree — write the ADR, update the API contracts and standards it affects, and cross-reference them. Use once a decision is settled and needs to become the repo's record ("push this ADR", "write this decision up", "update the contracts for this"). Not for drafting the decision itself, and not for reading existing ADRs.
 nav:
   bay: know
   when: "Push architectural decisions to agent-os folders with cross-references."

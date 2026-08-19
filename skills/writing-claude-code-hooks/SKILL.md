@@ -52,7 +52,9 @@ exit 2
 
 From Python inside the hook, `sys.stderr.write(...)` then `sys.exit(2)`. `library-stamp-guard.sh` does this correctly.
 
-Two live hooks currently get this wrong — `config-protect.sh` and `worktree-guard.sh` both `echo` to stdout before `exit 2`. If you touch either, fix the redirect.
+`worktree-guard.sh` had this bug until 2026-08-18 — it is registered on `Edit|Write`, so every main-worktree block reached the agent without its recovery steps.
+
+While checking for others, `config-protect.sh` looked like a second case. It is not: it is **decommissioned and unregistered** (`file-guard.sh` says so in its own header, "Replaces: config-protect.sh … kept on disk but not registered"). Its payload key is also over-escaped to `'"file_path"'`, so it would exit 0 on everything even if wired up. The lesson is the diagnostic order — **check registration in `settings.json` before diagnosing a hook's logic.** An unregistered hook's bugs are theoretical, and treating one as a live gap wastes a review and overstates the risk.
 
 ### 3. Substring-matching a command
 
@@ -128,3 +130,16 @@ A hook that is written but never registered is the most common false sense of sa
 - [ ] Registered in `settings.json` with the narrowest matcher that works.
 - [ ] Tested from a script file; asserted on exit code **and** stderr content.
 - [ ] Header comment states the block condition and the known false positive.
+
+## Debugging an existing hook
+
+Check in this order. Skipping step 1 is how a decommissioned script gets diagnosed as a live gap.
+
+1. **Is it registered?** `grep -n '<hook>' ~/.claude/settings.json`. If absent, it never runs — nothing else matters.
+2. **Does it receive what you think?** Run it under `bash -x` with a realistic payload and read the assigned variables. Payload shape differs per hook: some read `tool_input.file_path` from stdin, others read a `CLAUDE_TOOL_INPUT` env var holding the tool_input object directly. Do not assume.
+3. **Does it exit as intended?** Assert the code, then assert stderr is non-empty on a block.
+
+```bash
+echo '{"tool_name":"Edit","tool_input":{"file_path":"/some/path"}}' \
+  | bash -x ~/.claude/hooks/my-guard.sh
+```

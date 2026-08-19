@@ -63,15 +63,19 @@ GIT_COMMON_ABS=$(cd "$FILE_DIR" && cd "$GIT_COMMON" && pwd 2>/dev/null)
 
 if [ "$GIT_DIR_ABS" = "$GIT_COMMON_ABS" ]; then
   REPO_NAME=$(basename "$REPO_ROOT")
-  echo "BLOCKED: Editing in main worktree of '$REPO_NAME' ($REPO_ROOT)."
-  echo ""
-  echo "Main worktrees must stay clean. All code edits happen in git worktrees."
-  echo ""
-  echo "Recovery:"
-  echo "  1. git -C $REPO_ROOT fetch origin"
-  echo "  2. Invoke superpowers:using-git-worktrees to create an isolated workspace"
-  echo ""
-  echo "The skill handles directory selection and branch setup."
+  # stderr, not stdout: on exit 2 only stderr reaches the agent. On stdout the
+  # agent sees the block with "No stderr output" and never learns the recovery.
+  {
+    echo "BLOCKED: Editing in main worktree of '$REPO_NAME' ($REPO_ROOT)."
+    echo ""
+    echo "Main worktrees must stay clean. All code edits happen in git worktrees."
+    echo ""
+    echo "Recovery:"
+    echo "  1. git -C $REPO_ROOT fetch origin"
+    echo "  2. Invoke superpowers:using-git-worktrees to create an isolated workspace"
+    echo ""
+    echo "The skill handles directory selection and branch setup."
+  } >&2
   exit 2
 fi
 

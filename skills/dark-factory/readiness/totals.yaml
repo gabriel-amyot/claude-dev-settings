@@ -13,8 +13,7 @@ checks_total: 6
 by_verdict:
   READY: 1
   SPEC_GAP: 2
-  BELT_GAP: 1
-  POLICY_GATE: 1
+  BELT_GAP: 2          # KTP-714, KTP-694 (the latter also POLICY_GATE)
   STRUCTURAL_GAP: 1
 
 # Readiness rate is the number worth watching over time. A low rate with
@@ -58,13 +57,22 @@ gap_categories:
           external resource no longer exists." Destructive with no undo,
           so a permanent human gate may be the right answer instead of
           a belt.
-      belt_fits_environment_gated:
+      data-migration-ops:
         tickets: [KTP-694]
-        remedy: documented human-gate handoff
+        remedy: rack a belt AND keep the human gate
         note: >
-          The scripting belt fits the work. The target is prod, and prod
-          data mutation is human-gated by policy. Remedy is a clean
-          headless GATE_REQUIRED + decisions.yaml handoff, not a belt.
+          RECLASSIFIED 2026-08-24. First scored as belt-fits /
+          environment-gated. Wrong on the first half. The deliverable is
+          a REMOTE DATA STATE (a table exists, in another project, right
+          schema, ~851K rows), not an artifact a script leaves behind.
+          `scripting` proves "the script ran"; proving "the remote table
+          is correct" needs bq/gcloud assertion, which is
+          terraform-dac-infra's style -- and that belt is dev-only by
+          construction. Neither covers "mutate remote data state and
+          assert it."
+          The prod gate stays regardless of belt: prod data mutation is
+          human-gated by policy, so even a racked belt runs dev-only
+          with a GATE_REQUIRED + decisions.yaml handoff for prod.
 
   multi-repo-fullstack:
     count: 1

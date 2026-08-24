@@ -60,6 +60,21 @@ correction_note: >
   check that skips the ticket's own history will keep manufacturing
   false blockers.
 
+demo_env_check: >
+  Added 2026-08-24 after review pushback asking whether the demo
+  environments still serve the legacy tiles, and whether they were torn
+  down. Answer: demo envs are ALIVE (dac-gcp-front-demo, GitLab project
+  425, terraform status=ACTIVE; demo-dev applied 2026-08-21), so the
+  teardown that was being waited on never happened. But neither env
+  serves the legacy tilesets: demo-prod runs 1.1.106, demo-dev runs
+  1.1.127, and per-tag git grep shows all 5 hashes present at 1.1.24 /
+  1.1.29 and zero from 1.1.30 onward (removed by 6f2f4ee, KTP-683).
+  The close-out's "1.1.79" was stale and it never checked demo-dev.
+  Still unproven and NOT knowable from git: whether a Mapbox Studio
+  published style embeds one of the hashes (the runbook's own manual
+  gate), and whether the running VMs serve those image tags. 1Password
+  was locked and gcloud auth was stale.
+
 policy_note: >
   Even with a vendor-account-ops belt racked, destructive mutation of a
   production vendor account is a candidate for a permanent human gate

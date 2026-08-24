@@ -5,18 +5,31 @@ source: sprint-estimation
 sprint: sprint-5-q3-2026
 session: quiet-marten
 
-verdict: POLICY_GATE
-predicted_terminal: GATE_REQUIRED
+verdict: BELT_GAP + POLICY_GATE
+predicted_terminal: BLOCKED_UNSUPPORTED_FLOOR
 spec_quality: good
-# A belt DOES fit this work. The environment is what blocks it.
 
 belt:
-  matched: scripting
-  detect_basis: >
-    Deliverable is a script whose value is its side-effect -- populate
-    BigQuery. A dry-run-tested migration script already exists at
+  matched: none cleanly
+  nearest: scripting
+  candidate_needed: data-migration-ops
+  blocked_by: [belt_proof_model, environment]
+  why_no_match: >
+    RECLASSIFIED 2026-08-24 after review pushback ("not sure if this is
+    scripting, sounds incomplete" -- correct).
+    `scripting` covers the mechanics: a .sh whose value is its
+    side-effect, populate BigQuery. A dry-run-tested migration script
+    already exists at
     tickets/KTP/KTP-130/data/migrate-placer-tables-to-prod.sh.
-  blocked_by: environment
+    But that belt's proof model is "the script produced its artifact and
+    exited." Here the deliverable is not an artifact -- it is a REMOTE
+    DATA STATE: a table that exists, in another project, with the right
+    schema and ~851K rows. Asserting that needs bq/gcloud probes, which
+    is `terraform-dac-infra`'s proof style -- and that belt is
+    explicitly dev-only autonomous, no local apply, so it excludes this
+    by construction.
+    Neither belt covers "mutate remote data state and assert it." That
+    is the gap.
 
 gate_dimensions:
   ac_available: pass

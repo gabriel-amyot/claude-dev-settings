@@ -1,0 +1,50 @@
+ticket: KTP-1111
+title: "Measurement Map: default the date range to the last 30 days"
+date: 2026-08-24
+source: sprint-estimation
+sprint: sprint-5-q3-2026
+session: quiet-marten
+
+verdict: READY
+predicted_terminal: READY_TO_SHIP
+spec_quality: good
+
+belt:
+  matched: frontend
+  detect_basis: >
+    Deliverable is a rendered UI change in app-front-portal (package.json
+    present); the value is what the date picker and map render.
+
+gate_dimensions:
+  ac_available: pass          # Given/When/Then AC1-AC5 in the Jira description
+  placement_resolved: pass    # existing date picker + existing map store, no new routes
+  fixtures_seeded: pass       # live advertiser data already present in dev
+  no_open_forks: fail         # ticket carries an explicit "Unconfirmed" block
+  single_repo_single_belt: pass
+  data_availability: pass     # backend already returns {minDate,maxDate}; BQ adapters already range-query
+  belt_match: pass
+
+blocking_before_launch:
+  - >
+    Resolve the ticket's own "Unconfirmed" block. This estimation session
+    answered it: frontend changes ARE required, at map-store.tsx:536 and
+    :1186/:1191, plus a minDate floor clamp in selectRange (:418-431).
+    Post as a Jira comment (ticket is out of TO DO, AC text stays put).
+    An open fork in the AC text is the shape the concierge front gate
+    pauses on.
+  - >
+    KTP-704 (DIT crash on multi-day ranges) must land first. Not a
+    readiness failure of this ticket, a sequencing constraint.
+
+expected_run_shape: >
+  Frontend belt cannot issue a visual-proof PASS in a headless run
+  (lesson 010). Expect HALT_PRESHIP into the post-merge validate model:
+  --auto-merge, then ui-probe on dev post-deploy. That is the belt being
+  honest, not a defect.
+
+risk_to_watch: >
+  AC5 ("renders within 2 seconds at country/state level") is unmeasured.
+  Summing 30 days instead of 1 changes BQ scan volume. Measure against a
+  high-volume advertiser, not a small one.
+
+improvement_signal: none

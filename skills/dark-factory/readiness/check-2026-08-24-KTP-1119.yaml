@@ -1,0 +1,52 @@
+ticket: KTP-1119
+title: "Self-serve report builder -- pick segments + columns, one tab per segment"
+date: 2026-08-24
+source: sprint-estimation
+sprint: sprint-5-q3-2026
+session: quiet-marten
+
+verdict: STRUCTURAL_GAP
+predicted_terminal: BLOCKED_UNSUPPORTED_FLOOR
+spec_quality: good
+
+belt:
+  matched: multiple
+  belts_required: [frontend, java]
+  third_service: app-display-data-export
+  why_no_match: >
+    Full-stack multi-repo one-shot is not built. The ticket spans the
+    frontend picker UI (frontend belt), the backend export parameter
+    model (java belt), and persistence in app-display-data-export, which
+    is already integrated via app/api/scheduled-reports/proxy.ts but is
+    a separate deployable.
+
+gate_dimensions:
+  ac_available: pass
+  placement_resolved: pass     # Reporting -> Create report, existing route
+  fixtures_seeded: pass
+  no_open_forks: pass
+  single_repo_single_belt: fail
+  data_availability: partial   # inherits KTP-1118's three unsourced segments
+  belt_match: partial
+
+remedy: >
+  Split into sequential single-belt runs, the documented pattern for
+  full-stack tickets. Suggested cut: (1) backend export parameter model
+  accepting a per-segment column selection [java belt]; (2) frontend
+  picker widening DimensionSelector from fixed presets to freeform
+  selection [frontend belt]; (3) persistence of the selection onto the
+  scheduled report [depends on app-display-data-export's schema].
+
+notes: >
+  Scheduled reports are already shipped: app/api/scheduled-reports/*,
+  components/reports/scheduled-reports/*, ADR
+  docs/adr/0001-scheduled-reports-live-in-display-data-export.md, and the
+  picker exists at components/reports/export/dimension-selector.tsx.
+  Depends on KTP-1118 for the multi-tab Excel output.
+
+improvement_signal: >
+  Multi-repo full-stack. This is a known, documented factory limit
+  rather than a new discovery. Tracked to build a denominator: if
+  multi-repo tickets are a large share of the sprint intake, sequential
+  single-belt splitting stops being a workaround and becomes the case
+  for a full-stack floor.

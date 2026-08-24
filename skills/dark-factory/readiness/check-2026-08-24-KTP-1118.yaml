@@ -1,0 +1,52 @@
+ticket: KTP-1118
+title: "Export client reports as branded multi-tab Excel (match the Klever template)"
+date: 2026-08-24
+source: sprint-estimation
+sprint: sprint-5-q3-2026
+session: quiet-marten
+
+verdict: SPEC_GAP
+predicted_terminal: BLOCKED_SPEC_QUALITY
+spec_quality: poor
+
+belt:
+  matched: java
+  detect_basis: >
+    Deliverable is a change to app-proximity-report, a running Java/Spring
+    service (pom.xml present). Adding Apache POI to the existing async
+    export job is squarely in-belt.
+
+gate_dimensions:
+  ac_available: pass
+  placement_resolved: pass     # existing POST /api/v1/reports/export job
+  fixtures_seeded: fail        # branded template is a Google Sheet, not in any repo
+  no_open_forks: pass
+  single_repo_single_belt: pass
+  data_availability: fail      # 3 of 6 required tabs have no backing table
+  belt_match: pass
+
+blocking_before_launch:
+  - >
+    Data availability. Of the six required tabs, Campaign / Ad Group /
+    Creative are backed by real tables (DspReportLevel.java:14-16).
+    Publisher, Store Visits and Reach & Frequency have no dimension,
+    table or DTO anywhere in the backend. Reach & Frequency has no data
+    source at all. This is lesson 009 exactly -- an AC referencing data
+    fields absent from the actual data model.
+  - >
+    Fixture. The Klever branded template lives in a Google Sheet. Column
+    order, the branding block and the frozen-row count cannot be derived
+    from code. Export it and attach it to the ticket before launch.
+
+remedy: >
+  Descope to the three data-backed tabs plus branding, and the ticket
+  becomes java-belt ready. Spike the Publisher and Store Visits sources
+  separately. Reach & Frequency cannot be built until a data source
+  exists.
+
+improvement_signal: >
+  Recurrence of lesson 009 (AC referencing non-existent data fields),
+  caught pre-run rather than mid-run. Evidence that the data-availability
+  dimension belongs in a pre-launch check and not only in Leo's in-run
+  readiness gate -- catching it here costs nothing, catching it in-run
+  costs a full gate-pause round trip.

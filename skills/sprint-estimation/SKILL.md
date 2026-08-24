@@ -3,7 +3,7 @@ name: sprint-estimation
 description: Estimate story points for sprint tickets using Leo + Bob (BMAD Scrum Master) personas with deep code investigation and adversarial review. Triggers on "estimate the sprint", "story point estimation", "point these tickets", "estimate tickets", "re-estimate", "how big is this ticket".
 nav:
   bay: plan
-  when: "Estimate story points with Leo + Bob personas, deep code investigation, adversarial review."
+  when: "Estimate story points with Leo + Bob personas, deep code investigation, adversarial review. Optionally checks dark-factory readiness (soft, offered each run)."
   when_not: "Sprint tracking (use /klever-sprint-mgmt). Individual ticket analysis (use /ticket-to-pr-analyst)."
   personas: [leo, bob]
 ---
@@ -20,6 +20,8 @@ Estimate story points for Klever sprint tickets using Leo (Specification Coach) 
 /sprint-estimation                    # Estimate all tickets in current sprint
 /sprint-estimation KTP-XXX            # Estimate a single ticket
 /sprint-estimation --reassess         # Re-estimate all tickets that already have points
+/sprint-estimation --readiness        # Skip the offer, always run the dark-factory check
+/sprint-estimation --no-readiness     # Skip the offer, never run it
 ```
 
 ## Scale
@@ -112,6 +114,44 @@ Challenge every estimate for:
 - **Empty description estimates:** Are we guessing because there's nothing to estimate?
 - **Split recommendations:** Is anything at 8+ that should be two tickets?
 
+### Phase 4.5: Dark Factory Readiness Check (OPTIONAL — offer every run)
+
+**Offer this every invocation.** Unless `--readiness` or `--no-readiness` was passed, ask once via `AskUserQuestion` after the adversarial review settles, before writing output:
+
+> "Also check these tickets for dark-factory readiness? Soft check, never blocks — it predicts whether a run would survive, and separates ticket problems from factory problems."
+
+If declined, skip to Phase 5. Nothing downstream depends on it.
+
+**This is a SOFT gate. It never blocks an estimate, a ticket, or a launch.** Some tickets are expected to fail permanently because no tool belt covers their work. Recording that is the point, not a problem to solve.
+
+Read `~/.claude/skills/dark-factory/readiness/README.md` for the full contract before running it. Summary:
+
+**Per ticket, assign a verdict** using the factory's own terminal-state vocabulary, so predictions can be scored against real outcomes later:
+
+| Verdict | Means | Whose problem |
+|---|---|---|
+| `READY` | A belt matches, spec is pinned, single-repo | — launch it |
+| `SPEC_GAP` | Thin AC, open forks, missing fixture, absent data | The ticket's — refine first |
+| `BELT_GAP` | No `toolcrib` detect rule covers the deliverable | The factory's — rack a belt, or decide never to |
+| `STRUCTURAL_GAP` | Full-stack multi-repo; one-shot not built | The factory's — sequential single-belt split |
+| `POLICY_GATE` | Belt fits, but the environment is human-gated (prod mutation, IAM/auth) | Neither — the gate is correct |
+
+**Score `spec_quality` independently of `verdict`.** This decoupling carries the whole argument. A ticket with good spec quality that still fails proves the factory is the limiter, not the writing. Without it, belt gaps and thin tickets are indistinguishable in aggregate and no investment case can ever be made.
+
+**Gate dimensions** (from the concierge's real pause conditions plus the lessons catalog): `ac_available`, `placement_resolved`, `fixtures_seeded`, `no_open_forks`, `single_repo_single_belt`, `data_availability`, `belt_match`.
+
+A frontend ticket that will halt at `HALT_PRESHIP` for lack of live visual proof is **not** a readiness failure — that is lesson 010, the belt being honest, and it resolves through the post-merge validate model. Record it under `expected_run_shape`.
+
+**Write one file per check**, every verdict including passes — passes are the denominator:
+
+```
+~/.claude/skills/dark-factory/readiness/check-{YYYY-MM-DD}-{TICKET}.yaml
+```
+
+Then **recompute** `readiness/totals.yaml` from the `check-*` files. Never append a per-check row to `totals.yaml` — it holds aggregates only, and grows with gap categories, not with checks. Do not hand-increment counters.
+
+When a `gap_categories` entry crosses its `threshold` while its tickets are mostly `spec_quality: good`, promote it to a lesson in `documentation/bibliotheque/development/dark-factory/lessons/` and update that catalog's INDEX. Same path `runs/` already uses to feed `lessons/`.
+
 ### Phase 5: Comment Structure
 
 Every comment MUST have three sections:
@@ -150,7 +190,12 @@ Three deliverables:
 
 2. **Jira updates:** For Gabriel's tickets only (use `--estimate` flag on jira_skill.py update)
 
-3. **Comment drafts** (for other people's tickets):
+3. **Readiness check files** (only if Phase 4.5 ran):
+   - One `check-{date}-{TICKET}.yaml` per ticket in `~/.claude/skills/dark-factory/readiness/`
+   - `totals.yaml` recomputed from those files
+   - Summarise verdicts in the estimation file as a table; do not repeat the per-ticket detail there
+
+4. **Comment drafts** (for other people's tickets):
    - Written to `general/drafts/sprint-estimation-comments/`
    - Each as a separate file with YAML frontmatter
    - **NOT posted until Gabriel reviews the list.** Gabriel decides which to post.
@@ -171,6 +216,8 @@ Three deliverables:
 - **Never mention local paths in Jira comments.** No `~/Developer/...`, no `/Users/...`, no "locally." Reference repos by name (`app-proximity-report`), files by relative path (`src/main/java/.../ExportController.java`). The ticket will be read by people who don't share your filesystem.
 - **Use worktrees for code investigation.** Don't read from the user's feature branches and present it as "the codebase." Always verify you're reading dev.
 - **This is coaching, not dictating.** The tone is "here's what I found, here's what I couldn't check, here's my proposal." The owner decides.
+- **Readiness is a soft gate, always.** A `BELT_GAP` verdict never blocks a ticket, an estimate, or a launch. Tickets that will never pass are expected — record them and move on. Never let a readiness verdict change a story point estimate: readiness measures whether a machine can build it, points measure how complex it is. They are independent.
+- **Never skip recording a `READY` verdict.** Passes are the denominator. Without them the track record shows only failures and no rate, and no investment case can be argued from it.
 
 ## Dependencies
 
@@ -178,3 +225,5 @@ Three deliverables:
 - Leo persona (`~/Developer/supervisr-ai/project-management/_bmad/bmm/agents/spec-coach.md`)
 - Bob persona (`~/Developer/gabriel-amyot/projects/ai-software-development/dark-software-factory/_bmad/bmm/agents/sm.md`)
 - Klever Repository Map (CLAUDE.md or `~/.claude/library/context/workspace-map.yaml`)
+- Dark Factory readiness contract (`~/.claude/skills/dark-factory/readiness/README.md`) — only for Phase 4.5
+- Dark Factory tool crib (`~/.claude/skills/dark-factory/toolcrib/INDEX.md`) — belt `detect` rules, for Phase 4.5 belt matching

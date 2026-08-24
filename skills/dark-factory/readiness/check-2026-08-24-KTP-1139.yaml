@@ -1,0 +1,59 @@
+ticket: KTP-1139
+title: "Planning Map -- open nationwide (US + Canada) with Overture POIs + DOOH screens"
+date: 2026-08-24
+source: sprint-estimation
+sprint: sprint-5-q3-2026
+session: quiet-marten
+
+verdict: SPEC_GAP
+predicted_terminal: BLOCKED_SPEC_QUALITY
+spec_quality: poor
+
+belt:
+  matched: frontend
+  detect_basis: >
+    The visible deliverable is a rendered map change. But the work also
+    requires a net-new nationwide POI ingestion path, which is a
+    different belt and probably a different ticket.
+  caveat: >
+    Belt match is nominal. The ticket is not a single deliverable, so
+    belt selection is not yet a meaningful question.
+
+gate_dimensions:
+  ac_available: pass
+  placement_resolved: fail     # "required UI changes (search, layers, region handling)" is unbounded
+  fixtures_seeded: fail        # no nationwide POI dataset exists
+  no_open_forks: fail          # AC defers its own pass condition
+  single_repo_single_belt: fail
+  data_availability: fail      # Canada blocked; nationwide Overture sourcing not built
+  belt_match: partial
+
+blocking_before_launch:
+  - >
+    AC4 defers its own pass condition: "load-time target agreed with
+    dev." There is no number to test against. An AC that cannot fail
+    cannot pass.
+  - >
+    Canada has no data path. No Canadian census/demographics table, and
+    Placer has no Canada coverage. Montreal ships today only as a
+    degraded city (city-config.js:20-22, placerFile null).
+  - >
+    Nationwide POI sourcing does not exist. The Overture FORMAT is
+    already in production (categories.js:1-2 maps Overture
+    categories.primary to display segments; nyc_supplemental_pois.geojson
+    patches gaps in the Overture dataset), but the data model is static
+    per-city files -- nyc_pois.geojson alone is 30.5 MB, ~116 MB across
+    four cities. Nationwide requires replacing static assets with a
+    viewport-driven service.
+  - >
+    Three named UI areas (search, layers, region handling) with no
+    specification between them.
+
+remedy: >
+  Not a factory input in its current form. Split into a spike plus three
+  scoped stories, and settle the perf target as a number, before any
+  launch is considered.
+
+improvement_signal: none
+# Recorded as a pass-through denominator entry. This is an epic filed as
+# a story -- a ticket-quality issue, not a factory capability gap.

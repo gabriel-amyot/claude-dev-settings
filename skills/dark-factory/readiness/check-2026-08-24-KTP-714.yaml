@@ -1,0 +1,54 @@
+ticket: KTP-714
+title: "Clean Up Obsolete Mapbox Tilesets (DMA + Legacy US-Only)"
+date: 2026-08-24
+source: sprint-estimation
+sprint: sprint-5-q3-2026
+session: quiet-marten
+
+verdict: BELT_GAP
+predicted_terminal: BLOCKED_UNSUPPORTED_FLOOR
+spec_quality: fair
+# spec_quality is deliberately NOT the reason this fails. Even a perfect
+# spec would halt here. That decoupling is the point of this record.
+
+belt:
+  matched: none
+  nearest: scripting
+  candidate_needed: vendor-account-ops
+  why_no_match: >
+    The deliverable is a destructive mutation of a third-party vendor
+    account (delete 10 Mapbox tilesets) plus an upload of artifacts to
+    Google Drive. The `scripting` belt is nearest -- its detect rule
+    covers "make tiles, change state" -- but its proof model is an
+    artifact produced by a script that exits. There is no proof model
+    for "an external resource no longer exists," no undo, and no
+    credential/auth path racked for either Mapbox account admin or
+    Google Drive.
+
+gate_dimensions:
+  ac_available: pass
+  placement_resolved: n/a
+  fixtures_seeded: fail        # AC-2 needs 10 .mbtiles that do not exist locally
+  no_open_forks: fail          # inventory is factually wrong (see notes)
+  single_repo_single_belt: fail
+  data_availability: n/a
+  belt_match: fail
+
+notes: >
+  Independent of the belt gap, AC-1's premise is false. Tileset 41wbzf2m
+  is on the delete list but is live at PlanningMap.jsx:1064 (plus
+  source-layer refs at :1068,:1075,:1087) and documented as intended
+  design at agent-os/spec-zip-boundaries.md:7-8. Deleting it breaks the
+  Planning Map ZIP layer. Also: zero .mbtiles files exist in the repo, so
+  AC-2's backup requires re-downloading all 10 from Mapbox.
+
+policy_note: >
+  Even with a vendor-account-ops belt racked, destructive mutation of a
+  production vendor account is a candidate for a permanent human gate
+  rather than autonomous execution. Deletion has no rollback. Worth
+  deciding explicitly rather than by default.
+
+improvement_signal: >
+  External-system mutation. Second instance in this check-run alongside
+  KTP-694. Both deliverables are state changes in a system outside the
+  repo, neither is a spec problem, neither is fixable by refinement.

@@ -1,0 +1,90 @@
+# Dark Factory — pre-run readiness roll-up.
+#
+# Aggregates ONLY. Per-check detail lives in check-{date}-{TICKET}.yaml
+# beside this file. This file grows with CATEGORIES, not with checks —
+# adding the 500th check does not add a row here.
+#
+# Update contract: recompute counters from the check-* files, do not
+# hand-increment. Never append a per-check row to this file.
+
+updated: 2026-08-24
+checks_total: 6
+
+by_verdict:
+  READY: 1
+  SPEC_GAP: 2
+  BELT_GAP: 1
+  POLICY_GATE: 1
+  STRUCTURAL_GAP: 1
+
+# Readiness rate is the number worth watching over time. A low rate with
+# high spec_quality means the factory needs belts. A low rate with poor
+# spec_quality means the tickets need refinement. They are different
+# problems with different fixes.
+readiness_rate: 0.17          # READY / checks_total
+spec_quality_distribution:
+  good: 3
+  fair: 1
+  poor: 2
+
+# --- Gap categories: the belt-investment evidence ---------------------
+# A category is a candidate for investment once `count` crosses
+# `threshold` while `spec_quality` on those tickets is mostly good —
+# that combination proves the tickets are fine and the factory is the
+# limiter.
+
+gap_categories:
+
+  external-system-mutation:
+    count: 2
+    first_seen: 2026-08-24
+    last_seen: 2026-08-24
+    threshold: 5
+    tickets: [KTP-714, KTP-694]
+    belt_candidate: vendor-account-ops
+    summary: >
+      Deliverable is a state change in a system outside the repo — a
+      vendor account, a third-party storage bucket, a production data
+      store. Splits into two sub-shapes with different remedies.
+    sub_shapes:
+      no_belt:
+        tickets: [KTP-714]
+        remedy: rack a belt
+        note: >
+          Mapbox account admin + Google Drive upload. No belt covers
+          either credential path, and no proof model exists for "an
+          external resource no longer exists." Destructive with no undo,
+          so a permanent human gate may be the right answer instead of
+          a belt.
+      belt_fits_environment_gated:
+        tickets: [KTP-694]
+        remedy: documented human-gate handoff
+        note: >
+          The scripting belt fits the work. The target is prod, and prod
+          data mutation is human-gated by policy. Remedy is a clean
+          headless GATE_REQUIRED + decisions.yaml handoff, not a belt.
+
+  multi-repo-fullstack:
+    count: 1
+    first_seen: 2026-08-24
+    last_seen: 2026-08-24
+    threshold: 8
+    tickets: [KTP-1119]
+    belt_candidate: null
+    summary: >
+      Full-stack multi-repo one-shot is not built; the documented
+      workaround is sequential single-belt runs. Tracked to build a
+      denominator — if this is a large share of intake, the workaround
+      becomes the case for a full-stack floor (a floor, not a belt:
+      ADR-002 says a belt swaps tools only).
+
+# --- Recurrences of known lessons, caught pre-run ---------------------
+# Cheap signal: a lesson firing here instead of mid-run means the
+# pre-check is earning its keep.
+lesson_recurrences:
+  "009-ac-referencing-nonexistent-data-fields":
+    count: 1
+    tickets: [KTP-1118]
+    note: >
+      Caught before launch rather than at Leo's in-run gate. Supports
+      keeping a data-availability dimension in the pre-check.

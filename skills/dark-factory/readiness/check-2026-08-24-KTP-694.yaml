@@ -1,0 +1,57 @@
+ticket: KTP-694
+title: "Prod BQ: create Placer AI tables (klever_placer_entity_map + cbg_to_zip_dominant)"
+date: 2026-08-24
+source: sprint-estimation
+sprint: sprint-5-q3-2026
+session: quiet-marten
+
+verdict: POLICY_GATE
+predicted_terminal: GATE_REQUIRED
+spec_quality: good
+# A belt DOES fit this work. The environment is what blocks it.
+
+belt:
+  matched: scripting
+  detect_basis: >
+    Deliverable is a script whose value is its side-effect -- populate
+    BigQuery. A dry-run-tested migration script already exists at
+    tickets/KTP/KTP-130/data/migrate-placer-tables-to-prod.sh.
+  blocked_by: environment
+
+gate_dimensions:
+  ac_available: pass
+  placement_resolved: n/a
+  fixtures_seeded: pass        # dev source tables + a dev backup JSON exist
+  no_open_forks: fail          # AC-3 defers the Taco Chain mapping to a person
+  single_repo_single_belt: pass
+  data_availability: pass      # adapter schemas match the proposed schemas exactly
+  belt_match: pass
+
+policy_note: >
+  The target is PROD BigQuery (prj-p-grid-insigt-71np8gpms3). The
+  terraform-dac-infra belt is explicitly scoped "dev-only autonomous,"
+  and the shipping safeguards require a human gate for prod data
+  mutation. The factory should not write prod data unattended regardless
+  of belt fit. This is the correct outcome, not a capability gap to fix.
+
+risk_to_watch: >
+  Missing-table handling is asymmetric. CbgToZipCrosswalkAdapter.java:47-49
+  catches and falls back to county aggregation. PlacerEntityBridgeAdapter.java:58-61
+  re-throws as RuntimeException, and neither caller catches
+  (StoreMetricsService.java:88, VisitorOriginService.java:65). A partial
+  migration -- crosswalk lands, entity bridge does not -- is a prod
+  outage path. The ticket has no ordering constraint and no rollback AC.
+
+blocking_before_launch:
+  - Verify prod BQ write access. Nothing in-repo names who holds dataEditor.
+  - Add a rollback AC and a migration ordering constraint.
+  - >
+    AC-3 ("Marc-Andre decides how to handle Taco Chain") should be
+    self-served. Taco Chain is demo data; the decision does not need a
+    teammate gate.
+
+improvement_signal: >
+  External-system mutation, prod variant. Pairs with KTP-714. Distinct
+  sub-shape worth tracking separately: here the belt exists and the
+  environment is the blocker, so the remedy is a documented human-gate
+  handoff (headless GATE_REQUIRED + decisions.yaml), not a new belt.

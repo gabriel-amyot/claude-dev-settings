@@ -23,9 +23,11 @@ by_verdict:
 # problems with different fixes.
 readiness_rate: 0.17          # READY / checks_total
 spec_quality_distribution:
-  good: 3
-  fair: 1
+  good: 4
+  fair: 0
   poor: 2
+# Note: 4 of 6 tickets have good specs and only 1 is launchable. That
+# ratio is the whole argument — these tickets are not the problem.
 
 # --- Gap categories: the belt-investment evidence ---------------------
 # A category is a candidate for investment once `count` crosses

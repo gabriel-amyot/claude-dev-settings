@@ -7,9 +7,17 @@ session: quiet-marten
 
 verdict: BELT_GAP
 predicted_terminal: BLOCKED_UNSUPPORTED_FLOOR
-spec_quality: fair
+spec_quality: good
 # spec_quality is deliberately NOT the reason this fails. Even a perfect
 # spec would halt here. That decoupling is the point of this record.
+#
+# CORRECTED 2026-08-24 (same session, after falsification). The first
+# pass scored this `fair` on the belief that AC-1's inventory was wrong
+# and unaddressed. It was addressed in June: the 41wbzf2m exception was
+# escalated, PO-approved (Amal, comment 35749), annotated into the
+# backup manifest, and given follow-up ticket KTP-837. The spec is
+# sound. Only the belt gap is real, which makes this a CLEANER
+# data point for the track record, not a weaker one.
 
 belt:
   matched: none
@@ -28,19 +36,29 @@ belt:
 gate_dimensions:
   ac_available: pass
   placement_resolved: n/a
-  fixtures_seeded: fail        # AC-2 needs 10 .mbtiles that do not exist locally
-  no_open_forks: fail          # inventory is factually wrong (see notes)
+  fixtures_seeded: pass        # all 10 .mbtiles already backed up + verified
+  no_open_forks: pass          # 41wbzf2m exception is documented and PO-approved
   single_repo_single_belt: fail
   data_availability: n/a
   belt_match: fail
 
 notes: >
-  Independent of the belt gap, AC-1's premise is false. Tileset 41wbzf2m
-  is on the delete list but is live at PlanningMap.jsx:1064 (plus
-  source-layer refs at :1068,:1075,:1087) and documented as intended
-  design at agent-os/spec-zip-boundaries.md:7-8. Deleting it breaks the
-  Planning Map ZIP layer. Also: zero .mbtiles files exist in the repo, so
-  AC-2's backup requires re-downloading all 10 from Mapbox.
+  Ticket is ~60% complete. 4 of 10 tilesets deleted 2026-06-16; 5 more
+  unblocked since 2026-07-28 when demo-prod reached 1.1.79; 1 (41wbzf2m)
+  deliberately kept as a PO-approved exception, with migration tracked
+  as KTP-837. All 10 .mbtiles are backed up in the ticket's own
+  data/backups/ with a manifest. Remaining work is manual: Studio
+  checks, 5 deletions, a Drive upload, and a one-line doc MR.
+  AC-3's literal wording cannot be satisfied until KTP-837 lands.
+
+correction_note: >
+  The first pass of this check recorded AC-1's premise as false and
+  unaddressed, and claimed no .mbtiles existed. Both were wrong. The
+  cause was reading the code repos exhaustively while never opening
+  tickets/KTP/KTP-559/KTP-714/, which already held the runbook, the
+  backup manifest and the close-out. Recorded here because a readiness
+  check that skips the ticket's own history will keep manufacturing
+  false blockers.
 
 policy_note: >
   Even with a vendor-account-ops belt racked, destructive mutation of a

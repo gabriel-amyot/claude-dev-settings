@@ -59,6 +59,8 @@ Drawn from the concierge's real pause conditions and the lessons catalog:
 | `data_availability` | AC references fields absent from the data model (lesson 009) |
 | `belt_match` | No `toolcrib` detect rule matches the deliverable |
 
+**Read the ticket's own folder before scoring any of these.** A ticket with prior runs may already have a runbook, a PO-approved exception, or a close-out saying it is 60% done. Scoring a gate from code alone produces false blockers — see the `correction_note` in `check-2026-08-24-KTP-714.yaml` for a worked example of getting this wrong.
+
 A frontend ticket that will halt at `HALT_PRESHIP` for lack of live visual proof is **not** a readiness failure (lesson 010). It is the belt being honest, and resolves through the post-merge validate model. Record it under `expected_run_shape`, not as a gate failure.
 
 ## Promotion

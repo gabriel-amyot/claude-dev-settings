@@ -65,6 +65,14 @@ If repos are behind origin, `git fetch origin` in the worktree. Report any repos
 
 **Do NOT estimate from the ticket description alone.** For each ticket:
 
+0. **Read the ticket's own folder FIRST, before touching any code repo.** Look for `tickets/{PREFIX}/{EPIC}/{TICKET-ID}/` and also grep `reports/close-out-*/`, `tickets/sprints/*/QUESTIONS-QUEUE.md` and `EXECUTION-LOG.md` for the ticket key. A ticket with prior runs has already answered some of what you are about to ask: runbooks, backup manifests, PO-approved exceptions, close-out reports with percent-done.
+
+   **Rediscovering a settled decision is worse than not investigating at all** — it manufactures a false blocker and, if it reaches Jira, re-opens a question the PO already closed.
+
+   Learned 2026-08-24 (KTP-714): an estimation run reported a tileset collision as a major new finding and raised the estimate. The collision had been found, escalated, PO-approved and actioned two months earlier, 4 of 10 tilesets were already deleted, and all 10 backups already existed in the ticket's own `data/backups/`. The session had located the ticket folder in its first search and never opened it. Correct estimate was 1, not 3.
+
+   Two traps this also catches: artifacts that are git-ignored binaries are invisible to `git ls-tree` (absence in git is not absence on disk), and ticket artifacts live in `project-management`, not the code repo — searching the wrong repo yields a confident, wrong "it does not exist."
+
 1. **Identify the repo(s).** Use the Klever Repository Map in CLAUDE.md or REPO_MAPPING.yaml. If the ticket doesn't name a repo, infer from the domain (frontend = app-front-portal, backend proximity = app-proximity-report, data = Dataform/BQ, UM = app-user-management, etc.).
 
 2. **Check the code from dev branch.** Read the actual files that would need to change:

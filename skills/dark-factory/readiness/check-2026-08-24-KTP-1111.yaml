@@ -48,7 +48,7 @@ risk_to_watch: >
   high-volume advertiser, not a small one.
 
 labels_to_apply:
-  - Df-specification    # verdict is READY
+  - Df-ready    # verdict is READY
   - frontend            # confirmed belt
 
 improvement_signal: none

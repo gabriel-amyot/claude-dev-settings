@@ -154,12 +154,12 @@ A frontend ticket that will halt at `HALT_PRESHIP` for lack of live visual proof
 
 | Label | When |
 |---|---|
-| `Df-specification` | Verdict is `READY`. The ticket is factory-launchable as written. |
+| `Df-ready` | Verdict is `READY`. The ticket is factory-launchable as written. |
 | the belt id (`frontend`, `java`, `scripting`, `python-service`, `terraform-dac-infra`) | Whenever a belt is confirmed — including on non-READY tickets, since the belt is usually right even when the spec is not. |
 
 Apply with `jira_skill.py`. Do **not** add a label for a `BELT_GAP` verdict — no belt is confirmed, so there is nothing truthful to tag. A ticket that later passes gets labelled on the re-check.
 
-Labels are advisory. A stale `Df-specification` on a ticket whose AC has since changed is worse than no label, so re-check before trusting one that is more than a sprint old.
+Labels are advisory. A stale `Df-ready` on a ticket whose AC has since changed is worse than no label, so re-check before trusting one that is more than a sprint old.
 
 **Write one file per check**, every verdict including passes — passes are the denominator:
 

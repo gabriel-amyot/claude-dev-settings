@@ -73,6 +73,14 @@ If repos are behind origin, `git fetch origin` in the worktree. Report any repos
 
    Two traps this also catches: artifacts that are git-ignored binaries are invisible to `git ls-tree` (absence in git is not absence on disk), and ticket artifacts live in `project-management`, not the code repo — searching the wrong repo yields a confident, wrong "it does not exist."
 
+0b. **If this run will write any Jira ticket description, load the house template FIRST:** `~/.claude-shared-config/skills/templates/jira-ticket-description.md`, and the SOP `documentation/bibliotheque/sops/ticket-authoring.md` in the org's project-management repo.
+
+   **Acceptance Criteria is one of only two mandatory sections.** A ticket shipped without AC is not a lighter ticket, it is an incomplete one. Never invent a process like "AC is a separate refinement pass" to justify omitting it — that phrase contradicts the house standard and, written into a ticket, spreads the error to whoever reads it next.
+
+   The template also fixes what goes where: AC-0 scope gate first, then a Hero AC, then supporting ACs. Open questions and estimation notes are **comments, not description sections**. Jira wiki markup, no em-dashes, no machine-local paths.
+
+   Learned 2026-08-25: five tickets were created with full context and zero AC because the template was never opened, despite the SOP's own checklist saying to open it and a recall hook surfacing it earlier in the same session. Same failure shape as step 0 above — the pointer was available and went unread.
+
 1. **Identify the repo(s).** Use the Klever Repository Map in CLAUDE.md or REPO_MAPPING.yaml. If the ticket doesn't name a repo, infer from the domain (frontend = app-front-portal, backend proximity = app-proximity-report, data = Dataform/BQ, UM = app-user-management, etc.).
 
 2. **Check the code from dev branch.** Read the actual files that would need to change:

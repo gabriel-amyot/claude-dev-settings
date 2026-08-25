@@ -1,0 +1,225 @@
+run_id: run-2026-08-19-KTP-1129
+ticket: KTP-1129
+date: 2026-08-19
+terminal_status: BLOCKED_NEEDS_HUMAN_AGAIN
+ticket_folder: ~/Developer/grp-beklever-com/project-management/tickets/KTP/no-epic/KTP-1129
+
+ticket_folder_note: >
+  The Retro was DISPATCHED with 'Ticket folder: (unresolved)'. The folder above was resolved by the
+  concierge and holds five of its artifacts (analyst/INDEX.md, ac-list.json, affected-repos.json,
+  assumptions.json, human-answers.json). The path was lost by the workflow, not by the concierge:
+  dark-factory.workflow.js assigns `_tf = concierge.ticket_folder` AFTER the needs_human returns, and
+  the BLOCKED_NEEDS_HUMAN_AGAIN return object omits ticket_folder. Retro recovered it by disk search.
+
+title: >
+  app-ttd-trading-mcp: add a fourth MCP tool apply_bid_change that drives the already-deployed and
+  already-guarded bid/propose plus bid/apply routes on the dev gateway, seat jl2ngzy, TTD sandbox. Five
+  ACs, all logic, belt python-service. No new backend code, no new routes, dev only. Accepted risks
+  R1-R3 (the model can write without a human click) are signed in the spec.
+
+terminal_cause: >
+  The concierge ran twice. First pass 14:05 EDT: spec PASS, 5 ACs, belt python-service, prereqs
+  live-verified, needs_human=true on Q1-Q5. Gabriel answered all five at 14:22. The concierge re-ran
+  live, consumed every answer, closed every deferred sub-AC, and then raised ONE NEW question (Q6),
+  which re-fired the needs_human gate as BLOCKED_NEEDS_HUMAN_AGAIN.
+  Q6 is real and well-evidenced: .gitignore:10-12 on origin/dev forbids tracking run-with-env.sh with a
+  stated credential-hygiene reason, so Q3's answer ("commit the launcher with uv from PATH") cannot be
+  executed without deleting that entry, and a tracked file at that path makes git pull fail in any tree
+  holding the untracked local copy (Gabriel's Claude Desktop launcher is one). Evidence: assumptions F12.
+  THE DEFECT IS THE BLAST RADIUS, NOT THE QUESTION. The concierge's own artifacts say "No AC depends on
+  Q6" (analyst/INDEX.md and ac-list.json.still_open). Q6 blocks Q3 only, and Q3 is a Jira design pointer
+  that no AC covers. A question with zero AC blast radius halted a run whose spec the same gate had just
+  rated PASS, with all prereqs live-verified and a matched belt. Five buildable ACs were left unbuilt.
+
+work_produced:
+  code: none
+  worktree: none created
+  branch: none created
+  commits: 0
+  pushed: no
+  artifacts: 5 concierge analyst files (see ticket_folder_note). No design, no grill, no implement, no QA.
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: n/a
+  note: >
+    Default halt mode and zero warn-mode violations, so nothing about the gate is suspect. The gate is
+    also untested by this run: the pipeline never reached implement, so no RED/GREEN chain existed to
+    check. Read this as "no red flag", not as "the gate proved itself".
+
+per_phase:
+  - phase: concierge
+    status: PASS
+    confidence: 85
+    note: >
+      High-quality front-gate work, and the only phase that ran. 16 live-VERIFIED facts (F1-F16), each
+      with a source command, several with an explicit assumption_audit. It re-verified the write-leg
+      facts at 14:17-14:20 on the correct reasoning that seat arming is deployment config and dev shuts
+      down nightly. It found brownfield traps the ACs do not name: F11 (the "exactly three tools, all
+      reads" claim is asserted at TEN sites on origin/dev, two of which are HARD test/script pins that
+      break the build; AC-5 names two), F13 (the server config layer does not know either operator
+      variable), F15 (the graphql passthrough body key is 'document', not 'query'; a 'query' body
+      returns an empty-bodied 400 that would be misread as a permission failure), F16 (system python3
+      cannot verify TLS to the dev gateway, so a bare-python3 live leg would fail as a fake infra
+      refusal). It correctly refused to assert U1 (ADR-0009 decision 1). It honoured the avoid-renames
+      rule on the app-powers-bid-mcp folder vs app-ttd-trading-mcp project mismatch, and honoured
+      Gabriel's 22 staged files on main by planning a fresh origin/dev worktree.
+      What it did NOT do is weigh its residual blocker against its own AC coverage before halting. It
+      wrote "No AC depends on Q6" and halted anyway, because needs_human is one boolean with no scope.
+
+scores:
+  task_confidence: 18
+  factory_fitness: 54
+
+deductions:
+  - points: 55
+    reason: >
+      [task] Zero implementation. The run terminated at the front gate: no worktree from origin/dev, no
+      branch, no commits, no tests, nothing pushed. All five ACs are unbuilt and nothing is deployable.
+  - points: 12
+    reason: >
+      [task] The Q1-authorized live sandbox leg never fired (write 2.25 on ad group 0lw9azn seat
+      jl2ngzy, verify, restore 2.02). So the AC-1 clause "the TTD sandbox holds the new bid", the AC-2
+      clause "restores the book", and the KTP-1062 one-shot rehearsal step 5 all stay open. This leg is
+      time-boxed: dev shuts down at 20:00 EDT and the retro was written at 14:27 EDT, so the second gate
+      round-trip spent part of a hard 5.5-hour window on zero code.
+  - points: 8
+    reason: >
+      [task] Q6 is unresolved, so Q3 (commit run-with-env.sh with uv from PATH) cannot be executed as
+      answered. That is a stated Jira design-pointer deliverable left undelivered.
+  - points: 4
+    reason: >
+      [task] The spec surface is still not fully fixed. U1 (ADR-0009 decision 1) is deliberately
+      unasserted, and AC-5's true footprint is 10 sites per F11 versus the 2 the AC names, parked in
+      prose as "Gabriel can veto the wider sweep" rather than settled. AC-5's real scope is unknown.
+  - points: 3
+    reason: >
+      [task] The five binding answers exist only at analyst/human-answers.json. No
+      <ticket_folder>/factory/decisions.yaml was written, and resumeFromRunId is same-session only, so
+      the cross-session re-entry path has nothing machine-readable to consume and a fresh run can
+      re-ask Q1-Q5.
+  - points: 16
+    reason: >
+      [fitness] needs_human is a single boolean with no blocking scope. The concierge stated that no AC
+      depends on Q6 and still had to halt the whole run, because the schema gives it no way to say
+      "park this one, build the five ACs". One non-AC question costs exactly what a spec FAIL costs.
+  - points: 10
+    reason: >
+      [fitness] The first pass raised Q3 on the observation "the file is not in git" without asking WHY
+      it is not in git. One command (git check-ignore -v run-with-env.sh, or the git show
+      origin/dev:.gitignore it later ran as F12) would have surfaced the ignore entry at 14:05 and let
+      Gabriel close it inside the SAME answer round. The second block was self-inflicted by an
+      incomplete first-pass question.
+  - points: 6
+    reason: >
+      [fitness] The concierge prompt tells the agent "Only set needs_human=true if a NEW, still-unresolved
+      blocker remains", which Q6 satisfies literally. Nothing in the prompt or the contract asks it to
+      weigh a residual blocker against AC coverage, or to prefer parking over halting. Prompt gap, not
+      agent error.
+  - points: 6
+    reason: >
+      [fitness] ticket_folder is lost on every front-gate terminal. dark-factory.workflow.js assigns
+      `_tf = concierge.ticket_folder` only after the AWAITING_HUMAN / BLOCKED_NEEDS_HUMAN_AGAIN returns,
+      and those returns (plus BLOCKED_SPEC_QUALITY) omit ticket_folder, so Retro was dispatched with
+      "(unresolved)" for a folder holding five artifacts. Retro had to search disk to score the run.
+  - points: 5
+    reason: >
+      [fitness] The workflow held humanDecisions in memory and knows the decision-file convention
+      (<ticket_folder>/factory/decisions.yaml, which the headless re-entry reads first), yet wrote
+      nothing there on the terminal exit. Five answered questions are not machine-re-consumable.
+  - points: 3
+    reason: >
+      [fitness] The interactive re-block and the headless gate are two shapes for one event. Headless
+      GATE_REQUIRED emits a gate handoff plus a decision_file and skips Retro; the interactive
+      BLOCKED_NEEDS_HUMAN_AGAIN runs a full Retro on a one-phase trace with no folder and no decision
+      file. The human answers into a prompt argument in one path and into a file in the other.
+
+red_flags:
+  - >
+    Terminal BLOCKED_NEEDS_HUMAN_AGAIN on a question the gate itself scoped as AC-irrelevant: "No AC
+    depends on Q6" appears in the concierge's own analyst/INDEX.md and ac-list.json.
+  - >
+    Two front-gate passes, one full human round-trip, zero lines of code. The spec was rated PASS by the
+    same gate that blocked it.
+  - >
+    Retro was dispatched with "Ticket folder: (unresolved)" while five concierge artifacts sat in the
+    resolved folder. Any retro scoring a front-gate terminal is scoring blind unless it searches disk.
+  - >
+    First-pass Q3 asked whether to commit run-with-env.sh without reading the .gitignore entry that
+    forbids it. The blocker was one command away from the question already being asked.
+  - >
+    Human answers persisted only to analyst/human-answers.json; no factory/decisions.yaml exists and
+    resumeFromRunId is same-session only, so the answers are a session-lifetime asset.
+  - >
+    A live 64-hex operator capability token sits in plaintext in a git-tracked project-management doc
+    (assumptions F5 hygiene_note, KTP-1062 plan doc line 131). The gate recorded it as a hygiene note
+    and moved on. It never became a question, an inbox item, or a red flag anywhere a human will look.
+  - >
+    AC-5's real scope (10 sites asserting "three tools, all reads", 2 of them build-breaking pins) is
+    3x wider than the AC text and was parked in prose as vetoable rather than raised as a question.
+  - >
+    The Q1 live-write leg the human authorized is time-boxed by the 20:00 EDT dev shutdown, and the
+    gate loop is spending that window.
+  - >
+    One phase in the whole trace, so this run yields almost no signal about any gate downstream of the
+    front door.
+
+improvements:
+  - title: Give each open_question a blocking scope, and halt only on AC-blocking ones
+    detail: >
+      Extend CONCIERGE_SCHEMA's open_questions items with `blocks_acs: string[]` (AC ids, empty = blocks
+      no AC) and `severity: 'blocking' | 'parkable'`. In dark-factory.workflow.js, fire the needs_human
+      halt only when some question has a non-empty blocks_acs or severity 'blocking'. Parkable questions
+      advance the pipeline: they go into decisionsNote as "PARKED, do not implement", into the ticket's
+      "Open Questions / Deferred ACs" section, and into Gabriel's inbox. Q6 on this run is the exact
+      test case: parkable, blocks_acs [], so KTP-1129 should have built its five ACs and shipped with
+      Q3 explicitly deferred.
+  - title: A question about a file's state must carry the reason that state exists
+    detail: >
+      Add to contracts/1-concierge.md: before raising any question about a file being untracked,
+      ignored, missing, duplicated, or oddly placed, run the one command that explains WHY (git
+      check-ignore -v <path>, git log -S '<path>' -- .gitignore, git log --diff-filter=D) and put that
+      constraint plus 2-3 legal options INSIDE the question. A question whose obvious answer is illegal
+      is not a finished question. This alone collapses this run's two gate rounds into one.
+  - title: Stop losing ticket_folder on front-gate terminals
+    detail: >
+      In dark-factory.workflow.js, move `_tf = concierge.ticket_folder` to immediately after
+      `rec('concierge', ...)`, and add `ticket_folder: concierge.ticket_folder` to the AWAITING_HUMAN,
+      BLOCKED_NEEDS_HUMAN_AGAIN and BLOCKED_SPEC_QUALITY return objects. Retro should never search disk
+      for a path the front gate already returned.
+  - title: Mirror consumed answers to factory/decisions.yaml on every front-gate exit
+    detail: >
+      When the workflow exits at the front gate holding humanDecisions, write
+      <ticket_folder>/factory/decisions.yaml as the YAML list of { id, question, answer } the headless
+      re-entry already expects, copying question text verbatim (it is the staleness guard). Have
+      contract 1 write the same file when it consumes interactive answers. Then a fresh cross-session
+      run re-enters idempotently instead of re-asking five settled questions.
+  - title: A second front-gate block should emit a gate handoff, not just a status
+    detail: >
+      On BLOCKED_NEEDS_HUMAN_AGAIN, reuse the headless GATE_REQUIRED payload: gate_of, decision_file,
+      the decision_packet with ids and verbatim question text, and next_steps_for_caller. One shape for
+      one event, and the human answers into a file that survives the session either way.
+  - title: Front-gate hygiene finding becomes a parkable question, not a footnote
+    detail: >
+      When the concierge finds a live credential in a tracked file (this run: F5, a 64-hex operator
+      capability token in a git-tracked project-management doc), it must raise a parkable open_question
+      so the item reaches Gabriel's inbox. Today it lands in assumptions.json as a hygiene_note that
+      only the next agent reads.
+  - title: Raise a parkable scope question when the brownfield sweep is wider than the AC text
+    detail: >
+      F11 found 10 sites asserting a claim AC-5 names at 2, and 2 of the 10 are hard pins that break
+      the build. The concierge parked that in prose. It should be a parkable open_question with a stated
+      default ("sweep every site of the same claim; CHANGELOG excluded as historical"), so the wider
+      scope is visible and vetoable without blocking the build.
+
+next_run_handoff: >
+  tickets/KTP/no-epic/KTP-1129/reports/status/dark-factory-improvements-KTP-1129.md
+  (the session that ran this factory, lucid-crane, is closed and archived with no prompts/ folder, so
+  the contract's ticket-folder fallback applies)
+
+summary: >
+  A strong front gate blocked its own green light. The concierge produced 16 live-verified facts, a PASS
+  spec, five provable ACs and a matched belt, then halted the entire run on Q6, a launcher .gitignore
+  conflict its own artifacts say no AC depends on. Nothing was built. The fix is scope on needs_human
+  plus a rule that a question must carry the constraint that makes its obvious answer illegal.

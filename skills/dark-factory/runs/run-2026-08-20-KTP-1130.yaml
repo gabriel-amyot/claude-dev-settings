@@ -1,0 +1,382 @@
+run_id: run-2026-08-20-KTP-1130-preship
+ticket: KTP-1130
+date: 2026-08-20
+terminal_status: HALT_PRESHIP
+ticket_folder: ~/Developer/grp-beklever-com/project-management/tickets/KTP/no-epic/KTP-1130
+repo: grp-faas/grp-app/grp-backend/grp-mcp/app-powers-bid-mcp
+branch: KTP-1130-mcpb-desktop-extension
+base: origin/dev @ 362764a8
+head: d6b4440
+commits: 16
+pushed: NO — see red flag 1
+
+prior_run: >
+  run-2026-08-19-KTP-1130 (BLOCKED_SPEC_QUALITY, 15 / 68). That run rejected the spec at the front
+  gate on five questions. Gabriel answered all five in-session, the answers were written to
+  factory/decisions.yaml, the corrected spec was written to AC-LOCAL.md, and this run is the rebuild
+  against that spec. The rejection worked: the second run got through concierge, design, grill,
+  implement, review and QA on the same ticket that could not be built the day before.
+
+title: >
+  app-ttd-trading-mcp: package the MCP server as a .mcpb desktop extension carrying a pinned arm64
+  CPython, so a trader installs it from Settings and Extensions with no git, no uv and no 1Password
+  CLI, and with no write capability on the laptop. Four ACs built (AC-5 deferred by Q3), belt
+  python-service, dev only.
+
+terminal_cause: >
+  preShipBlockers fired on the QA verdict. QA returned PARTIAL with a real (non-visual) gap, so
+  qa_gap classified as real_gap and the pipeline halted before ShipPrep. The gap is honest and
+  correctly refused:
+    AC-4 PARTIAL — a REFUSED Auth0 credential (a mistyped client id or secret, the most likely trader
+      misconfiguration) is rejected by the token proxy at the first upstream hop. media_api.py:162-165
+      raises UpstreamError("the token proxy answered 401"), which selfcheck._classify does not match,
+      so the self check reports outcome='upstream', whose own docstring means "the install may still
+      be correct". AC-4 requires "a missing OR REFUSED credential reports a named credential or seat
+      failure". The reviewer demonstrated it with a probe test; QA independently replayed it for both
+      401 and 403. Open at the tip.
+    AC-3 PARTIAL — the AC's named proof (grep for the real client secret VALUE over the tree, the
+      unpacked bundle and claude_desktop_config.json) could not run: `op whoami` returns "account is
+      not signed in" and signing in to 1Password is a human step.
+  The halt is the factory doing its job. It refused to ship a bundle whose self check would send a
+  trader with a mistyped secret to look at the network.
+
+work_produced:
+  code: 16 commits, 21 files, +1471 / -17
+  worktree: .worktrees/KTP-1130-mcpb-desktop-extension (implementor) + .worktrees/KTP-1130-qa (QA, detached at tip)
+  branch: KTP-1130-mcpb-desktop-extension (LOCAL ONLY — no origin ref, no upstream)
+  pushed: no
+  artifact: dist/ttd-trading-mcp-0.5.0.mcpb — 28.9 MB, 4900 files, sha1 4414562495f8f90c402c276f31eff5cff119e543
+  test_suite: 382 passed, 0 failed, 0 skipped at the tip (KTP1130_REQUIRE_BUNDLE=1)
+  ticket_artifacts:
+    - AC-LOCAL.md (authoritative spec, diverges from Jira by decision)
+    - factory/decisions.yaml (Q1-Q6 verbatim, answered)
+    - design/impl-plan.md + design/grill-report.md (G1-G12)
+    - tdd/AC-1.md .. AC-4.md (per-AC RED/GREEN ledger)
+    - review/findings.json + review/test_review_ktp1130.py (executable probe) + review/diff.patch
+    - qa/result.yaml + 12 evidence .out files
+    - architecture/adr/ADR-draft-the-bundle-installs-into-its-own-interpreter.md (uncommitted draft)
+  not_produced:
+    - no push to origin
+    - no MR
+    - no Jira comment (AC-5 deferral, the Q6 ruling and two open MEDIUMs are disk-only)
+    - reports/ tree is empty; plan/ and jira/ac/ are empty
+    - STATUS_SNAPSHOT.yaml still reads "status: TO DO / no build started"
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: yes
+  note: >
+    Default halt mode, zero warn-mode violations, and UNLIKE the prior run the gate was actually
+    exercised: four ACs each carry a STUB -> RED -> GREEN commit chain, and QA re-verified every RED
+    independently. QA confirmed by `git show --stat` that each RED commit touches the test file only
+    (e6399c3 AC-1 134+, 023acc6 AC-2 59+, 774e31f AC-3 82+, 69d1b15 AC-4 79+), replayed each at its
+    commit, and confirmed every failure was an AssertionError or a `DID NOT RAISE`, never an
+    ImportError. QA also caught and correctly dismissed the one impurity: 023acc6 carries a 2-line
+    uv.lock echo of the 0.4.0 -> 0.5.0 bump, a lock file that cannot move an assertion. This is the
+    cleanest TDD chain in the run history.
+
+per_phase:
+  - phase: concierge
+    status: PASS
+    confidence: 80
+    note: >
+      Passed on the second attempt because factory/decisions.yaml carried Gabriel's answers to Q1-Q5
+      and AC-LOCAL.md carried the corrected spec. It raised one NEW question of its own (Q6: the AC-1
+      grep for apply_bid_change.py / KLEVER_TTD_WRITE / KLEVER_TTD_OPERATOR cannot pass bundle-wide,
+      because origin/dev carries all three tokens in source the bundle must ship so the write tool can
+      self-disable). Correct catch. The resolution is a red flag, not the catch: see red flag 9.
+      confidence_deductions not recoverable — rec() still drops them.
+
+  - phase: design
+    status: pass
+    confidence: 78
+    note: >
+      impl-plan.md is strong. It names AC-LOCAL.md as binding over the Jira description in its first
+      paragraph (the project rule), pins the binding-input order, and states every repo line reference
+      was read with `git show origin/dev:<path>` because local main is 70 commits behind and holds 22
+      staged files. It correctly derived the hardest constraint of the ticket unprompted: the self
+      check cannot be a fifth tool, because test_tool_schemas.py::test_exactly_these_four_tools_are_exposed
+      and execute_verify_stdio.py:120 both pin the served set at four. It scoped the change to four
+      files and stated what does not change.
+
+  - phase: grill
+    status: partial
+    confidence: 76
+    note: >
+      Twelve findings (G1-G12), and they were load-bearing, not decoration. G11 caught that
+      `uv pip install` does not read uv.lock, so the bundle would have resolved unpinned — a
+      reproducibility break invisible to every downstream proof. G12 caught the ambiguous CPython pin
+      (cpython-3.13.12-macos-aarch64-none vs the +freethreaded variant). G10 observed that nothing in
+      the plan exercised the manifest's env block behaviourally, only as a JSON field read, so Q4's
+      whole seat pin rested on a field inspection. The grill also amended the order of work so G1/G2/
+      G11/G12 land on the first write of build_mcpb.py, noting G2 cannot be caught downstream.
+      'partial' is honest: G10's second execute-verify run was recommended, not required, and was not
+      built, so the seat pin is still proved by field read plus the startup gate rather than by a
+      packaged-env launch.
+
+  - phase: implement
+    status: partial
+    confidence: 70
+    note: >
+      Built all four ACs with a clean per-AC TDD chain and a real 28.9 MB artifact. Raised and
+      resolved the ADR-worthy question (installing into a uv standalone interpreter's own
+      site-packages requires --break-system-packages against an EXTERNALLY-MANAGED marker) and wrote
+      it up as a draft ADR rather than silently doing it. The 30 points of self-doubt are the honest
+      part of this run and the reason it did not lie about shipping: the push to origin failed and the
+      phase did not claim otherwise loudly enough for any gate to act. See red flag 1.
+
+  - phase: review
+    status: "criticals:0"
+    confidence: 78
+    note: >
+      The best review artifact in the run history. Three findings, ALL with demonstrated:true and an
+      executable probe file (review/test_review_ktp1130.py) that a third party can copy into tests/ and
+      run. Each carries the observed assertion text and a suggested_fix with the raise site
+      (media_api.py:163). It also lists five not_findings_checked with the reason each was dismissed,
+      including a live probe of the -m double-import concern. The HIGH is a direct AC-4 miss and it is
+      what eventually halted the run. criticals_open:0 is accurate and honest — none of the three is a
+      CRITICAL by the contract's definition — but that accuracy is exactly what let the AC miss walk
+      past the fix loop. See improvement 3.
+
+  - phase: qa
+    status: PARTIAL
+    confidence: 80
+    note: >
+      Segregated and genuinely adversarial. QA built the bundle itself in its own worktree rather than
+      accepting the implementor's, unpacked it to /tmp/ktp1130-unpack, and hand-verified the artifact:
+      4900 files, zero apply_bid_change* entries, zero scripts/ entries, three literal tokens absent
+      from manifest.json. It ran the inverse guard (bid_write.py still ships, so AC-1 was not satisfied
+      by breaking AC-2) — that check was not asked for. It proved the module resolves from the bundle's
+      own site-packages with `env -i` and confirmed arm64 with `lipo -archs`. It replayed all four REDs
+      and the reviewer's probe file. It proved the AC-3 control with a planted canary (found in tree
+      and dist, absent after removal) and ran gitleaks over the history, the tree and the bundle, then
+      still called AC-3 PARTIAL because the substitute is value-agnostic and not the named proof. That
+      refusal to round up is the single best behaviour in this run.
+
+scores:
+  task_confidence: 40
+  factory_fitness: 63
+
+deductions:
+  - points: 20
+    reason: >
+      [task] The branch was never pushed. `git rev-list --count origin/dev..KTP-1130-mcpb-desktop-extension`
+      = 16, `git config branch.<b>.merge` = empty, and there is no remotes/origin/KTP-1130-mcpb-desktop-extension.
+      Sixteen commits, a 28.9 MB built artifact and every proof exist on one laptop. Nothing is
+      deployable, no MR can be opened, and a `git clean` or a worktree prune loses the run.
+  - points: 14
+    reason: >
+      [task] AC-4 has a real logic gap, open at the tip. A refused Auth0 credential (401/403 at the
+      token proxy) reports outcome='upstream' instead of the named credential failure the AC requires.
+      Demonstrated by the reviewer and independently replayed by QA for both status codes. This is the
+      most likely trader misconfiguration reporting with the outcome name that means "the install may
+      still be correct".
+  - points: 8
+    reason: >
+      [task] AC-3 cannot reach PASS in this run. Its named proof is a grep for the real client secret
+      VALUE and `op whoami` returns "account is not signed in". The canary-proven control plus a clean
+      gitleaks sweep is a strong substitute but it is value-agnostic, so the AC as written is unproven.
+  - points: 6
+    reason: >
+      [task] Two open MEDIUM findings are shipped risk, not paperwork. The draft tool still returns
+      next_step "Run: uv run python scripts/apply_bid_change.py", a file the bundle deliberately does
+      not ship and a `uv` binary it does not carry, so a packaged trader is instructed to run something
+      that cannot exist. And the manifest launch args are `-s -B` with no `-E`, so an inherited
+      PYTHONPATH shadows the bundled package on a real desktop launch — the exact developer-machine
+      failure class this ticket exists to remove. The contract's stated reason for omitting -E was
+      proven factually wrong by probe.
+  - points: 5
+    reason: >
+      [task] AC-5 is unbuilt. Deferring it was the right call (Q3: it needs check_apply_status, which
+      does not exist, plus KTP-1127 and KTP-1128, both TO DO) but the Jira ticket still carries five
+      ACs and the deferral has not reached Jira. The ticket is not done as filed.
+  - points: 4
+    reason: >
+      [task] The AC-4 live leg is unproven for the second consecutive run. The ok-path read of ad group
+      0lw9azn on seat jl2ngzy through apigateway.dev.beklever.com returned HTTP 000 at 00:42 EDT,
+      inside the documented Klever dev nightly shutdown. Pre-authorized as environment by Q5, but it is
+      still an unproven AC leg, and it died the same predictable way yesterday.
+  - points: 3
+    reason: >
+      [task] The real trader install in Claude Desktop is unverified. PARTIAL by design under Q5,
+      pending Gabriel's human run, but the ticket's whole premise is "a trader installs it from
+      Settings and Extensions" and nobody has done that yet.
+  - points: 12
+    reason: >
+      [factory] No mechanical push verification anywhere in the pipeline. preShipBlockers:311 trusts
+      `impl.pushed !== true`, a boolean the implement agent reports about itself, for the single most
+      falsifiable fact in the run. One `git ls-remote --heads origin <branch>` would have caught it.
+      Worse, the failure was invisible downstream: the Review prompt and the QA prompt both instruct
+      "run 'git fetch origin <branch>' then 'git checkout <branch>'", the fetch returned 502, and both
+      phases silently fell back to a local ref. The segregation premise — that the reviewer and QA see
+      only what was pushed — was defeated for two full phases and no gate noticed.
+  - points: 6
+    reason: >
+      [factory] The retro's own filed improvements are still not applied, now on the third filing.
+      rec() at workflow.js:417 still records only { phase, status, confidence } and discards
+      confidence_deductions, so every phase's self-score arrives here unauditable (six phases, 128
+      unexplained points this run). `_tf = concierge.ticket_folder` is still assigned at :541, after
+      the BLOCKED_SPEC_QUALITY return at :531. The improvement loop is producing findings faster than
+      they are being applied.
+  - points: 5
+    reason: >
+      [factory] No proof-tooling preflight. AC-3's named proof requires a 1Password sign-in and AC-4's
+      requires a live dev endpoint. Both were knowable before a line of code was written — the ACs name
+      them — and neither was checked. The cost was discovered in QA, at the end, after the full build.
+  - points: 5
+    reason: >
+      [factory] No live-endpoint window check, and this was improvement 7 of yesterday's retro on this
+      exact ticket. Klever dev is off after 20:00 EDT. The run gated at 00:42 EDT and took the same
+      predictable 000 twice in two days.
+  - points: 4
+    reason: >
+      [factory] The bounded fix loop is CRITICAL-only (`while (review.criticals_open > 0)`). The
+      reviewer produced a demonstrated HIGH that is a direct AC-4 miss, with a suggested_fix and the
+      raise site already identified, and the loop never fired. That finding walked untouched through
+      QA and became the halt. The factory had the diagnosis and the prescription in hand and had no
+      mechanism to use them.
+  - points: 3
+    reason: >
+      [factory] Ticket-folder hygiene not maintained. STATUS_SNAPSHOT.yaml still reads
+      "status: TO DO / source: spec created via adversarial review, no build started" after 16 commits,
+      382 passing tests and a full QA pass. reports/ is an empty four-directory skeleton; plan/ and
+      jira/ac/ are empty. The project CLAUDE.md names STATUS_SNAPSHOT.yaml as a front loader that
+      agents read FIRST, so the next session's first read is a lie.
+  - points: 2
+    reason: >
+      [factory] Nothing reached Jira or the inbox, again. The AC-5 deferral, the Q6 ruling that
+      narrowed an AC's assertion, and the two open MEDIUMs are all disk-only. The project SOP is
+      explicit that a deferred AC must produce a Jira comment, and this is the second run of this
+      ticket to end with every decision parked on disk.
+
+red_flags:
+  - >
+    The feature branch was never pushed. 16 commits ahead of origin/dev, no upstream configured, no
+    remotes/origin ref. QA wrote the cause into its own result.yaml as a comment — "git fetch origin
+    KTP-1130-mcpb-desktop-extension failed (remote 502, IAP/registry). The branch is local-only" — and
+    no gate reads comments in a YAML file.
+  - >
+    Review and QA were both told to fetch the branch from origin, both could not, and both continued
+    anyway from a local ref. A hard prerequisite degraded to a soft fallback silently, twice.
+  - >
+    preShipBlockers decides "was this pushed" from a boolean the writing agent reports about itself,
+    while `git ls-remote` sits one line away.
+  - >
+    Third consecutive retro filing the same two workflow.js one-liners (rec() confidence_deductions,
+    _tf placement). Neither applied. Yesterday's retro on this same ticket said "Apply it before
+    running the factory again."
+  - >
+    Second consecutive run of KTP-1130 gated inside the documented Klever dev nightly shutdown window.
+    Yesterday's retro filed exactly this as improvement 7.
+  - >
+    AC-3 committed the run to a proof that needed a human 1Password sign-in. Nobody ran `op whoami`
+    before the build. The AC was structurally unpassable from the first commit.
+  - >
+    A demonstrated HIGH that is a direct AC miss, with a fix already written in suggested_fix, did not
+    enter the bounded fix loop because the loop only reads criticals_open.
+  - >
+    STATUS_SNAPSHOT.yaml says "no build started" next to 16 commits and a 28.9 MB artifact. The
+    front loader the next agent reads first is stale.
+  - >
+    Q6 was answered by the session agent, not by Gabriel, under "delegated overnight management", and
+    the answer NARROWED what AC-1 proves — from a bundle-wide grep for three write tokens to a
+    manifest-only grep. The narrowing is well-argued (the server source must carry those names to
+    self-disable, so a bundle-wide grep tests vocabulary, not capability) and is flagged as vetoable,
+    but an agent changed the assertion of an AC and the record lives only in an HTML comment at the
+    top of AC-LOCAL.md.
+  - >
+    The main checkout of app-powers-bid-mcp is 70 commits behind dev and holds 22 staged files. Every
+    phase had to be told to read origin/dev instead. That is a standing landmine under the
+    fetch-before-read rule, not a KTP-1130 problem.
+  - >
+    Everything this run produced — 16 commits, the artifact, all proofs — exists on one machine with
+    no remote copy.
+
+improvements:
+  - title: Verify the push with git, never with a self-reported boolean
+    detail: >
+      In dark-factory.workflow.js, immediately after the Implement TDD gate and again inside
+      preShipBlockers, run `git ls-remote --heads origin <impl.branch>` and compare the returned sha to
+      the branch HEAD. Do not read impl.pushed. On an empty result or a sha mismatch, return
+      HALT_NOT_PUSHED with the raw ls-remote output and the local sha. This run advanced through Review
+      and QA — two full phases, both of which depend on the push — with zero commits on origin. This is
+      the highest-value fix on the list and it is one command.
+  - title: A failed fetch in Review or QA is 'stuck', not a fallback
+    detail: >
+      Contracts 5-review.md and 6-qa.md both say "run 'git fetch origin <branch>' then 'git checkout
+      <branch>'". Add an explicit clause: if that fetch fails for any reason, return status 'stuck'
+      with the git error verbatim and do NOT substitute a local ref, a local worktree, or a detached
+      checkout. QA did substitute, documented the 502 honestly in a YAML comment, and produced excellent
+      work — but the segregation guarantee the whole review/QA split exists to provide was gone and
+      nothing could tell.
+  - title: Escalate the fix loop to a demonstrated HIGH that names an AC
+    detail: >
+      The loop condition at workflow.js is `while (review.criticals_open > 0 && fixRounds < MAX_FIX_ROUNDS)`.
+      Widen it: enter the loop for any finding with demonstrated:true whose title or detail references an
+      AC id, regardless of severity. This run's halt cause was review finding 1 — HIGH, demonstrated with
+      an executable probe, with suggested_fix naming media_api.py:163 as the raise site. The factory had
+      the diagnosis and the prescription and no path from one to the other. Keep MAX_FIX_ROUNDS at 2 so a
+      persistent gap still halts.
+  - title: Preflight the proof tooling each AC names, before Implement
+    detail: >
+      Add a step to contract 1 (or a workflow pre-Implement probe): for every AC, extract the commands
+      its Then clause names and check their prerequisites. `op whoami` for any 1Password-backed value, a
+      HEAD request for any live endpoint, `gitleaks version`, `mcpb --version`. Return each as
+      available/unavailable with the error, and pre-classify the affected AC as PARTIAL in the plan
+      rather than discovering it at the end of QA. AC-3 of this run was unpassable from commit one and
+      the run found out after the full build.
+  - title: Apply the two workflow.js fixes now filed by three retros
+    detail: >
+      (a) rec() at :417 becomes
+      `trace.push({ phase: name, status: ..., confidence: r ? r.confidence : null, confidence_deductions: (r && r.confidence_deductions) || [] })`
+      and the retro dispatch passes the full array. Six phases this run declared 128 points of
+      self-doubt and not one is recoverable, which makes the retro unable to audit the self-assessment
+      it exists to audit. (b) move `_tf = concierge.ticket_folder` from :541 to just after the
+      concierge rec() at :491 and add `ticket_folder: concierge.ticket_folder` to the
+      BLOCKED_SPEC_QUALITY (:531), BLOCKED_NEEDS_HUMAN_AGAIN and AWAITING_HUMAN returns. Both were
+      filed on 2026-08-19 by the KTP-1129 retro and again by the KTP-1130 retro the same day.
+  - title: Refuse to start a live-verify ticket inside the dev shutdown window
+    detail: >
+      Klever dev is off after 20:00 EDT (documented in the bibliotheque SOP). Before dispatch, if any
+      AC's proof names a *.dev.beklever.com endpoint and the local clock is inside the window, either
+      park the run until the next window or state up front, in the plan, which legs are deferred and
+      why. Two runs of this ticket, two HTTP 000s on the same AC-4 leg, and yesterday's retro already
+      filed this.
+  - title: Make the ticket front loader a contract deliverable
+    detail: >
+      Add a step to contract 6 (or a workflow post-QA write): update
+      <ticket_folder>/STATUS_SNAPSHOT.yaml with status, branch, head sha, commit count and the per-AC
+      verdict lifted from qa/result.yaml. The project CLAUDE.md tells every agent to read
+      README.md then STATUS_SNAPSHOT.yaml FIRST. This one still says "no build started" beside a
+      finished build, so the next session's first read is actively misleading.
+  - title: A HALT terminal must leave the disk
+    detail: >
+      Contract 9 currently ends at two files on disk. On any HALT with real work behind it, also
+      produce (a) a general/inboxes/gabriel/pending/ item naming the blocker and the human steps it
+      needs, and (b) a drafted Jira comment through /post-comment. KTP-1130 needs three things on
+      Jira right now: the AC-5 deferral, the Q6 ruling that narrowed AC-1's assertion, and the two
+      open MEDIUMs. All three are disk-only for the second run running.
+  - title: Flag an agent-decided AC narrowing as a first-class artifact
+    detail: >
+      Q6 was resolved by the session agent under delegated authority, and the resolution changed what
+      AC-1 asserts. That is legitimate here and well-reasoned, but the record is an HTML comment in
+      AC-LOCAL.md. When a decision in factory/decisions.yaml has no human answer and the agent supplies
+      one that alters an AC's assertion, write it to a distinct file
+      (<ticket_folder>/factory/agent-rulings.yaml) with the option chosen, the options rejected, the
+      evidence, and an explicit `vetoable_until` marker, and name it in the terminal return so it
+      cannot be missed at review time.
+
+next_run_handoff: >
+  ~/Developer/grp-beklever-com/project-management/sessions/active/prompts/dark-factory-improvements-KTP-1130-preship.md
+
+summary: >
+  The strongest build the factory has produced, halted correctly on an honest gap, on a branch that
+  never left the laptop. The rebuild against AC-LOCAL.md worked: four ACs, a clean STUB/RED/GREEN chain
+  on all four, 382 green tests, a real 28.9 MB bundle that QA rebuilt and hand-verified, a review with
+  executable probes, and a QA that refused to round AC-3 up to PASS when its substitute proof was
+  value-agnostic. Two ACs fall short for real reasons — a refused Auth0 credential is classified
+  'upstream' instead of 'credential', and the named secret-value grep needs a human 1Password sign-in.
+  The structural failure is elsewhere: the push to origin failed with a 502, no gate checks git for the
+  push, and Review and QA both fell back to a local ref instead of stopping. Sixteen commits and every
+  proof in this run exist on one machine.

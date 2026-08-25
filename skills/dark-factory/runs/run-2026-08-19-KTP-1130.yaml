@@ -1,0 +1,236 @@
+run_id: run-2026-08-19-KTP-1130
+ticket: KTP-1130
+date: 2026-08-19
+gate_run_utc: 2026-08-20T02:45Z
+terminal_status: BLOCKED_SPEC_QUALITY
+ticket_folder: ~/Developer/grp-beklever-com/project-management/tickets/KTP/no-epic/KTP-1130
+
+ticket_folder_note: >
+  The Retro was DISPATCHED with 'Ticket folder: (unresolved)' for the SECOND consecutive run. The path
+  above was resolved by the concierge and holds four of its artifacts (analyst/ac.json,
+  assumptions.json, affected-repos.json, open-questions.md). The workflow lost it, not the concierge:
+  dark-factory.workflow.js:531 returns { status: 'BLOCKED_SPEC_QUALITY', ticket, concierge } with no
+  top-level ticket_folder, and _tf = concierge.ticket_folder is assigned at :541, AFTER that return.
+  The retro of run-2026-08-19-KTP-1129 filed this exact fix earlier the same day. It was not applied.
+  Retro recovered the path by disk search again.
+
+title: >
+  app-ttd-trading-mcp: package the MCP server as a .mcpb desktop extension with a bundled pinned arm64
+  interpreter, so a trader installs it from Settings and Extensions with no git, no uv, no 1Password
+  CLI, and no write capability on the laptop. Five ACs, belt python-service, dev only.
+
+terminal_cause: >
+  The concierge ran once and returned spec_quality FAIL with needs_human true. The verdict is CORRECT
+  and well-evidenced. Nine facts, each with a source command and an assumption_audit, all read from
+  origin/dev after a fetch (the local main checkout is stale and dirty, and was refused).
+  Four independent spec defects, any one of which blocks a safe build:
+    Q1  Definition of Ready unmet. The ticket says "Not started until Gabriel comments Approved on this
+        ticket" and the ticket has zero Jira comments (F9). The gate refused to self-approve.
+    Q2  AC-2 asserts "the served tool list matches the seven names from the tool contract ticket". No
+        such ticket exists (F3, two independent probes). The live surface on origin/dev is exactly FOUR
+        tools, hard-pinned by tests/test_tool_schemas.py::test_exactly_these_four_tools_are_exposed,
+        and the contract page states "A fifth tool is a contract change, not an addition" (F1).
+    Q3  AC-5 names check_apply_status, which does not exist anywhere on origin/dev (F2), and depends on
+        KTP-1127 and KTP-1128, both TO DO (F4). AC-5 also describes a browser-Confirm write model that
+        contradicts the direct-write apply_bid_change that KTP-1129 actually shipped.
+    Q4  AC-3's "never falls back to a default" contradicts ADR-0001: KLEVER_TTD_SEAT is optional and
+        defaults to lklghjp when absent (F5). Two legal repairs, two different diffs.
+    Q5  Three sub-criteria are human-run, not factory-verifiable (fresh macOS account install, trader
+        install + read in a desktop client, live gateway read).
+  UNLIKE the KTP-1129 halt, this one is not a false block. AC-2 and AC-5 cannot be built as written by
+  anyone, and the ticket's own Definition of Ready was unmet. The factory refused a bad spec cheaply.
+
+self_declared_blocker: >
+  The ticket's own spec.md line 4 reads: "Blocked by: The MCP tool contract ticket for the package
+  contents. AC-5 also needs the media-api approval ticket and the DAC gateway ticket live on dev."
+  The ticket declared itself blocked in its first lines, and the README declares "KTP-1129 blocks
+  KTP-1130". A full concierge pass was spent to re-derive what the artifact already stated.
+
+work_produced:
+  code: none
+  worktree: none created
+  branch: none created
+  commits: 0
+  pushed: no
+  artifacts: 4 concierge analyst files (ac.json, assumptions.json, affected-repos.json,
+    open-questions.md). No factory/decisions.yaml, no Jira comment, no inbox item. No design, no grill,
+    no implement, no QA.
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: n/a
+  note: >
+    Default halt mode and zero warn-mode violations, so nothing about the gate is suspect. The gate is
+    also untested by this run: the pipeline never reached implement, so no RED/GREEN chain existed to
+    check. Read this as "no red flag", not as "the gate proved itself".
+
+per_phase:
+  - phase: concierge
+    status: FAIL
+    confidence: 80
+    note: >
+      The only phase that ran, and it ran well. Nine VERIFIED facts (F1-F9), every one with the command
+      that established it and most with an explicit assumption_audit. It read origin/dev after a fetch
+      and explicitly refused the local checkout (70 commits behind, dirty). F3 applies the KTP-130/B1
+      lesson by name: it ran two independent probes (text search and a key-range enumeration of
+      KTP-1060..KTP-1136) before asserting a ticket does not exist, and cited the spec's own key-less
+      phrasing as corroborating evidence. It caught the design contradiction between AC-5's
+      browser-Confirm model and the direct-write apply_bid_change that shipped in KTP-1129 — a defect no
+      single-AC read would surface. It correctly classified F8 (gateway 000 at 22:45 EDT) as expected
+      nightly-window infra, not a spec defect. It scoped each AC with buildable true/false plus the
+      blocking question id, and named the two legal repairs for Q4 rather than picking one.
+      The 20 points of self-doubt are not itemized in the trace: rec() keeps confidence and drops
+      confidence_deductions, so the reason is unrecoverable.
+      What it did NOT do: surface any of the five questions off disk. open-questions.md ends with
+      "If any of these is answered on the ticket rather than in session, post through /post-comment" —
+      a conditional that resolved to no action. Nothing reached Jira or the inbox.
+
+scores:
+  task_confidence: 15
+  factory_fitness: 68
+
+deductions:
+  - points: 60
+    reason: >
+      [task] Zero implementation. No worktree from origin/dev, no branch, no commits, no tests, nothing
+      pushed. All five ACs unbuilt, nothing deployable.
+  - points: 15
+    reason: >
+      [task] The spec is genuinely unbuildable today, not merely unclear. AC-2 asserts a seven-tool
+      contract that no ticket defines and that a live hard test pin forbids (F1, F3). AC-5 needs a tool
+      that does not exist plus two TO DO tickets (F2, F4). A perfect factory could not have shipped this
+      ticket in this window.
+  - points: 5
+    reason: >
+      [task] Definition of Ready unmet. The ticket's own gate ("Gabriel comments Approved") has zero
+      comments against it (F9), so the work was never authorized to start.
+  - points: 5
+    reason: >
+      [task] Even the buildable ACs could not be fully proven. AC-4's ok-path needs a live read through
+      apigateway.dev.beklever.com, which returned 000 at gate time inside the documented Klever nightly
+      shutdown window (F8), and the Auth0 credential was therefore never exercised (F7 audit).
+  - points: 8
+    reason: >
+      [factory] ticket_folder lost on the BLOCKED_SPEC_QUALITY terminal, for the second consecutive run.
+      workflow.js:531 omits it and :541 assigns _tf after the return. The identical fix was filed by the
+      KTP-1129 retro earlier the same day and not applied, so the retro burned tool calls disk-searching
+      a path the front gate had already returned.
+  - points: 8
+    reason: >
+      [factory] No machine-readable re-entry artifact on a non-headless front-gate block. The headless
+      path builds a GATE_REQUIRED decision_packet and pins <ticket_folder>/factory/decisions.yaml
+      (workflow.js:512-519), but the interactive BLOCKED_SPEC_QUALITY path writes neither. Q1-Q5 exist
+      only as prose in open-questions.md, so a re-run re-derives all five from scratch.
+  - points: 7
+    reason: >
+      [factory] The five questions stayed on disk. No Jira comment, no Gabriel-inbox item. This is the
+      exact failure mode the project's "a deferred AC is an open question" SOP names: disk-only parking,
+      where the decider never sees it. The concierge wrote a conditional ("if answered on the ticket,
+      post through /post-comment") instead of an action.
+  - points: 5
+    reason: >
+      [factory] No dependency precheck before dispatch. spec.md line 4 and README.md both declare this
+      ticket blocked (tool-contract ticket absent, KTP-1127/KTP-1128 open). A grep-cheap precheck would
+      have parked the run for pennies instead of spending a full concierge pass to re-derive it.
+  - points: 4
+    reason: >
+      [factory] The trace discards confidence_deductions. Every phase prompt asks for a per-point ledger
+      (CONFIDENCE_BLURB), and rec() at workflow.js:417 records only { phase, status, confidence }. The
+      concierge's 20 missing points arrive at the retro unexplained, so the retro cannot audit the
+      phase's own self-assessment.
+
+red_flags:
+  - >
+    Retro dispatched with "Ticket folder: (unresolved)" for the second consecutive run, on a fix that
+    was written up in this same skill's runs/ directory hours earlier. The improvement loop is
+    producing findings faster than they are being applied.
+  - >
+    A ticket that declares "Blocked by:" in line 4 of its own spec was dispatched into the factory. The
+    board dependency (KTP-1129 blocks KTP-1130) was also recorded in its README. Nothing checked either.
+  - >
+    Five open questions, four of them Gabriel's own calls, exist only as a Markdown file inside a ticket
+    folder whose path the workflow then dropped. Zero external surface.
+  - >
+    A live-verification ticket was gated at 22:45 EDT, inside the documented Klever dev nightly shutdown
+    (dev off after 20:00 EDT). F8 was a predictable 000, and it cost the credential verification in F7.
+  - >
+    Concierge confidence 80 with no recoverable reason. The schema asks for confidence_deductions, the
+    prompt asks for confidence_deductions, and the trace throws them away.
+  - >
+    AC-5 of this ticket contradicts the write model that KTP-1129 shipped two commits ago. Sibling
+    tickets in one family drifted apart in spec, and only a live code read caught it.
+  - >
+    Third BLOCKED_SPEC_QUALITY in the run history (KTP-746, KTP-708, KTP-1130) and all three scored
+    task_confidence under 20 with factory_fitness over 65. The factory keeps proving it can reject a bad
+    spec. Nothing in the loop yet fixes one.
+
+improvements:
+  - title: Apply the ticket_folder fix that is already written down
+    detail: >
+      In dark-factory.workflow.js, move `_tf = concierge.ticket_folder` from :541 to immediately after
+      `rec('concierge', concierge, concierge.spec_quality)` at :491, and add
+      `ticket_folder: concierge.ticket_folder` to the BLOCKED_SPEC_QUALITY (:531),
+      BLOCKED_NEEDS_HUMAN_AGAIN and AWAITING_HUMAN return objects. This is a verbatim repeat of an
+      improvement filed by the KTP-1129 retro on 2026-08-19. Two runs, two retros, two disk searches.
+      Apply it before running the factory again.
+  - title: Write a decision packet on EVERY front-gate block, not only the headless one
+    detail: >
+      Hoist the GATE_REQUIRED payload construction (workflow.js:512-519) above the interactive
+      BLOCKED_SPEC_QUALITY and BLOCKED_NEEDS_HUMAN_AGAIN returns. On any front-gate terminal, write
+      <ticket_folder>/factory/decisions.yaml as the list of { id, question, answer: null } using
+      verbatim question text (the text is the staleness guard the resume path already relies on), and
+      return decision_file plus the decision_packet in the terminal object. KTP-1130 would then re-enter
+      by filling five answers in a file, instead of re-deriving Q1-Q5 from a prose Markdown page.
+  - title: A spec_quality FAIL must leave the disk
+    detail: >
+      Add to contracts/1-concierge.md: on spec_quality FAIL, the concierge writes a
+      general/inboxes/gabriel/pending/ item AND drafts a Jira comment through /post-comment for the
+      ticket, listing each question with its evidence and its legal options. A conditional
+      ("if answered on the ticket, post through /post-comment") is not an action. The project SOP is
+      explicit that the phrase "needs input" must never exist in an on-disk artifact without a matching
+      Jira comment, and this run produced five of them.
+  - title: Ship a proposed spec repair with the rejection
+    detail: >
+      When spec_quality is FAIL and the ticket reporter is Gabriel himself (true here), the concierge
+      should emit a ready-to-paste AC-LOCAL.md draft alongside the questions: AC-2 rewritten to the four
+      names F1 verified, AC-5 split out to a follow-up ticket behind KTP-1127/KTP-1128, AC-3's seat
+      clause reconciled to ADR-0001 in whichever of the two named directions is picked. That converts a
+      dead-end block into one human read plus one approval. The evidence to write it was already
+      gathered; only the draft is missing.
+  - title: Cheap dependency precheck before spending a concierge pass
+    detail: >
+      Before dispatching contract 1, read the ticket folder's README.md and spec.md for a
+      "Blocked by:"/"blocks" line and query the Jira issue links for open blockers. If a blocker is
+      open, return BLOCKED_DEPENDENCY immediately with the blocker keys. This run had the answer in
+      line 4 of its own spec and in its README, and still paid for a full gate pass to find it.
+  - title: Keep confidence_deductions in the trace
+    detail: >
+      Change rec() at workflow.js:417 to push
+      { phase, status, confidence, confidence_deductions: r?.confidence_deductions ?? [] } and pass the
+      full array into the retro dispatch. Every phase prompt already demands the ledger. Discarding it
+      makes each phase's self-score unauditable, which is exactly what the retro exists to audit.
+  - title: Preflight the Klever dev nightly window for live-verify tickets
+    detail: >
+      When any AC proof requires a live dev endpoint, the concierge should check the clock against the
+      documented Klever dev schedule (off after 20:00 EDT) before it starts, and either state up front
+      that live legs are deferred to the next window or raise it as a parkable question. F8 was a
+      predictable 000 at 22:45 EDT, and it silently downgraded F7 from "credential works" to "credential
+      exists".
+  - title: Family-level spec drift check for sibling tickets
+    detail: >
+      When a ticket names a sibling in the same family (here KTP-1127, KTP-1128, KTP-1129, KTP-1062),
+      the concierge should diff the write/interaction model each one asserts. This run found by hand
+      that AC-5's browser-Confirm model contradicts the direct-write apply_bid_change KTP-1129 shipped.
+      That check should be a named step in contract 1, not a lucky read.
+
+next_run_handoff: >
+  ~/Developer/grp-beklever-com/project-management/sessions/active/prompts/dark-factory-improvements-KTP-1130.md
+
+summary: >
+  A correct, cheap rejection of a genuinely unbuildable spec, undermined by a factory that then dropped
+  every output on the floor. The concierge produced nine live-verified facts and four sound defects
+  (a seven-tool contract that no ticket defines and a live test pin forbids, a tool that does not exist,
+  two open blockers, an ADR contradiction, an unmet Definition of Ready), then lost the ticket folder on
+  the return path for the second run running and left all five questions in a Markdown file nobody is
+  routed to read.

@@ -1,0 +1,372 @@
+run_id: run-2026-08-19-KTP-1129-preship
+ticket: KTP-1129
+date: 2026-08-19
+terminal_status: HALT_PRESHIP
+factory_version: 0.9.5
+ticket_folder: ~/Developer/grp-beklever-com/project-management/tickets/KTP/no-epic/KTP-1129
+repo: app-powers-bid-mcp (project ttd-trading-mcp) @ grp-faas/grp-app/grp-backend/grp-mcp
+branch: KTP-1129-mcp-bid-write-tool
+head: 9850cebe2ae6fb80e440ca1ffe122bfd5f339a44
+pushed: true (verified by retro — git ls-remote origin shows 9850ceb on the branch)
+base: origin/dev d1ebdac
+belt: python-service
+
+second_run_note: >
+  This is the SECOND factory run on KTP-1129 today. The first (run-2026-08-19-KTP-1129.yaml) died at the
+  front gate with BLOCKED_NEEDS_HUMAN_AGAIN on Q6, task_confidence 18. Gabriel answered Q6 at the 14:33
+  resume and restated a binding addendum at the 15:18 resume, so this run cleared the gate and drove the
+  full pipeline. None of the seven improvements the first retro wrote at 14:30 were implemented before
+  this run started, so the front-gate friction they describe recurred inside the same day.
+
+title: >
+  app-powers-bid-mcp: add a fourth MCP tool apply_bid_change that drives the already-deployed and
+  already-guarded bid/propose plus bid/apply routes on the dev gateway, seat jl2ngzy, TTD sandbox. Five
+  ACs, all logic, belt python-service. No new backend code, no new routes, dev only. Accepted risks
+  R1-R3 (the model can write with no human click) are signed in the spec.
+
+terminal_cause: >
+  QA returned raw_overall PARTIAL and classifyQaGap called it real_gap, so preShipBlockers emitted one
+  blocker and the run stopped before ShipPrep. The blocker is AC-5 ("the records match the shipped
+  surface"): its three enumerated clauses all pass, but the AC's own subject fails. The branch re-pointed
+  the agent-os source citations mid-build, then added ~44 lines above them without refreshing, so 7
+  explicit server.py:<line> citations plus 3 bare :<line> refs in the CHANGED record files point at the
+  wrong code. All of them were correct on origin/dev, so the branch introduced the drift.
+  RETRO VERIFIED THIS INDEPENDENTLY on the worktree at 9850ceb: mcp-tools.md:3 cites mcp.run() at
+  server.py:469 — line 469 is blank, mcp.run() is at 513. system-design.md:60 cites apply_bid_change at
+  server.py:469 — blank; the function is at 240. The halt is correct and the fix is mechanical.
+  The halt is a GOOD halt. The problem is what it did NOT halt on: see red flag 1.
+
+work_produced:
+  code: 34 files, +2795 / -229 (review/diff.patch)
+  commits: 18 on the feature branch, plus 2a5c99f5 in project-management for the org ADR
+  version: pyproject 0.3.0 -> 0.4.0, __init__ 0.1.0 -> 0.4.0, CHANGELOG written (ShipPrep work landed
+    inside implement, so the branch is ship-shaped even though ShipPrep never ran)
+  suite: 348 passed in 50.12s (clean env -i shell) against a re-measured 251-passed origin/dev baseline,
+    zero failures on either side, +97 tests
+  execute_verify: "uv run python scripts/execute_verify_stdio.py -> exit 0, MCP stdio handshake serves 4
+    tools with every KLEVER_* variable stripped, so configuration is proven read inside the tool call"
+  live_leg: >
+    COMPLETE, 16:23-16:25 EDT, the one-shot Q1 authorization. 2.02 -> 2.25 on ad group 0lw9azn seat
+    jl2ngzy, SANDBOX preflight with applyEnabled true, independent gateway read-back confirming 2.25,
+    restored to 2.02 with a second read-back. Five-phase oplog per run. Proof in data/live/ (10 files,
+    transcript at data/live/transcript.md). Also closes the KTP-1062 one-shot rehearsal step 5.
+  not_done: no MR, no Jira comment, no merge (correct at HALT_PRESHIP — the main loop owns those)
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: yes
+  layer_1: clean — 5 ac_tdd entries, no violation, ledger-repair retry never fired
+  layer_2: >
+    QA re-verified all five REDs against the ledger and every one holds: 20a7119 (AC-1, +324 test only),
+    2470669 (AC-2, +76), 6af86cf (AC-3, +168), 9b5220a (AC-4, +184 tests + conftest support), 4018148
+    (AC-5 oplog clause, +189). Each RED commit touches test files ONLY, each test fails at its RED commit
+    on a real assertion (never an ImportError or a bare NotImplementedError), and each is the same test
+    with a byte-identical assertion set passing at the tip. This is the strongest TDD evidence chain of
+    any run in the index. Note the honest gap QA itself recorded: AC-5's two RECORD clauses carry no RED
+    because a markdown record has no extractable logic — which is exactly the clause that then failed.
+
+per_phase:
+  - phase: concierge
+    status: PASS
+    confidence: 82
+    note: >
+      Third and fourth resume of the front gate. It consumed all six answers, verified two mechanical
+      consequences the human answer did not state (F17: the bare 'run-with-env.sh' ignore pattern has no
+      slash so it applies at every depth — scripts/run-with-env.sh is ignored too and needs git add -f,
+      and NO AC covers the launcher so nothing downstream would catch a silent no-op; F18: the relocated
+      launcher must resolve the repo root or it sources a scripts/.env that does not exist). Both proved
+      load-bearing: the launcher is tracked at mode 100755 with .gitignore byte-identical to dev.
+      Cost: three human round-trips (14:05, 14:33, 15:18) before design started.
+  - phase: design
+    status: pass
+    confidence: 86
+    note: >
+      754-line impl-plan.md with per-AC files, functions, test specs carrying expected RED text, the doc
+      sweep, and the live-leg procedure. ~90 line citations, of which grill found exactly three drifting
+      by a few lines. Two draft ADRs raised (shared bid-safety module, write-leg transport policy).
+  - phase: grill
+    status: partial
+    confidence: 88
+    note: >
+      Two passes. Pass 1 filed G1-G12; pass 2 verified all twelve resolutions against origin/dev and
+      filed H1-H10. Four claims were checked by RUNNING code, not reading it: the 251 baseline, the
+      mocked transport's redirect behaviour, per-request timeout visibility through MockTransport, and
+      gateway reachability (401 in 3.07s at 15:48, so 4h11m of dev window left). H1 is the standout — the
+      plan's read_back(ad_group_id) signature cannot retry on the value-mismatch condition the retry
+      exists for, which the plan's own INDEX claimed closed. That gap would have reported a failure on a
+      write that actually landed, on the live leg. Implement fixed it (RED cce112f / GREEN a0984b4).
+      Weakness: 10 gaps and 5 "decide before code" items advanced with no machine-readable disposition.
+  - phase: implement
+    status: pass
+    confidence: 82
+    note: >
+      Five ACs RED-then-GREEN with per-AC ledgers, plus two grill fixes (H1, H4) each with their own
+      RED/GREEN pair. Ran the artifact for real and executed the authorized live sandbox write. Honest
+      about parked risk (R-A the CLI principal equality, R-G pre-existing doc drift). Self-reported AC-5
+      "done" while introducing the 10 stale citations that became the run's only blocker — the one part
+      of its own work that was mechanically checkable and was not checked.
+  - phase: review
+    status: criticals:0
+    confidence: 76
+    note: >
+      Lowest confidence in the trace, and the phase whose output the gate ignored. Segregated worktree,
+      findings.json on disk (9375 bytes, head matches the tip), 10 checked_and_clean items, and THREE
+      demonstrated defects — each with a test the reviewer wrote and ran to failure on the branch. Zero
+      CRITICAL, so criticals_open=0, no fix round, straight to QA. See red flags 1-3.
+  - phase: qa
+    status: PARTIAL
+    confidence: 77
+    note: >
+      Segregated fresh detached worktree at the tip. Every AC proved with a code_ref plus a run test_ref
+      and an output artifact under qa/ (16 .out files). Re-measured the dev baseline itself rather than
+      inheriting it. Caught the citation drift by hand-auditing every changed record file against the
+      code and producing a dev-vs-HEAD comparison (qa/AC-5-drift.out). Refused to re-fire the live
+      mutation, correctly, and said so. Did NOT re-derive AC-3's refusal strings from media-api, so it
+      passed an AC whose fixtures use a string the server never emits.
+
+scores:
+  task_confidence: 64
+  factory_fitness: 62
+
+deductions:
+  - points: 10
+    reason: >
+      [task] AC-5 FAILS on its own subject. 10 source-line citations in the changed agent-os records point
+      at the wrong code, including apply_bid_change's own pointer landing on a blank line
+      (system-design.md:60 -> server.py:469; actual 240) and mcp.run() (mcp-tools.md:3 -> 469; actual
+      513). Retro confirmed two of the ten by reading the worktree. Mechanical fix, real failure, and it
+      is the literal subject of the AC.
+  - points: 10
+    reason: >
+      [task] An unfixed, demonstrated HIGH defect that reaches a trader through chat. bid_write.py:353-355
+      is_the_apply_gate matches a closed gate on the substring "disabled". Retro verified against
+      media-api origin/dev: TTDPartnerBidEndpoint.java:147 emits "the apply gate
+      klever.ttd.write.apply-enabled is off, so no bid may be written" (no "disabled"), so the REAL closed
+      apply gate falls through to ApplyRefused and the trader is told "the bid state is unknown, do not
+      call this again" for a refusal media-api made BEFORE claiming the nonce and BEFORE touching TTD.
+      Line 140 emits "bid writes are disabled" (the global write flag), which DOES match, so the predicate
+      also fires on the wrong case. Both halves of the bug are confirmed against the deployed source.
+  - points: 6
+    reason: >
+      [task] AC-2's spec sentence ("calling apply_bid_change with the old value restores the book") is
+      false for any bid the server priced with more than two decimals. _money preserves precision on
+      purpose, so old_bid_cpm can be '2.005', and the tool's own AMOUNT_PATTERN refuses it on the way back
+      in. media-api's maxBidScale is 4 on origin/dev, so such a bid is inside the server's accepted range
+      and can be sitting on the seat from the TTD UI. Demonstrated by review, unfixed, and QA's AC-2 PASS
+      does not mention it. This is the rollback story that accepted risks R1 and R2 rest on.
+  - points: 5
+    reason: >
+      [task] Not shipped. HALT_PRESHIP means no MR, no Jira comment, no merge. The branch is pushed and
+      the version bump plus CHANGELOG already landed inside implement, so the remaining distance is short,
+      but nothing is deployable-and-done today.
+  - points: 3
+    reason: >
+      [task] A LOW defect ships as-is: after a refused apply the read-back is driven with
+      expected=requested, so every refusal costs an extra upstream GraphQL read plus an asyncio.sleep(5)
+      inside a single-turn tool call, and the phase is logged 'mismatch' where the reference CLI logs
+      'unknown'. Reachable on every refusal path (cap, floor, channel, seat, spent nonce, 5xx).
+  - points: 2
+    reason: >
+      [task] The AC-1/AC-2 live-sandbox clauses are closed by proof-of-record, not by an execution QA
+      could repeat. The Q1 authorization was one-shot and was spent in implement, so QA verified the
+      data/live/ artifacts for internal consistency and said honestly that it did not re-fire the
+      mutation. The evidence is strong and internally consistent; it is still not independently re-run.
+  - points: 14
+    reason: >
+      [fitness] A demonstrated non-critical finding neither gates nor triggers a fix round. The bounded fix
+      loop filters severity === 'CRITICAL' and preShipBlockers counts only review.criticals_open, so a
+      reviewer who WROTE AND RAN a failing test proving a trader-facing defect produced a trace entry
+      reading "criticals:0". Had AC-5's citations been correct, this run would have reached READY_TO_SHIP
+      with that HIGH open and invisible in the ship payload. The severity label, not the demonstration,
+      decides — which inverts the factory's own evidence-over-assertion principle.
+  - points: 8
+    reason: >
+      [fitness] Nothing asks implement to re-verify its own path:line claims after the code moves. The
+      whole blocker is mechanically detectable in about ten lines of script (extract file:line refs from
+      changed markdown, assert the target line is non-blank and contains an expected token), and the
+      information needed to catch it existed inside the implement phase. Instead it cost a full pipeline
+      pass, a QA hand-audit of every changed record file, and a halt.
+  - points: 5
+    reason: >
+      [fitness] Same-day repeat of a known front-gate cost. The first KTP-1129 retro wrote seven
+      improvements at 14:30, three of them (blocks_acs/severity on open_questions, "a question about a
+      file's state must carry the reason that state exists", decisions.yaml mirroring). Retro grepped the
+      workflow: none of the three exist in dark-factory.workflow.js. The ticket then paid three concierge
+      resumes before design started.
+  - points: 4
+    reason: >
+      [fitness] Still no <ticket_folder>/factory/decisions.yaml. The ticket folder has no factory/ dir at
+      all. Six binding answers plus three addenda — including the one that waived the runtime's worktree
+      isolation and the one that widened AC-4 — live only in analyst/human-answers.json prose fields. The
+      headless re-entry path reads decisions.yaml first and would find nothing.
+  - points: 3
+    reason: >
+      [fitness] Grill returned 'partial' with 10 gaps and 5 explicit "decide before writing code" items,
+      and the workflow advanced on a free-text status. H1, H2, H3, H4 and H10 dispositions exist as prose
+      in STATUS_SNAPSHOT.yaml; H5-H9 disposition is recorded nowhere. There is no field that makes a
+      grill gap answerable, so no gate can check that a HIGH gap was closed.
+  - points: 3
+    reason: >
+      [fitness] The runtime's isolation guarantee was waived in prose. The implement prompt says "The
+      Workflow runtime gave you your OWN git worktree — do NOT run 'git worktree add'", while the Q6
+      resume3_addendum says "Every code change happens in a self-managed worktree of app-ttd-trading-mcp
+      branched from origin/dev". Both were binding at once. It worked (the code landed in
+      .worktrees/KTP-1129-mcp-write on the right base) but the contradiction was resolved by a human
+      sentence inside a JSON answer field, and the factory has no machine field for which repo it is
+      building or who owns the worktree when the run is driven from project-management.
+  - points: 2
+    reason: >
+      [fitness] The HALT_PRESHIP payload carries the QA blocker and nothing about the open review
+      findings. A human reading the halt sees "QA verdict is PARTIAL, not ALL_PASS (non-visual gap)" and
+      has no pointer to the HIGH and MEDIUM sitting in review/findings.json. The most dangerous output of
+      the run is the least visible part of its terminal state.
+  - points: 1
+    reason: >
+      [fitness] No first-class notion of a spent one-shot live authorization. QA had to explain in prose
+      why it did not re-execute the live leg, and a re-run would either re-fire a real vendor mutation or
+      stall on an AC clause it cannot prove.
+
+red_flags:
+  - >
+    THE BIG ONE. Review filed a demonstrated HIGH that reaches a trader in chat and the run recorded
+    "criticals:0". Retro confirmed the defect independently against media-api origin/dev:
+    TTDPartnerBidEndpoint.java:147 = "the apply gate klever.ttd.write.apply-enabled is off, so no bid may
+    be written" (contains no "disabled"), :140 = "bid writes are disabled". bid_write.is_the_apply_gate
+    tests `403 and "disabled" in reason.lower()`, so it misses the real closed apply gate and fires on the
+    global write flag. Both halves wrong, in the direction that tells a trader the money state is unknown
+    when nothing moved.
+  - >
+    The shipped test for exactly that race passes only against a fictional string. Fixtures at
+    tests/test_apply_bid_change_tool.py:427 and :520 use "bid applies are disabled", which media-api never
+    emits. A green test that could not have failed. This is the project CLAUDE.md "tests that find nothing
+    are suspect" rule firing for real.
+  - >
+    AC-3 PASS rests on that fixture. QA asserted "the server's string verbatim, five refusal reasons as a
+    parametrized set" without deriving any of the five strings from media-api's source. The AC is
+    "server refusals surface verbatim"; nobody checked what the server actually says.
+  - >
+    Implement reported AC-5 "done" while introducing the 10 stale citations that became the only blocker.
+    Every one of them was correct on origin/dev. The sharpest is the new tool's own source pointer landing
+    on a blank line. Retro confirmed two by reading the worktree.
+  - >
+    Three concierge resumes (14:05, 14:33, 15:18) before design started, on a spec the same gate rated
+    PASS on the first pass. Same-day repeat of the first run's failure mode, with that run's fixes written
+    but not implemented.
+  - >
+    No factory/decisions.yaml, again. Six answers and three binding addenda exist only as prose inside
+    analyst/human-answers.json. The Q6 addendum that waived worktree isolation is a free-text field.
+  - >
+    Two contradictory binding instructions about worktrees were live at the same time (the implement
+    prompt forbids `git worktree add`, the Q6 addendum requires self-managing one) and nothing in the
+    factory noticed.
+  - >
+    Grill 'partial' with 10 gaps advanced on prose. H5-H9 disposition is unrecorded anywhere on disk.
+  - >
+    The one-shot live authorization was spent inside implement, so QA could only audit artifacts. There is
+    no re-run path that neither re-fires a vendor mutation nor stalls an AC clause.
+  - >
+    Review confidence 76 was the lowest number in the trace, and review is the phase whose findings the
+    readiness gate structurally cannot see.
+  - >
+    Carried from the first run and still unaddressed: a live 64-hex operator capability token sits in
+    plaintext in a git-tracked project-management doc (concierge fact F5, KTP-1062 plan doc line 131). It
+    was a hygiene note this morning and it is still a hygiene note tonight.
+
+improvements:
+  - title: A demonstrated finding gates, whatever its severity label
+    detail: >
+      In dark-factory.workflow.js: (a) widen the bounded fix loop's filter from
+      `f.severity === 'CRITICAL'` to `f.severity === 'CRITICAL' || (f.severity === 'HIGH' && f.demonstrated
+      === true)`, sharing the existing MAX_FIX_ROUNDS budget; (b) in preShipBlockers, add a blocker for
+      any remaining `demonstrated === true` finding at HIGH or above, with an explicit named waiver
+      (`review.waived: [{finding, why, by}]`) as the only way past it. Rationale: a reviewer who writes
+      and runs a failing test has produced evidence, and the factory's whole thesis is that evidence beats
+      assertion. Today a self-assigned severity string outranks a red test. This run is the regression
+      case: HIGH + demonstrated + trader-facing + criticals_open 0 + no fix round.
+  - title: Contract 5 must ask whether a passing test could ever have failed
+    detail: >
+      Add to contracts/5-review.md: for every AC whose PASS depends on a fixture string, status code, or
+      payload shape attributed to an upstream service, resolve that literal in the upstream's source (git
+      grep on the upstream repo's deploy branch) and report `fixture_matches_upstream: true|false|unchecked`
+      per AC. A false or unchecked value on an AC the review otherwise clears is itself a HIGH finding.
+      This run: two shipped tests pin "bid applies are disabled", a string media-api does not emit, and
+      that fiction is the only reason AC-3 looks green.
+  - title: Mechanical line-reference check inside implement, re-run in QA
+    detail: >
+      Add a tiny factory tool (tools/verify-line-refs.py) that, for every changed markdown file in the
+      diff, extracts `path:line` references, resolves each against the tip, and fails when the target line
+      is blank or does not contain an expected token from the citation's own sentence. Wire it into
+      contract 4's definition-of-done (run it AFTER the last code commit, not when the citation is
+      written) and into contract 6 as a cheap re-check. This run's only blocker is exactly what that
+      script catches, and it cost a full pipeline pass plus a QA hand-audit of every changed record file.
+  - title: Land the three front-gate fixes already written this morning
+    detail: >
+      From run-2026-08-19-KTP-1129.yaml, still absent from the code as of this run: (1) `blocks_acs:
+      string[]` + `severity: blocking|parkable` on CONCIERGE_SCHEMA open_questions, with the needs_human
+      halt firing only on a blocking one; (2) contract 1 must run the command that explains WHY a file is
+      untracked/ignored/missing before raising a question about it, and put that constraint plus legal
+      options inside the question; (3) mirror consumed answers to <ticket_folder>/factory/decisions.yaml on
+      every front-gate exit. Writing a retro improvement and not landing it before the next run on the
+      SAME ticket is the failure mode to break here.
+  - title: Grill gaps need a machine-readable disposition
+    detail: >
+      Give the grill phase its own schema field: `gaps: [{ id, severity, must_decide_before_code: bool }]`,
+      and require the implement return to carry `gap_dispositions: [{ id, disposition:
+      fixed|accepted|moot|deferred, evidence }]` covering every HIGH and MEDIUM gap. Then a gate can check
+      that no HIGH gap advanced silently. This run: H1 (which would have reported failure on a write that
+      landed) was caught and fixed, but only because implement chose to read the report; H5-H9 have no
+      recorded disposition at all.
+  - title: Name the code repo and the worktree owner in the concierge return
+    detail: >
+      Add `code_repo_path` and `worktree_owner: runtime|phase` to CONCIERGE_SCHEMA, and render the
+      implement/review/QA prompts from them instead of hardcoding "the runtime gave you your own worktree
+      — do NOT run git worktree add". When dark-factory is driven from project-management against a code
+      repo elsewhere, that sentence is false and a human currently has to override it in prose. Make the
+      waiver a field, not a paragraph inside a JSON answer.
+  - title: Put the open findings digest in the HALT_PRESHIP payload
+    detail: >
+      HALT_PRESHIP returns `blockers` plus the full review object, but the human-facing report renders the
+      blocker list. Add `open_findings_digest` (counts by severity, plus title + file for each demonstrated
+      finding, plus the findings_artifact path) to the HALT_PRESHIP and READY_TO_SHIP payloads so the
+      dangerous residue travels with the terminal state. On this run the halt reads as a documentation
+      problem while a trader-facing HIGH sits unmentioned in review/findings.json.
+  - title: Make a one-shot live authorization first-class
+    detail: >
+      Add `live_authorizations: [{ id, scope, one_shot: bool, spent_at, artifacts[] }]` to the concierge
+      return, carried through to QA. QA then cites the authorization when it verifies artifacts instead of
+      explaining itself in prose, and a re-run knows the difference between "not proven" and "proven once,
+      authorization spent". Today the belt forbids a live vendor call in the suite and the AC text demands
+      one, and the only bridge is an agent's paragraph.
+
+carry_forward:
+  - >
+    The blocker needs no dev environment and no vendor call. Fix the 10 citations (list is verbatim in
+    qa/result.yaml under records_match_shipped_surface, with the correct line for each), re-run
+    verify-line-refs by hand if the tool does not exist yet, then re-run QA on AC-5 only.
+  - >
+    Decide the HIGH before the MR: match the closed apply gate on the gate property name ("apply-enabled"
+    in reason) rather than the substring "disabled", and re-pin both fixtures to the strings
+    TTDPartnerBidEndpoint.java:140 and :147 actually emit. The same substring check is PRE-EXISTING at
+    scripts/apply_bid_change.py:904 on origin/dev, so decide whether the fix travels to the CLI too or is
+    scoped to the MCP surface with a note.
+  - >
+    Decide the MEDIUM: either widen validate_amount to media-api's four-decimal maxBidScale, or return a
+    second explicitly rollback-safe field. Do not round old_bid_cpm — the no-rounding rule is correct for
+    an operator comparing against TTD.
+  - >
+    R-A and R-G are honest parks recorded in STATUS_SNAPSHOT.yaml. The 64-hex operator token in a tracked
+    project-management doc (F5) still needs an inbox item.
+
+next_run_handoff: >
+  ~/Developer/grp-beklever-com/project-management/sessions/active/prompts/dark-factory-improvements-2026-08-19-KTP-1129-preship.md
+
+summary: >
+  The best-evidenced run in the index halted on its weakest deliverable and shrugged off its most
+  dangerous one. Five REDs all re-verify, 348 tests from a 251 baseline, a real MCP handshake, and an
+  authorized live sandbox write and restore with independent read-backs both directions. The halt is
+  correct: AC-5's own subject fails on 10 stale line citations the branch introduced. But the review filed
+  a demonstrated HIGH that misreports a refused write as an unknown money state, and the trace records
+  "criticals:0" because the fix loop and the readiness gate both key on the severity label instead of the
+  red test. Fix that gate before the next run, and add the ten-line citation checker that would have made
+  this halt unnecessary.

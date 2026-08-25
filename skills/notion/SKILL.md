@@ -66,19 +66,27 @@ Do not conclude the page does not exist.
 For a Notion URL or id the mirror lacks. Runs one isolated headless session.
 
 ```bash
-cd ~/Developer/grp-beklever-com/notion-checkout
+CO=~/Developer/grp-beklever-com/notion-checkout
 RUN=fetch-$(date +%Y%m%d-%H%M%S)
-mkdir -p runs/$RUN/staging
-claude -p "Use the notion MCP. Fetch the page <URL_OR_ID> and every child block. \
-Write ONE json file to runs/$RUN/staging/page.json with keys: id,title,url,breadcrumb, \
+mkdir -p $CO/runs/$RUN/staging
+cd $CO && claude -p "Use the notion MCP. Fetch the page <URL_OR_ID> and every child block. \
+Write ONE json file to $CO/runs/$RUN/staging/page.json with keys: id,title,url,breadcrumb, \
 last_edited_time,coverage,access_state,markdown. Set coverage=partial if any cursor or \
 database was left unfinished. Do not summarize. Do not print the body. \
 Reply with only: the page title, byte count, and coverage." \
-  --permission-mode acceptEdits
+  --mcp-config .mcp.json --strict-mcp-config \
+  --allowedTools "mcp__notion,Write,Bash" --permission-mode acceptEdits
 $NX ingest $RUN
 ```
 
-The headless session holds the page. This session gets three facts back. That is the whole point.
+`--strict-mcp-config` is what makes the isolation real: that process loads **only** the Notion
+server from that one file, and no interactive session anywhere loads it at all. Do not rely on
+directory scoping alone, and never register the Notion MCP at user or local scope — a local-scope
+registration loads it into every session in that project, which is the token cost this design
+exists to avoid.
+
+Verified 2026-08-10: fetched a 15,764-byte page this way. The body never entered the calling
+context; three facts came back.
 
 ## Mode: sync — refresh the mirror
 

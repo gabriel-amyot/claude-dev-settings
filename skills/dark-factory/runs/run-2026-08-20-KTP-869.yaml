@@ -1,0 +1,389 @@
+run_id: run-2026-08-20-KTP-869
+ticket: KTP-869
+date: 2026-08-20
+terminal_status: HALT_PRESHIP
+ticket_folder: ~/Developer/grp-beklever-com/project-management/tickets/KTP/no-epic/KTP-869
+repo: grp-faas/grp-app/grp-backend/grp-mcp/app-powers-bid-mcp
+branch: KTP-869-label-reads-and-legible-failures
+base: origin/dev @ f888aafdb5de7c02baf457b1ba98ffa025d1c05d
+head: 26ffa7ca0767b9b6de8b0afb8c4c2b02bd257c85
+commits: 12
+pushed: YES — origin/KTP-869-label-reads-and-legible-failures is at 26ffa7c
+
+prior_run: >
+  Run 1 (wf_152fd0f4-43f, same day) stopped at the front gate with GATE_REQUIRED / decisions.
+  Spec quality passed, then four blocking questions. Gabriel answered all four in crit round 2,
+  the answers went to factory/decisions.yaml, and this run is the build against them. The gate
+  worked: Q1 split AC-1 into a media-api run first (0.16.0, merged and tagged) and this MCP run
+  second, which is why AC-1 became a consume-the-header change instead of an impossible one.
+
+title: >
+  app-ttd-trading-mcp: label environment, seat and spend on reads, make write availability and
+  failures legible. Five ACs, all ac_kind logic, belt python-service, one repo.
+
+terminal_cause: >
+  preShipBlockers fired on the QA verdict. QA returned PARTIAL with a real (non-visual) gap on
+  AC-5, so qa_gap classified as real_gap and the pipeline halted before ShipPrep.
+    AC-5 PARTIAL — AC-5 reads "Given ANY tool failure ... Then it states whether the cause is the
+      caller's input or the system, and whether a retry is sensible." with_fault() was wired into
+      media_api._parse, the token path and config.py only. Seven caller-facing surfaces carry no
+      verdict and no retry guidance, reproduced live over the MCP protocol in
+      qa/AC-5-gap-probe.out: validate_identifier (x2 tools), validate_amount (x3 surfaces),
+      the no-max-bid refusal, and the two-media-api-targets refusal. Surfaces 1 to 5 are the
+      single most common trader mistake and are exactly the "caller's input" class the
+      implementation's own three-way attribution names.
+  The halt itself is correct. What the halt report does NOT carry is the larger half of the same
+  gap — see red flags 1 to 3.
+
+work_produced:
+  code: 12 commits, 24 files, +2067 / -123
+  test_suite: "496 passed, 18 skipped at tip (origin/dev baseline: 389 passed, 18 skipped). +107 tests, no regression."
+  worktrees: ".worktrees/KTP-869 (implementor), /tmp/ktp869-review (review, detached), /tmp/ktp869-qa + /tmp/ktp869-red + /tmp/ktp869-devbase (QA-owned)"
+  release_gates:
+    version_bump: "pyproject.toml 0.5.2 -> 0.6.0 (minor, correct: two response shapes changed)"
+    changelog: "present, 66 added lines, names both changed response shapes"
+    agent_os: "MET — mcp-tools.md (+151), media-api-routes.md (+29), known-limits.md (+53), safety-invariants.md (+36); the four pages analyst/ac.json named"
+    out_of_scope_respected: "scripts/verify_bundle_reaches_the_gateway.py untouched, no .mcpb rebuild in the diff (decisions.yaml Q3)"
+  ticket_artifacts:
+    - AC-LOCAL.md (authoritative spec, carries the agent-critique disposition and the four gate rulings)
+    - factory/decisions.yaml + factory/GATE-QUESTIONS.md (Q1-Q4, all answered by Gabriel)
+    - analyst/ac.json, analyst/affected-repos.json, analyst/assumptions.json (each fact stamped VERIFIED / UNVERIFIED / SUPERSEDED with its source command)
+    - design/impl-plan.md + design/grill-report.md (10 assumptions challenged, 7 gaps carried, verdict build-it)
+    - tdd/baseline.md + tdd/AC-1..AC-5.md
+    - review/findings.json + review/diff.patch + review/probes/ (3 executable probe files)
+    - qa/result.yaml + 10 evidence .out files + qa/red-reverification.md + 2 QA-authored probe scripts
+    - architecture/adr/ADR-draft-read-result-labelling.md, ADR-draft-fault-verdict-budget.md (both uncommitted drafts)
+    - reports/status/dark-factory-run-1-front-gate-2026-08-20.md
+  not_produced:
+    - no MR
+    - no Jira comment; the four gate rulings, the two draft ADRs and Q3's explicitly parked open question are disk-only
+    - ticket left in To Do (no In Review/Testing transition)
+    - no STATUS_SNAPSHOT.yaml; jira/ empty; reports/architecture, reports/implementation, reports/reviews all empty
+    - review/probes/*.py never promoted into the repo suite, so the three demonstrated HIGH gaps have no regression guard
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: yes
+  note: >
+    Default halt mode and zero warn-mode violations, and this run has the strongest RED evidence
+    of any run to date. QA re-verified all five REDs independently in QA-owned worktrees cut from
+    the pushed branch, never the implementor's: every RED commit touches tests only (git show
+    --stat on all five, no src/), every RED fails on assertions rather than import errors, and for
+    AC-2 through AC-5 the test file is byte-identical between RED and tip so no test could have
+    been swapped. AC-1's file gained seven tests and lost none. QA also re-derived the four AC-1
+    golden input schemas from an untouched origin/dev worktree and matched the hardcoded golden
+    byte for byte, proving the pin is not self-referential. See qa/red-reverification.md.
+
+phases:
+  - phase: concierge
+    status: PASS
+    confidence: 82
+    note: >
+      Run 2 of the gate. Spec quality PASS, 5 ACs all logic, one belt, prereqs met,
+      needs_human false. Correctly superseded run 1's F-01 once media-api 0.16.0 landed, and
+      correctly recorded two non-blocking unknowns (the media-api dev deployment of 0.16.0 is
+      unconfirmed because the DAC bridge is played by hand; the main checkout was 101 commits
+      behind origin/dev with 21 files staged).
+  - phase: design
+    status: pass
+    confidence: 79
+    note: >
+      impl-plan.md maps all five ACs to files, functions and test specs with the expected RED
+      assertion for each. Three good calls: execute keeps its signature and a new
+      execute_labelled carries the headers (so the out-of-scope bundle gate script is untouched),
+      _configured_seat is deleted because its fallback is exactly what AC-1 forbids, and the
+      ad-group spend figure is removed at the document rather than stripped from the response.
+  - phase: grill
+    status: pass
+    confidence: 86
+    note: >
+      Strongest phase of the run. Measured the baseline instead of asserting it (407 collected /
+      389 passed / 18 skipped, closing F-10, which was a `def test_` line count). Proved over a
+      live handshake that adding response fields changes no served schema, so AC-1 does not fight
+      its own safety gates. Caught two gaps that would have turned listed baseline tests red: the
+      AC-5 verdict had only 78 characters of headroom against a `< 600` bound, and one specified
+      test asserted something unsatisfiable. Ran on a throwaway worktree and left the main
+      checkout exactly as found.
+  - phase: implement
+    status: pass
+    confidence: 86
+    note: >
+      Per-AC RED then GREEN, 12 commits, plus a self-directed adversarial round (07332c8) that
+      found and fixed two crash paths and added 224 lines of edge tests. Release commit bumped
+      the version, wrote the changelog and updated four agent-os pages.
+  - phase: review
+    status: "criticals:0"
+    confidence: 72
+    note: >
+      Method was excellent, gating was not. Findings were demonstrated with executable probe
+      tests, not asserted: 3 HIGH + 1 MEDIUM + 1 LOW, four of the five reproduced with failing
+      tests, and the escaping finding proven reachable through a raw HTTP/1.1 server plus a real
+      httpx client. Because criticals_open was 0, the bounded fix loop never ran and every one of
+      those findings is still open at the tip. Review and QA both sit at 26ffa7c and no fix commit
+      exists between them.
+  - phase: qa
+    status: PARTIAL
+    confidence: 80
+    note: >
+      Independent by construction: QA-owned worktrees, QA-authored protocol probes
+      (qa_independent_proof.py, qa_ac5_gap.py), and it re-derived the AC-1 golden rather than
+      trusting the implementor's test. It also self-corrected twice — tightened its own weak AC-3
+      assertion before recording PASS, and withdrew a serverInfo.version 3.4.7 flag after
+      tracing it to the pinned fastmcp version. But it marked AC-1 and AC-2 PASS without
+      reconciling against review's demonstrated failing probes on both, and its AC-5 gap list is
+      narrower than review's on the same AC.
+
+scores:
+  task_confidence: 53
+  factory_fitness: 56
+
+deductions:
+  - score: task_confidence
+    points: 14
+    reason: >
+      AC-5 PARTIAL. Seven caller-facing failure surfaces carry no fault verdict and no retry
+      guidance, reproduced live over the protocol. The whole input-validation class
+      (validate_identifier, validate_amount, _checked) is untested for attribution — the repo's
+      AC-5 test file contains zero references to any of the three — so the gap is untested rather
+      than deliberately excluded. "Any tool failure" is not met.
+  - score: task_confidence
+    points: 12
+    reason: >
+      AC-5 is entirely absent from the write path and this is NOT in the halt report. bid_write.py
+      does not appear in the diff at all (git diff --name-only origin/dev...26ffa7c | grep
+      bid_write -> 0), so WriteRefused, ApplyRefused, GateClosed, ProposeRefused, TransportFailure
+      and UNVERIFIED_APPLY_NOTICE all reach the caller unattributed. Review demonstrated it with 4
+      failing probes, including the money-path message "the apply was not confirmed ... The bid
+      state is unknown" with no statement of whose fault it is or whether a retry helps. Open at
+      the tip.
+  - score: task_confidence
+    points: 8
+    reason: >
+      Unfixed HIGH on AC-1's new code, which QA marked PASS. media_api._label bounds the header
+      value at 64 characters and never calls bid_safety.safe(). These are the only server-supplied
+      strings in the tree that skip safe(), whose own docstring states the reason. Review proved
+      reachability end to end with a raw HTTP/1.1 server and a real httpx client: httpx/h11 passes
+      the control characters through, yielding environment == "SANDBOX[2J[HPRODUCTION".
+      The environment label is the field a trader reads to decide sandbox versus production before
+      a money write, so a repaintable value is the worst field to leave unescaped. Same commit
+      series expanded agent-os/standards/safety-invariants.md without extending the escaping
+      invariant to cover the new strings.
+  - score: task_confidence
+    points: 5
+    reason: >
+      Unfixed MEDIUM on AC-2, which QA marked PASS. spend_label.window emits the flight window
+      (startDateInclusiveUTC to endDateExclusiveUTC) as the window of a spend-to-date figure, so
+      for any running flight the label tells a trader the number covers a period that has not
+      happened. Demonstrated: "the label claims spend through 2099-01-01T00:00:00Z, which has not
+      happened yet". The repo's own fixture is this shape.
+  - score: task_confidence
+    points: 2
+    reason: >
+      Unfixed LOW. Every code line reference in the rewritten mcp-tools.md is stale by 13 to 20
+      lines (12 refs verified wrong), on a page that declares itself "the only place a caller can
+      learn what a response carries" and calls a page describing an older shape "a defect rather
+      than stale documentation".
+  - score: task_confidence
+    points: 4
+    reason: >
+      Not deployable and not visible. No MR, no Jira comment, ticket still To Do. The four gate
+      rulings, the AC-5 gap and Q3's explicitly parked open question (whether
+      verify_bundle_reaches_the_gateway.py should stay in the repo at all) are disk-only. Project
+      CLAUDE.md requires a parked open question to reach Jira, not just a ticket folder.
+  - score: task_confidence
+    points: 3
+    reason: >
+      Two draft ADRs left uncommitted, so the rationale for the two least obvious design
+      decisions — why execute_labelled exists instead of changing execute, and why the fault
+      verdict is budgeted at 70 characters — lives only in the ticket folder.
+  - score: factory_fitness
+    points: 14
+    reason: >
+      The review gate keys on CRITICAL only. Three HIGH findings, all demonstrated with failing
+      tests and one of them a security-class escaping gap with a proven raw-socket reachability
+      probe, advanced straight to QA with the bounded fix loop never running. Review and QA are
+      both at 26ffa7c with no fix commit between them. A gate that lets a demonstrated HIGH pass
+      untouched is not a gate.
+  - score: factory_fitness
+    points: 10
+    reason: >
+      No reconciliation step between review and QA. Review demonstrated failing probes against
+      AC-1 (escaping) and AC-2 (future window); QA marked both PASS and its per-AC notes never
+      mention either finding. Its own spotcheck of findings.json checked only that the file is
+      non-empty and that the suite baseline matches. A human reading qa/result.yaml sees "AC-1 to
+      AC-4 clean" while findings.json holds failing tests on two of them. Two phases disagree and
+      nothing in the pipeline flags it.
+  - score: factory_fitness
+    points: 6
+    reason: >
+      QA's gap enumeration is narrower than review's on the same AC, so the halt cause the human
+      acts on under-states the defect. QA lists 7 surfaces and includes the two-targets refusal,
+      but omits the write-path refusals review demonstrated (409 ApplyRefused, and the read-back
+      disagreement whose message is "the bid state is unknown"). QA's AC-5 code_ref never names
+      bid_write.py. The money path is the worst instance of the gap and it is missing from the
+      terminal report.
+  - score: factory_fitness
+    points: 5
+    reason: >
+      Review's probe tests were left in the ticket folder (review/probes/*.py) and never promoted
+      into the repo suite, so the three demonstrated HIGH gaps have zero regression guard. The
+      repo suite is 496 green with all of them open, which is precisely the condition review
+      itself called out ("the suite is green with the gap open"). A demonstrated gap that leaves
+      no failing or skipped test behind will be rediscovered from scratch.
+  - score: factory_fitness
+    points: 4
+    reason: >
+      Ticket artifact tree incomplete again: no STATUS_SNAPSHOT.yaml, jira/ empty, and
+      reports/architecture, reports/implementation and reports/reviews all empty directories.
+      This is the same gap flagged in run-2026-08-20-KTP-1130 the previous day, so the prior
+      retro's improvement did not take.
+  - score: factory_fitness
+    points: 3
+    reason: >
+      The release commit expanded agent-os/standards/safety-invariants.md (+36) and rewrote
+      invariant A3 while the same series introduced the only caller-facing string in the tree that
+      skips safe(). Nothing cross-checks the safety page against new caller-facing strings in the
+      diff, so the run documented its safety posture as intact in the same breath as it broke a
+      class the page exists to hold.
+  - score: factory_fitness
+    points: 2
+    reason: >
+      Contract line refs drifted because mcp-tools.md was written mid-series and never refreshed
+      after the last two commits. No gate checks doc line refs against the tip, and this class of
+      finding is trivially mechanizable.
+
+red_flags:
+  - >
+    Three demonstrated HIGH review findings were left open at the tip because the review gate only
+    counts CRITICAL. The bounded fix loop never ran on a run whose review produced 5 findings,
+    4 of them with failing tests.
+  - >
+    QA marked AC-1 and AC-2 PASS while review holds failing probe tests against both. The two
+    phases contradict each other on the same commit and no phase reconciles them.
+  - >
+    The halt report under-states the halt. QA's AC-5 gap list omits the write path entirely, which
+    is where review demonstrated "the bid state is unknown" reaching a trader with no attribution.
+    bid_write.py is not in the diff at all.
+  - >
+    A security-class finding (control characters surviving to the environment label a trader reads
+    before a money write, proven over a real socket) was classified HIGH, not CRITICAL, and
+    therefore did not gate. The severity ladder and the gate threshold are misaligned for the
+    escaping class specifically.
+  - >
+    Review's three executable probe files sit in the ticket folder, not the repo. The suite is 496
+    green with every demonstrated gap open.
+  - >
+    Ticket artifact tree incomplete for the second consecutive run: no STATUS_SNAPSHOT.yaml, empty
+    jira/, three empty reports/ subdirectories. The KTP-1130 retro raised this and nothing changed.
+  - >
+    Q3 parked an explicit open question (should verify_bundle_reaches_the_gateway.py stay in the
+    repo) and it never reached Jira. Project CLAUDE.md names disk-only parking as the failure mode.
+  - >
+    Two draft ADRs uncommitted, covering the two design decisions a future reader is most likely to
+    question.
+  - >
+    The main checkout of app-powers-bid-mcp was 101 commits behind origin/dev with 21 staged files
+    at gate time. The concierge recorded it as non-blocking, which was right for this run because
+    every phase used its own worktree, but a stale-plus-dirty main checkout is one careless read
+    away from a wrong conclusion about deployed code.
+
+improvements:
+  - title: Gate the review phase on HIGH, not only CRITICAL, when the finding is demonstrated
+    detail: >
+      In workflow.js, change the review gate predicate from `criticals_open == 0` to
+      `criticals_open == 0 AND (count of findings where severity == HIGH and demonstrated == true)
+      == 0`. A HIGH with `demonstrated: true` carries a failing test, so it is a fact, not an
+      opinion, and it should enter the bounded fix loop exactly like a CRITICAL. Keep undemonstrated
+      HIGHs non-blocking so the gate cannot be tripped by rhetoric. This run is the case for it:
+      3 demonstrated HIGHs, 0 fix commits, and one of them a proven escaping gap on the money path.
+  - title: Add a reconcile step between review and QA that forbids PASS on an AC with an open demonstrated finding
+    detail: >
+      Contract 7 (QA) should read review/findings.json, map each finding to the AC its file touches,
+      and refuse to record PASS for any AC carrying an open finding with `demonstrated: true`. The
+      minimum verdict in that case is PARTIAL with the finding quoted in the gap field. Right now
+      QA's review_artifact_spotcheck only asserts the file is non-empty and that the suite baseline
+      matches, which is why AC-1 and AC-2 came back PASS with failing probes against them. Schema
+      change: add `blocked_by_review_finding: [ids]` to each per_ac entry.
+  - title: Make the terminal report the union of all open gaps, not just QA's own findings
+    detail: >
+      preShipBlockers should build `partial_cause` by unioning QA's gap with every open review
+      finding, deduplicated by AC. The human reading this halt sees seven input-validation surfaces
+      and does not see that the write path has no attribution at all, which is the more serious half
+      of the same AC. Ranking matters too: sort the union by blast radius so the money path leads.
+  - title: Reclassify unescaped or unbounded caller-facing output as CRITICAL in the review severity rubric
+    detail: >
+      Add an explicit rule to contract 6's prompt: a new server-supplied string that reaches the
+      caller without the repo's established sanitiser is CRITICAL, not HIGH, when the field informs
+      a money decision. The escaping class is the one where "demonstrated but low probability"
+      reasoning is most tempting and most wrong — the precondition (a compromised upstream or an
+      intercepting proxy) is exactly the threat model the sanitiser was written against, so citing
+      it as mitigation inverts the argument.
+  - title: Promote review and QA probe tests into the repo suite before the terminal state
+    detail: >
+      ShipPrep and the halt path should both copy review/probes/*.py and QA's gap probes into
+      tests/ as xfail (pytest.mark.xfail(strict=True)) for every gap that is real and open. The gap
+      then has a name in the suite, un-xfailing it is the definition of done for the follow-up
+      ticket, and a later run cannot silently reintroduce it. Today the suite is 496 green with
+      three demonstrated HIGHs open, so the suite actively misrepresents the tree.
+  - title: Make the ticket artifact tree a mechanical gate, not a convention
+    detail: >
+      Add a scripted check at the end of implement: STATUS_SNAPSHOT.yaml exists and its status
+      matches the run state, jira/ac/ is populated from AC-LOCAL.md, and every non-empty phase has
+      written into its reports/ subdirectory. Fail the phase if not. This was improvement #1 out of
+      the KTP-1130 retro one day earlier and it did not take, which means it needs to be code rather
+      than prose in a contract.
+  - title: Route parked open questions and gate rulings to Jira on the halt path, not only on ship
+    detail: >
+      HALT_PRESHIP currently posts nothing, so a run that generates decisions worth recording
+      leaves them all on disk. The halt path should draft one Jira comment (through /post-comment,
+      as the rules require) carrying the AC-5 gap, the four gate rulings and Q3's parked question,
+      and should commit the draft ADRs. Project CLAUDE.md names disk-only parking as the exact
+      failure mode: "the phrase 'needs PO input' must never exist in an on-disk artifact without a
+      matching Jira comment."
+  - title: Add a mechanical doc-line-ref check to the release commit
+    detail: >
+      A short script over agent-os/**/*.md that extracts every `path:line` reference and asserts the
+      named symbol is within a few lines of the target at HEAD. This run drifted 12 refs by 13 to 20
+      lines on the page that calls a stale shape a defect. It is a LOW finding that a 20-line script
+      removes permanently, and it costs a reviewer's attention every run.
+  - title: Keep the concierge's stale-checkout note but make it an action
+    detail: >
+      The gate correctly recorded that the main checkout was 101 commits behind origin/dev with 21
+      staged files, and correctly called it non-blocking because every phase worked in its own
+      worktree. Go one step further: emit it as an inbox item for Gabriel rather than only an
+      assumptions.json line, since a stale-plus-dirty main checkout is the precondition for the
+      fetch-before-read and deploy-identity failures the global CLAUDE.md documents.
+
+what_went_right:
+  - >
+    The best TDD evidence of any run so far. All five REDs independently re-verified by QA in
+    QA-owned worktrees, test-only commits confirmed by git show --stat, assertion failures rather
+    than import errors, and four of five test files byte-identical between RED and tip so no test
+    could have been swapped.
+  - >
+    QA refused to inherit the implementor's proof. It cut its own worktrees, wrote its own protocol
+    probes, and re-derived the AC-1 golden schemas from an untouched origin/dev tree to prove the
+    pin was not self-referential.
+  - >
+    QA self-corrected twice, visibly: it tightened its own weak AC-3 assertion before recording
+    PASS, and it withdrew a serverInfo.version mismatch after tracing 3.4.7 to the pinned fastmcp
+    version in uv.lock. Both are written into result.yaml rather than quietly dropped.
+  - >
+    Review demonstrated rather than asserted. Four of five findings carry a failing test, and the
+    escaping finding was proven reachable through a raw HTTP/1.1 server and a real httpx client
+    instead of being argued from the source.
+  - >
+    The grill measured the baseline instead of trusting it, closing a false 285-test figure that
+    was a `def test_` line count, and caught two specification defects that would have turned
+    listed baseline tests red.
+  - >
+    The front gate paid for itself across two runs. Run 1 halted on four real decisions, Gabriel
+    answered them, and Q1's answer reordered the work so the media-api change landed first — which
+    is the only reason AC-1 was buildable at all.
+  - >
+    The branch is pushed, the version bumped correctly to a minor, the changelog written, and the
+    out-of-scope bundle script left untouched exactly as Q3 ruled.
+
+telemetry_written: ~/.claude/skills/dark-factory/runs/run-2026-08-20-KTP-869.yaml
+handoff_written: ~/Developer/grp-beklever-com/project-management/sessions/active/prompts/dark-factory-improvements-KTP-869.md

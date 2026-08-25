@@ -220,6 +220,35 @@ Three deliverables:
    - **NOT posted until Gabriel reviews the list.** Gabriel decides which to post.
    - Use `/post-comment` or `jira_skill.py add-comment` only after explicit approval.
 
+## Story / Task Shape — vertical slices vs belt-executable units
+
+Two audiences want opposite shapes for the same work. A **vertical slice** is right for defining functionality: it demos, it delivers user-visible value, the PO can accept it. A **belt-scoped unit** is right for execution: one repo, one tool belt, one dark-factory run. A vertical slice that spans data + backend + frontend is three belts, and the factory cannot one-shot it.
+
+**Resolve it by using both, at different levels:**
+
+| Level | Shape | Audience | Carries |
+|---|---|---|---|
+| **Story** | vertical slice — user-visible value | PO / stakeholder | the acceptance AC |
+| **Task** | one belt, one repo | dark factory / the executor | the story points |
+
+Link them with Jira's **`Work item split`** type (`split to` / `split from`) — the Story splits to its Tasks. Use `Blocks` between Tasks for ordering. Do **not** use sub-tasks: sub-tasks cannot carry an estimate.
+
+### Four rules that make this work
+
+**1. Points live at exactly ONE level, and it is the Task.** This is the same double-counting failure the Phase 4 adversarial check looks for. If a Story and its Tasks both carry points, sprint capacity inflates. Estimate the Tasks; let the Story show a rollup for reporting but keep it out of capacity. A belt-scoped unit is the most reliably estimable thing available — a vertical Story spanning three belts is exactly the shape that estimates badly.
+
+**2. Only decompose a Story that spans more than one belt.** A single-belt Story gets no Tasks and is launched directly. Generating a 1:1 Story→Task pair is pure overhead.
+
+**3. Every multi-Task Story needs an explicit integration step.** Each Task can pass its own belt while the Story remains undelivered — the factory does not do cross-run integration. Either make the last Task an integrate-and-verify against the Story's AC, or record that the Story's AC is verified by a human/`ui-probe` pass after the final Task merges. Never assume passing Tasks sum to a passing Story.
+
+**4. The Story's AC is the acceptance authority.** The factory ingests the Task, the PO accepts the Story. A Task's AC must be a belt-scoped projection of the Story's AC, never a restatement that can drift from it. If they diverge, the factory builds the wrong thing correctly.
+
+### Where the readiness check applies
+
+Run Phase 4.5 against **Tasks**, not Stories — the Task is what the factory ingests. `Df-ready` and belt labels go on Tasks. A Story that decomposes into all-`READY` Tasks is not itself `Df-ready`; the integration step (rule 3) is still unproven.
+
+**Why this exists:** the dark factory has no full-stack multi-repo one-shot; its documented workaround is sequential single-belt runs. This shape turns that workaround into a visible, plannable ticket structure instead of something an operator improvises per ticket.
+
 ## Rules
 
 - **Never estimate from description alone.** Check the code. Check the repos. Check the schemas.

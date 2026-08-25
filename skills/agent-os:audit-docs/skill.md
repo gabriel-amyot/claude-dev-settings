@@ -1,5 +1,6 @@
 ---
 name: agent-os:audit-docs
+description: Audit a repo's agent-os/ documentation tree for coverage gaps, stale sections, and missing cross-references. Use when asked whether a repo's agent-os docs are current, before relying on an agent-os spec or ADR as truth, or after a feature ships and its specs may have drifted from the code. Reads and reports; does not scaffold agent-os (that is bmad-repo-onboarding).
 nav:
   bay: review
   when: "Audit agent-os documentation for coverage, staleness, missing sections."

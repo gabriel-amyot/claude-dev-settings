@@ -35,6 +35,16 @@ readiness/
 
 `totals.yaml` never gets a per-check row. Recompute its counters from the `check-*` files; do not hand-increment. The per-check files are the source of truth.
 
+## Check Tasks, not Stories
+
+Where the team uses the Story/Task split — Story is a vertical slice for the PO, Tasks are belt-scoped units linked by Jira's `Work item split` — **run this check against the Tasks.** The Task is what the factory ingests, so it is the only thing whose readiness is meaningful. `Df-ready` and belt labels go on Tasks.
+
+A Story whose Tasks are all `READY` is **not** itself ready: the integration step across belts is still unproven, and the factory does not do cross-run integration. Score the Story's own AC separately, or not at all.
+
+A single-belt Story with no Tasks is checked directly — there is nothing to decompose.
+
+See the `sprint-estimation` skill, "Story / Task Shape," for the full convention.
+
 ## Verdict vocabulary
 
 Mirrors the factory's own terminal states so predictions can be scored against outcomes later.

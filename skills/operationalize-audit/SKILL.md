@@ -123,5 +123,37 @@ The backlog is fed automatically by the PreCompact hook (`auto-operationalize-cm
 Before closing the audit, verify:
 - [ ] No two skills have >60% trigger overlap
 - [ ] All probation skills from the previous audit cycle either graduated or were retired
-- [ ] Total active skill count is noted (target: under 100, alarm at 120)
+- [ ] **Description tax is measured and noted** — run `python3 ~/.claude/skill-proposals/skill_tax_scan.py`
 - [ ] Any retired skills had their directories removed (not just emptied)
+
+**Measure the tax, not the count.** A skill count is the wrong bloat signal. Skills are
+progressively disclosed: only the name and description load at session start, the body loads
+on invocation. So the standing cost is the sum of all descriptions, paid every session
+regardless of use — 115 skills carried 43,385 characters, about 10,800 tokens per session.
+
+A narrowly-scoped skill that fires only in niche scenarios is close to free and should not be
+counted against a ceiling alongside a vague one that mis-fires weekly. Track two numbers:
+
+| Signal | Meaning |
+|---|---|
+| Total description characters | The standing per-session tax |
+| Generic-word density | Mis-fire risk. `ui-probe` is the most expensive single description (1,454 chars) but only 1.3% generic, so it fires precisely and earns its cost. `jira` at 17.5% generic is the shape that fires on situations it was not written for. |
+
+Judge a proposal on its description cost and trigger precision. The old "under 100, alarm at
+120" count ceiling was arbitrary and is retired (2026-08-18).
+
+### Retirement Pass
+
+Zero invocations is a candidate, not a verdict. Run both scanners and respect their exclusions:
+
+```bash
+python3 ~/.claude/skill-proposals/skill_usage_scan.py --days 90   # → USAGE-SCAN.md
+python3 ~/.claude/skill-proposals/skill_refs_scan.py              # → RETIREMENT-CANDIDATES.md
+```
+
+Four false-negative classes, all found the hard way:
+
+1. **Cron-invoked** — a launchd job runs outside any session and writes no transcript. `skill-evals` fires monthly from `com.harness.skill-evals-monthly`. Auto-excluded.
+2. **Too new** — a skill under 30 days old cannot accumulate usage in a 90-day window. Auto-excluded.
+3. **Referenced in prose** — `inbox-writer` was archived and restored because `skill-evals` names it as its escalation path. The scanner now matches emphasis markers, but re-check every archived skill for dangling references before committing.
+4. **The work happens manually** — `cloudflare-pages` shows zero invocations while the work runs through raw `wrangler` commands. That is a trigger problem, not a dead skill. Search trigger phrases, not just the name.

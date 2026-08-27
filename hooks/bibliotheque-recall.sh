@@ -70,8 +70,18 @@ def stem(w):
             return w[: -len(suf)]
     return w
 
+SHORT_OK = {
+    "xml", "sql", "api", "iam", "bq", "ci", "cd", "mr", "pr", "dns", "ssh", "jwt", "ttl",
+    "dac", "iac", "gcp", "vpc", "csv", "env", "poi", "zip", "cbg", "dma", "mcp", "adr",
+    "ac", "um", "ui", "ux", "e2e", "tls", "s3", "vm", "cli", "npm", "jvm", "orm", "ddl",
+}
+
+def words_of(s):
+    toks = set(re.findall(r"[a-z0-9]{2,}", s.lower()))
+    return {w for w in toks if len(w) >= 4 or w in SHORT_OK}
+
 prompt_lc = prompt.lower()
-prompt_words = set(re.findall(r"[a-z0-9]{4,}", prompt_lc))
+prompt_words = words_of(prompt_lc)
 prompt_words |= {stem(w) for w in prompt_words}
 
 rows = []
@@ -111,7 +121,7 @@ for alias, path, note, kw in rows:
     basename = os.path.splitext(os.path.basename(path))[0]
 
     def toks(s):
-        out = set(re.findall(r"[a-z0-9]{4,}", s.lower())) - STOP
+        out = words_of(s) - STOP
         out = {x for x in out if not re.match(r"^(20\d\d|ktp\d*|spv\d*)$", x)}
         return out | {stem(x) for x in out}
 

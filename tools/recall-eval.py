@@ -54,6 +54,7 @@ CASES = [
     ("I am creating a liquibase changeset", "liquibase-safety-rules", KLEVER),
     # terse prompt: the length gate used to swallow this entirely (codex finding, 2026-08-27)
     ("Liquibase XML changeset", "liquibase-safety-rules", KLEVER),
+    ("Liquibase XML", "liquibase-safety-rules", KLEVER),  # codex's exact case: 13 chars, needs the SHORT_OK allowlist
 ]
 
 

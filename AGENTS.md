@@ -1,6 +1,6 @@
 <!-- generated-mirror-of-claude-md -->
 <!-- source: ~/.claude-shared-config/CLAUDE.md -->
-<!-- source-sha256: 6dda4b490971685c -->
+<!-- source-sha256: aa51a26c06e419a8 -->
 
 > **Generated file. Do not edit.**
 >
@@ -172,10 +172,12 @@ This applies to: GitHub PR comments/replies, Jira comments/ticket updates, Slack
 When tagging, shipping, deploying, creating merge requests, or working with CI/CD, read `~/.claude/library/context/shipping-workflow.md` for the full workflow.
 
 # Creating New Skills & Agents
-- When creating a new agent (`~/.claude/agents/`), always: (1) identify the pipeline gap it fills (what feeds in, what it feeds into), (2) read existing templates/formats it must consume or produce, (3) update MEMORY.md with the agent's role and pipeline position, (4) update the skills-and-agents-index if one exists for the project.
-- Agent output format must match what downstream tools expect. Design from the consumer backwards.
-- After creating any skill or agent, check if a decision/design questions document exists and mark questions as answered.
-- **Every new SKILL.md must include a `nav:` block in its YAML frontmatter.** This routes the skill in `/floor-manager`. Bays: `build`, `fix`, `review`, `ship`, `plan`, `know`, `ops`. Include `when:`, `when_not:`, and optionally `personas:` and `org:`. See any existing SKILL.md for the format.
+
+Design from the consumer backwards: identify the pipeline gap the thing fills, read the formats it must consume and produce, then build. Update `MEMORY.md` and any skills index with its pipeline position.
+
+**Every new SKILL.md needs a `nav:` block** in its frontmatter (bays: `build`, `fix`, `review`, `ship`, `plan`, `know`, `ops`) with `when:` and `when_not:`. Copy the shape from an existing SKILL.md.
+
+Full procedure: the `write-a-skill` and `skill-creator` skills.
 
 # Ticket Closure & Bug Fix Protocols
 - **Never close a ticket without adversarial review and evidence-backed closing comment.**

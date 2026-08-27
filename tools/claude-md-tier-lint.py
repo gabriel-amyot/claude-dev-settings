@@ -6,7 +6,7 @@ SILVER indexes (ALIASES.md), raw origins in BRONZE (_archive/). A raw incident n
 sitting inline is a tier violation: bronze content in the layer that loads every session.
 
 Checks:
-  1. BRONZE-IN-RULES  — "Learned from ..." narratives inline
+  1. BRONZE-IN-RULES  — "Learned from ..." narratives inline, headings included
   2. UNLINKED-ORIGIN  — a ticket key cited with no pointer to a library page
   3. BUDGET           — ratchet: a file may shrink freely, but growth past its
                         recorded high-water mark warns
@@ -45,14 +45,12 @@ ORIGINISH = re.compile(r"\b(learned|from|incident|caused|after|discovered|"
 def lint_file(path: Path):
     out = []
     for n, line in enumerate(path.read_text().splitlines(), 1):
-        if SKIP.match(line):
-            continue
         if NARRATIVE.search(line):
             out.append(("BRONZE-IN-RULES", n,
                         "inline incident narrative; move the origin to _archive/ (bronze), "
                         "the lesson to a gold page, and cite the page"))
             continue
-        if LINKED.search(line):
+        if SKIP.match(line) or LINKED.search(line):
             continue
         # A ticket key inside a path or code span is an illustrative example, not an
         # origin. Only flag keys presented as the provenance of the rule.

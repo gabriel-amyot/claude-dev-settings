@@ -30,7 +30,7 @@ prompt = d.get("prompt", "") or ""
 cwd = d.get("cwd", "") or os.getcwd()
 session_id = re.sub(r"[^A-Za-z0-9_-]", "", d.get("session_id", "nosession") or "nosession")
 
-if len(prompt) < 15:
+if len(prompt) < 10:
     sys.exit(0)
 
 home = os.path.expanduser("~")

@@ -1,6 +1,6 @@
 <!-- generated-mirror-of-claude-md -->
 <!-- source: ~/.claude-shared-config/CLAUDE.md -->
-<!-- source-sha256: aa51a26c06e419a8 -->
+<!-- source-sha256: c2cfeef3f3818bf4 -->
 
 > **Generated file. Do not edit.**
 >
@@ -104,7 +104,7 @@ Hooks enforce many rules in this file. They are defense-in-depth, never a substi
 - **Scope agent sessions to 2-3 ACs max.** Break larger work into sequential sessions: research/docs first, then code, then review. Each session reads the previous session's distilled output, not raw source material.
 - **Separate research from coding.** Session A produces docs/plans (committed). Session B reads the plan and writes code. Session C reviews. This prevents context explosion from reading large architecture docs AND writing code in the same session.
 
-# Spec Fidelity (Learned from SPV-3: searchLeads incident)
+# Spec Fidelity
 - **Never add endpoints, APIs, or interfaces not explicitly covered in the spec.** If the spec says Query X lives on Service A, do not also add Query X to Service B for convenience. Read the architecture spec before adding any new public interface.
 - **Never modify the spec to justify a code change.** If the code you want to write contradicts the spec, STOP.
   - **Interactive mode:** Ask the user whether the spec or the code intent is correct.
@@ -112,7 +112,7 @@ Hooks enforce many rules in this file. They are defense-in-depth, never a substi
 - **Hacks for validation are OK, commits are not.** If you need a temporary endpoint to test something (e.g., peek inside an opaque service), you may create it locally and run tests against it. But do NOT commit it. If the hack reveals a real need, document it as a proposal in `tickets/{ID}/reports/architecture/` for user review.
 - **ADR-023** codifies this for the dreampipe pattern specifically: source-of-truth services must not expose search/list queries that duplicate EQS's role.
 
-# Git History Claims (Learned from SPV-72 2026-05-06)
+# Git History Claims
 - **Never assert "X never existed" in external content without `git log -S` proof.** Load `~/.claude/library/context/git-history-verification.md` before writing or reviewing any PR body that makes historical claims about code.
 
 # Autonomous Mode & The Factory Family
@@ -143,7 +143,7 @@ Three tools cover ticket-to-dev automation. They are **different modes, not thre
 
 Rules that apply only inside a night-crawl, dev-crawl, sprint-crawl, or ralph-loop live in `~/.claude/library/context/autonomous-crawl-rules.md`. Load it before starting any unattended run. It covers: never replacing proven code on an unverified hypothesis, handling architecture discovered mid-crawl, fixing pre-existing test failures, spec conflicts in headless mode, ralph-loop multi-terminal conflicts, and WIP-commit hygiene.
 
-# Ticket References (Learned from SPV-69 session)
+# Ticket References
 - **Never use internal/made-up task names in external-facing content** (commits, PRs, Jira comments, Slack). Always use the real Jira ticket key (e.g., SPV-69, not "A-3").
 - Internal shorthand (A-1, A-2, B-3, etc.) from planning docs is for internal context only. Before referencing a task externally, look up the Jira key using the `/jira` skill.
 - If no Jira ticket exists for the work, propose creating one before committing or posting.

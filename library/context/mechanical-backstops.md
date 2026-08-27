@@ -16,6 +16,7 @@ Hooks enforce these rules. They are defense-in-depth, not a substitute for follo
 | CLAUDE.md holds rules, not origins | `claude-md-tier-lint.sh` | warns |
 | AGENTS.md mirrors CLAUDE.md | `agents-md-mirror.sh` (PostToolUse) + `agents-md-mirror-startup.sh` (SessionStart) | regenerates |
 | Library pointers surfaced by topic | `bibliotheque-recall.sh` | injects pointers |
+| A piped git mutation hides its own failure | `git-pipe-guard.sh` | warns |
 | CLAUDE.md authoring standards | `claude-md-guard.sh` | injects `claude-md-authoring.md` on any CLAUDE.md edit |
 | Spec fidelity on edits | `spec-guard.sh` | injects |
 | Screenshot placement | `screenshot-placement-guard.sh` | warns |
@@ -35,8 +36,22 @@ Session-lifecycle plumbing (`session-start.sh`, `session-init-reminder.sh`, `pro
 - The PostToolUse mirror fires only on `Edit`/`Write`. A CLAUDE.md changed by Bash, `git checkout`, or an external editor leaves AGENTS.md stale until the SessionStart resync runs, so a mirror can be stale for the remainder of a session.
 - `bibliotheque-recall.sh` skips prompts under 10 characters, fires each pointer at most once per session, and needs a score of 2. A prompt naming one topic that many pages match (`liquibase` matches 10 rows) surfaces nothing rather than guessing.
 
-### Rules with NO hook coverage
+### Retired rule: "never pipe git commands"
 
-- **"Never pipe git commands"** has no backstop. Measured 2026-08-27 across 1,642 transcripts: git-as-command piped in **431 sessions (26%)**, `git ... && git ...` chained in 271 (17%). Highest-violation rule in either CLAUDE.md. The rule text is also ambiguous — it prohibits "pipe" but its example shows `&&` — so the count mixes probably-harmless piping (`git log | head`) with the chaining the example targets. Disambiguate before mechanising.
+Replaced 2026-08-27 after measurement, not after an incident. The old blanket rule was
+violated in **431 of 1,642 sessions (26%)** with no demonstrable harm, and its own example
+(`git fetch && git status`) prohibited chaining rather than piping.
+
+The obvious hazard was tested and failed. Sessions piping git hit the `~/.gitconfig` lock
+error 27.1% of the time versus 7.7% without, but controlling for git-command volume the gap
+collapses (14.2% vs 11.8% at 1-5 commands; the high-volume non-piper cells have n=7 and
+n=0). Volume drives the lock error, not piping, and the real cause is already documented in
+[[worktree-fleet-ops]] as parallel-fleet contention on the shared global-config lock, with
+retry as the recovery.
+
+The one real hazard is exit-status masking: a pipe reports the LAST command's status, so
+`git push | tee log` reads as success when the push failed. The rule now targets exactly
+that, and `git-pipe-guard.sh` enforces it on mutating subcommands only. Read-only pipes are
+explicitly fine.
 
 A hook that does not fire is not permission.

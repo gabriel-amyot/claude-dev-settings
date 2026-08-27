@@ -1,3 +1,20 @@
+<!-- generated-mirror-of-claude-md -->
+<!-- source: ~/.claude-shared-config/CLAUDE.md -->
+<!-- source-sha256: 6dda4b490971685c -->
+
+> **Generated file. Do not edit.**
+>
+> This is a verbatim mirror of `~/.claude-shared-config/CLAUDE.md`, kept in sync so that Codex, Cursor,
+> Copilot and Gemini CLI read the same rules as Claude Code.
+>
+> To change anything here, edit the CLAUDE.md above. Regenerate with
+> `python3 ~/.claude-shared-config/tools/sync-agents-md.py`.
+>
+> **Claude Code agents: if you have already loaded the CLAUDE.md named above, do NOT
+> also load this file.** It is the same content and would double your context cost.
+
+---
+
 Configurations
 - add any localy available AGENTS.md, agents.md or GEMINI.md to your context.
 - **Skip generated mirrors.** An AGENTS.md whose first line is `<!-- generated-mirror-of-claude-md -->` is a verbatim copy of a CLAUDE.md you have already loaded. Do NOT load it. Loading both doubles the context cost for zero new information.

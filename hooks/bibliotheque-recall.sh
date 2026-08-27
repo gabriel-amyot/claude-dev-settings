@@ -6,7 +6,8 @@
 # knowledge base; a probe re-discovered a mechanism documented in 5+ bibliothèque docs).
 # The agent will not self-trigger a library check because the defective state is the belief
 # "this is unknown" — so the trigger must be belief-independent. This hook keyword-matches the
-# user's prompt against the org's ALIASES.md and injects pointers to matching library entries.
+# user's prompt against the org ALIASES.md AND the cross-org ~/.claude/library/ALIASES.md,
+# then injects pointers to matching library entries. The global source resolves from any cwd.
 #
 # UserPromptSubmit: stdout on exit 0 is added to the agent's context. Never blocks.
 # Conservative: fires only on scored matches (full alias phrase, or >=2 distinctive tokens),
@@ -37,14 +38,18 @@ ORG_ROOTS = {
     os.path.join(home, "Developer/grp-beklever-com"): "grp-beklever-com",
     os.path.join(home, "Developer/supervisr-ai"): "supervisr-ai",
 }
-biblio = None
+SOURCES = []
 for root in ORG_ROOTS:
     if cwd.startswith(root):
         cand = os.path.join(root, "project-management/documentation/bibliotheque")
         if os.path.isfile(os.path.join(cand, "ALIASES.md")):
-            biblio = cand
+            SOURCES.append(cand)
         break
-if not biblio:
+# The global library is cross-org: it must resolve from any cwd, including outside an org.
+glob_lib = os.path.join(home, ".claude/library")
+if os.path.isfile(os.path.join(glob_lib, "ALIASES.md")):
+    SOURCES.append(glob_lib)
+if not SOURCES:
     sys.exit(0)
 
 # Don't fire when the user is already talking to/about the library.
@@ -59,21 +64,32 @@ STOP = {
     "https", "http", "docs", "documentation", "about", "gotchas",
 }
 
+def stem(w):
+    for suf in ("ing", "ed", "es", "s"):
+        if len(w) > len(suf) + 3 and w.endswith(suf):
+            return w[: -len(suf)]
+    return w
+
 prompt_lc = prompt.lower()
 prompt_words = set(re.findall(r"[a-z0-9]{4,}", prompt_lc))
+prompt_words |= {stem(w) for w in prompt_words}
 
 rows = []
-try:
-    with open(os.path.join(biblio, "ALIASES.md")) as f:
-        for line in f:
-            m = re.match(r"^\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]*?)\s*\|", line)
-            if not m:
-                continue
-            alias, path, note = m.group(1), m.group(2), m.group(3)
-            if alias.lower() in ("alias", "---", ":---") or alias.startswith("-"):
-                continue
-            rows.append((alias, path, note))
-except Exception:
+for src in SOURCES:
+    try:
+        with open(os.path.join(src, "ALIASES.md")) as f:
+            for line in f:
+                m = re.match(r"^\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]*?)\s*\|(?:\s*([^|]*?)\s*\|)?", line)
+                if not m:
+                    continue
+                alias, path, note = m.group(1), m.group(2), m.group(3)
+                kw = m.group(4) or ""
+                if alias.lower() in ("alias", "---", ":---") or alias.startswith("-"):
+                    continue
+                rows.append((alias, os.path.join(src, path), note, kw))
+    except Exception:
+        continue
+if not rows:
     sys.exit(0)
 
 state = f"/tmp/bibliotheque-recall-{session_id}"
@@ -85,7 +101,7 @@ except Exception:
     pass
 
 scored = {}
-for alias, path, note in rows:
+for alias, path, note, kw in rows:
     if path in fired:
         continue
     score = 0
@@ -93,11 +109,22 @@ for alias, path, note in rows:
     if len(phrase) >= 5 and phrase in prompt_lc:
         score += 3
     basename = os.path.splitext(os.path.basename(path))[0]
-    tokens = set(re.findall(r"[a-z0-9]{5,}", (alias + " " + note + " " + basename).lower()))
-    tokens -= STOP
-    tokens = {t for t in tokens if not re.match(r"^(20\d\d|ktp\d*|spv\d*)$", t)}
-    matched = tokens & prompt_words
-    score += len(matched)
+
+    def toks(s):
+        out = set(re.findall(r"[a-z0-9]{4,}", s.lower())) - STOP
+        out = {x for x in out if not re.match(r"^(20\d\d|ktp\d*|spv\d*)$", x)}
+        return out | {stem(x) for x in out}
+
+    # Curated tokens (alias, hand-written trigger, filename) carry the signal.
+    # Mined keywords are noisy, so they may only reinforce a curated hit, never create
+    # one on their own. Without this an unrelated page matches on a single stray word.
+    curated = toks(alias + " " + note + " " + basename)
+    mined = toks(kw) - curated
+    hit_curated = curated & prompt_words
+    hit_mined = mined & prompt_words
+    if not hit_curated and score == 0:
+        continue
+    score += len(hit_curated) + 0.5 * len(hit_mined)
     if score >= 2:
         prev = scored.get(path)
         if not prev or score > prev[0]:
@@ -115,11 +142,10 @@ try:
 except Exception:
     pass
 
-rel = os.path.relpath(biblio, home)
-print("📚 BIBLIOTHÈQUE RECALL — the org library has entries matching this prompt's topic:")
+print("📚 BIBLIOTHÈQUE RECALL — the library has entries matching this prompt's topic:")
 for path, (score, alias, note) in top:
     note_s = f" — {note}" if note else ""
-    print(f"  - [[{alias}]] → ~/{rel}/{path}{note_s}")
+    print(f"  - [[{alias}]] → ~/{os.path.relpath(path, home)}{note_s}")
 print()
 print("Before investigating, declaring any mechanism unknown/UNVERIFIED, or dispatching a")
 print("discovery probe: read the relevant entries above (or dispatch bibliotheque-librarian in")

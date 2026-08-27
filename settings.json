@@ -1,68 +1,389 @@
 {
-  "includeCoAuthoredBy": false,
-  "alwaysThinkingEnabled": true,
-  "enable_tool_search": true,
-  "permissions": {
-    "allow": [
-      "Read",
-      "Write",
-      "Edit",
-      "MultiEdit",
-      "List",
-      "Bash(git:*)",
-      "Bash(ls:*)",
-      "Bash(cat:*)",
-      "Bash(pwd:*)",
-      "Bash(cd:*)",
-      "Bash(find:*)",
-      "Bash(grep:*)",
-      "Bash(rg:*)",
-      "Bash(npm:*)",
-      "Bash(npx:*)",
-      "Bash(node:*)",
-      "Bash(python:*)",
-      "Bash(make:*)",
-      "Bash(jq:*)",
-      "Bash(curl:*)",
-      "Bash(echo:*)",
-      "Bash(vercel:*)",
-      "Bash(gh:*)"
-    ],
-    "deny": [
-      "Bash(rm -rf *)",
-      "Bash(git push:*)",
-      "Bash(wget *)",
-      "Bash(ssh *)",
-      "Bash(scp *)",
-      "Read(*.env*)",
-      "Write(*.env*)",
-      "Read(*secret*)",
-      "Edit(*secret*)",
-      "Write(*secret*)",
-      "Read(*password*)",
-      "Edit(*password*)",
-      "Write(*password*)",
-      "*(*.env*)",
-      "*(*.pem)",
-      "*(*.key)",
-      "*(*.p12)",
-      "*(.ssh/*)",
-      "*(*_rsa*)"
-    ]
+  "cleanupPeriodDays": 365,
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "ENABLE_PROMPT_CACHING_1H": "true",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
   },
-  "model": "sonnet",
-  "autoMemoryEnabled": false,
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "permissions": {
+    "defaultMode": "bypassPermissions"
+  },
+  "model": "opus",
   "hooks": {
-    "PostToolUse": [
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielamyot/Developer/gabriel-amyot/projects/mission-control-dashboard/tools/hooks/session-start.sh",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielamyot/.claude/hooks/proposal-backlog-check.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/gabrielamyot/.claude/plugins/local-marketplace/session/hooks/session-init-reminder.sh",
+            "timeout": 3000
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielamyot/.claude-shared-config/tools/harness-parity-check.sh",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielamyot/.claude/hooks/agents-md-mirror-startup.sh"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielamyot/Developer/gabriel-amyot/projects/mission-control-dashboard/tools/hooks/prompt-submit.sh",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielamyot/.claude/hooks/challenge-detect.sh",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielamyot/.claude/hooks/bibliotheque-recall.sh",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielamyot/.claude/hooks/rabbit-hole-guard.sh",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielamyot/.claude/hooks/on-exit.sh",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielamyot/Developer/gabriel-amyot/projects/mission-control-dashboard/tools/hooks/stop.sh",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielamyot/.claude/hooks/auto-operationalize-cmd.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielamyot/.claude/hooks/pre-compact-guard.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielamyot/.claude/hooks/pm-single-trunk-guard.sh",
+            "timeout": 3000
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielamyot/.claude/hooks/worktree-guard.sh",
+            "timeout": 3000
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielamyot/.claude/hooks/branch-guard.sh",
+            "timeout": 3000
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielamyot/.claude/hooks/session-close-operationalize-guard.sh",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "Read|Grep|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielamyot/.claude/hooks/deploy-identity-guard.sh",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielamyot/.claude/hooks/library-stamp-guard.sh",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielamyot/.claude/hooks/ledger-write-guard.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielamyot/.claude/hooks/file-guard.sh",
+            "timeout": 5000
+          }
+        ]
+      },
       {
         "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
-            "command": "CLAUDE_FILE_PATH=\"$CLAUDE_TOOL_INPUT_FILE_PATH\" /Users/gabrielamyot/.claude-shared-config/hooks/auto-index.sh"
+            "command": "/Users/gabrielamyot/.claude/hooks/ticket-path-guard.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielamyot/.claude/hooks/git-pipe-guard.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielamyot/.claude/hooks/spec-guard.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielamyot/.claude/hooks/claude-md-guard.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielamyot/Developer/gabriel-amyot/projects/mission-control-dashboard/tools/hooks/post-tool-use.sh",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__plugin_playwright_playwright__browser_take_screenshot",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielamyot/.claude/hooks/screenshot-placement-guard.sh",
+            "timeout": 3000
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /Users/gabrielamyot/.claude/hooks/pmd-java-gate.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielamyot/.claude/hooks/agents-md-mirror.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielamyot/.claude/hooks/claude-md-tier-lint.sh"
           }
         ]
       }
     ]
-  }
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash /Users/gabrielamyot/.claude/statusline-command.sh",
+    "padding": 0
+  },
+  "enabledPlugins": {
+    "ralph-loop@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": false,
+    "pr-review-toolkit@claude-plugins-official": false,
+    "skill-creator@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "claude-code-setup@claude-plugins-official": true,
+    "plugin-dev@claude-plugins-official": false,
+    "jdtls-lsp@claude-plugins-official": false,
+    "chrome-devtools-mcp@claude-plugins-official": false,
+    "agent-browser@agent-browser": true,
+    "playwright@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": true,
+    "claude-reflect@claude-reflect-marketplace": true,
+    "session@local": true,
+    "sprint-harness@local": true,
+    "mapping@local": true,
+    "adtech@local": true,
+    "crit@crit": true
+  },
+  "extraKnownMarketplaces": {
+    "agent-browser": {
+      "source": {
+        "source": "github",
+        "repo": "vercel-labs/agent-browser"
+      }
+    },
+    "claude-reflect-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "bayramannakov/claude-reflect"
+      }
+    },
+    "local": {
+      "source": {
+        "source": "directory",
+        "path": "/Users/gabrielamyot/.claude/plugins/local-marketplace"
+      }
+    },
+    "crit": {
+      "source": {
+        "source": "github",
+        "repo": "tomasz-tomczyk/crit"
+      }
+    }
+  },
+  "alwaysThinkingEnabled": true,
+  "effortLevel": "high",
+  "autoCompactWindow": 300000,
+  "showClearContextOnPlanAccept": true,
+  "voice": {
+    "enabled": true,
+    "mode": "hold"
+  },
+  "autoMemoryEnabled": true,
+  "autoDreamEnabled": true,
+  "showThinkingSummaries": false,
+  "skipDangerousModePermissionPrompt": true,
+  "autoCompactEnabled": false,
+  "remoteControlAtStartup": false,
+  "voiceEnabled": true,
+  "teammateDisplayMode": "tmux"
 }

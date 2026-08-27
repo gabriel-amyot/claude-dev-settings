@@ -16,3 +16,6 @@ claude-settings-temp/
 __pycache__/
 evals/monthly-sweep/logs/
 evals/reports/*-sweep.md
+
+# generated ratchet state for claude-md-tier-lint.py
+tools/.claude-md-budget.json

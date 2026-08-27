@@ -1,67 +1,110 @@
-# Workspace Map — Organization & Project Navigation
+# Workspace Map — org/project navigation for Claude agents
+# Load when: starting tickets, navigating between orgs, or resolving ticket prefixes
 
-personal:
-  root: ~/Developer/gabriel-amyot
-  dependencies:
-    depends_on: []  # TODO: populate with known dependencies
-    memory: null
+organizations:
+  klever:
+    root: ~/Developer/grp-beklever-com
+    jira_flag: --org klever
+    jira_projects: [KTP, INS]
+    gitlab_url: https://cicd.prod.datasophia.com
+    iap_cookie: ~/.config/git-gcp-iap/gamyot-beklever@cicd.prod.datasophia.com.cookie
+    # IMPORTANT: grp-app/, grp-app/grp-backend/, grp-app/grp-frontend/ are NOT git repos.
+    # They are plain directory scaffolding. Only leaf paths below are actual git repos.
+    # grp-iac, grp-dac and grp-comp DO exist and hold real repos.
+    # grp-dac has two parallel layouts: grp-dac/grp-dac-env-back/ and
+    # grp-dac/grp-dac-env/grp-dac-env-back/. Confirm which holds your target.
+    # The list below is the daily-driver subset, not the full inventory.
+    repos:
+      # --- Actual git repos (have .git/) ---
+      project-management: ~/Developer/grp-beklever-com/project-management
+      frontend: ~/Developer/grp-beklever-com/grp-app/grp-frontend/app-front-portal
+      backend: ~/Developer/grp-beklever-com/grp-app/grp-backend/grp-ms/app-proximity-report
+      user-management: ~/Developer/grp-beklever-com/grp-app/grp-backend/grp-ms/app-user-management
+      cfg-app: ~/Developer/grp-beklever-com/grp-cfg/cfg-app
+      cfg-iac-env: ~/Developer/grp-beklever-com/grp-cfg/cfg-iac-env
+      cfg-iac-cmm: ~/Developer/grp-beklever-com/grp-cfg/cfg-iac-cmm
+      cfg-dac-env: ~/Developer/grp-beklever-com/grp-cfg/cfg-dac-env
+      klever-data-workflow: ~/Developer/grp-beklever-com/github-repos/klever-data-workflow
+      nyc-poi-map: ~/Developer/grp-beklever-com/github-repos/nyc-poi-map
+      # drmpip services (rarely touched)
+      drmpip-aedflt: ~/Developer/grp-beklever-com/grp-app/grp-backend/grp-drmpip/app-drmpip-aedflt
+      drmpip-aeers: ~/Developer/grp-beklever-com/grp-app/grp-backend/grp-drmpip/app-drmpip-aeers
+      drmpip-tdadt: ~/Developer/grp-beklever-com/grp-app/grp-backend/grp-drmpip/app-drmpip-tdadt
+      # shared includes
+      maven-includes: ~/Developer/grp-beklever-com/grp-app/grp-includes/app-klever-glb-incl-maven-java
+      node-includes: ~/Developer/grp-beklever-com/grp-app/grp-includes/app-klever-glb-incl-node-npm
+      python-includes: ~/Developer/grp-beklever-com/grp-app/grp-includes/app-klever-glb-incl-poetry-python
+      # --- Proxi / Hermes autonomous agent (workshop project, deploy in progress 2026-06) ---
+      # IAC provisions the GCP "biz-proxi" project: enables Gmail + Drive APIs, SAs, Cloud Identity groups, IAM.
+      # DAC + app repos for Proxi do NOT exist yet (to be created). Bot currently runs on a separate machine.
+      iac-gcp-biz-proxi: ~/Developer/grp-beklever-com/grp-iac/grp-iac-env/grp-iac-env-biz/iac-gcp-biz-proxi
+      # Reference repos (NOT Proxi — cloned as deploy-pattern references):
+      #   BI Agent (agent-hub, junior dev): dac-gcp-back-biag, dac-gcp-front-biag under grp-dac/grp-dac-env/
+      #   Other workshop team: app-am-ops-assistant under grp-app/grp-global/grp-aiworkshop (empty upstream)
+      # --- BI Agent / Agent Hub (KleverOne agentic initiative; Sisi/junior dev, NOT Gabriel's) ---
+      # Cloned for reference (deploy-pattern template for Proxi). Knowledge: bibliotheque/agent-hub/.
+      app-agent-hub: ~/Developer/grp-beklever-com/grp-app/grp-backend/grp-gcp/grp-models/app-agent-hub
+      dac-gcp-back-biag: ~/Developer/grp-beklever-com/grp-dac/grp-dac-env/grp-dac-env-back/dac-gcp-back-biag    # ACTIVE: COS MIG + internal L4 ILB (Option C)
+      dac-gcp-front-biag: ~/Developer/grp-beklever-com/grp-dac/grp-dac-env/grp-dac-env-front/dac-gcp-front-biag  # RETIRED (replaced by back-biag)
+      # --- Proximity Explorer chatbot backend ---
+      app-proximity-explorer: ~/Developer/grp-beklever-com/grp-app/grp-backend/grp-gcp/grp-models/app-proximity-explorer
+      dac-gcp-back-proexp: ~/Developer/grp-beklever-com/grp-dac/grp-dac-env-back/dac-gcp-back-proexp
+      dac-gcp-back-proxrp: ~/Developer/grp-beklever-com/grp-dac/grp-dac-env-back/dac-gcp-back-proxrp
+      dac-gcp-front-portal: ~/Developer/grp-beklever-com/grp-dac/grp-dac-env-front/dac-gcp-front-portal
+      # --- NOT git repos (plain directories) ---
+      # grp-app: ~/Developer/grp-beklever-com/grp-app  (scaffold only)
+      # grp-backend: ~/Developer/grp-beklever-com/grp-app/grp-backend  (scaffold only)
+      # grp-frontend: ~/Developer/grp-beklever-com/grp-app/grp-frontend  (scaffold only)
+      workspaces: ~/Developer/grp-beklever-com/grp-app/_project_workspaces  # not a git repo
+    gcp_projects:
+      # Environment naming convention: prj-{env}-{service}-{hash}
+      #   env: d = dev, e = pre/UAT, p = prod
+      #   e.g. prj-e-global-front-XXXX = pre/UAT frontend, prj-p-global-front-XXXX = prod frontend
+      # gcloud account: gamyot@beklever.com (not origin8cares.com)
+      #   switch: gcloud config set account gamyot@beklever.com
+      # dev (env letter: d)
+      prj-d-global-front-6kpke3wn54: Frontend Cloud Run (IAP UI, Java proximity report)
+      prj-d-grid-proxim-fe0wn470yh: Proximity backend (COS VM for app-proximity-explorer at 10.226.32.39:8080)
+      prj-d-grid-pbmod-nb9x844rqk: Programmatic buying module dev
+      prj-d-grid-insigt-3vm2fcstbw: Insights/BigQuery dev
+      prj-d-biz-report-im9q1fvvc7: Data pipeline services
+      prj-d-env-main-bmuvo1wgpu: Shared VPC host project
+      # pre/UAT (env letter: e) and prod (env letter: p): same service names, different env letter
+      # e.g. prj-e-global-front-XXXX, prj-p-global-front-XXXX
+    gitlab_project_ids:
+      # GitLab numeric IDs (for MR URLs and CI vars)
+      dac-gcp-front-portal: 514  # DATASOPHIA_INCL_BUILD_DOCKER_TARGET_PROJECT_ID in app-front-portal/.gitlab-ci.yml. Path not cloned locally.
+    iap_refresh_repo: cfg-app  # use this repo for `git fetch` to refresh IAP cookie
+    default_branch: dev
+    mr_target_override:
+      KTP-115: INS-205  # all proximity map work targets INS-205
 
-klever:
-  root: ~/Developer/grp-beklever-com
-  dependencies:
-    depends_on: []  # TODO: populate with known dependencies
-    memory: null
-  project_management:
-    path: ~/Developer/grp-beklever-com/project-management
-    objective: Where all context for ongoing Klever projects are documented
-    preferred_process:
-      1: Create a development contract
-      2: Create a PRD
-      3: Define a task list and implement while iterating on the task list
-    tickets:
-      description: When starting a session on the Klever domain, we are always working on a ticket. Either the ticket exists and we can continue the work by finding the folder, or we create new subfolders with the name of the ticket (example: ticket ins223 -> /INS-223/)
-      path: ~/Developer/grp-beklever-com/project-management/tickets
-  application_projects:
-    root: ~/Developer/grp-beklever-com/grp-app
-    project_workspaces:
-      path: ~/Developer/grp-beklever-com/grp-app/_project_workspaces
-      description: Multi-repository app workspaces
-      projects:
-        proximity-report-full-stack:
-          details: Consult local AGENTS.md for context
-          path: ~/Developer/grp-beklever-com/grp-app/_project_workspaces/proximity-report-full-stack
-    tickets:
-      description: Create new subfolders for each Jira ticket we work on
-      path: ~/Developer/grp-beklever-com/grp-app/_project_workspaces/tickets
-  infrastructure:
-    description: Terraform-based infrastructure (mainly GCP)
-    gcp_project_management: ~/Developer/grp-beklever-com/grp-iac
-    gcp_resources:
-      path: ~/Developer/grp-beklever-com/grp-dac
-      warning: "NEVER run terraform commands here. Changes must be reviewed and applied manually or via CI/CD pipeline."
-    terraform_docs: ~/Developer/grp-beklever-com/grp-comp
+  supervisr:
+    root: ~/Developer/supervisr-ai
+    jira_flag: --org supervisr
+    jira_projects: [SPV]
+    gitlab_url: https://gitlab.prod.origin8cares.com
+    default_branch: main
+    # IMPORTANT: Only 3 directories exist under supervisr-ai/ on disk:
+    #   app/           (origin8-web monorepo)
+    #   faas/          (cloud functions)
+    #   project-management/
+    # Service repos (lead-lifecycle-service, retell-service, compliance-ers,
+    # supervisor-query-service, supervisor-compliance-engine) are NOT cloned locally.
+    # Never assume a service repo is available. Work through GitHub URLs or git clone first.
 
-supervisr_ai:
-  root: ~/Developer/supervisr-ai
-  dependencies:
-    depends_on: []  # TODO: populate with known dependencies
-    memory: null  # Note: lead-lifecycle-service has MEMORY.md at ~/.claude/projects/-Users-gabrielamyot-Developer-supervisr-ai-app-micro-services-lead-lifecycle-service/memory/MEMORY.md
-  project_management: ~/Developer/supervisr-ai/project-management
-  infrastructure:
-    description: Infrastructure managed using Terraform in GCP
-    core_services_dac: ~/Developer/supervisr-ai/faas/grp-dac/grp-dac-sprvsr/grp-dac-sprvsr-core
-    warning: "NEVER run terraform commands here. Always deploy via CI/CD."
-    deployment_workflow:
-      - Make changes to Terraform configuration files (e.g., cloud_run_service_res.tf)
-      - Commit and push to repository
-      - CI/CD pipeline automatically runs terraform plan and terraform apply
-      - Monitor pipeline logs for deployment status
-      - "Cloud Run Services: Changes to env vars, resource limits, scaling config, or secrets trigger service redeployment"
+  origin8:
+    root: ~/Developer/origin8
+    note: legacy, managed from Supervisr.ai
+    gitlab_url: https://gitlab.prod.origin8cares.com
+    default_branch: main
 
-origin8:
-  root: ~/Developer/origin8
-  dependencies:
-    depends_on: [supervisr_ai]  # Legacy org managed from Supervisr.ai
-    memory: null
-  project_management: ~/Developer/supervisr-ai/project-management
-  description: Old company rebranded as supervisr.ai. Still need some repos here, but new services deploy under supervisr.ai. Managed from Supervisr.ai project-management.
+  personal:
+    root: ~/Developer/gabriel-amyot
+    note: personal projects, no Jira
+
+# Ticket prefix resolution
+ticket_routing:
+  KTP: klever
+  INS: klever
+  SPV: supervisr

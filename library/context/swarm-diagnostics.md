@@ -1,25 +1,50 @@
-# Swarm Diagnostics Pattern
+# Swarm Diagnostics — Multi-Service Debugging
 
-Use when a complex blocker spans multiple services with several potential root causes.
+On-demand context: load when debugging across multiple services, running parallel investigations, or triaging blockers.
+
+## When to Use Swarm Diagnostics
+- Bug spans multiple services (frontend + backend + BQ)
+- Multiple independent hypotheses need parallel investigation
+- Blocker triage requires checking several systems simultaneously
 
 ## Protocol
 
-1. **Map the failure chain.** Trace backwards from symptom to root cause, identifying every link (e.g., tick → partner config → EQS → ERS MV → DateTime type → ComplianceErsClient).
-2. **Spawn parallel haiku agents.** One agent per investigation angle. Each is single-minded: one question, one answer. Examples: "trace the code path from tick to partner config", "check what libraries handle DateTime conversion", "find all PRs with unresolved comments."
-3. **Never duplicate research.** If an agent is investigating a file or topic, no other agent (or the orchestrator) touches it.
-4. **Synthesize with Opus.** After all agents report, synthesize into an ordered blocker list. Order by dependency (fix X before Y can work).
-5. **Prioritize:** code fixes → config changes → data cleanup → manual steps. Code can be committed and deployed. Config needs env var updates. Data cleanup needs console access.
-6. **Implement in worktrees.** Use `isolation: "worktree"` for code changes so multiple branches can be worked simultaneously.
+### Step 1: Isolate the symptom
+Identify which layer is failing: frontend rendering, API response, BQ query, infrastructure.
 
-## Agent Design Rules
+### Step 2: Dispatch parallel investigation agents
+Launch 2-3 Sonnet agents, each investigating one hypothesis:
+- Agent 1: Check API response shape (curl endpoint, inspect JSON)
+- Agent 2: Check BQ query directly (bq query, verify data exists)
+- Agent 3: Check infrastructure state (COS running, logs, health endpoints)
 
-- **Haiku for research, Opus for synthesis and implementation.** Don't waste Opus tokens reading files.
-- **10 agents max per swarm.** Beyond that, synthesis becomes unwieldy.
-- **Run in background.** Launch all research agents with `run_in_background: true`, then wait for notifications.
-- **Each agent gets one deliverable.** "Summarize: X, Y, Z" at the end of every prompt so the agent knows what to return.
+Each agent returns a condensed finding (under 500 tokens).
 
-## When NOT to Use
+### Step 3: Synthesize findings
+Opus orchestrator reads all agent findings and identifies the root cause.
 
-- Single-service bugs with obvious root cause. Just read the code.
-- Questions answerable by 2-3 grep/glob calls. Use direct tools.
-- When the user already told you the root cause. Just implement.
+### Step 4: Fix or escalate
+- If fixable: create the fix, run tests, commit
+- If infrastructure: document the finding, escalate to user
+- If data issue: document in `tickets/{ID}/reports/status/` and flag
+
+## Common Multi-Service Issues (Klever)
+
+| Symptom | Likely Cause | Check |
+|---|---|---|
+| Frontend shows empty map | Backend returns empty array | curl the API endpoint directly |
+| API returns 500 | BQ query fails | Check BQ logs, verify SA permissions |
+| BQ returns no rows | Wrong dataset/project or missing data | `bq query --use_legacy_sql=false 'SELECT COUNT(*) FROM ...'` |
+| COS returns 502/503 | Instance TERMINATED or restarting | `gcloud compute instances list` |
+| Health check fails | Backend not started or wrong profile | Check Spring profile, verify port 8097 |
+| IAP 403 on API call | Expired IAP cookie | `git fetch` on any Klever repo to refresh |
+
+## Blocker Classification
+
+| Category | Action |
+|---|---|
+| Code bug | Fix immediately |
+| Missing data | Document, check if test data needs seeding |
+| Infrastructure | Document, escalate (COS, IAM, networking) |
+| Permissions | Document in `reports/architecture/`, check DAC terraform |
+| Spec ambiguity | Post question to Jira via `/post-comment` |

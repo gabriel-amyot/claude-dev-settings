@@ -1,151 +1,74 @@
-# Library Catalog
+# Bibliothèque Catalog — User Level
 
-Master index for the context-engineering knowledge base.
-97 documents across 8 sections. Every filename is self-documenting: domain, purpose, and key concepts are encoded in the name.
+Last updated: 2026-08-03
 
-Last updated: 2026-05-02
+Entry point: [INDEX.md](INDEX.md)
 
-**Navigation pattern:** Start with `INDEX.md` for quick-lookup tables, then read this catalog for the full floor plan and topic cross-reference. Never bulk-load.
+## Org-Level Bibliothèques
 
----
+| Org | Path | Glossary | Sections |
+|-----|------|----------|----------|
+| Klever | `~/Developer/grp-beklever-com/project-management/documentation/bibliotheque/` | 107 terms | domain, vendors, product, stack, operations, people, maps-proximity, sops, development |
+| Supervisr.AI | `~/Developer/supervisr-ai/project-management/documentation/bibliotheque/` | Yes | domain, vendors, product, stack, operations, people |
 
-## Floor Plan
+## context/ — On-demand context files for agent sessions
 
-| Floor | Section | Books | What lives here |
-|-------|---------|------:|-----------------|
-| **architecture/** | decisions, patterns, vision | 9 | ADRs, architecture patterns, north-star vision docs |
-| **research/** | agent-systems, memory-systems, strategic-planning, security | 11 | Raw research papers, deep analysis, strategic plans |
-| **practices/** | development, testing, debugging, collaboration, writing, planning, quality, standards, workflows | 28 | How-to guides, methodologies, checklists, workflow definitions |
-| **process/** | — | 3 | PRD creation, task generation, task management protocols |
-| **operations/** | troubleshooting, known-issues | 8 | Supervisr infra topology (Datastore, Auth0, services), guardrails, test harness, troubleshooting |
-| **archive/** | retired-agents, superpowers-plugin, audits | 31 | Retired agents, plugin snapshots, test cases, historical audits |
-| **context/** | — | 11 | On-demand context files loaded by CLAUDE.md triggers (workspace map, shipping, Java, tickets, tools) |
-| **inbox/** | — | 0 | Unprocessed nuggets pending promotion via `/bibliotheque-librarian` |
+| File | Purpose | Load Trigger |
+|------|---------|-------------|
+| shipping-workflow.md | Tag, build, deploy, MR workflow | Tagging, shipping, deploying, merge requests, CI/CD |
+| java-standards.md | Mockito, testing, enforcement standards | Writing or reviewing Java code |
+| context-engineering.md | Compaction, note-taking, subagent architecture | Long-running agents, compaction, context limits |
+| claude-md-authoring.md | DRY principle, satellite files, section ownership | Editing any CLAUDE.md file |
+| tools-catalog.md | Which tool produces which artifact | Creating PRDs, tickets, contracts, changelogs, ADRs |
+| swarm-diagnostics.md | Multi-service debugging, parallel investigation | Complex multi-service debugging, blocker triage |
+| stakeholder-response-pattern.md | Check Jira, post via `/post-comment` | Stakeholder asks about feature business logic |
+| schema-validation-gate.md | Verify BQ schema before coding | Before wiring any BQ adapter |
+| ticket-quality-standards.md | AC writing, closure protocols, bug fix standards | Creating tickets, writing AC, reviewing quality |
+| security-audit-claude-code-config.md | Priority fixes, permission audit findings | Security hardening, credential rotation |
+| pr-panic-protocol.md | 3-lookup rule, invariant flagging | User expresses alarm about PR contamination/security/data loss |
+| jira-skill-gotchas.md | Org slugs, subcommands, ADF format, header rule | Running `jira_skill.py` |
+| retell-api-v2-reference.md | Pagination, broken filters, response format | Calling Retell AI API |
+| eqs-graphql-reference.md | Field names, filter syntax, comparators | Querying EQS GraphQL |
+| cloud-run-iam-diagnosis.md | IAM vs app auth, audit logs, smoke tests | Cloud Run 403/401 diagnosis |
+| apollo-gateway-architecture.md | Subgraph URLs, DNS TXT env vars | Apollo Router managed federation |
+| long-running-process-pattern.md | Nohup launcher, tool timeout limits | Running multi-hour jobs |
+| python-http-client-egress-gotchas.md | `httpx` `trust_env`, loopback resolution | Claiming a request stays local; writing a localhost security check |
+| harness-self-management.md | Cost config, transcript mining, batch API, local-plugin cache-sync gotcha | Improving the harness |
+| harness-architecture-textbook.md | Whole-harness map + deploy-identity subsystem deconstructed; reusable mermaid diagrams D1–D9; weaknesses/constraints/trade-offs self-documented | "How does my harness work", subsystem/hook-lifecycle diagrams, deploy-identity, harness onboarding |
+| vendor-api-contract-validation.md | 5-gate defense for vendor API parsing (anti-hallucination) | Writing vendor API parsing, spike completion, debugging all-null vendor metrics |
+| klever-infra-access.md | Cloud Identity group model, Marc-André gate | Granting GCP/GitLab access at Klever |
+| klever-api-credentials.md | Auth patterns, key storage (no values) | Using Placer API, adding API integrations |
+| documentation-standards-quick-ref.md | Three-layer doc model, ADR placement, migration checklist | Writing/reviewing ADRs, placing docs |
+| nextjs-cloudflare-static-export.md | CF Pages `npx next build` skips npm prebuild hooks; generate artifacts from next.config; verify with prod build command; CF API deploy diagnosis | Next.js static export on Cloudflare Pages, "works locally not in prod" build artifacts, missing search-index/sitemap |
+| workspace-map.yaml | Org roots, repo paths, harness locations | Navigating orgs/projects, starting tickets |
+| worktree-fleet-ops.md | Worktree from a PM cwd (target code repo with `git -C`); `~/.gitconfig` lock contention in parallel fleets (retry, deferred structural fix) | Creating worktrees from project-management, gitconfig lock errors in fleets |
+| browser-automation-sops.md | Google Drive upload recipe (New>File-upload injection, `file_upload` against ref, zip-multi-folder-first); transient 529 fallback | Uploading to Drive via claude-in-chrome, transient 529 on browser tools |
+| claude-code-session-crash-forensics.md | Transcript mtime clustering as a crash signal; filter to `entrypoint == "cli"`; resolve by session ID once touched | Building crash-recovery tooling on Claude Code session transcripts |
+| llm-tool-design-safety-patterns.md | Split read-only discovery from the one side-effecting action; never collapse multiple candidates into "the one" | Designing an LLM-driven CLI/tool with a side-effecting action |
+| macos-terminal-automation-gotchas.md | Ghostty single-instance behavior, keystroke drop on long strings, `activate`-frontmost race, Accessibility permission target | Driving Ghostty or another single-instance macOS terminal app via `open`/AppleScript |
+| zsh-dotfiles-double-sourcing-gotcha.md | `.zshenv` sourcing `.zshrc` directly runs it twice, once before `.zprofile` sets up PATH | Intermittent `command not found: brew` in `.zshrc`, zsh startup order issues |
+| mcp-server-scoping-and-isolation.md | Local-scope MCP registration loads everywhere; `--strict-mcp-config` for true isolation; per-directory trust approval separate from OAuth; `!`-prefix shell cannot launch interactive `claude` | Scoping an MCP server to one project, isolating a heavy MCP server to a headless batch process |
+
+## inbox/ — Unindexed nuggets pending promotion
+
+| File | Contents | Promote to |
+|------|----------|------------|
+| 2026-04-17-leo-ac-scaffolding-session.md | Jira mention format, scope-clarification template fix, Amal question scope, CONVERSION_NAME domain knowledge | jira-skill-gotchas.md, project-management CLAUDE.md, Klever bibliothèque |
+| 2026-04-21-debugging-persona-research-prompt.md | Gemini Deep Research prompt for BMAD debugging persona, BMAD persona anatomy analysis | New BMAD persona file + skill-proposals/2026-04-21-debugging-agent.md |
 
 ---
 
 ## Topic Cross-Reference
 
-Use this when you know WHAT you need but not WHERE it lives.
-
-### Agent Architecture
-- North star: `architecture/vision/agent-harness-north-star-industry-patterns-gap-analysis.md`
-- Roadmap: `architecture/vision/agent-harness-phased-roadmap-ralph-loop-to-cloud.md`
-- Failure modes: `architecture/vision/agent-harness-known-failure-catalog.yaml`
-- Deep research (39 KB): `research/agent-systems/paradigm-shifts-context-engineering-deterministic-gates-multi-agent.md`
-- Pattern (Minions): `architecture/patterns/minions-isolated-environments-blueprint-interleaving.md`
-- Pattern (Gemini): `architecture/patterns/gemini-cache-stability-working-memory-externalization.md`
-- Pattern (Pre-flight): `architecture/patterns/pre-flight-heuristics-hierarchical-coordination.md`
-
-### Memory Systems
-- ADR: `architecture/decisions/memory-management-disable-auto-consolidate-context.md`
-- Survey (22 KB): `research/memory-systems/ai-agent-memory-architectures-patterns-survey.md`
-- Embedding vs Files (34 KB): `research/memory-systems/embedding-databases-vs-indexed-file-structures.md`
-- QMD concept: `research/memory-systems/query-mapping-document-semantic-memory-retrieval.md`
-- Future directions: `research/memory-systems/future-exploration-multi-index-graph-hybrid-evaluation.md`
-
-### Context Engineering
-- Persona loading ADR: `architecture/decisions/persona-context-dynamic-loading-from-agent-os.md`
-- Persona SBE: `architecture/patterns/persona-context-repo-discovery-graceful-degradation.md`
-- Principles (on-demand): `../context/context-engineering.md`
-- CLAUDE.md authoring (on-demand): `../context/claude-md-authoring.md`
-
-### Code Quality
-- Review checklist: `practices/quality/code-review-priority-checklist.md`
-- Reviewer persona: `practices/collaboration/code-reviewer-persona-guidelines.md`
-- Review requesting: `practices/collaboration/requesting-code-review-preparation-guide.md`
-- Review receiving: `practices/collaboration/receiving-code-review-incorporating-feedback.md`
-- Defense-in-depth: `practices/quality/defense-in-depth-layered-security-patterns.md`
-- Commit format: `practices/standards/commit-message-conventional-format.md`
-
-### Testing
-- TDD methodology: `practices/development/test-driven-development-red-green-refactor.md`
-- TDD workflow: `practices/workflows/tdd-workflow-test-first-quality-gates.md`
-- Anti-patterns: `practices/testing/testing-anti-patterns-and-refactoring.md`
-- Skill testing: `practices/testing/testing-skills-with-subagent-harnesses.md`
-- Verification: `practices/testing/verification-before-completion-protocols.md`
-
-### Debugging
-- Systematic methodology: `practices/debugging/systematic-debugging-failure-trace-hypothesis.md`
-- Root cause analysis: `practices/debugging/root-cause-tracing-investigation-artifacts.md`
-- Find-polluter utility: `practices/debugging/find-polluter.sh`
-
-### Writing and Communication
-- Writing skills (622 lines): `practices/writing/writing-skills-persuasion-clarity-structure.md`
-- Anthropic best practices (1150 lines): `practices/writing/anthropic-best-practices-prompt-design.md`
-- Persuasion principles: `practices/writing/persuasion-principles-communication.md`
-
-### Strategic Planning
-- Reading order: `research/strategic-planning/navigation-guide-reading-order.md`
-- Strategic analysis (793 lines): `research/strategic-planning/ultrathink-goal-alignment-risk-mitigation-timeline.md`
-- Phase 0 plan (1507 lines): `research/strategic-planning/phase-0-detailed-execution-roadmap.md`
-- Model feedback: `research/strategic-planning/opus-4-1-feedback-strategic-recommendations.md`
-
-### Development Workflow
-- Plan writing: `practices/planning/writing-effective-implementation-plans.md`
-- Plan execution: `practices/planning/executing-pre-written-plans.md`
-- Branch finishing: `practices/development/finishing-development-branch-cleanup-merge.md`
-- Git worktrees: `practices/development/using-git-worktrees-isolated-branches.md`
-- Lean workflow: `practices/workflows/lean-workflow-minimal-process-rapid-iteration.md`
-- Parallel agents: `practices/collaboration/dispatching-parallel-agents-coordination.md`
-- Subagent dev: `practices/development/subagent-driven-development-specialized-tasks.md`
-
-### Infrastructure & Operations
-- Datastore topology (all envs): `operations/supervisr-datastore-topology-environments.md`
-- Auth0 tenants and M2M apps: `operations/supervisr-auth0-topology-m2m-apps.md`
-- Infrastructure guardrails (incident-driven): `operations/supervisr-infrastructure-guardrails.md`
-- Service graph and deployment: `operations/supervisr-service-graph-deployment.md`
-- Test harness gotchas: `operations/supervisr-test-harness-gotchas.md`
-
-### Operational Context (loaded via CLAUDE.md triggers)
-See `context/INDEX.md` for the full trigger map. These are small, self-contained files designed for just-in-time loading.
-
-Key files:
-- Workspace navigation: `context/workspace-map.yaml`
-- Shipping/deploy: `context/shipping-workflow.md`
-- Java standards: `context/java-standards.md`
-- Context engineering: `context/context-engineering.md`
-- Ticket quality: `context/ticket-quality-standards.md`
-- CLAUDE.md authoring: `context/claude-md-authoring.md`
-
----
-
-## Library Meta Files
-
-| File | Purpose |
-|------|---------|
-| `INDEX.md` | Navigational home — "I Need to Understand / I Am Blocked / I Need to Do" tables |
-| `CATALOG.md` | This file — floor plan, topic cross-reference, librarian protocol |
-| `SCHEMA.md` | LLM Wiki metadata conventions, frontmatter spec, wikilink format |
-| `ALIASES.md` | Wikilink disambiguation table — short aliases to file paths |
-| `WIKI_REGISTRY.yaml` | Cross-wiki registry — IDs, locations, domains for all four wikis |
-| `LOG.md` | Append-only wiki operations log |
-
----
-
-## Cross-Wiki Network
-
-This library is one of four wikis following the LLM Wiki pattern. Cross-wiki links use `[[wiki-id::page-name]]`.
-
-**Registry:** `WIKI_REGISTRY.yaml` (in this directory)
-
-| Wiki ID | Location | Domain |
-|---------|----------|--------|
-| `harness` | This library | Cross-org harness, agent architecture, development practices |
-| `klever` | `~/Developer/grp-beklever-com/project-management/documentation/bibliotheque/` | Klever ad-tech, vendors, BigQuery, proximity map |
-| `supervisr` | `~/Developer/supervisr-ai/project-management/documentation/bibliotheque/` | Supervisr insurance, lead lifecycle, compliance |
-| `personal` | `~/Developer/gabriel-amyot/project-management/documentation/bibliotheque/` | Personal projects, Mission Control |
-
----
-
-## Librarian Protocol
-
-**Fast path for raw nuggets:** Drop into `inbox/` first. Name it anything. Add a row to `inbox/INDEX.md`. Run `/bibliotheque-librarian` to promote.
-
-**Full protocol for deliberate additions:**
-1. Choose the correct floor and section based on content type
-2. Name the file: `{domain}-{purpose}-{key-concepts}.md` (lowercase, hyphens, no dates)
-3. Update the section's `INDEX.md` with a one-liner
-4. If it answers a common question, add a row to `INDEX.md` quick-lookup tables
-5. If cross-cutting, add to the Topic Cross-Reference above
-6. Update "Last updated" date at the top of this file
+- **Harness architecture / hooks / subsystems:** `harness-architecture-textbook.md` (whole-harness map D1, deploy-identity deconstructed, weaknesses + fixes), `harness-self-management.md` (cost/self-management), `claude-md-authoring.md` (CLAUDE.md cascade)
+- **Deploy-identity / which-branch-deploys / wrong-branch claims:** `harness-architecture-textbook.md` (Ch 3) + KTP-688 ticket artifacts (`tickets/KTP/KTP-374/KTP-688/reports/`)
+- **PR review / adversarial review:** `pr-panic-protocol.md` (panic flow), `ticket-quality-standards.md` (closure protocols)
+- **Jira workflows:** `jira-skill-gotchas.md` (skill usage), project-level memory entries (sprint moves, closing comments, transitions, deadline mode)
+- **Harness cost + self-management:** `harness-self-management.md` (ideas A/B/C), skill proposals in `~/.claude/skill-proposals/`
+- **Vendor API contract integrity:** `vendor-api-contract-validation.md` (5-gate defense), Klever incident detail at `~/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-559/KTP-669/reports/architecture/winston-harness-recommendations-2026-05-19.md`
+- **Dark Factory pipeline:** Klever Bibliothèque → `development/dark-factory/` (lessons, ADRs, specs). Skill: `~/.claude/skills/dark-factory/SKILL.md`
+- **Klever domain:** Klever Bibliothèque → ad-tech, DSPs, BQ schemas, products, people
+- **Supervisr domain:** Supervisr Bibliothèque → lead lifecycle, EQS, compliance, dreampipe
+- **Personal tooling / macOS automation:** `macos-terminal-automation-gotchas.md` (Ghostty, AppleScript keystroke injection), `zsh-dotfiles-double-sourcing-gotcha.md` (zsh startup order)
+- **LLM tool/agent design patterns:** `llm-tool-design-safety-patterns.md` (discovery vs. side-effecting action, candidate listing), `claude-code-session-crash-forensics.md` (transcript-mtime crash detection)
+- **MCP server configuration:** `mcp-server-scoping-and-isolation.md` (local-scope leak, `--strict-mcp-config`, per-directory trust approval)

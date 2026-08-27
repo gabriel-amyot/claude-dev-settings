@@ -1,0 +1,325 @@
+# Floor Manager Override Catalog
+# Covers agents, BMAD commands, and plugin skills that lack a SKILL.md nav: block.
+# The floor-manager reads this as Layer 2 of the three-layer catalog.
+#
+# Schema per entry:
+#   id: unique identifier
+#   type: agent | bmad-command | plugin-skill
+#   invoke: exact invocation syntax
+#   bay: build | fix | review | ship | plan | know | ops
+#   when: one-line guidance for when to use
+#   when_not: one-line guidance for when NOT to use
+#   personas: list of BMAD personas involved
+#   org: list of orgs (omit for global)
+
+overrides:
+
+  # ── Agents (from ~/.claude/agents/*.md) ──
+
+  - id: sprint-crawl
+    type: agent
+    invoke: "Agent: sprint-crawl"
+    bay: build
+    when: "Multiple tickets, overnight autonomous execution, full lifecycle per ticket"
+    when_not: "Single quick ticket (use /dark-factory). Spikes or research (no ac.yaml)."
+    personas: [amelia, bob]
+
+  - id: night-crawl
+    type: agent
+    invoke: "Agent: night-crawl"
+    bay: build
+    when: "Local test loop: plan, implement, test via Docker, fix, re-run, adversarial review"
+    when_not: "Standard ticket execution (use sprint-crawl). Cloud deploy verification (use dev-crawl)."
+    personas: [amelia, quinn]
+    org: [supervisr]
+
+  - id: dev-crawl
+    type: agent
+    invoke: "Agent: dev-crawl"
+    bay: build
+    when: "Deploy to GCP dev, verify via live Cloud Run endpoints, diagnose and fix failures"
+    when_not: "Local validation (use night-crawl). Standard ticket work (use sprint-crawl)."
+    personas: [amelia]
+    org: [supervisr]
+
+  - id: dexter
+    type: agent
+    invoke: "Agent: dexter"
+    bay: fix
+    when: "Gnarly bug that defies initial investigation. Forensic autopsy protocol (NTSB, Kepner-Tregoe)."
+    when_not: "Standard debugging (use /investigate first). Dexter diagnoses only, does NOT fix."
+    personas: [dexter]
+
+  - id: pickup-ticket
+    type: agent
+    invoke: "Agent: pickup-ticket"
+    bay: plan
+    when: "Starting work on a ticket. Fetches Jira, scaffolds folder, runs spec clarity gate."
+    when_not: "Ticket already picked up and scaffolded. Use /dark-factory for full pipeline."
+    personas: [leo]
+
+  - id: ticket-scan
+    type: agent
+    invoke: "Agent: ticket-scan"
+    bay: review
+    when: "Quick AC health check on any ticket. Checks observable outcomes, vague language."
+    when_not: "Full quality gate cascade (use story-quality-gate agent)."
+    personas: [leo]
+
+  - id: story-quality-gate
+    type: agent
+    invoke: "Agent: story-quality-gate"
+    bay: review
+    when: "Full cascading review: Leo (AC) -> Winston (architecture) -> Amelia (code-level)"
+    when_not: "Quick AC check only (use ticket-scan agent). Code review (use /adversarial-cascade)."
+    personas: [leo, winston, amelia]
+
+  - id: supervisr-ship
+    type: agent
+    invoke: "Agent: supervisr-ship"
+    bay: ship
+    when: "Full Supervisr shipping pipeline: validate, review, release, deploy, Jira update"
+    when_not: "Klever repos (use /klever-mr). Individual steps (use /supervisr-validate etc)."
+    personas: [amelia, bob]
+    org: [supervisr]
+
+  - id: supervisr-autopilot
+    type: agent
+    invoke: "Agent: supervisr-autopilot"
+    bay: build
+    when: "Full autonomous lifecycle for Supervisr tickets: intake through deployment"
+    when_not: "Klever tickets (use sprint-crawl or /dark-factory)."
+    personas: [amelia, bob]
+    org: [supervisr]
+
+  - id: post-comment
+    type: agent
+    invoke: "Agent: post-comment"
+    bay: ship
+    when: "Post externally visible content (PR comments, Jira comments, Slack messages)"
+    when_not: "Internal notes or local files. This is for external-facing posts only."
+    personas: []
+
+  - id: push-adr
+    type: agent
+    invoke: "Agent: push-adr"
+    bay: know
+    when: "Push architectural decisions to agent-os folders with cross-references"
+    when_not: "Drafting an ADR (write it first, then push). Reading existing ADRs."
+    personas: [winston]
+
+  - id: pr-response-sweep
+    type: agent
+    invoke: "Agent: pr-response-sweep"
+    bay: ship
+    when: "Scan all your open PRs for unanswered reviewer comments, draft evidence-backed responses"
+    when_not: "Reviewing someone else's PR (use /pr-review or colleague-review agent)."
+    personas: []
+
+  - id: colleague-review
+    type: agent
+    invoke: "Agent: colleague-review"
+    bay: review
+    when: "Review teammates' open PRs on GitHub. Auto-discovers, posts inline comments."
+    when_not: "Reviewing your own work (use /pr-review). GitLab MRs (not supported)."
+    personas: [quinn, winston]
+    org: [supervisr]
+
+  - id: review-responder
+    type: agent
+    invoke: "Agent: review-responder"
+    bay: ship
+    when: "Research-driven responses to PR review comments with ADR/SBE evidence"
+    when_not: "Quick ack or simple agreement (just reply directly)."
+    personas: []
+
+  - id: mother-base-housekeeper
+    type: agent
+    invoke: "Agent: mother-base-housekeeper"
+    bay: ops
+    when: "Detect repo drift, missing docs, infrastructure inconsistencies across Supervisr repos"
+    when_not: "Klever repos (use /mb-doc-housekeeping skill)."
+    personas: []
+    org: [supervisr]
+
+  - id: bmad-party
+    type: agent
+    invoke: "Agent: bmad-party"
+    bay: plan
+    when: "Interactive BMAD workflow with user as active participant in debate"
+    when_not: "Autonomous execution without user (use bmad-party-autopilot)."
+    personas: [john, winston, amelia, quinn, leo, mary]
+
+  - id: bmad-party-autopilot
+    type: agent
+    invoke: "Agent: bmad-party-autopilot"
+    bay: plan
+    when: "Autonomous BMAD workflow without user interaction"
+    when_not: "User wants to participate in decisions (use bmad-party)."
+    personas: [john, winston, amelia, quinn, leo, mary]
+
+  # ── BMAD Plugin Commands ──
+
+  - id: bmad-help
+    type: bmad-command
+    invoke: "/bmad-help"
+    bay: plan
+    when: "Need step-by-step BMAD workflow guidance. 53-row CSV catalog of workflows."
+    when_not: "Looking for a non-BMAD skill. Use /floor-manager instead."
+    personas: []
+
+  - id: bmad-review-adversarial-general
+    type: bmad-command
+    invoke: "/bmad-review-adversarial-general"
+    bay: review
+    when: "Cynical adversarial review of any content. Produces findings."
+    when_not: "Code-specific review (use /adversarial-cascade). Test validity (use /test-adversarial)."
+    personas: []
+
+  - id: bmad-editorial-review-structure
+    type: bmad-command
+    invoke: "/bmad-editorial-review-structure"
+    bay: review
+    when: "Structural editing: cuts, reorganization, simplification of documents"
+    when_not: "Prose quality (use /bmad-editorial-review-prose). Code review (use /adversarial-cascade)."
+    personas: []
+
+  - id: bmad-editorial-review-prose
+    type: bmad-command
+    invoke: "/bmad-editorial-review-prose"
+    bay: review
+    when: "Clinical copy-editing for communication issues in text"
+    when_not: "Document structure (use /bmad-editorial-review-structure). Code review."
+    personas: []
+
+  - id: bmad-shard-doc
+    type: bmad-command
+    invoke: "/bmad-shard-doc"
+    bay: ops
+    when: "Split large markdown into smaller organized files by L2 sections"
+    when_not: "Already small document. Need INDEX.md (use /index-context)."
+    personas: []
+
+  - id: bmad-index-docs
+    type: bmad-command
+    invoke: "/bmad-index-docs"
+    bay: know
+    when: "Generate or update index.md for a directory"
+    when_not: "Need recursive INDEX.md with custom scope (use /index-context)."
+    personas: []
+
+  # ── Plugin Skills (superpowers, caveman, agent-browser, etc.) ──
+
+  - id: superpowers-systematic-debugging
+    type: plugin-skill
+    invoke: "superpowers:systematic-debugging"
+    bay: fix
+    when: "Structured debugging methodology. Usually invoked inside /investigate, not directly."
+    when_not: "Full investigation pipeline (use /investigate which calls this internally)."
+    personas: [quinn]
+
+  - id: superpowers-writing-plans
+    type: plugin-skill
+    invoke: "superpowers:writing-plans"
+    bay: plan
+    when: "Multi-step task needs a written plan before code. Spec or requirements exist."
+    when_not: "Already have a plan. Need to execute it (use superpowers:executing-plans)."
+    personas: []
+
+  - id: superpowers-executing-plans
+    type: plugin-skill
+    invoke: "superpowers:executing-plans"
+    bay: build
+    when: "Written plan exists. Execute it with review checkpoints."
+    when_not: "No plan yet (use superpowers:writing-plans first)."
+    personas: []
+
+  - id: superpowers-brainstorming
+    type: plugin-skill
+    invoke: "superpowers:brainstorming"
+    bay: plan
+    when: "Creative work: new features, components, functionality. Explore before implementing."
+    when_not: "Bug fix or mechanical task. Already have clear spec."
+    personas: []
+
+  - id: superpowers-verification
+    type: plugin-skill
+    invoke: "superpowers:verification-before-completion"
+    bay: review
+    when: "About to claim work is done. Run verification commands first."
+    when_not: "Mid-implementation. Not at completion boundary."
+    personas: []
+
+  - id: superpowers-tdd
+    type: plugin-skill
+    invoke: "superpowers:test-driven-development"
+    bay: build
+    when: "Implementing feature or bugfix. Write tests first."
+    when_not: "Spike, research, or documentation task."
+    personas: []
+
+  - id: superpowers-code-review
+    type: plugin-skill
+    invoke: "superpowers:requesting-code-review"
+    bay: review
+    when: "Completed a task or feature. Want verification before merging."
+    when_not: "Mid-implementation. Use after completing work."
+    personas: []
+
+  - id: superpowers-worktrees
+    type: plugin-skill
+    invoke: "superpowers:using-git-worktrees"
+    bay: build
+    when: "Starting feature work that needs isolation from current workspace"
+    when_not: "Quick edit on current branch. No isolation needed."
+    personas: []
+
+  - id: skill-creator
+    type: plugin-skill
+    invoke: "skill-creator:skill-creator"
+    bay: ops
+    when: "Create new skills, edit existing skills, run evals, benchmark performance"
+    when_not: "Batch-creating from proposals (use /batch-skill-pipeline)."
+    personas: []
+
+  - id: caveman
+    type: plugin-skill
+    invoke: "caveman:caveman"
+    bay: ops
+    when: "Reduce token usage ~75% with compressed communication mode"
+    when_not: "Need full verbose output. External-facing content."
+    personas: []
+
+  - id: ralph-loop
+    type: plugin-skill
+    invoke: "ralph-loop:ralph-loop"
+    bay: build
+    when: "Wrap any agent for overnight iteration persistence with completion promise"
+    when_not: "One-shot execution. Short tasks that don't need persistence."
+    personas: []
+
+  - id: agent-browser-dogfood
+    type: plugin-skill
+    invoke: "agent-browser:dogfood"
+    bay: review
+    when: "Exploratory testing of a web app. Find bugs, UX issues."
+    when_not: "Specific AC validation (use /klever-test option 2). Regression suite (option 1)."
+    personas: []
+
+  # ── Global Commands & External Plugins ──
+
+  - id: grill-me
+    type: command
+    invoke: "/grill-me"
+    bay: plan
+    when: "Stress-test a plan or design. Want relentless questioning to find gaps."
+    when_not: "Adversarial review of code (use /adversarial-cascade). Challenge ideas (use /challenge)."
+    personas: []
+
+  - id: claude-reflect
+    type: plugin-skill
+    invoke: "/reflect"
+    bay: ops
+    when: "Process queued corrections into CLAUDE.md. Self-learning from session mistakes."
+    when_not: "Operationalizing tribal knowledge (use /gab-operationalize). Writing skills (use skill-creator)."
+    personas: []

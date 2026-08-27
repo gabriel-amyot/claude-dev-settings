@@ -1,53 +1,96 @@
-# Java Code Style & Testing Standards
+# Java Standards — Klever Backend
 
-## Mockito Strictness
-- Avoid `@MockitoSettings(strictness = Strictness.LENIENT)` at the class level
-- Set up only the stubs each test actually needs
-- Use helper methods (e.g., `stubSyncDependencies()`) for common stubs shared by multiple tests
-- Use `lenient().when()` sparingly for specific stubs that may not always be used
-- Keep tests compact — remove unnecessary empty lines between Given/When/Then blocks
+On-demand context: load when writing or reviewing Java code in Klever repos.
 
-## Testing Standards
-- **Extract test constants:** Use `private static final` fields for constants reused across multiple tests (IDs, dates, values)
-- **Use List.of():** Never use `Arrays.asList()` or `new ArrayList<>()` in tests
-- **Test naming:** Follow `{Given}{When}{Then}` pattern (e.g., `validJobId_whenGetJobCalled_thenReturnsJob`)
-  - Not: `getCurrentDspReportLevel_shouldSelectMostGranular` (too vague)
-  - Yes: `campaignOnly_whenGetCurrentDspReportLevel_thenReturnsCampaignLevel` (crystal clear)
-- **One behavior per test:** Each test method verifies exactly one behavior or condition
-- **//given //when //then:** Structure test body with comments as mental separators, no extra blank lines between them
-  ```java
-  //given
-  when(service.method()).thenReturn(value);
-  //when
-  var result = controller.call();
-  //then
-  assertEquals(expected, result);
-  ```
-- **Tight setup:** No blank lines between `@Mock`, `@MockBean`, field declarations and `@Before`/`setUp()` at class top
-- **Helper methods:** Use private helper methods (e.g., `stubValidationPasses()`) for common stub setup
-- **Meaningful names:** Use constant names like `VALID_JOB_ID`, `ADVERTISER_90` instead of magic values
-- **No comment cruft in tests:** Remove explanatory comments like `// Campaign only → campaigns table`
-  - The test name + variable names should make it obvious
-  - Refactor test names to be self-documenting instead
+## Stack
+- Java 17 (Temurin), Spring Boot, Maven
+- JUnit 5 + Mockito (strict stubs mode)
+- BigQuery client for data access
+- Spring profiles: `local`, `dev`, `uat`, `prod`
 
-## Why Best Practices Enforcement Matters
+### Build JDK — must be 17 (symptom → cause)
+`app-proximity-report` builds **only under JDK 17** (`JAVA_HOME=…/temurin-17.jdk/…`). On a
+machine whose default JDK is 21, Lombok fails during compile with:
 
-**Lesson Learned:** Initial implementation of DspReportLevelTest violated these standards (missing constants, verbose comments, unclear naming). Later feedback exposed the violations.
+```
+java: java.lang.IllegalStateException: TypeTag :: UNKNOWN
+```
 
-**Why This Matters:**
-1. **Maintainability:** Hardcoded strings make refactoring dangerous (typos, inconsistencies)
-2. **Single Source of Truth:** Constants prevent divergence between enums and test strings
-3. **Readability:** Clear {Given}{When}{Then} naming makes tests self-documenting
-4. **Consistency:** Enforced standards make code predictable across the codebase
-5. **Prevention:** Violations caught now don't compound into future technical debt
+`TypeTag :: UNKNOWN` is the classic Lombok-vs-newer-JDK signature — Lombok reaching into
+`javac` internals that moved in later JDKs. **The root cause is the JDK version, not the
+code.** Fix: build with Temurin 17 (set `JAVA_HOME` as in the run command below). If you hit
+this, do NOT start editing the code — switch the JDK first.
 
-**Prevention Strategy:**
-- Review tests BEFORE approving PRs for:
-  - String constants extracted (no hardcoded dimension names, table names, etc.)
-  - Test names follow {Given}{When}{Then} pattern
-  - No explanatory comments (naming should suffice)
-  - One behavior per test method
-  - All values extracted as class constants
-- Use linters/IDE inspections to catch repeated strings automatically
-- Document standards in local CLAUDE.md (specific to service)
-- Don't assume "we'll clean it up later" — enforce from the start
+*Pinning the JDK in the repo (`.mvn/jvm.config`, `.java-version`, or a Maven toolchains entry)
+is the robust fix, but it touches shared/committed config that affects other engineers and CI
+— propose it to the code owner via MR, do not commit it autonomously.*
+
+## Testing
+
+### Run command
+```bash
+JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home \
+  /opt/homebrew/bin/mvn -f ~/Developer/grp-beklever-com/grp-app/grp-ms/app-proximity-report/pom.xml test
+```
+
+### Conventions
+- **Dual-mode tests:** Cover both `isRealData()=true` and `isRealData()=false` paths
+- **Mockito strict stubs:** UnnecessaryStubbing errors are test bugs, not warnings. Fix them by removing unused stubs or switching to `lenient()` only when justified.
+- **Test naming:** `{ClassName}Test` in same package under `src/test/`
+- **Coverage targets:** SQL query shape, DTO mapping, service logic, validation, controller routing
+- **Pass criteria:** 0 failures, 0 errors. No exceptions.
+
+### Pre-existing test failures
+When running tests after code changes reveals failures that predate your changes (stale assertions, UnnecessaryStubbing), fix them. Attribute in commit: "Fixed pre-existing test bug: [description]." Never leave pre-existing failures unresolved.
+
+### Test summary extraction — survive error-path noise
+Error-path tests (assertion of expected exceptions, 500 responses, invalid payloads) can throw stack traces into build output that look like failures but aren't. Always confirm via the canonical summary line, never by skimming `tail -N`.
+
+**Canonical extraction:**
+```bash
+./mvnw test 2>&1 | grep -E "Tests run:|BUILD SUCCESS|BUILD FAILURE"
+```
+
+**Never use `-q` when you need pass/fail status** — the quiet flag suppresses the `BUILD SUCCESS` / `BUILD FAILURE` line, leaving you guessing from partial stack traces.
+
+**Ground-truth signal:** look for the final aggregate line `Tests run: N, Failures: 0, Errors: 0, Skipped: 0` followed by `[INFO] BUILD SUCCESS`. Anything else is either a real failure or a truncated log.
+
+Learned from 2026-04-13 SPV-92 consolidation: clean build showed Mockito-style stack traces from deliberate error-path assertions in `QuotesControllerTest`; `grep -E "Tests run:|BUILD"` resolved the ambiguity instantly.
+
+## Code Style
+- Code should be self-documenting. Name variables and methods intuitively.
+- If explanation is needed, use `log.debug()` instead of comments.
+- Keep methods small and focused. Extract helper methods.
+- Boolean helpers read like questions: `isStaleWebhook()`, `hasPermission()`, `shouldRetry()`
+- No comment cruft. A well-named method beats a comment.
+
+## Architecture Patterns
+- `@Service` for business logic, `@Repository` for data access
+- Adapters pattern: BigQuery adapters implement interfaces, mock adapters used in local/test
+- Feature flags: `proximity-map.data-source=mock|real` switches between mock and BQ adapters
+- Spring profiles control environment-specific config
+
+## Starting Backend Locally
+
+### Mock mode (default)
+```bash
+cd ~/Developer/grp-beklever-com/grp-app/grp-ms/app-proximity-report
+JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home \
+  /opt/homebrew/bin/mvn spring-boot:run -Dspring-boot.run.profiles=local
+```
+Port: 8097
+
+### Real data mode
+```bash
+cd ~/Developer/grp-beklever-com/grp-app/grp-ms/app-proximity-report
+JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home \
+  /opt/homebrew/bin/mvn spring-boot:run -Dspring-boot.run.profiles=local \
+  -Dspring-boot.run.arguments="\
+    --proximity-map.data-source=real \
+    --proximityReport.bigquery.projectId=prj-d-biz-report-im9q1fvvc7 \
+    --proximityReport.bigquery.datasetId=klever_proximity_data"
+```
+Requires `gcloud auth application-default login` first.
+
+## Schema Validation
+Before wiring any BigQuery adapter, verify actual schema with `bq show --schema` or `SELECT * LIMIT 1`. See `~/.claude/library/context/schema-validation-gate.md` for full procedure.

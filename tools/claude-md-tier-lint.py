@@ -37,6 +37,7 @@ NARRATIVE = re.compile(r"\(?Learned from\b", re.I)
 # A line is "linked" if it points at a library page, a wikilink, or a doc path.
 LINKED = re.compile(r"\[\[[^\]]+\]\]|library/context/|bibliotheque/|documentation/|\.md\b")
 SKIP = re.compile(r"^\s*(#|>|\||```)")
+FENCE = re.compile(r"^(`{3,}|~{3,})")
 # Origin language: the line is explaining WHERE the rule came from.
 ORIGINISH = re.compile(r"\b(learned|from|incident|caused|after|discovered|"
                        r"session|regression|postmortem|rca|blocked|broke)\b", re.I)
@@ -44,12 +45,20 @@ ORIGINISH = re.compile(r"\b(learned|from|incident|caused|after|discovered|"
 
 def lint_file(path: Path):
     out = []
-    in_fence = False
+    fence_char = None
+    fence_len = 0
     for n, line in enumerate(path.read_text().splitlines(), 1):
-        if line.lstrip().startswith("```"):
-            in_fence = not in_fence
-            continue
-        if in_fence:
+        s = line.lstrip()
+        m = FENCE.match(s)
+        if m:
+            ch, run = m.group(1)[0], len(m.group(1))
+            if fence_char is None:
+                fence_char, fence_len = ch, run
+                continue
+            if ch == fence_char and run >= fence_len and not s[run:].strip():
+                fence_char, fence_len = None, 0
+                continue
+        if fence_char is not None:
             continue
         if NARRATIVE.search(line):
             out.append(("BRONZE-IN-RULES", n,

@@ -54,4 +54,10 @@ The one real hazard is exit-status masking: a pipe reports the LAST command's st
 that, and `git-pipe-guard.sh` enforces it on mutating subcommands only. Read-only pipes are
 explicitly fine.
 
+**Rule-design lesson:** the old rule was retired, not merely narrowed, because it was
+self-contradictory before it was ever wrong — it prohibited "piping" while its own example
+(`git fetch && git status`) prohibited chaining, a different operation, with no rationale
+recorded anywhere for either. An unenforceable rule is usually an ambiguous rule: if a guard
+cannot be written for it, the rule needs rewriting before it needs a hook.
+
 A hook that does not fire is not permission.

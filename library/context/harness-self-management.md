@@ -320,3 +320,66 @@ terraform as the command word confirmed 3.
 **How to apply:** measure each probe's document frequency in the corpus before trusting its hits, and
 scope structured matches to the specific field. A probe that fires in half the corpus is measuring
 English, not the rule.
+
+## Gotcha — Two diverged copies can share a filename and be different documents
+
+**Discovered:** merging the unversioned working library into the versioned
+`~/.claude-shared-config/library/`, 2026-08-27.
+
+Seven filenames collided during the merge. None were stale copies of each other:
+`context-engineering.md` was the general theory on one side and the Klever operational
+protocol on the other; `shipping-workflow.md` was Supervisr JIB tagging versus the Klever
+GitLab flow; `ticket-quality-standards.md` was the authoring contract versus the closure
+workflow. "Bigger file wins" or "newer wins" would have destroyed real content in every pair.
+The `-legacy` suffix on the losing side marks a pending curate pass, not a resolved
+duplicate.
+
+**How to apply:** in any two-way merge, diff the structure (headings, top-level keys) of each
+colliding pair before picking a winner. If either side has headings the other lacks, they are
+different documents. Preserve both under distinct names and curate later; a same-name
+collision is not evidence of duplication.
+
+## Gotcha — A lint that skips non-prose lines can exempt the very lines it must check
+
+**Discovered:** building `claude-md-tier-lint.py`, 2026-08-27.
+
+The lint skipped headings, blockquotes, and fences before running its content check.
+Headings are exactly where provenance hides — `## Rule (Learned from KTP-130 ...)` — so the
+lint reported clean while six such headings sat in the files. Every "tier lint clean" claim
+before the fix was false.
+
+**How to apply:** apply a skip pattern only to the checks that genuinely need it, never as a
+blanket pre-filter. Verify against a fixture that contains the violation in each line type a
+skip pattern could hide it in.
+
+## Gotcha — Fence tracking needs the fence character and run length, not a toggle
+
+**Discovered:** same lint build, 2026-08-27.
+
+Fixing the heading-skip bug above by checking every line introduced a false positive inside
+code fences. Fixing that with a naive backtick-count toggle desynchronised on a valid
+four-backtick fence containing a literal three-backtick line: the inner line closed the fence
+early, so prose inside was linted and real provenance after it was missed. Both directions
+wrong. CommonMark rule: a fence opens with 3 or more of the same character (backtick or
+tilde), and closes only on the same character, with a run at least as long as the opening,
+followed by nothing but whitespace.
+
+**How to apply:** never toggle fence state. Record the character and opening length. Test
+with tilde fences, info strings, unbalanced fences, and a longer fence containing a shorter
+one.
+
+## Gotcha — `git status` silence means tracked-and-clean, not untracked
+
+**Discovered:** `settings.json` versioning session, 2026-08-27 (same day as the git-pipe rule
+retirement in `mechanical-backstops.md`).
+
+`git status --porcelain -- <path>` returning nothing was read as "this file is not tracked,"
+and reported as a version-control gap. It actually meant tracked and unmodified. The real gap
+was different and worse: two different `settings.json` files existed, a live untracked one
+with 30 hooks and a tracked one with 1 hook, model `sonnet` against `opus`, and 23 inactive
+permission rules. Symlinking naively would have swapped the working configuration for the
+stale one and disabled 29 hooks.
+
+**How to apply:** test tracking with `git ls-files --error-unmatch <path>`, never with status
+silence. Before symlinking any config into a versioned location, diff both sides; "the
+versioned one is the real one" is an assumption, not a fact.

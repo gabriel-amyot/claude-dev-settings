@@ -71,6 +71,29 @@ This is the deploy-identity gate applied to configuration rather than to code, a
 
 **How to apply:** Read any `application-{env}.properties`, `terraform` env local, or environment overlay on the branch that deploys that environment, not on whichever branch happens to have the newest edit. `git show origin/main:path` costs one command. A profile file's name is not evidence of where it is live.
 
+## A warning is a dated claim, not a fact — re-verify before acting on it
+
+Learned from session `crisp-pike` (2026-08-27). A memory entry carried a prominent warning
+banner: local checkout is stale, verified 2026-08-06, naming an abandoned branch 21 commits
+behind. Checked on 2026-08-27: `main`, 0 behind. Someone fixed the checkout in the intervening
+three weeks and the warning stayed.
+
+This inverts the usual failure. The entry was not wrong about a mechanism — it was wrong that a
+problem still existed, and its confident formatting made it read as current state. A warning is
+the most costly kind of stale claim, because acting on it means doing unnecessary remediation work
+and distrusting a source that is actually fine.
+
+A documented resource location is the same class of claim. Three artifacts said a vendor API key
+lived at a specific env-file path. That file held a different key entirely, and it was gitignored,
+so the claim was never checkable by reading the repo — only by looking at the actual file on the
+actual machine. Two scripts guarded on the documented variable and exited before making a single
+call.
+
+**How to apply:** treat any "X is broken/stale" or "the key is at path Y" claim in a memory file
+or doc as a dated observation needing the same re-verification as a code claim, before acting on
+it. State what a reader should re-run to confirm it still holds when writing such a claim, so the
+check is cheap enough that nobody skips it.
+
 ## Mechanical backstops
 
 - `deploy-identity-guard.sh` (PreToolUse Read/Grep) blocks reading a non-deploy branch's source during deployed-system reasoning.

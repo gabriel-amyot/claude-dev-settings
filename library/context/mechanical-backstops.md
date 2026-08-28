@@ -35,6 +35,18 @@ Session-lifecycle plumbing (`session-start.sh`, `session-init-reminder.sh`, `pro
 - `ticket-path-guard.sh` and `claude-md-tier-lint.sh` warn only. They do not stop a write.
 - The PostToolUse mirror fires only on `Edit`/`Write`. A CLAUDE.md changed by Bash, `git checkout`, or an external editor leaves AGENTS.md stale until the SessionStart resync runs, so a mirror can be stale for the remainder of a session.
 - `bibliotheque-recall.sh` skips prompts under 10 characters, fires each pointer at most once per session, and needs a score of 2. A prompt naming one topic that many pages match (`liquibase` matches 10 rows) surfaces nothing rather than guessing.
+- `pm-single-trunk-guard.sh` keys on the shell **cwd**, not the repo named in the command. A bare
+  `git worktree add` issued while cwd is `project-management` targets `project-management`, even
+  when the surrounding conversation is entirely about another repo. The Bash tool's cwd also
+  resets between calls, so a `cd` earlier in the session does not protect a later command. Fix:
+  always run `git -C <absolute-repo-path> worktree add ...`. The guard's own error message says
+  this. Learned 2026-08-27 (session `crisp-pike`).
+- `file-guard.sh` blocks Edit/Write on **any file named `CLAUDE.md`**, not only agent-config ones.
+  A vendor-documentation page that happens to be named `CLAUDE.md` (e.g. a bibliothèque skill
+  quick-start) is protected identically to a real config file. The escape hatch is explicit: hand
+  the user a ready-to-run command. The guard covers Edit/Write but not a Bash-based write, so
+  routing around it is possible — doing so after being told to hand over the command defeats a
+  control the user installed on purpose. Learned 2026-08-27 (session `crisp-pike`).
 
 ### Retired rule: "never pipe git commands"
 

@@ -64,3 +64,4 @@ Every file in `~/.claude/library/context/` must have a row. `wiki-lint` checks t
 | tdd-workflow | practices/workflows/tdd-workflow-test-first-quality-gates.md | TDD methodology |
 | code-review | practices/quality/code-review-priority-checklist.md | Review checklist |
 | commit-format | practices/standards/commit-message-conventional-format.md | Commit message convention |
+| build-tooling-silent-side-effects | context/build-tooling-silent-side-effects.md | terraform fmt reformatting untouched lines, npm install reverting a lockfile bump | terraform fmt reformat scope creep alignment npm install lockfile revert background version bump package.json package-lock.json silent |

@@ -1,6 +1,7 @@
-# Build Tooling Silent Side Effects: `terraform fmt` Scope Creep and `npm install` Lockfile Races
+# Build Tooling Silent Side Effects
 
-Two build-tooling traps that apply to any org, any repo. Both produce a change nobody asked for, with no error message.
+Tooling traps that apply to any org, any repo. Each produces a change, a deletion, or a false
+result nobody asked for, with no error message.
 
 ---
 
@@ -44,4 +45,47 @@ Never hand-edit a lockfile's version field. Never bump `package.json` while an `
 
 ---
 
-**Source:** session `plain-ibis`, Klever KTP-528 feedback webhook wiring session (2026-09-02).
+**Source (above two sections):** session `plain-ibis`, Klever KTP-528 feedback webhook wiring session (2026-09-02).
+
+---
+
+## `git worktree remove --force` Silently Deletes Gitignored Local Files (`.env.local`, Tokens, Service Accounts)
+
+`git status` ignores gitignored files by design. A worktree reporting `dirty=0` can still hold a `.env.local`, `.env`, `*.token`, `*.secret`, or `terraform/.service-account` file. It looks clean and safe to delete.
+
+`git worktree remove --force` deletes the whole directory, gitignored files included. There is no warning and no recovery.
+
+Real numbers from a run that surfaced this: 36 worktrees across two repos, 25 removed. Six held a gitignored `.env.local`. Three of those six were on the removal list. Two of the three differed from the main checkout. One differed by 4 lines, the only copy of a dev Slack webhook value. The other differed by 2 lines.
+
+This intersects any org rule against modifying or deleting `.env.local`. A bulk worktree removal is the path that breaks that rule without anyone naming the file. The rule guards the file by name. This command deletes it by directory.
+
+**How to apply:** Before any bulk worktree removal, scan each worktree for gitignored secret files. Back up every hit, plus the main checkout's copy for a diff, to a dated folder outside any repo, before removing anything:
+
+```bash
+find "$WT" -maxdepth 2 \
+  \( -name '.env.local' -o -name '.env' -o -name '*.token' \
+     -o -name '*.secret' -o -name '.service-account' \) \
+  -not -path '*/node_modules/*'
+```
+
+---
+
+## A Failed Probe Reports Absence, Not "Could Not Check" — a Shared Pattern
+
+The first draft of a worktree secret scan read:
+
+```bash
+HITS=$(ls -1 "$WT"/.env.local "$WT"/*.token "$WT"/*.secret 2>/dev/null | wc -l)
+```
+
+Under zsh, a glob matching nothing is a hard error (`no matches found`). That error killed the command before `ls` ever ran. `2>/dev/null` hid the error text. `HITS` came back `0` for every worktree, and the scan reported "no local secret files in any worktree" while a `.env.local` sat in six of them.
+
+**A negative result is trustworthy only if the scan is known to run.** Prove the tool works before trusting a "not found." Check a case known to be positive first, or use `find`, which does its own matching and does not depend on shell globbing.
+
+This is the same failure family as two `promotion-image-preflight.sh` false-RED causes documented in the Klever wiki (`documentation/bibliotheque/stack/ci-cd/gitlab-ci-patterns.md`): a zip-artifact FaaS repo with no Docker image by design, and an expired `gcloud` auth token. All three cases share one shape. An empty or RED result meant the check errored. It did not mean the target item was missing.
+
+**How to apply:** When a scan or gate returns a suspiciously clean or suspiciously uniform negative across every input, verify the tool ran before trusting the negative. Test it against one known-positive case first.
+
+---
+
+**Source (above two sections):** session `plain-ibis`, Klever post-close worktree cleanup (2026-09-02).

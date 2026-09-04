@@ -13,16 +13,26 @@ and any other dir-level symlink into `~/.claude-shared-config/`.
 `~/.claude-shared-config/CLAUDE.md`), then edit the real target path directly. A commit against
 that edit lands in the `~/.claude-shared-config` git repo, not a `~/.claude` repo (there is none).
 
-## `~/.claude/library/` and `~/.claude/plugins/local-marketplace/**` are real directories, not git-tracked
+## `~/.claude/library/` IS a symlink and IS git-tracked. `~/.claude/plugins/` is real and is NOT
 
-These paths persist on disk across sessions but sit outside every git repo on the machine. Two
-consequences:
+These two were previously documented together as "real directories, not git-tracked." That was
+wrong for `library/` and it misled both an orchestrator and a subagent on 2026-09-03. Verified:
 
-- An edit to a file under `~/.claude/library/context/` needs no commit, and running `git add` from
-  inside `~/.claude-shared-config` will not see it (it is a different filesystem location entirely,
-  not a symlink target).
-- The local-marketplace session-plugin skills (`init`, `pickup`, `check`, …) are the same: real
-  files, no rollback via git if something goes wrong there.
+| Path | Kind | Tracked in `~/.claude-shared-config`? |
+|---|---|---|
+| `~/.claude/library/` | symlink → `~/.claude-shared-config/library` | **Yes** — `git ls-files library/` returns 164 |
+| `~/.claude/plugins/` | real directory | **No** — `git ls-files 'plugins/local-marketplace'` returns 0 |
+
+- An edit under `~/.claude/library/context/` **does** need a commit, and it lands in the
+  `~/.claude-shared-config` repo. Resolve the symlink before editing (see the section above).
+- `~/.claude/plugins/local-marketplace/**` genuinely has no git backup. That includes the
+  session-plugin skills (`init`, `pickup`, `check`, …) **and `session/bin/ledger.py`**, the helper
+  that project instructions make the only sanctioned writer of `sessions/ledger.yaml`. A
+  load-bearing tool with no rollback and no second-machine copy.
+
+**How to apply:** verify tracking with `git -C ~/.claude-shared-config ls-files <subpath>` before
+claiming any `~/.claude` path is or is not backed up. Do not infer it from whether the path looks
+like a real directory.
 
 **How to apply:** a single harness change can span two tracked repos
 (`~/.claude-shared-config` for CLAUDE.md/hooks/skills, and the target project's own repo) plus

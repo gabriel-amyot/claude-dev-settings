@@ -215,6 +215,30 @@ When two skills seem to overlap, use `when_not` to disambiguate:
 | `/sitrep` vs `/morning-primer` | sitrep is on-demand status; primer is daily structured recon |
 | `/klever-local-stack` vs `/klever-local-stack-real-bq` | basic local is mock data; real-bq wires to dev BigQuery |
 | `/bibliotheque-librarian` vs `/bibliotheque-refresh` | librarian processes inbox entries; refresh re-distills after Notion export |
+| `/wayfinder` vs `/dark-factory` | wayfinder decides WHAT to build and stops; dark-factory builds a ticket already decided. Wayfinder's output is dark-factory's input |
+| `/wayfinder` vs `superpowers:writing-plans` | writing-plans assumes the spec exists and fits one session; wayfinder is for when the spec does NOT exist and the thinking spans many sessions |
+| `/wayfinder` vs `grilling` | horizon, not depth. One session of hard thinking is grilling; many sessions with open decisions between them is wayfinder |
+| `grilling` vs `/grill-me` vs `grill-with-docs` | grilling is the primitive wayfinder calls; /grill-me is the user-facing trigger for the same thing; grill-with-docs also updates CONTEXT.md and ADRs as decisions land |
+| `/wayfinder` vs `/create-tickets` | wayfinder files DECISION tickets to GitHub Issues (internal, never Jira); create-tickets files delivery stories to Jira (team-visible) |
+
+---
+
+## Routing by Horizon (not just by bay)
+
+The 7 bays sort by domain. The planning bay also needs a **horizon** check, because the
+same request ("help me figure this out") routes three different ways by scope:
+
+| Horizon | Route to |
+|---|---|
+| One session, sharpen my thinking | `grilling` / `/grill-me`, or `grill-with-docs` if docs must move |
+| One session, but I need something to react to | `prototype` |
+| Many sessions, decisions still open, way is foggy | `/wayfinder` |
+| Way is clear, spec exists, go build | `/dark-factory` (one ticket) or `/sprint-factory` (linked set) |
+
+Ask the horizon question when the user's ask is scope-ambiguous ("this is a big one",
+"I don't know where to start", "too much to hold"). Wayfinder is the only tool built for
+work that exceeds a single context window, so under-routing a huge effort to `grilling`
+loses everything between sessions.
 
 ---
 

@@ -323,3 +323,50 @@ overrides:
     when: "Process queued corrections into CLAUDE.md. Self-learning from session mistakes."
     when_not: "Operationalizing tribal knowledge (use /gab-operationalize). Writing skills (use skill-creator)."
     personas: []
+
+  # ── Adopted third-party planning skills (upstream: mattpocock/skills) ──
+  # Installed 2026-09-03. No nav: blocks yet because the SKILL.md files are still
+  # verbatim upstream. Route them from here until they are adopted as first-class
+  # harness skills carrying their own nav: frontmatter.
+  # Routing axis for this cluster is HORIZON, not domain: how many sessions the
+  # thinking spans. That axis did not exist in the catalog before wayfinder.
+
+  - id: wayfinder
+    type: plugin-skill
+    invoke: "/wayfinder"
+    bay: plan
+    when: "Work too big for one session and still wrapped in fog. Decisions must be settled before anyone can build. Charts a map of decision tickets on GitHub Issues, one resolved per session, until the way is clear."
+    when_not: "The way is already clear, so go build (/dark-factory for one ticket, /sprint-factory for a linked set). Execution slices rather than decisions, which wayfinder refuses by design. One session's worth of thinking (use grilling)."
+    personas: [winston, leo]
+
+  - id: grilling
+    type: plugin-skill
+    invoke: "grilling"
+    bay: plan
+    when: "Stress-test one plan, decision, or idea inside a single session. The primitive wayfinder calls for its own grilling tickets."
+    when_not: "Effort spans many sessions with open decisions (use /wayfinder). The plan must also update CONTEXT.md or an ADR (use grill-with-docs). Reviewing a written artifact inline (use /crit)."
+    personas: [leo]
+
+  - id: prototype
+    type: plugin-skill
+    invoke: "prototype"
+    bay: plan
+    when: "'How should it look' or 'how should it behave' is the open question. Build a cheap throwaway to react to before committing to a design."
+    when_not: "Behaviour is already decided. Shipping real code (use /dark-factory). Live inspection of the running Klever UI (use /ui-probe)."
+    personas: [amelia]
+
+  - id: research
+    type: plugin-skill
+    invoke: "research"
+    bay: know
+    when: "Delegate reading legwork against primary sources and capture it as a Markdown file in the repo. Wayfinder fires this for its research tickets."
+    when_not: "The bibliotheque already documents it, so check INDEX.md and ALIASES.md first. Internal codebase search (use the Explore agent). Open web research (route to Gemini)."
+    personas: [paige]
+
+  - id: domain-modeling
+    type: plugin-skill
+    invoke: "domain-modeling"
+    bay: know
+    when: "Sharpen a project's terminology, write or edit a CONTEXT.md, or record an ADR. Wayfinder pairs this with grilling on every decision ticket."
+    when_not: "Promoting a settled ADR into a repo's agent-os tree (use /push-adr). Cross-cutting org decisions (those go to documentation/architecture/)."
+    personas: [winston]

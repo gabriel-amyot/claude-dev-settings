@@ -34,6 +34,30 @@ python3 jira_skill.py search --org supervisrai "assignee = currentUser()"
 
 Learned from: 2026-05-03 ticket inventory session.
 
+## `search` row limit: the flag is `--max`, NOT `--limit`
+
+`search` reads `--max N`. `--limit` is not a flag, so it is **silently ignored** and the
+default of 20 applies. Nothing warns you. A `--limit 100` query returns 20 rows and looks
+like a complete answer.
+
+Jira then caps a single page at 100 rows, and `search` does not paginate. So `--max 300`
+returns at most 100.
+
+**Any count taken off this command is a floor, never a total.** If a result lands on
+exactly 20 or exactly 100, assume you hit a cap and re-query, or narrow the JQL until the
+count sits below the cap.
+
+```bash
+# WRONG — silently returns 20 rows
+python3 jira_skill.py --org klever search 'project = KTP' --limit 100
+
+# RIGHT, and still capped at 100 by Jira
+python3 jira_skill.py --org klever search 'project = KTP' --max 100
+```
+
+Learned from: 2026-09-04 KTT routing session. Reported "100 backlog tickets" twice off
+capped queries. The real assigned-to-Gabriel count was 41.
+
 ## Subcommand names
 
 Always check `~/.claude/skills/jira/SKILL.md` for the exact subcommand name before guessing. Running an unknown subcommand errors with `{"error": "Unknown command: X"}`.
@@ -84,6 +108,23 @@ Jira comments use wiki markup, NOT Markdown. Agents drafting Jira content must u
 - `[~accountid:ID]` for user mentions
 
 Learned from: 2026-05-06 post-crawl review session (KTP-579 comment had `#` headers that needed fixing).
+
+### `add-comment` converts SOME Markdown, and the gaps are the dangerous part
+
+`jira_skill.py add-comment` runs `markdown_to_jira_wiki()`, which converts **headers, bold and bullets**. It does **not** convert links or backticks. So a draft that looks clean posts half-translated.
+
+| Markdown in the draft | What posts |
+|---|---|
+| `## Heading`, `**bold**`, `- bullet` | Converted correctly |
+| `[KTP-1057](https://…)` | **Literal `[KTP-1057](https://…)`**, brackets and all |
+| `` `us_zips_complete` `` | **Literal backticks** around the identifier |
+| A leading `# ` on a numbered-list line | Silently becomes an **h1 heading** |
+
+**How to apply:** convert at the boundary, immediately before `add-comment`. Links become `[KTP-1057|https://beklever.atlassian.net/browse/KTP-1057]`. Identifiers go in plain text, or `{{code}}` if they truly need marking.
+
+**This collides with a standing rule.** The global CLAUDE.md requires every Jira reference to be a clickable link, so any draft written to that rule posts broken unless someone converts it. Preview the *rendered* text, never the draft, before approving a post.
+
+Learned from: 2026-09-04, KTP-1003 handover comment. Caught during a post-comment preview, before it went out.
 
 ## Comment formatting rules
 
@@ -310,6 +351,16 @@ first. Treat the on-disk copy as dated evidence, never as the ticket itself.
 
 ---
 
+## `sprint-board` and `search` hard-cap at 100 results — `--max` not honoured past 100
+
+`sprint-board --board 248 --max 200` and `search "sprint = 1781" --max 200` both return exactly 100 when the sprint holds more. Verified 2026-09-04: splitting the JQL (`key <= KTP-900` → 36, `key > KTP-900` → 77) proved sprint 1781 held 113 issues while both subcommands reported 100. Any sprint-wide pull must split or filter the JQL; a returned count of exactly 100 is a truncation signal, not a total.
+
+## `metadata` and `get --full` crash on tickets with NO story points
+
+Both throw `'PropertyHolder' object has no attribute 'customfield_10028'` when the ticket has no story-points value (reproduced on KTP-920, KTP-1065, KTP-1182, 2026-09-04). This extends the sprint-scoped `search --full` crash below to per-issue reads. Workarounds: slim `get`, or `sprint-board` (which reads the field via `getattr` and survives).
+
+**Source:** Sprint 5 wayfinder recon session (2026-09-04).
+
 ## `search <JQL> --full` throws on sprint-scoped JQL
 
 `python3 jira_skill.py --org klever search "project = KTP AND sprint = 1781" --full` throws `'PropertyHolder' object has no attribute 'customfield_10028'`. This is reproducible, not a one-off, and affects any sprint-wide pull that wants full ticket data in one call.
@@ -317,3 +368,19 @@ first. Treat the on-disk copy as dated evidence, never as the ticket itself.
 **Workaround:** Fetch compact search results first (no `--full`) to get the keys. Then pull detail per issue, either with `jira.issue(key, expand='changelog')` or the plain `get --full` path, which works fine per issue.
 
 **Source:** session amber-finch, sprint-skill consolidation work (2026-08-24).
+
+---
+
+## `fetch` Silently Overwrites a Curated `INDEX.md`, Contrary to Its Own SKILL.md
+
+`jira_skill.py fetch` **rewrites the ticket folder's `INDEX.md`**, replacing a curated file with a generated stub. The skill's own SKILL.md states twice that "INDEX.md and STATUS_SNAPSHOT.yaml are owned by pickup-ticket — not written by this script." That is **false for `INDEX.md`**. `STATUS_SNAPSHOT.yaml` is correctly left alone.
+
+Two independent agents hit this on 2026-09-04 in one session. The first lost curated indexes on five tickets (KTP-472, 837, 1139, 1148, 1149) while refreshing stale AC data. The second lost a just-written closure banner and an annotated file list on KTP-472, reduced to a 24-line stub, while refreshing a comment cache after posting.
+
+The damage is invisible at the call site: `fetch` reports success, and the loss only shows up when someone reads the index later and finds the curation gone.
+
+**How to apply:** Before any `jira_skill.py fetch` on a ticket whose `INDEX.md` has been hand-curated, either commit first so `git checkout` can restore it, or copy it aside and merge the generated Jira Links section back in afterwards. Treat a curated `INDEX.md` as at risk from *any* fetch, including one you are running for an unrelated reason such as refreshing comments. Do not trust the SKILL.md text on this point.
+
+The underlying fix is either to make `fetch` merge rather than overwrite, or to correct the SKILL.md claim. Neither is done.
+
+**Source:** sessions of 2026-09-04, KTP-571 decision-record work and the KTP-472 closure.

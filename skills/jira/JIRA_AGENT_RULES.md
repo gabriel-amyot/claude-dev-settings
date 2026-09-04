@@ -100,6 +100,46 @@ This gate does not apply to spike tickets (where AC define questions to answer, 
 
 ---
 
+## Rule 7: Audience Gate on Ticket Creation — GitHub Is the Default, Jira Is Explicit-Only
+
+**Runs BEFORE Rule 6.** No point checking AC quality on a ticket that should not exist on the board.
+
+Jira is the board colleagues read. Every ticket on it costs other people attention. Internal
+work does not belong there, and a `create` is mechanically blocked until the audience decision
+is recorded on the command.
+
+**The audience test — will a colleague need to see this?**
+
+| Answer | Destination |
+|---|---|
+| **No** | GitHub Issues, `gabriel-amyot/klever-project-management`. Decisions, open questions, pivots, your own task decomposition, reading and approval items. Wayfinder decision tickets always land here. |
+| **Yes** | Jira, re-run with `--audience team` |
+| **Unsure** | Ask Gabriel. Do not guess, and do not pick Jira because Jira is habitual. |
+
+```bash
+# internal — the default
+gh issue create --repo gabriel-amyot/klever-project-management \
+  --title "<the question or decision>" --body "<detail>"
+
+# team-facing — requires the recorded decision
+python3 jira_skill.py --org klever create ... --audience team
+```
+
+**What counts as explicit Jira intent.** The user names Jira or the board: "create a jira ticket
+for X", "break KTP-1234 into smaller jira tickets", "file a bug on the board". Note that a
+breakdown request into *subtasks* is team-facing, because the PO wants breakdowns as Jira
+subtasks. Absent an explicit signal, assume internal.
+
+**Enforcement.** `hooks/jira-create-gate.sh` (PreToolUse, Bash) blocks any `jira_skill.py create`
+without `--audience team`. `--audience internal` is blocked with the GitHub command. The flag is
+stripped in `jira_skill.py` next to `--org` and never reaches the API. Regressions:
+`hooks/evals/fixtures/jira-create-gate.yaml` (21 cases, includes reword-past-the-gate).
+
+The hook sees the Bash tool only. A create through another tool path is unseen and is **not**
+thereby approved. Kill-switch: `touch ~/.claude/.jira-audience-gate-off`.
+
+---
+
 ## Future Improvement: Dedicated Agent Account
 
 A dedicated Jira account (e.g., `ai-agent@origin8cares.com`) would make agent comments visually distinct (different avatar and name) without putting an AI tag in the reader's face. Until then, comments post under Gabriel's account with no visible attribution, and traceability lives in the on-disk audit log (post-log), not in the comment text.

@@ -1,0 +1,102 @@
+hook: jira-create-gate.sh
+
+wired:
+  event: PreToolUse
+  expected: true
+  note: "audience gate on Jira ticket creation — internal work must go to GitHub Issues"
+
+cases:
+  # ── the gate fires ──
+  - name: 01-create-without-audience-blocks
+    stdin: {tool_input: {command: "python3 ~/.claude/skills/jira/jira_skill.py --org klever create --project KTP --summary 'Thing' --type Story"}}
+    expected_exit: 2
+    needle: "audience test"
+
+  - name: 02-create-audience-internal-blocks-and-routes-to-github
+    stdin: {tool_input: {command: "python3 jira_skill.py --org klever create --summary 'Decide the cache shape' --audience internal"}}
+    expected_exit: 2
+    needle: "gabriel-amyot/klever-project-management"
+
+  - name: 03-audience-flag-with-no-value-counts-as-missing
+    stdin: {tool_input: {command: "python3 jira_skill.py create --summary 'X' --audience"}}
+    expected_exit: 2
+    needle: "never made"
+
+  # ── the escape hatch works ──
+  - name: 04-create-audience-team-allowed
+    stdin: {tool_input: {command: "python3 jira_skill.py --org klever create --project KTP --summary 'Real delivery work' --audience team"}}
+    expected_exit: 0
+
+  - name: 05-equals-form-allowed
+    stdin: {tool_input: {command: "python3 jira_skill.py create --summary 'X' --audience=team"}}
+    expected_exit: 0
+
+  - name: 06-case-insensitive-allowed
+    stdin: {tool_input: {command: "python3 jira_skill.py create --summary 'X' --audience Team"}}
+    expected_exit: 0
+
+  # ── reword-past-the-gate attempts (the documented user-pressure failure mode) ──
+  # A sloppy substring match on "team" would let all three of these through.
+  - name: 07-reword-teamfacing-still-blocks
+    stdin: {tool_input: {command: "python3 jira_skill.py create --summary 'X' --audience teamfacing"}}
+    expected_exit: 2
+    needle: "not a team-facing audience"
+
+  - name: 08-reword-team-ish-still-blocks
+    stdin: {tool_input: {command: "python3 jira_skill.py create --summary 'X' --audience semi-team"}}
+    expected_exit: 2
+
+  - name: 09-audience-word-only-in-summary-still-blocks
+    stdin: {tool_input: {command: "python3 jira_skill.py create --summary 'audience team dashboard work'"}}
+    expected_exit: 2
+    needle: "never made"
+
+  # ── no false positives: reads and non-create writes are out of scope ──
+  - name: 10-read-command-allowed
+    stdin: {tool_input: {command: "python3 jira_skill.py --org klever get KTP-1234 --full"}}
+    expected_exit: 0
+
+  - name: 11-add-comment-mentioning-create-allowed
+    stdin: {tool_input: {command: "python3 jira_skill.py --org klever add-comment KTP-12 --body 'we should create a ticket for this'"}}
+    expected_exit: 0
+
+  - name: 12-update-description-out-of-scope-allowed
+    stdin: {tool_input: {command: "python3 jira_skill.py --org klever update KTP-12 --description ./d.md"}}
+    expected_exit: 0
+
+  - name: 13-unrelated-command-allowed
+    stdin: {tool_input: {command: "git status --short"}}
+    expected_exit: 0
+
+  - name: 14-gh-issue-create-allowed
+    stdin: {tool_input: {command: "gh issue create --repo gabriel-amyot/klever-project-management --title 'A decision' --body 'x'"}}
+    expected_exit: 0
+
+  # ── invocation-shape evasions ──
+  - name: 15-chained-cd-then-create-blocks
+    stdin: {tool_input: {command: "cd ~/.claude-shared-config/skills/jira && python jira_skill.py create --summary 'X'"}}
+    expected_exit: 2
+    needle: "never made"
+
+  - name: 16-absolute-path-create-blocks
+    stdin: {tool_input: {command: "/opt/homebrew/bin/python3 /Users/gabrielamyot/.claude-shared-config/skills/jira/jira_skill.py create --summary 'X'"}}
+    expected_exit: 2
+
+  - name: 17-org-equals-form-does-not-hide-the-subcommand
+    stdin: {tool_input: {command: "python3 jira_skill.py --org=klever create --summary 'X'"}}
+    expected_exit: 2
+    needle: "never made"
+
+  - name: 18-audience-team-on-a-different-chained-create-does-not-cover-a-bare-one
+    stdin: {tool_input: {command: "python3 jira_skill.py create --summary 'A' && python3 jira_skill.py create --summary 'B' --audience team"}}
+    expected_exit: 2
+
+  # ── kill-switches ──
+  - name: 19-env-killswitch-allows
+    stdin: {tool_input: {command: "python3 jira_skill.py create --summary 'X'"}}
+    env: {JIRA_AUDIENCE_GATE_OFF: "1"}
+    expected_exit: 0
+
+  - name: 20-malformed-stdin-fails-open
+    stdin_raw: "not-json"
+    expected_exit: 0

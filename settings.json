@@ -158,6 +158,11 @@
             "type": "command",
             "command": "/Users/gabrielamyot/.claude/hooks/pm-single-trunk-guard.sh",
             "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "/Users/gabrielamyot/.claude/hooks/jira-create-gate.sh",
+            "timeout": 3000
           }
         ]
       },

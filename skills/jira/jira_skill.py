@@ -129,6 +129,24 @@ if "--org" in sys.argv:
         sys.argv.pop(idx)  # remove --org
         sys.argv.pop(idx)  # remove the value (now at same index)
 
+# Parse --audience and strip it. It records the Rule 7 audience decision for the
+# jira-create-gate hook and must never reach the Jira API.
+audience = None
+if "--audience" in sys.argv:
+    idx = sys.argv.index("--audience")
+    if idx + 1 < len(sys.argv):
+        audience = sys.argv[idx + 1]
+        sys.argv.pop(idx)
+        sys.argv.pop(idx)
+    else:
+        sys.argv.pop(idx)
+else:
+    for i, a in enumerate(sys.argv):
+        if a.startswith("--audience="):
+            audience = a.split("=", 1)[1]
+            sys.argv.pop(i)
+            break
+
 # Try config-based approach
 current_org = get_org_config(org_name)
 

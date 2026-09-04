@@ -1,0 +1,9 @@
+{
+  "name": "adtech",
+  "version": "0.1.0",
+  "description": "Advertising-vendor skills that feed map data: placer (Placer.ai foot-traffic — onboard, api-check, entity-match) and goldfish (DOOH inventory/planning). Composes WITH the mapping plugin for advertising use cases (e.g. proximity); never required by generic hiking/travel maps. Vendors first, mapping second.",
+  "author": {
+    "name": "Gabriel Amyot"
+  },
+  "keywords": ["adtech", "placer", "goldfish", "dooh", "foot-traffic", "vendor", "advertising", "cbg"]
+}

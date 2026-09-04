@@ -1,0 +1,5 @@
+location_id,street,city,region,postal,latitude,longitude,tier,status
+btg-kennedy,1293 Kennedy Road,Toronto,ON,M1P 2L4,43.759067,-79.278094,structured,OK
+btg-yonge,2901 Bayview Avenue,Toronto,ON,M2K 1E6,43.768934,-79.385640,structured,OK
+qc-parliament,1045 Rue de la Chevrotiere,Quebec City,QC,G1R 4Y3,46.806754,-71.217300,structured,OK
+broken-row,zzzzzzzz nonexistent street 99999,Nowheresville,ON,X0X 0X0,49.000415,-112.788027,centroid,APPROXIMATE

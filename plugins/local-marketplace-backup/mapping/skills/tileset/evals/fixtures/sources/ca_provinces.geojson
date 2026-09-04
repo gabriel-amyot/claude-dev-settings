@@ -1,0 +1,29 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "PRUID": "35",
+        "PRNAME": "Ontario",
+        "PRENAME": "Ontario"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-79.5, 43.6], [-79.3, 43.6], [-79.3, 43.8], [-79.5, 43.8], [-79.5, 43.6]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "PRUID": "24",
+        "PRNAME": "Quebec",
+        "PRENAME": "Quebec"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-71.3, 46.7], [-71.1, 46.7], [-71.1, 46.9], [-71.3, 46.9], [-71.3, 46.7]]]
+      }
+    }
+  ]
+}

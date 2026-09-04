@@ -1,0 +1,9 @@
+{
+  "name": "session",
+  "version": "2.0.0",
+  "description": "Session lifecycle management. Six skills for intent tracking, cross-session continuity, handoff coordination, and session analysis. Intent tree persistence, themed handoff grouping, SessionStart hook. Shared state via sessions/ledger.yaml.",
+  "author": {
+    "name": "Gabriel Amyot"
+  },
+  "keywords": ["session", "handoff", "pickup", "intent", "lifecycle", "insights", "theme"]
+}

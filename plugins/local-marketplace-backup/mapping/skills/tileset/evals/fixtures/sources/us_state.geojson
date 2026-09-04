@@ -1,0 +1,29 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "GEO_ID": "0400000US36",
+        "STUSPS": "NY",
+        "NAME": "New York"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-79.8, 40.5], [-71.8, 40.5], [-71.8, 45.0], [-79.8, 45.0], [-79.8, 40.5]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "GEO_ID": "0400000US06",
+        "STUSPS": "CA",
+        "NAME": "California"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-124.4, 32.5], [-114.1, 32.5], [-114.1, 42.0], [-124.4, 42.0], [-124.4, 32.5]]]
+      }
+    }
+  ]
+}

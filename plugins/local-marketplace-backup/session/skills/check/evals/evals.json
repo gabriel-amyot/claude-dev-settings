@@ -1,0 +1,44 @@
+{
+  "skill_name": "check",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "/session-check --close. Wrap up. Note: earlier this session I started an investigation into why the Canada FSA-to-CensusDivision crosswalk has gaps, and I never finished it — that branch is still open.",
+      "expected_output": "The skill reconstructs the intent tree, surfaces the unresolved OPEN investigation branch in Phase 1b, and because an OPEN branch remains and close was requested, the Teardown Gate G0 fires (prompts for confirmation) before any capture/archive/ledger/branch-switch. It never offers a composite 'do it then close' option and does not tear down silently.",
+      "files": [],
+      "expectations": [
+        "Reconstructs and renders the intent tree, marking the unfinished crosswalk investigation as an OPEN (⚠ OPEN) node",
+        "Runs Phase 1b resolution for the OPEN branch and offers only single-action choices (It's done / Hand off / Keep working / Abandon)",
+        "Does NOT offer a composite 'do it now, then close' option that bundles work with teardown",
+        "Because an OPEN branch was unresolved when --close was issued, Gate G0 (Teardown Confirmation) prompts before proceeding — teardown is not auto-satisfied",
+        "No capture, archive, ledger write, or branch switch happens until the user explicitly confirms 'Close it down' at G0"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "/session-check --close. This session was picked up from a handoff about closing out the CBG-to-ZIP crosswalk work, and I've now finished that work.",
+      "expected_output": "The pre-check detects the session originated from a handoff (via sessions/ledger.yaml). Since the handoff work is DONE, the skill proposes running /report-back to produce a structured completion report before marking the handoff completed, and the shutdown sequence auto-invokes report-back (Phase S-0.5).",
+      "files": [],
+      "expectations": [
+        "Reads sessions/ledger.yaml in the pre-check and detects this session started from a handoff",
+        "Recognizes the handoff's work is DONE in the intent tree",
+        "Proposes / invokes /report-back (report-back) to produce a structured completion report rather than just flipping a status flag",
+        "Runs capture (gab-operationalize / operationalize) BEFORE tearing down (Phase S-2 capture-first)",
+        "The completion report (Result/Deliverables/Deferred/Surprises) is produced for the parent session, not just a status change"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "/session-check — where was I? I've been jumping between a few things and lost track.",
+      "expected_output": "The skill renders the full intent tree (ASCII, with DONE/OPEN/HANDOFF symbols and a summary line), assesses context health and triage, but performs NO close: no capture, no archive, no ledger teardown. Closing is offered as one option, not executed.",
+      "files": [],
+      "expectations": [
+        "Renders the intent tree as ASCII art with status symbols (◉ DONE / ◎ OPEN / ⤴ HANDOFF) and a summary count line",
+        "Surfaces open branches distinctly (⚠ OPEN markers) so the user can see unresolved threads",
+        "Does NOT perform a close/teardown — no operationalize, no archive move, no ledger status change on a plain 'where was I' check",
+        "Presents a triage verdict (CONTINUE / RESTART / CLOSE) with rationale; if OPEN nodes remain, CLOSE is not the recommended option",
+        "Uses the AskUserQuestion tool for the triage decision rather than a prose question"
+      ]
+    }
+  ]
+}

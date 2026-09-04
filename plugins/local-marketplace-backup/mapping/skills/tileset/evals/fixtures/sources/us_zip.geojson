@@ -1,0 +1,27 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "ZCTA5CE20": "10001",
+        "GEOID20": "10001"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-74.00, 40.74], [-73.99, 40.74], [-73.99, 40.76], [-74.00, 40.76], [-74.00, 40.74]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ZCTA5CE20": "90001",
+        "GEOID20": "90001"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-118.25, 33.97], [-118.24, 33.97], [-118.24, 33.99], [-118.25, 33.99], [-118.25, 33.97]]]
+      }
+    }
+  ]
+}

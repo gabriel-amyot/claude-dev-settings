@@ -1,0 +1,9 @@
+{
+  "name": "mapping",
+  "version": "0.2.0",
+  "description": "Generic, portable map-data tooling — reusable across any map project (advertising, hiking, travel). Skills: geocode (address list -> coordinates, multi-format), tileset (prep pipeline), mapbox (Studio API), crosswalk (GEOID/FSA/CBG), location-scrape. References the Mapbox pattern skills by name; does not fork them. Advertising vendors live in the adtech plugin; BigQuery stays as loose Klever infra skills.",
+  "author": {
+    "name": "Gabriel Amyot"
+  },
+  "keywords": ["mapping", "geocode", "tileset", "mapbox", "crosswalk", "geoid", "location", "geo"]
+}

@@ -1,0 +1,31 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "CDUID": "3506",
+        "CDNAME": "Ottawa",
+        "CDTYPE": "CDR",
+        "PRUID": "35"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-75.8, 45.3], [-75.6, 45.3], [-75.6, 45.5], [-75.8, 45.5], [-75.8, 45.3]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "CDUID": "2466",
+        "CDNAME": "Montreal",
+        "CDTYPE": "CDR",
+        "PRUID": "24"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-73.7, 45.4], [-73.5, 45.4], [-73.5, 45.6], [-73.7, 45.6], [-73.7, 45.4]]]
+      }
+    }
+  ]
+}

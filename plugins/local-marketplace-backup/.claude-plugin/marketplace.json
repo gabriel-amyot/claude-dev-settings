@@ -1,0 +1,24 @@
+{
+  "name": "local",
+  "description": "Local plugins developed on this machine",
+  "owner": {
+    "name": "Gabriel Amyot"
+  },
+  "plugins": [
+    {
+      "name": "session",
+      "source": "./session",
+      "description": "Session lifecycle management: intent tracking, cross-session continuity, handoff coordination"
+    },
+    {
+      "name": "mapping",
+      "source": "./mapping",
+      "description": "Generic, portable map-data tooling: geocode, tileset prep, mapbox Studio, crosswalk (GEOID/FSA/CBG), location-scrape. Reusable across any map project."
+    },
+    {
+      "name": "adtech",
+      "source": "./adtech",
+      "description": "Advertising-vendor skills that feed map data: placer (foot-traffic) and goldfish (DOOH). Composes with the mapping plugin for advertising use cases."
+    }
+  ]
+}

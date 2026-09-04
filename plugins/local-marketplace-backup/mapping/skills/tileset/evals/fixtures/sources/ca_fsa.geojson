@@ -1,0 +1,27 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "CFSAUID": "K1A",
+        "PRUID": "35"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-75.70, 45.41], [-75.69, 45.41], [-75.69, 45.43], [-75.70, 45.43], [-75.70, 45.41]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "CFSAUID": "H2X",
+        "PRUID": "24"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-73.58, 45.51], [-73.57, 45.51], [-73.57, 45.53], [-73.58, 45.53], [-73.58, 45.51]]]
+      }
+    }
+  ]
+}

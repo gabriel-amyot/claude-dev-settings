@@ -138,8 +138,11 @@ suites:
     layer: A
     runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook file-guard
     owner_skill: harness
-    # DESIGNED RED: unwired; wiring assertion pinned expected_wired: true to surface
-    # the wire-or-retire decision. Behavior cases 5/5 green.
+    # RESOLVED 2026-09-10. This carried a deliberate-red marker while the hook was
+    # unwired; the wiring assertion pinned expected_wired: true to force the
+    # wire-or-retire decision, and the hook got wired (settings.json:233, committed).
+    # Marker removed so it stops advertising a failure that no longer happens.
+    # Now 6/6. A red run here is a real regression.
     last_green: 2026-09-10
 
   - target: hooks/config-protect
@@ -357,9 +360,16 @@ suites:
     runner: python3 ~/.claude-shared-config/skills/notion/evals/run_nx_evals.py
     owner_skill: notion
     last_green: null
+    # DESIGNED RED: the notion-read-guard wiring assertion.
+    # Marker added 2026-09-10. This entry had declared itself deliberate in the prose
+    # note below but carried no marker, so a grep undercounted the set: the sweep's 4
+    # failures read as "the expected 4" while the membership had actually swapped an
+    # entry. Every deliberate red carries this marker, and prose must never spell it,
+    # or the grep counts commentary as members.
     note: >
       Includes a wiring TRIPWIRE for notion-read-guard.sh that FAILS by design until the
       hook is wired in settings.json. A red run here may be the tripwire, not a regression.
+      Open decision: wire the hook, or delete the hook and this case.
 
   - target: notion/read-behavior
     layer: B

@@ -4,7 +4,7 @@ description: "The positive procedure for git in this harness: how to clone a Kle
 nav:
   bay: build
   when: "About to run a git command in a Klever repo and unsure of the house form: cloning, branching, pushing a DAC repo, or anything that could rewrite history."
-  when_not: "GitLab API queries (use gitlab). Creating an MR (use klever-mr). Worktree setup (use superpowers:using-git-worktrees)."
+  when_not: "GitLab API queries (use gitlab). Creating an MR (use klever-mr). Worktree setup (use using-git-worktrees)."
 ---
 
 # git

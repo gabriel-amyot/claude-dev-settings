@@ -39,6 +39,7 @@ For the full framework (compaction strategies, note-taking patterns, subagent ar
 - **Exception:** Small lookups (a few rows, a single API response under ~50 lines) that directly answer a question can be loaded into context. When in doubt, script it.
 
 # Core Rules
+- Use ASD-STE100 Simplified Technical English (STE) as the standard
 - **ALWAYS render MR / PR / Jira references as clickable links — every time, in every output (chat, tables, reports, docs, external posts). No exceptions.** Never write a bare `!131`, `KTP-951`, or `#267`. Format: `[!131](<full MR/PR URL>)`, `[KTP-951](https://beklever.atlassian.net/browse/KTP-951)`. Jira base: `https://beklever.atlassian.net/browse/<KEY>` (Klever) / `https://origin8cares.atlassian.net/browse/<KEY>` (Supervisr). GitLab MR: `<project web_url>/-/merge_requests/<iid>`. GitHub PR: `<repo url>/pull/<n>`. If the URL is unknown, fetch it before emitting the reference; do not fall back to a bare number.
 - **Skills use `Skill` tool. Agents use `Agent` tool.** Any `plugin:skill` colon-named thing (e.g. `agent-browser:dogfood`, `ralph-loop:ralph-loop`) goes through the `Skill` tool. Only names from the Agent tool's registered agent list go in `Agent` `subagent_type`. Wrong tool = instant error + wasted tokens.
 - **Never rely on the exit status of a piped git command.** A pipe reports the LAST command's status, so `git push | tee log` looks successful even when the push failed. Pipe read-only queries freely (`git log | head`). Run a mutation (`push`, `commit`, `tag`, `fetch`, `merge`, `rebase`, `reset`) unpiped so a failure is visible.
@@ -72,7 +73,7 @@ Hooks enforce many rules in this file. They are defense-in-depth, never a substi
 	- Check if the branch is clean and up to date
 	- If on a feature branch (not dev/main/master), recommend switching back to the main branch (contextual: some repos use `dev`, most use `main` or `master`)
 	- Propose: switch to main branch → pull origin → create a new branch for the fix/feature
-- **Main worktree stays clean.** All code edits happen in git worktrees, never in the main checkout. On a block: `git fetch origin`, then invoke `superpowers:using-git-worktrees`. `project-management/` is exempt.
+- **Main worktree stays clean.** All code edits happen in git worktrees, never in the main checkout. On a block: `git fetch origin`, then invoke `using-git-worktrees`. `project-management/` is exempt.
 - **Branch naming:** `{TICKET-ID}-short-description` — e.g., `SPV-23-datastore-adapter-lenient-types`. No `fix/`, `feature/`, `chore/` prefixes. No folder-style separators.
 - **Commit messages must contain why and what.** First line: `{TICKET-ID}: {short imperative what}`. Body: why this change exists (problem/ask), then what changed (outcome, not file list). MR descriptions are built from commits, so each commit must be self-explanatory.
 - Assume feature flags will be used for any complex feature implementation — wire up from the start with fallback to legacy behavior when disabled.

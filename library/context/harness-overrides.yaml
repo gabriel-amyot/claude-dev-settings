@@ -266,9 +266,9 @@ overrides:
     when_not: "Mid-implementation. Use after completing work."
     personas: []
 
-  - id: superpowers-worktrees
-    type: plugin-skill
-    invoke: "superpowers:using-git-worktrees"
+  - id: using-git-worktrees
+    type: skill
+    invoke: "using-git-worktrees"
     bay: build
     when: "Starting feature work that needs isolation from current workspace"
     when_not: "Quick edit on current branch. No isolation needed."

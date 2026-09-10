@@ -333,7 +333,7 @@ simultaneous dispositions across causes is legal and expected — a bug can have
 quick-fixable cause and one owner-handoff cause at the same time.
 
 **Phase 7 — Fix + exit verify.** Quick fix: minimal change in a worktree
-(`superpowers:using-git-worktrees`); prefer logs + red test over speculative code; fix +
+(`using-git-worktrees`); prefer logs + red test over speculative code; fix +
 log line in one cycle; prod-down dirty hack only with a follow-up ticket. Exit verify via
 `/verify`: rerun the SAME repro (or proxy vector) red→green **per env per fixed cause**;
 local if possible, else MR to dev and verify there. **Flaky standard, fixed at anchor

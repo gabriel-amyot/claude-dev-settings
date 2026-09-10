@@ -11,7 +11,7 @@ How to do things well. Methodologies, checklists, workflows, and standards. 28 b
 | `subagent-driven-development-specialized-tasks.md` | Delegating specialized work to subagents for focused execution (189 lines) |
 | `condition-based-waiting-async-patterns.md` | Asynchronous waiting patterns for conditional task execution (120 lines) |
 | `finishing-development-branch-cleanup-merge.md` | Branch completion: cleanup checklist, testing, merge protocol (200 lines) |
-| `using-git-worktrees-isolated-branches.md` | Git worktree usage for parallel isolated branch work (213 lines) |
+| `using-git-worktrees-isolated-branches.md` | TOMBSTONE → owned skill `skills/using-git-worktrees/` (invoke as `using-git-worktrees`) |
 
 ### testing/ — Testing practices and anti-patterns
 | File | Summary |

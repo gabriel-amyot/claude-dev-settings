@@ -1,7 +1,7 @@
 # Worktree & Fleet Operations
 
 Cross-org operational notes for running git worktrees, especially when many agents run git
-concurrently (orchestrated fleets). Complements `superpowers:using-git-worktrees` (the how-to)
+concurrently (orchestrated fleets). Complements `using-git-worktrees` (the how-to)
 and the `pm-single-trunk-guard` hook (the safety block).
 
 ---

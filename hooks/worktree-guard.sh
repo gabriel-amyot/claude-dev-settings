@@ -72,7 +72,7 @@ if [ "$GIT_DIR_ABS" = "$GIT_COMMON_ABS" ]; then
     echo ""
     echo "Recovery:"
     echo "  1. git -C $REPO_ROOT fetch origin"
-    echo "  2. Invoke superpowers:using-git-worktrees to create an isolated workspace"
+    echo "  2. Invoke using-git-worktrees to create an isolated workspace"
     echo ""
     echo "The skill handles directory selection and branch setup."
   } >&2

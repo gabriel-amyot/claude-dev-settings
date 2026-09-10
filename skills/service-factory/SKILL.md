@@ -198,7 +198,7 @@ ticket** (complex/new-feature → SEPARATE dark-factory session, never inline) �
 comment; **owner** (data/infra no access) → owner Jira comment + tracked follow-up. Multiple
 dispositions simultaneously is legal and expected (KTP-939 shape).
 
-**Phase 7 — Fix + exit verify.** Quick fix in a worktree (`superpowers:using-git-worktrees`);
+**Phase 7 — Fix + exit verify.** Quick fix in a worktree (`using-git-worktrees`);
 minimal diff; prefer logs + red test over speculative code. Exit via `/verify`: rerun the
 SAME repro (or proxy vector) red→green **per env per cause**. Flaky: build `exit-input.yaml`
 (pre + post k/n/conditions) and **run `exit_verify.py`** — matching conditions + conservative

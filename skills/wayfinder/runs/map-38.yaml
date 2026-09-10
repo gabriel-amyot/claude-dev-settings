@@ -1,0 +1,22 @@
+map: 38
+map_title: 'Powers MCP in production: traders using it against the live Powers book'
+map_state: OPEN
+harvested: '2026-09-10T20:05:26+00:00'
+telemetry_epoch: '2026-09-10'
+runs:
+- run_id: 1d6a310f
+  spec_version: 0.2.1
+  mode: chart
+  map: 38
+  date: '2026-09-10'
+  outcome: charted
+  tickets_created: 0
+  fog_graduated: 0
+  friction: []
+  issue_state: OPEN
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/38#issuecomment-5624713751
+gaps: []
+malformed_trailers: []
+missing_reflection: false
+pre_telemetry_closures: 0
+feedback: []

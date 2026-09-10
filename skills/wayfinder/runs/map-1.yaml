@@ -2,11 +2,31 @@ map: 1
 map_title: Close Q3 Sprint 5 — Gabriel's tickets (minus Planning Map & Proxi) review-ready
   or deferred
 map_state: OPEN
-harvested: '2026-09-10T16:01:21+00:00'
+harvested: '2026-09-10T20:05:44+00:00'
 telemetry_epoch: '2026-09-10'
-runs: []
+runs:
+- run_id: e0669b4a
+  spec_version: 0.2.0
+  mode: resolve
+  map: 1
+  date: '2026-09-10'
+  outcome: resolved
+  tickets_created: 1
+  fog_graduated: 0
+  friction:
+  - tag: spec-missing
+    note: bare /wayfinder invocation with 3 open maps has no selection rule; the map
+      had to be inferred from session context
+  - tag: process
+    note: the single unblock ticket was assigned to gabriel-amyot, so the frontier
+      query hid it while it was the ticket actually worth resolving; assignee-as-claim
+      conflates 'the human owns this action' with 'an agent session is on it'
+  ticket: 2
+  ticket_type: task
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/2#issuecomment-5621940796
 gaps: []
 malformed_trailers: []
-missing_reflection: true
+missing_reflection: false
 pre_telemetry_closures: 2
 feedback: []

@@ -19,3 +19,7 @@ evals/reports/*-sweep.md
 
 # generated ratchet state for claude-md-tier-lint.py
 tools/.claude-md-budget.json
+
+# wayfinder run-telemetry cache: the map-*.yaml and INDEX.md ARE committed (they
+# carry the cross-map view a fresh session reads), but the writer lock is not.
+skills/wayfinder/runs/.lock

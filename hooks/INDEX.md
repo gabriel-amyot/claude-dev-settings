@@ -36,6 +36,7 @@ wire-or-retire decision.
 | `deploy-identity-guard.sh` | Read\|Grep\|Bash | Blocks deployed-code reasoning from the wrong branch. Supports direct file tools and shell-based reads used by Codex. | 2026-06-29 |
 | `library-stamp-guard.sh` | Agent\|Task\|spawn_agent | Blocks investigation dispatches that omit the org-library evidence stamp. Supports Claude and Codex dispatch payloads. | 2026-07-16 |
 | `file-guard.sh` | Edit\|Write | Guards specific protected files from modification | — |
+| `wayfinder-close-guard.sh` | Bash | Warn-only, network-free nudge when a wayfinder tracker issue is closed with a bare `gh issue close` instead of `wayfinder_runs.py resolve`, which would have recorded the run trailer. Its fixtures prove the command-string parse only; the detector for an untraced run is `wayfinder_runs.py harvest`. Wired in shared-config settings.json; the `~/.claude/settings.json` apply is pending, so its wiring assertion is designed-red. | 2026-09-10 |
 
 ### UserPromptSubmit
 

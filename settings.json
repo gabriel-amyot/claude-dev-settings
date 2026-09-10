@@ -252,6 +252,15 @@
             "command": "/Users/gabrielamyot/.claude/hooks/git-pipe-guard.sh"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielamyot/.claude/hooks/wayfinder-close-guard.sh"
+          }
+        ]
       }
     ],
     "PostToolUse": [

@@ -1,6 +1,7 @@
 ---
 name: wayfinder
 description: Plan a huge chunk of work (more than one agent session can hold) as a shared map of decision tickets on GitHub Issues (gabriel-amyot/klever-project-management, never Jira), and resolve them one at a time until the way to the destination is clear.
+version: "0.2.0"
 disable-model-invocation: true
 ---
 
@@ -31,10 +32,11 @@ Every `gh` command below needs `--repo gabriel-amyot/klever-project-management`,
 - **Map**: `gh issue create --repo gabriel-amyot/klever-project-management --label wayfinder:map --title "<destination>" --body-file <file>`. Use `--body-file`, not `--body`, so the markdown survives.
 - **Child ticket**: `gh issue create --repo <repo> --parent <map-number> --label wayfinder:<type> --title "<question>" --body-file <file>`. Native as of `gh` 2.100.0. To re-parent later: `gh issue edit <n> --parent <map>` or `gh issue edit <map> --add-sub-issue <n>`.
 - **Blocking**: `gh api --method POST repos/gabriel-amyot/klever-project-management/issues/<child>/dependencies/blocked_by -F issue_id=<blocker-db-id>`. **The trap:** `issue_id` is the blocker's numeric *database* id, from `gh api repos/gabriel-amyot/klever-project-management/issues/<n> --jq .id`. It is NOT the `#number` and NOT the `node_id`. Passing the `#number` silently targets the wrong issue.
-- **Frontier query**: `gh issue list --repo <repo> --state open --json number,title,parent,assignees,blockedBy,labels --jq '[.[] | select(.parent.number == <map>) | select((.assignees | length) == 0) | select((.blockedBy | length) == 0)]'`. First in map order wins. Open blockers and any assignee both remove a ticket from the frontier.
+- **Frontier query**: `gh issue list --repo <repo> --state open --json number,title,parent,assignees,blockedBy,labels --jq '[.[] | select(.parent.number == <map>) | select((.assignees | length) == 0) | select((.blockedBy.totalCount // 0) == 0) | select((.labels | map(.name) | index("wayfinder:reflection")) == null)]'`. First in map order wins. Open blockers and any assignee both remove a ticket from the frontier, and the reflection ticket is excluded by label so it can never be picked as ordinary route work.
+  - **The trap:** `blockedBy` is an **object** `{nodes: [...], totalCount: N}`, not an array. `(.blockedBy | length)` counts its two *keys* and returns `2` for every issue, blocked or not, so the frontier reads as **permanently empty**. Use `.blockedBy.totalCount`. Verify with `gh api repos/<repo>/issues/<n>/dependencies/blocked_by --jq '[.[].number]'`, which is authoritative.
 - **Claim**: `gh issue edit <n> --repo <repo> --add-assignee @me`. The session's first write, before any work.
-- **Resolve**: `gh issue comment <n> --repo <repo> --body-file <answer>`, then `gh issue close <n> --repo <repo>`, then append the gist plus link to the map's Decisions-so-far.
-- **Labels**: create them once on first use — `wayfinder:map`, `wayfinder:research`, `wayfinder:prototype`, `wayfinder:grilling`, `wayfinder:task`. `gh label create <name> --repo <repo>` fails loudly if it already exists, which is fine.
+- **Resolve**: `wayfinder_runs.py resolve` (see [Telemetry](#telemetry-how-the-wayfinder-improves-itself)). It posts the answer comment, appends the run trailer, and closes the issue in one command; you then append the gist plus link to the map's Decisions-so-far. The two raw commands it replaces are `gh issue comment <n> --repo <repo> --body-file <answer>` then `gh issue close <n> --repo <repo>` — use them only when the tool cannot run, and know that the run goes untraced.
+- **Labels**: create them once on first use — `wayfinder:map`, `wayfinder:research`, `wayfinder:prototype`, `wayfinder:grilling`, `wayfinder:task`, `wayfinder:reflection`. `gh label create <name> --repo <repo>` fails loudly if it already exists, which is fine.
 
 ### The map body
 
@@ -90,6 +92,7 @@ Every ticket is either **HITL** (human in the loop, worked _with_ a human who sp
 - **Prototype** (HITL): Raise the fidelity of the discussion by making a cheap, rough, concrete artifact to react to (an outline, a rough take, a stub, or UI/logic code) by calling the Skill tool with "prototype". Links the prototype as an asset. Use when "how should it look" or "how should it behave" is the key question.
 - **Grilling** (HITL): Conversation. The default case. Always call the Skill tool twice, for "grilling" and "domain-modeling".
 - **Task** (HITL or AFK): Manual work that must happen before a _decision_ can be made: nothing to decide, prototype, or research, but the discussion is blocked until it's done. Signing up for a service so its API can be judged, provisioning access, moving data so its shape can be seen. This is the one type that _does_ rather than decides, and it earns its place by unblocking a decision, not by delivering the destination. The agent drives it alone where it can (AFK); otherwise it hands the human a precise checklist (HITL). Resolved when the work is done; the answer records what was done and any resulting facts (credentials location, new URLs, row counts) later tickets depend on.
+- **Reflection** (HITL): One per map, planted at charting time, never on the frontier. It is the retro on the **vehicle**, not a step on the route: how did the wayfinder itself perform, and what changes in its spec. See [Telemetry](#telemetry-how-the-wayfinder-improves-itself).
 
 ## Fog of war
 
@@ -112,6 +115,56 @@ Out-of-scope work never graduates (the frontier stops at the destination), so it
 
 Ruling something out of scope is a scoping act, not a step on the route. When a ticket that already exists turns out to sit past the destination (mis-scoped in while charting, or exposed by a resolution), **close it** (a closed ticket is unambiguously off the frontier) and leave one line in the **Out of scope** section: the gist plus why it's out of scope, linking the closed ticket. It stays out of **Decisions so far**, which records the route actually walked; a scope boundary isn't a step on it.
 
+## Telemetry: how the wayfinder improves itself
+
+The spec you are reading is versioned, and every session leaves a trace of how well it served. That trace is what the next version is built from. Tool: `~/.claude-shared-config/skills/wayfinder/tools/wayfinder_runs.py`.
+
+**Be honest about what this is.** It is best-effort by placement, not a gate. Nothing stops a session closing an issue in the GitHub UI and leaving no trace. What the design buys is that the traced path is the *easy* path, and an untraced run is **detected** (`harvest` reports it as a GAP) instead of vanishing.
+
+### The run
+
+One run is one session: one charting session, or one ticket resolution. Each leaves a single collapsed `wayfinder_run` block inside a comment the session already had to post, so the telemetry is the same action as the work:
+
+- **Charting** → `wayfinder_runs.py chart --map <n> --tickets-created <k> --fog-patches <j> [--friction tag:note ...]`. Posts the trailer on the map and plants the reflection ticket.
+- **Resolving** → `wayfinder_runs.py resolve --ticket <n> --body-file <answer> --outcome resolved [--tickets-created <k>] [--fog-graduated <j>] [--friction tag:note ...]`. Posts the answer with the trailer, then closes. Re-running after a failed close **resumes** (closes, no duplicate comment); it never needs `--force`.
+
+`--outcome` is one of `resolved`, `out_of_scope`, `partial`, `abandoned`. There is deliberately **no self-assigned score**: a number an agent grades itself on is not evidence.
+
+### Friction is the evidence
+
+`--friction` is what fought **the spec**, not what was hard about the decision. Every entry is `tag:note` over a closed vocabulary, because RECURRING keys on the tag and free prose never recurs:
+
+| Tag | Means |
+|---|---|
+| `spec-wrong` | an instruction in this file is factually incorrect (the `blockedBy` trap was one) |
+| `spec-missing` | no guidance existed for a situation that arose |
+| `spec-ambiguous` | guidance existed but was read two ways |
+| `tooling` | `gh`, the GitHub API, or the CLI fought back |
+| `sizing` | the ticket or the map was the wrong size |
+| `process` | the workflow shape (claim, frontier, one-per-session) got in the way |
+
+`--friction` omitted means the spec held. Say so by omitting it, not by inventing an entry.
+
+### Human feedback
+
+Any comment on a wayfinder issue whose first line starts `wayfinder-feedback:` is picked up by `harvest` and carried into the reflection brief. One line, written where the human already is.
+
+### The reflection ticket
+
+`wayfinder:reflection`, HITL, planted by `chart` as a child of the map and excluded from the frontier query by label, so it is the map's terminal act by construction rather than by maintaining a blocking edge per ticket.
+
+Resolve it with `wayfinder_runs.py reflect --map <n>` first, which prints every run, the friction grouped by tag, the untraced GAPs, and the spec versions the map was worked under. It **refuses while route tickets are still open** unless you pass `--interim`. Reflection is **repeatable**: an interim retro does not consume the map's final one, and a map that grows new tickets after a reflection simply earns another.
+
+Run it early when `resolve` prints **RECURRING** (the same friction tag three or more times across all harvested maps). That is the spec actively costing you, and waiting for a 35-ticket map to finish wastes the signal.
+
+The resolution must produce a concrete `SKILL.md` diff **and** a `CHANGELOG.md` entry with a bumped `version:`, or record explicitly that it produces neither.
+
+### Boundaries
+
+- **This telemetry owns `SKILL.md` and `CHANGELOG.md` only.** Session knowledge, cross-skill patterns and CLAUDE.md rules route to `/gab-operationalize` exactly as they already do. One backlog each, no competing truth.
+- **GitHub is the source of truth.** `runs/` is a derived cross-map cache. Only `harvest` and `reflect` write it, and both hold one lock across the map file *and* the index, so concurrent sessions cannot publish a mixed generation. `chart` and `resolve` only read it.
+- **Posting posture is inherited, not new.** This skill has always posted resolution comments with a bare `gh issue comment` on Gabriel's own planning repo, outside the `/post-comment` pipeline. `wayfinder_runs.py` wraps that identical call and changes nothing about it. Moving wayfinder onto `/post-comment` would be a change to its core loop and is Gabriel's call, not a telemetry decision.
+
 ## Invocation
 
 Two modes. Either way, **never resolve more than one ticket per session**, with the exception of research tickets.
@@ -125,7 +178,8 @@ User invokes with a loose idea.
 3. **Create the map** (label `wayfinder:map`): Destination and Notes filled in, Decisions-so-far empty, the fog sketched into **Not yet specified**.
 4. **Create the tickets you can specify now** as child issues of the map, then wire blocking edges in a **second pass** (issues need ids before they can reference each other). Wiring sorts them into the frontier and the blocked; everything you can't yet specify stays in the fog: the **Not yet specified** section.
 5. **Fire the research subagents.** For each `research` ticket you just created, spin up a subagent that calls the Skill tool with "research" to resolve it in parallel, capturing its findings on a throwaway `research/<name>` branch with a context pointer from the ticket.
-6. Stop: charting is one session's work; it hand-resolves nothing.
+6. **Close the run**: `wayfinder_runs.py chart --map <n> --tickets-created <k> --fog-patches <j> [--friction tag:note ...]`. Posts the charting trailer and plants the reflection ticket. A map with no reflection child is a visibly unfinished chart.
+7. Stop: charting is one session's work; it hand-resolves nothing.
 
 ### Work through the map
 
@@ -134,7 +188,8 @@ User invokes with a map (URL or number). A ticket is **optional**: without one, 
 1. Load the **map**: the low-res view, not every ticket body.
 2. Choose the ticket. If the user named one, use it. Otherwise take the first frontier ticket in order. **Claim it**: assign it to yourself before any work.
 3. Resolve it. **Zoom as needed**: fetch the full body of any related or closed ticket on demand; call the Skill tool for whichever skills the `## Notes` block names. If in doubt, call the Skill tool twice, for "grilling" and "domain-modeling".
-4. Record the resolution: post the answer as a **resolution comment**, **close** the issue, and **append a context pointer** to the map's Decisions-so-far.
-5. Add newly-surfaced tickets (create-then-wire); graduate any fog the answer has made specifiable, clearing each graduated patch from **Not yet specified** so it lives only as its new ticket. If the answer reveals that a ticket (this one or another) sits beyond the destination, **rule it out of scope** rather than resolving it on the route. If the decision invalidates other parts of the map, update or delete those tickets.
+4. Record the resolution: write the answer to a file, then `wayfinder_runs.py resolve --ticket <n> --body-file <answer> --outcome <outcome> [--friction tag:note ...]`. That posts the answer as a **resolution comment** with the run trailer and **closes** the issue. Then **append a context pointer** to the map's Decisions-so-far (the tool prints the line to start from).
+5. Add newly-surfaced tickets (create-then-wire); graduate any fog the answer has made specifiable, clearing each graduated patch from **Not yet specified** so it lives only as its new ticket. Pass the counts to `resolve` as `--tickets-created` and `--fog-graduated`. If the answer reveals that a ticket (this one or another) sits beyond the destination, **rule it out of scope** rather than resolving it on the route (`--outcome out_of_scope`). If the decision invalidates other parts of the map, update or delete those tickets.
+6. If `resolve` printed **RECURRING**, the spec is costing you now: run `wayfinder_runs.py reflect --map <n> --interim` and resolve the reflection ticket rather than carrying the friction into the next ticket.
 
 The user may run unblocked tickets in parallel, so expect other sessions to be editing the same GitHub issues concurrently.

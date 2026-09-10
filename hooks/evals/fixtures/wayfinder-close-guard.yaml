@@ -1,0 +1,103 @@
+# wayfinder-close-guard.sh — PreToolUse Bash regression fixtures.
+#
+# The hook nudges when a wayfinder tracker issue is closed with a bare
+# `gh issue close` instead of `wayfinder_runs.py resolve`, which would have
+# recorded the run trailer.
+#
+# WHAT THESE CASES PROVE, AND ONLY THIS: the command-string parse. They do not
+# prove GitHub auth, label lookup, trailer presence, or close ordering, because
+# the hook makes no network call and cannot know any of those. The real detector
+# for an untraced run is `wayfinder_runs.py harvest`, whose GAP report is not a
+# hook concern. Do not read a green suite here as "telemetry is enforced".
+#
+# Warn-only by design: it always exits 0. Cases assert the warning text via
+# `needle` and prove silence via `absent`.
+#
+# Input mechanism: stdin JSON, the convention used by the newer guards here.
+hook: wayfinder-close-guard.sh
+wired:
+  event: PreToolUse
+  expected: true
+  note: "must stay registered under PreToolUse Bash (wayfinder untraced-close nudge)"
+cases:
+  - name: 01-bare-close-warns
+    stdin:
+      tool_input:
+        command: "gh issue close 31 --repo gabriel-amyot/klever-project-management"
+    expected_exit: 0
+    needle: "WAYFINDER CLOSE GUARD"
+
+  - name: 02-repo-flag-before-number-warns
+    stdin:
+      tool_input:
+        command: "gh issue close --repo gabriel-amyot/klever-project-management 31"
+    expected_exit: 0
+    needle: "WAYFINDER CLOSE GUARD"
+
+  - name: 03-reports-the-issue-number
+    stdin:
+      tool_input:
+        command: "gh issue close 42 --repo gabriel-amyot/klever-project-management"
+    expected_exit: 0
+    needle: "--ticket 42"
+
+  - name: 04-chained-close-still-warns
+    stdin:
+      tool_input:
+        command: "gh issue comment 31 --repo gabriel-amyot/klever-project-management --body-file /tmp/a.md && gh issue close 31 --repo gabriel-amyot/klever-project-management"
+    expected_exit: 0
+    needle: "WAYFINDER CLOSE GUARD"
+
+  - name: 05-other-repo-silent
+    stdin:
+      tool_input:
+        command: "gh issue close 7 --repo dgkeita/proximity-explorer"
+    expected_exit: 0
+    absent: "WAYFINDER CLOSE GUARD"
+
+  - name: 06-comment-without-close-silent
+    stdin:
+      tool_input:
+        command: "gh issue comment 31 --repo gabriel-amyot/klever-project-management --body-file /tmp/answer.md"
+    expected_exit: 0
+    absent: "WAYFINDER CLOSE GUARD"
+
+  - name: 07-issue-list-silent
+    stdin:
+      tool_input:
+        command: "gh issue list --repo gabriel-amyot/klever-project-management --state open --json number,title"
+    expected_exit: 0
+    absent: "WAYFINDER CLOSE GUARD"
+
+  - name: 08-the-traced-path-is-silent
+    stdin:
+      tool_input:
+        command: "python3 ~/.claude-shared-config/skills/wayfinder/tools/wayfinder_runs.py resolve --ticket 31 --body-file /tmp/answer.md --outcome resolved"
+    expected_exit: 0
+    absent: "WAYFINDER CLOSE GUARD"
+
+  - name: 09-unrelated-command-silent
+    stdin:
+      tool_input:
+        command: "git status"
+    expected_exit: 0
+    absent: "WAYFINDER CLOSE GUARD"
+
+  - name: 10-kill-switch-env-silences
+    env:
+      WAYFINDER_CLOSE_GUARD_OFF: "1"
+    stdin:
+      tool_input:
+        command: "gh issue close 31 --repo gabriel-amyot/klever-project-management"
+    expected_exit: 0
+    absent: "WAYFINDER CLOSE GUARD"
+
+  - name: 11-malformed-stdin-fails-open
+    stdin_raw: "not-json"
+    expected_exit: 0
+    absent: "WAYFINDER CLOSE GUARD"
+
+  - name: 12-empty-stdin-fails-open
+    stdin_raw: ""
+    expected_exit: 0
+    absent: "WAYFINDER CLOSE GUARD"

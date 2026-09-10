@@ -172,6 +172,17 @@ suites:
     # Was wired under PreToolUse Bash with no suite and no exclusion until 2026-09-09.
     last_green: 2026-09-09
 
+  - target: hooks/wayfinder-close-guard
+    layer: A
+    runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook wayfinder-close-guard
+    owner_skill: wayfinder
+    # NOTE: warn-only by design, always exits 0. Cases assert the needle, not the exit code.
+    # The wiring assertion is DESIGNED-RED until the PreToolUse entry is applied to
+    # ~/.claude/settings.json; it is already present in shared-config/settings.json.
+    # Expect 12/13 until then. Cases prove the command-string parse only — the detector
+    # for an untraced wayfinder run is `wayfinder_runs.py harvest`, not this hook.
+    last_green: 2026-09-10
+
   - target: hooks/deploy-identity-guard
     layer: A
     runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook deploy-identity-guard

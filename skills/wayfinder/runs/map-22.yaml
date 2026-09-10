@@ -1,0 +1,11 @@
+map: 22
+map_title: 'Wayfinder Map: Planning Map rewrite on the Measurement Map''s infrastructure'
+map_state: OPEN
+harvested: '2026-09-10T16:01:09+00:00'
+telemetry_epoch: '2026-09-10'
+runs: []
+gaps: []
+malformed_trailers: []
+missing_reflection: true
+pre_telemetry_closures: 6
+feedback: []

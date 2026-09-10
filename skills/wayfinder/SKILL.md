@@ -1,7 +1,7 @@
 ---
 name: wayfinder
 description: Plan a huge chunk of work (more than one agent session can hold) as a shared map of decision tickets on GitHub Issues (gabriel-amyot/klever-project-management, never Jira), and resolve them one at a time until the way to the destination is clear.
-version: "0.2.0"
+version: "0.2.1"
 disable-model-invocation: true
 ---
 
@@ -61,6 +61,12 @@ The whole map at low resolution, loaded once per session. Open tickets are **not
 
 <!-- see "Fog of war": in-scope fog you can't ticket yet; graduates as the frontier advances -->
 
+## Horizon
+
+<!-- see "Horizon": sharp enough to state, deliberately deferred past this destination; seeds the next map, never graduates here -->
+
+- <the deferred work, stated sharply>: <why it waits until after this destination>
+
 ## Out of scope
 
 <!-- see "Out of scope": work ruled beyond the destination; closed, never graduates -->
@@ -105,11 +111,35 @@ The map's **Not yet specified** section is where that dim view is written down: 
 - **Ticket when** the question is already sharp, even if it's blocked and you can't act on it yet.
 - **Not yet specified when** you can't yet phrase it that sharply. Don't pre-slice the fog into ticket-sized pieces: it's coarser than a ticket, and one patch may graduate into several tickets, or none, once the frontier reaches it.
 
-**Not yet specified** excludes what's already decided (Decisions so far), what's already a live ticket, and what's out of scope (the next section).
+**Not yet specified** excludes what's already decided (Decisions so far), what's already a live ticket, what's deferred to the **Horizon**, and what's out of scope.
+
+## Horizon
+
+Fog and out-of-scope are not the only two ways a thing can be missing from the route. There is a third: work you **will** do, deliberately **not now**. Moving this MCP off laptop-installed bundles and onto a hosted server is the shape of it. Nobody rejected that. Nobody is doing it before this destination is reached. It is the next stage, not a discard, and the map needs somewhere to say so.
+
+**Why the distinction earns its own section.** Without it, deferred work has only two homes and both are wrong. Left in the fog, it re-surfaces as a ticket candidate every session, because the fog is the list of things that graduate. Filed as out of scope, the next agent reads an obvious improvement as rejected and re-opens the argument. Either way a later grilling burns a session re-deciding what was already decided. The Horizon exists so the deferral **holds** across sessions and readers.
+
+The three sections split on two different axes, which is why they cannot collapse into two:
+
+| Section | In scope for this destination? | Sharp enough to state? | Does it come back? |
+|---|---|---|---|
+| **Not yet specified** (fog) | yes | not yet | graduates into a ticket on **this** map |
+| **Horizon** | no, it sits past the destination | yes | seeds a **future** map |
+| **Out of scope** | no, ruled out | irrelevant | never |
+
+Each boundary is one question. Against the fog, ask: *could I write the ticket today?* If no, it is fog. If yes, and you are still not writing it, ask the second question. Against out of scope, ask: *rejected, or queued?* Rejected is out of scope. Queued is Horizon.
+
+**A horizon item never graduates inside this map.** That is the point of the section, not a limitation of it. The frontier stops at the destination, and a horizon item sits past it, so resolving a ticket can clear fog but can never promote a horizon line onto the frontier. If a resolution makes a horizon item urgent, the honest reading is that the **destination is wrong**. Redrawing the destination is its own decision, taken openly on the map, never a quiet promotion.
+
+**When the map closes, the Horizon is the seed of the next map.** Do not delete it and do not fold it into Decisions so far, which records only the route actually walked. Carry each line into the next charting session, where it is the loose idea that session grills into a destination. A map that closes with a populated Horizon has produced two things: a cleared route, and the starting material for the map that follows.
+
+**A live ticket can turn out to be horizon work**, the same way one can turn out to be out of scope. Close it, because a closed ticket is unambiguously off the frontier, and move one line into **Horizon**: the gist, why it waits, and a link to the closed ticket. Record the run with `--outcome horizon`, not `out_of_scope`, so the telemetry keeps the two apart.
 
 ## Out of scope
 
-Fog only ever gathers _toward_ the destination. The destination fixes the scope, so work beyond it is **out of scope**: it isn't fog, and it doesn't belong in **Not yet specified**. It gets its own **Out of scope** section on the map: work you've consciously ruled out of _this_ effort. Scope, not sharpness, lands it here.
+Fog only ever gathers _toward_ the destination. The destination fixes the scope, so work beyond it isn't fog and doesn't belong in **Not yet specified**. It gets its own **Out of scope** section on the map: work you've consciously **ruled out**. Scope, not sharpness, lands it here.
+
+**Out of scope is a rejection, and the Horizon is a queue.** Both sit past the destination, so the section alone doesn't tell them apart. The reader needs to know which, because one is finished thinking and the other is pending work. Rule something out of scope only when you would argue against doing it. If you would do it in a later effort, it is Horizon.
 
 Out-of-scope work never graduates (the frontier stops at the destination), so it returns only if the destination is redrawn, and then as a fresh effort, not a resumption.
 
@@ -128,7 +158,7 @@ One run is one session: one charting session, or one ticket resolution. Each lea
 - **Charting** → `wayfinder_runs.py chart --map <n> --tickets-created <k> --fog-patches <j> [--friction tag:note ...]`. Posts the trailer on the map and plants the reflection ticket.
 - **Resolving** → `wayfinder_runs.py resolve --ticket <n> --body-file <answer> --outcome resolved [--tickets-created <k>] [--fog-graduated <j>] [--friction tag:note ...]`. Posts the answer with the trailer, then closes. Re-running after a failed close **resumes** (closes, no duplicate comment); it never needs `--force`.
 
-`--outcome` is one of `resolved`, `out_of_scope`, `partial`, `abandoned`. There is deliberately **no self-assigned score**: a number an agent grades itself on is not evidence.
+`--outcome` is one of `resolved`, `out_of_scope`, `horizon`, `partial`, `abandoned`. `horizon` and `out_of_scope` both close a ticket without resolving it on the route, and they are kept apart on purpose: one was queued, the other was rejected, and a retro that cannot see the difference reads a deferral as a scoping mistake. There is deliberately **no self-assigned score**: a number an agent grades itself on is not evidence.
 
 ### Friction is the evidence
 
@@ -175,7 +205,7 @@ User invokes with a loose idea.
 
 1. **Name the destination.** Call the Skill tool twice, for "grilling" and "domain-modeling", to pin down what this map is finding its way to: the spec, decision, or change. The destination fixes the scope, so it's settled first.
 2. **Map the frontier.** Grill again, **breadth-first** this time: fan out across the whole space rather than deep on any one thread, surfacing the open decisions and the first steps takeable now. **If this surfaces no fog** (the way to the destination is already clear, the whole journey small enough for one session), you don't need a map. Stop and ask the user how they'd like to proceed.
-3. **Create the map** (label `wayfinder:map`): Destination and Notes filled in, Decisions-so-far empty, the fog sketched into **Not yet specified**.
+3. **Create the map** (label `wayfinder:map`): Destination and Notes filled in, Decisions-so-far empty, the fog sketched into **Not yet specified**. Anything the grilling surfaced as a clear next stage _after_ this destination goes straight into **Horizon**, so it is recorded as deferred from the first session rather than argued about again in the third.
 4. **Create the tickets you can specify now** as child issues of the map, then wire blocking edges in a **second pass** (issues need ids before they can reference each other). Wiring sorts them into the frontier and the blocked; everything you can't yet specify stays in the fog: the **Not yet specified** section.
 5. **Fire the research subagents.** For each `research` ticket you just created, spin up a subagent that calls the Skill tool with "research" to resolve it in parallel, capturing its findings on a throwaway `research/<name>` branch with a context pointer from the ticket.
 6. **Close the run**: `wayfinder_runs.py chart --map <n> --tickets-created <k> --fog-patches <j> [--friction tag:note ...]`. Posts the charting trailer and plants the reflection ticket. A map with no reflection child is a visibly unfinished chart.
@@ -189,7 +219,17 @@ User invokes with a map (URL or number). A ticket is **optional**: without one, 
 2. Choose the ticket. If the user named one, use it. Otherwise take the first frontier ticket in order. **Claim it**: assign it to yourself before any work.
 3. Resolve it. **Zoom as needed**: fetch the full body of any related or closed ticket on demand; call the Skill tool for whichever skills the `## Notes` block names. If in doubt, call the Skill tool twice, for "grilling" and "domain-modeling".
 4. Record the resolution: write the answer to a file, then `wayfinder_runs.py resolve --ticket <n> --body-file <answer> --outcome <outcome> [--friction tag:note ...]`. That posts the answer as a **resolution comment** with the run trailer and **closes** the issue. Then **append a context pointer** to the map's Decisions-so-far (the tool prints the line to start from).
-5. Add newly-surfaced tickets (create-then-wire); graduate any fog the answer has made specifiable, clearing each graduated patch from **Not yet specified** so it lives only as its new ticket. Pass the counts to `resolve` as `--tickets-created` and `--fog-graduated`. If the answer reveals that a ticket (this one or another) sits beyond the destination, **rule it out of scope** rather than resolving it on the route (`--outcome out_of_scope`). If the decision invalidates other parts of the map, update or delete those tickets.
+5. Add newly-surfaced tickets (create-then-wire); graduate any fog the answer has made specifiable, clearing each graduated patch from **Not yet specified** so it lives only as its new ticket. Pass the counts to `resolve` as `--tickets-created` and `--fog-graduated`. If the answer reveals that a ticket (this one or another) sits beyond the destination, close it off the route instead of resolving it: **rule it out of scope** if you would argue against doing it (`--outcome out_of_scope`), or **defer it to the Horizon** if you would do it in a later effort (`--outcome horizon`). If the decision invalidates other parts of the map, update or delete those tickets.
 6. If `resolve` printed **RECURRING**, the spec is costing you now: run `wayfinder_runs.py reflect --map <n> --interim` and resolve the reflection ticket rather than carrying the friction into the next ticket.
 
 The user may run unblocked tickets in parallel, so expect other sessions to be editing the same GitHub issues concurrently.
+
+## This skill's own Horizon
+
+Maps have a Horizon and so does this skill, on the same terms: sharp enough to state, deliberately not now, seed of a later version rather than a discard. Nothing here is rejected. Do not re-propose these as if they were new, and do not treat their absence as an oversight.
+
+**A per-type quality bar for tickets, with a deterministic closeable check.** One body template per ticket type, plus a `wayfinder_runs.py` subcommand that answers closeable or not-closeable with a reason and no model judgement. The bar differs by type, which is what makes it worth encoding. A grilling ticket is closeable when its question is answered and the answer is recorded. A task's is that the work is done and the resulting facts are captured. A research ticket's is a fact found and cited. Deferred on 2026-09-10, for three reasons:
+
+- **The taxonomies do not line up yet.** The types the bar was sketched over (grilling, task, research, implementation) are not this skill's four. `prototype` has no bar written for it, and `implementation` is not a wayfinder type at all, because wayfinder plans and does not build. Reconciling the two lists is a decision, not an implementation, so it belongs on a map.
+- **Deterministic and meaningful pull in opposite directions here.** A check that takes no model judgement can assert that a heading exists and is non-empty. Specification quality is not heading presence. A green check that a bad ticket also passes is worse than no check, because it is trusted.
+- **There is almost no run evidence.** Telemetry landed on 2026-09-10 and three maps exist. The reflection ticket is the designed venue for a spec change this size, and it should decide this one from friction the format actually caused, not ahead of it.

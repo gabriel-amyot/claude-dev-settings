@@ -87,7 +87,12 @@ FRICTION_TAGS = {
     "process": "the workflow shape (claim, frontier, one-per-session) got in the way",
 }
 
-OUTCOMES = ("charted", "resolved", "out_of_scope", "partial", "abandoned")
+# `horizon` and `out_of_scope` both close a ticket without walking it on the
+# route, and they are deliberately NOT one value. A horizon ticket was queued for
+# a later map; an out-of-scope one was rejected outright. Collapsing them would
+# make a retro read every deferral as a scoping mistake, which is the exact
+# confusion the Horizon section exists to end.
+OUTCOMES = ("charted", "resolved", "out_of_scope", "horizon", "partial", "abandoned")
 
 RECURRING_THRESHOLD = 3
 

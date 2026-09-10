@@ -7,6 +7,38 @@ Why it matters: every run trailer records the `spec_version` it ran under. If th
 changes without a bump, runs are attributed to a spec that no longer exists and the
 evidence for the next improvement is quietly wrong.
 
+## 0.2.1 (2026-09-10)
+
+**The Horizon.** The map could say a thing was in scope but unclear (**Not yet specified**) or
+ruled out for good (**Out of scope**). It had no way to say the third thing: work we **will**
+do, deliberately not now. Moving this MCP off laptop-installed bundles onto a hosted server is
+the shape of it. Not rejected, just the next stage.
+
+The cost of the gap was real. Deferred work had to live in the fog, where it re-surfaced as a
+ticket candidate every session, or under Out of scope, where the next reader took an obvious
+improvement for a rejection and re-opened the argument. Either way a later grilling burned a
+session re-deciding what was already decided.
+
+- **New `## Horizon` section in the map body**, between *Not yet specified* and *Out of scope*.
+- **Prose defining it against both neighbours.** The three sections split on two axes (in scope
+  or not, sharp or not), which is why they cannot collapse into two. A table states it, and each
+  boundary reduces to one question: *could I write the ticket today?* against the fog, and
+  *rejected, or queued?* against out of scope.
+- **The graduation rule.** A horizon item never graduates inside its own map: the frontier stops
+  at the destination and the item sits past it. If a resolution makes one urgent, the destination
+  is wrong, and redrawing it is an open decision on the map, not a quiet promotion.
+- **On map close**, the Horizon is the seed of the next map, carried into the next charting
+  session as its loose idea. Not deleted, and never folded into *Decisions so far*.
+- **New `horizon` outcome** in `wayfinder_runs.py`, for a live ticket that turns out to be
+  deferred rather than rejected. Kept distinct from `out_of_scope` so a retro cannot read a
+  deferral as a scoping mistake. Purely additive: trailers written under 0.2.0 still validate.
+- **`## This skill's own Horizon`** at the foot of `SKILL.md`, whose first entry is a per-type
+  ticket quality bar with a deterministic closeable check, deferred on 2026-09-10 with its
+  reasons recorded. The section demonstrates the feature it documents.
+
+The map body is not parsed by any tool (`chart`, `resolve`, `harvest` and `reflect` read issue
+titles, labels, state and comments only), so the new section cannot break them.
+
 ## 0.2.0 (2026-09-10)
 
 **Self-improvement telemetry.** The spec had no version, runs left no trace, and nothing

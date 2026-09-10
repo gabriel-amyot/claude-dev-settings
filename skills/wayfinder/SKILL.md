@@ -1,7 +1,7 @@
 ---
 name: wayfinder
 description: Plan a huge chunk of work (more than one agent session can hold) as a shared map of decision tickets on GitHub Issues (gabriel-amyot/klever-project-management, never Jira), and resolve them one at a time until the way to the destination is clear.
-version: "0.2.1"
+version: "0.2.2"
 disable-model-invocation: true
 ---
 
@@ -216,11 +216,12 @@ User invokes with a loose idea.
 User invokes with a map (URL or number). A ticket is **optional**: without one, you pick the next decision, not the user.
 
 1. Load the **map**: the low-res view, not every ticket body.
-2. Choose the ticket. If the user named one, use it. Otherwise take the first frontier ticket in order. **Claim it**: assign it to yourself before any work.
-3. Resolve it. **Zoom as needed**: fetch the full body of any related or closed ticket on demand; call the Skill tool for whichever skills the `## Notes` block names. If in doubt, call the Skill tool twice, for "grilling" and "domain-modeling".
-4. Record the resolution: write the answer to a file, then `wayfinder_runs.py resolve --ticket <n> --body-file <answer> --outcome <outcome> [--friction tag:note ...]`. That posts the answer as a **resolution comment** with the run trailer and **closes** the issue. Then **append a context pointer** to the map's Decisions-so-far (the tool prints the line to start from).
-5. Add newly-surfaced tickets (create-then-wire); graduate any fog the answer has made specifiable, clearing each graduated patch from **Not yet specified** so it lives only as its new ticket. Pass the counts to `resolve` as `--tickets-created` and `--fog-graduated`. If the answer reveals that a ticket (this one or another) sits beyond the destination, close it off the route instead of resolving it: **rule it out of scope** if you would argue against doing it (`--outcome out_of_scope`), or **defer it to the Horizon** if you would do it in a later effort (`--outcome horizon`). If the decision invalidates other parts of the map, update or delete those tickets.
-6. If `resolve` printed **RECURRING**, the spec is costing you now: run `wayfinder_runs.py reflect --map <n> --interim` and resolve the reflection ticket rather than carrying the friction into the next ticket.
+2. **Orient the human before any write.** Post one short block: the map's name wrapping its link, where the route stands (decisions made, what sits on the frontier), the ticket you intend to take with its name and link, and the steps you plan for this session in two to four lines. This is a read-back, not a permission request: proceed unless the user redirects. When the user named the ticket themselves, the orientation still runs, just shorter.
+3. Choose the ticket. If the user named one, use it. Otherwise take the first frontier ticket in order. **Claim it**: assign it to yourself before any work.
+4. Resolve it. **Zoom as needed**: fetch the full body of any related or closed ticket on demand; call the Skill tool for whichever skills the `## Notes` block names. If in doubt, call the Skill tool twice, for "grilling" and "domain-modeling".
+5. Record the resolution: write the answer to a file, then `wayfinder_runs.py resolve --ticket <n> --body-file <answer> --outcome <outcome> [--friction tag:note ...]`. That posts the answer as a **resolution comment** with the run trailer and **closes** the issue. Then **append a context pointer** to the map's Decisions-so-far (the tool prints the line to start from).
+6. Add newly-surfaced tickets (create-then-wire); graduate any fog the answer has made specifiable, clearing each graduated patch from **Not yet specified** so it lives only as its new ticket. Pass the counts to `resolve` as `--tickets-created` and `--fog-graduated`. If the answer reveals that a ticket (this one or another) sits beyond the destination, close it off the route instead of resolving it: **rule it out of scope** if you would argue against doing it (`--outcome out_of_scope`), or **defer it to the Horizon** if you would do it in a later effort (`--outcome horizon`). If the decision invalidates other parts of the map, update or delete those tickets.
+7. If `resolve` printed **RECURRING**, the spec is costing you now: run `wayfinder_runs.py reflect --map <n> --interim` and resolve the reflection ticket rather than carrying the friction into the next ticket.
 
 The user may run unblocked tickets in parallel, so expect other sessions to be editing the same GitHub issues concurrently.
 

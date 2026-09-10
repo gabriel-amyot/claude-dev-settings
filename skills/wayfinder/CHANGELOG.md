@@ -7,6 +7,15 @@ Why it matters: every run trailer records the `spec_version` it ran under. If th
 changes without a bump, runs are attributed to a spec that no longer exists and the
 evidence for the next improvement is quietly wrong.
 
+## 0.2.2 (2026-09-10)
+
+**Orient the human before the first claim.** Work mode gained step 2: before any write,
+post the map's linked name, where the route stands, the intended ticket, and the session's
+planned steps in a few lines. A read-back, not a permission request. Source: Gabriel's
+feedback on map 38 — the session claimed and ran the first frontier ticket while he
+expected an overview of the map and the plan first. Matches the `spec-missing` friction
+logged on that map's run trailers (run 920290db).
+
 ## 0.2.1 (2026-09-10)
 
 **The Horizon.** The map could say a thing was in scope but unclear (**Not yet specified**) or

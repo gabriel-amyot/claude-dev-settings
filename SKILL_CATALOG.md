@@ -23,6 +23,7 @@ Quick reference for what to use when. Organized by intent.
 | Just validate (compile, tests, AC) | `/supervisr-validate` | skill |
 | Just tag + build + schema publish | `/supervisr-release` | skill |
 | Pre-ship readiness across all services in epic | `/pre-ship-check` | skill |
+| Correct git form here (clone Klever, branch, commit, safe mutation) | `/git` | skill |
 
 ## I want to check ticket quality
 
@@ -130,7 +131,7 @@ Quick reference for what to use when. Organized by intent.
 | Org | Code Repos | Infra/IaC | CI/CD | Tickets |
 |-----|-----------|-----------|-------|---------|
 | Supervisr.AI | GitHub | GitLab (DAC/IAC) | GitLab CI (on tag push) | Jira (SPV-*) |
-| Klever | GitLab | GitLab (DAC/IAC) | GitLab CI | Jira (KTP-*, INS-*) |
+| Klever | GitLab | GitLab (DAC/IAC) | GitLab CI | Jira (KTP-*, KTT-*, INS-*) |
 | Origin8 | GitHub (legacy) | GitLab (DAC/IAC) | GitLab CI | Jira (legacy) |
 
 **Rule:** Never use GitHub for Klever infra. Never use GitLab for Supervisr app repos.

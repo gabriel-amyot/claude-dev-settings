@@ -1,0 +1,80 @@
+# git-pipe-guard.sh — PreToolUse Bash regression fixtures.
+#
+# A pipe reports the LAST command's exit status, so `git push | tee log` reads as
+# success even when the push failed. The hook warns on a MUTATING git subcommand
+# followed by a pipe, and stays silent on read-only queries.
+#
+# Warn-only by design: it always exits 0. Cases therefore assert the warning text
+# via `needle`, and prove silence via `absent`. Promote expected_exit to 2 here if
+# and when the hook is ever made blocking.
+#
+# Input mechanism: this hook reads the CLAUDE_TOOL_INPUT env var, not stdin. That
+# differs from the stdin-reading guards in this directory, hence `env:` per case.
+#
+# Registered 2026-09-09. The hook had been wired under PreToolUse Bash with no
+# suite and no manifest exclusion, which the skill-evals contract forbids.
+hook: git-pipe-guard.sh
+wired:
+  event: PreToolUse
+  expected: true
+  note: "must stay registered under PreToolUse Bash (piped-mutation warning)"
+cases:
+  - name: 01-piped-push-warns
+    env:
+      CLAUDE_TOOL_INPUT: '{"command": "git push origin dev | tee /tmp/push.log"}'
+    expected_exit: 0
+    needle: "GIT PIPE GUARD"
+
+  - name: 02-piped-commit-warns
+    env:
+      CLAUDE_TOOL_INPUT: '{"command": "git commit -m wip | tee /tmp/c.log"}'
+    expected_exit: 0
+    needle: "GIT PIPE GUARD"
+
+  - name: 03-piped-fetch-warns
+    env:
+      CLAUDE_TOOL_INPUT: '{"command": "git fetch origin | tail -3"}'
+    expected_exit: 0
+    needle: "GIT PIPE GUARD"
+
+  - name: 04-piped-push-with-dash-c-warns
+    env:
+      CLAUDE_TOOL_INPUT: '{"command": "git -C /tmp/repo push origin main | tail -2"}'
+    expected_exit: 0
+    needle: "GIT PIPE GUARD"
+
+  - name: 05-unpiped-push-silent
+    env:
+      CLAUDE_TOOL_INPUT: '{"command": "git push origin KTP-571-zip-codec"}'
+    expected_exit: 0
+    absent: "GIT PIPE GUARD"
+
+  - name: 06-piped-log-silent
+    env:
+      CLAUDE_TOOL_INPUT: '{"command": "git log --oneline -5 | head"}'
+    expected_exit: 0
+    absent: "GIT PIPE GUARD"
+
+  - name: 07-piped-diff-silent
+    env:
+      CLAUDE_TOOL_INPUT: '{"command": "git diff --stat | grep terraform"}'
+    expected_exit: 0
+    absent: "GIT PIPE GUARD"
+
+  - name: 08-piped-status-silent
+    env:
+      CLAUDE_TOOL_INPUT: '{"command": "git status --porcelain | wc -l"}'
+    expected_exit: 0
+    absent: "GIT PIPE GUARD"
+
+  - name: 09-chained-not-piped-silent
+    env:
+      CLAUDE_TOOL_INPUT: '{"command": "git fetch origin && git status"}'
+    expected_exit: 0
+    absent: "GIT PIPE GUARD"
+
+  - name: 10-empty-input-silent
+    env:
+      CLAUDE_TOOL_INPUT: ''
+    expected_exit: 0
+    absent: "GIT PIPE GUARD"

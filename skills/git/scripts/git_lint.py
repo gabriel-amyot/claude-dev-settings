@@ -36,10 +36,12 @@ def check_klever_clone_scheme(cmd):
     return [_finding(
         "KLEVER_CLONE_SCHEME",
         ERROR,
-        f"Cloning {KLEVER_HOST} over https+iap:// fails with "
+        f"Cloning {KLEVER_HOST} over https+iap:// only works where the second "
+        "includeIf glob is installed. Everywhere else it fails with "
         "'ConfigGetURLMatch - could not read config http.cookieFile'.",
-        f"Clone with plain https://{KLEVER_HOST}/... . The includeIf glob matches "
-        "the https:// URL and rewrites the remote to https+iap:// automatically.",
+        f"Clone with plain https://{KLEVER_HOST}/... . That form works on every "
+        "machine: the original includeIf glob matches it and rewrites the remote "
+        "to https+iap:// automatically. Keep commands portable.",
     )]
 
 

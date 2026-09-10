@@ -33,14 +33,18 @@ git clone https://cicd.prod.datasophia.com/<group-path>/<repo>.git
 
 The IAP config loads through `includeIf hasconfig:remote.*.url:https://cicd.prod.datasophia.com/**`.
 That glob matches the plain URL during clone and rewrites the remote to `https+iap://`
-for you. An `https+iap://` clone URL does not match the glob, so the cookie file never
-loads and the clone dies with `ConfigGetURLMatch - could not read config 'http.cookieFile'`.
+for you.
+
+Gabriel's `~/.gitconfig` gained a second glob for the `https+iap://` scheme on
+2026-09-10, so both forms clone on this machine. **Keep writing plain `https://`
+anyway.** Any machine without that second glob still fails an `https+iap://` clone with
+`ConfigGetURLMatch - could not read config 'http.cookieFile'`, and commands travel.
 
 Do not reach for the `git init` + `remote add` + `fetch` fallback first. That workaround
 got recorded seven times as if the plain clone were unreliable. It is not.
 
-Full history, the verified root-cause fix (a second `includeIf` glob), and the IAP cookie
-refresh recipe: `documentation/bibliotheque/stack/gitlab-iap-devtools.md`.
+Root-cause fix, both verifications, and the IAP cookie refresh recipe:
+`documentation/bibliotheque/stack/gitlab-iap-devtools.md`.
 
 ## Branch and commit
 

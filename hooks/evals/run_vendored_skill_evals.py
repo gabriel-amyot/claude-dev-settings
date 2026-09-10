@@ -17,11 +17,21 @@ Hardened 2026-09-10 after a Codex adversarial pass returned "not trustworthy". F
   - the EXEMPT allowlist is itself asserted, so widening it cannot silently disable
     cases 06/09 (case 10)
 
+Second hardening pass, same day: case 07 returned green when the cached plugin copy
+matched nothing. It therefore passed hardest exactly where its own original bug lived, a
+glob that inspects nothing. It now consults the live plugin manifest, so "declared
+installed but not found" is a failure and only a genuinely absent plugin is a pass.
+
+Scope note: this suite pins OWNERSHIP of the procedure, not exclusive callability. The
+superpowers plugin still ships its own copy and it stays selectable under its plugin
+prefix. Nothing here blocks that; see the manifest entry and the design doc.
+
 Usage: python3 run_vendored_skill_evals.py [-v]
 Exits non-zero on any failure.
 """
 
 import argparse
+import json
 import re
 import subprocess
 import sys
@@ -29,6 +39,7 @@ from pathlib import Path
 
 SHARED = Path.home() / ".claude-shared-config"
 CLAUDE = Path.home() / ".claude"
+PLUGIN_MANIFEST = "plugins/installed_plugins.json"
 OWNED = SHARED / "skills/using-git-worktrees/SKILL.md"
 TOMBSTONE = SHARED / "library/practices/development/using-git-worktrees-isolated-branches.md"
 
@@ -81,6 +92,31 @@ def _grep(pattern, exempt=EXEMPT):
 
 def _installed_plugin_copies():
     return sorted(CLAUDE.glob(PLUGIN_GLOB))
+
+
+def _declared_superpowers_versions():
+    """Versions of the superpowers plugin declared by the live plugin manifest.
+
+    Returns (versions, problem). `problem` is set when the manifest exists but cannot be
+    read, because "I could not check" is not the same answer as "nothing is installed".
+    An empty version set with no problem means superpowers is genuinely not declared.
+    """
+    manifest = CLAUDE / PLUGIN_MANIFEST
+    if not manifest.is_file():
+        return set(), None
+    try:
+        data = json.loads(manifest.read_text())
+    except (OSError, ValueError) as exc:
+        return set(), f"cannot read {PLUGIN_MANIFEST}, so a bump is undetectable: {exc}"
+    versions = set()
+    for key, entries in (data.get("plugins") or {}).items():
+        if key.split("@", 1)[0] != "superpowers":
+            continue
+        for entry in entries or []:
+            version = entry.get("version")
+            if version:
+                versions.add(str(version))
+    return versions, None
 
 
 def case_01_owned_copy_exists():
@@ -193,6 +229,12 @@ def case_07_plugin_bump_is_red():
     Codex finding 4: the original case grepped shared-config for 'plugins/cache', but
     the real cache lives under ~/.claude/plugins, so it inspected nothing. It also had
     no notion of the upstream version changing.
+
+    Second pass, same day: `if not installed: return []` made an empty glob a PASS. So
+    the case was green on a fresh machine, after `git clean -xdf`, and — the real danger
+    — if upstream ever moved the cache layout out from under PLUGIN_GLOB. That is the
+    original bug wearing a different hat. The manifest is now the source of truth for
+    what is installed, and the cache is what must corroborate it.
     """
     if not OWNED.is_file():
         return ["owned skill missing"]
@@ -202,11 +244,26 @@ def case_07_plugin_bump_is_red():
         return ["upstream.vendored_at absent; cannot detect a plugin bump"]
     pinned = m.group(1).strip().strip('"\'')
 
+    declared, problem = _declared_superpowers_versions()
+    if problem:
+        return [problem]
     installed = _installed_plugin_copies()
-    if not installed:
+
+    if not declared and not installed:
         return []
 
-    versions = sorted({p.parts[-4] for p in installed})
+    if declared and not installed:
+        return [
+            f"{PLUGIN_MANIFEST} declares superpowers {sorted(declared)} but no cached "
+            f"copy matched ~/.claude/{PLUGIN_GLOB}. This case cannot compare versions, "
+            f"so a green result here would prove nothing. Either the cache was wiped "
+            f"(reinstall the plugin) or upstream moved the path (fix PLUGIN_GLOB)."
+        ]
+
+    # The manifest is authoritative about the CURRENT version; cache directories only
+    # corroborate presence. Uniting the two would let a stale cache dir left behind by an
+    # update keep satisfying `pinned`, which is the very drift this case exists to catch.
+    versions = sorted(declared) or sorted({p.parts[-4] for p in installed})
     if pinned not in versions:
         return [
             f"superpowers plugin now at {versions}, but upstream.vendored_at pins "

@@ -201,8 +201,11 @@ suites:
     owner_skill: using-git-worktrees
     # Migration contract, 2026-09-10: using-git-worktrees moved out of the superpowers
     # plugin cache into skills/ and is now ours. Pins one authoritative copy, the correct
-    # `git check-ignore` form, a stub tombstone, and no reference into plugins/cache/.
-    # That last assertion is what stops the vendored dependency creeping back.
+    # `git check-ignore` form, a stub tombstone, and that our own text does not route
+    # callers into plugins/cache/.
+    # Scope limit, corrected the same day: this pins OWNERSHIP, not exclusivity. The
+    # plugin still ships its copy and it stays selectable under its plugin prefix. No
+    # case here blocks that; a runtime guard on skill selection would, and is not built.
     last_green: 2026-09-10
 
   - target: git/lint
@@ -389,6 +392,9 @@ exclusions:
       the two harness overrides (Klever branches from origin/dev, project-management
       exempt) have no behavioral coverage — a Layer B gap, deliberately left open rather
       than claimed as covered. Flagged by the Codex pass on 2026-09-10.
+      Second gap, same day: the plugin's own copy stays installed and selectable under
+      its plugin prefix. No case asserts a caller lands on ours, because nothing blocks
+      the other one. Deferred to the plugin-symlink handoff, not claimed as covered.
   - target: mapping:mapbox, adtech:goldfish, adtech:placer
     reason: Plugin skills that ship their own evals; verify green on plugin update, not swept here.
   - target: session:pickup / session:report-back

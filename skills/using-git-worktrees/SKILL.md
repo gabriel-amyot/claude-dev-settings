@@ -19,6 +19,12 @@ upstream:
 > `worktree-guard` hook blocks edits in a main worktree, and `pm-single-trunk-guard`
 > blocks worktree creation in project-management. Full git rule set: the `git` skill.
 
+> **Two copies are selectable, and this is the authoritative one.** The superpowers
+> plugin still ships its own `using-git-worktrees`, still installed and still callable as
+> `superpowers:using-git-worktrees`. Nothing blocks it. That copy is unowned, a plugin
+> update rewrites it, and it does not carry the harness overrides above. Invoke this one
+> by its unprefixed name. If you arrived at the plugin copy, come back here.
+
 ## Overview
 
 Git worktrees create isolated workspaces sharing the same repository, allowing work on multiple branches simultaneously without switching.

@@ -67,13 +67,25 @@ unnoticed. This is the consolidation argument in miniature.
 **Migration:** one owned copy at `~/.claude-shared-config/skills/using-git-worktrees/`,
 seeded from the plugin version (the correct check), with any genuinely better wording from
 the library copy merged in. All nine references repoint. The library copy becomes a
-tombstone pointing at the owned skill. The plugin cache copy is left alone and simply
-stops being referenced, so a plugin update can no longer change our behaviour.
+tombstone pointing at the owned skill.
 
-**This needs its own A-contract eval:** assert exactly one authoritative copy exists, that
-the `git check-ignore` form is the one present, and that no reference points into
-`plugins/cache/`. That last assertion is the one that keeps the dependency from creeping
-back.
+**Correction, 2026-09-10 (second review pass).** This section originally said the plugin
+cache copy "simply stops being referenced, so a plugin update can no longer change our
+behaviour." That is wrong, and the eval suite was written to match the wrong claim.
+Removing our references does not deorbit the plugin's skill. It stays installed and stays
+selectable under its plugin-prefixed name, so any caller — model or human — can still
+reach the unowned copy, and a plugin update still changes what that copy says. What the
+migration actually buys is an owned copy that is authoritative and cannot be silently
+overwritten. It does not buy exclusivity.
+
+Making it exclusive needs a runtime guard on skill selection, which does not exist yet.
+Until it does, the honest statement is: **two copies are selectable, ours is the
+authoritative one, and nothing mechanically blocks the other.**
+
+**This needs its own A-contract eval:** assert exactly one authoritative copy exists in
+shared-config, that the `git check-ignore` form is the one present, and that our own text
+does not route callers into `plugins/cache/`. Note the limit of that last assertion — it
+governs our references, not the plugin's own callability.
 
 ### Why hooks should not call the skill
 

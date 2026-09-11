@@ -7,6 +7,26 @@ Why it matters: every run trailer records the `spec_version` it ran under. If th
 changes without a bump, runs are attributed to a spec that no longer exists and the
 evidence for the next improvement is quietly wrong.
 
+## 0.2.3 (2026-09-10)
+
+**The frontier query counted closed blockers.** `select((.blockedBy.totalCount // 0) == 0)` filtered
+on `totalCount`, which counts every dependency edge regardless of state. A ticket that was *ever*
+blocked therefore never returned to the frontier, even after every blocker closed — contradicting
+the definition one paragraph above it ("A ticket is unblocked when every ticket blocking it is
+closed"). The query could only ever surface tickets that were never blocked at all, which defeats
+the point of wiring dependencies.
+
+Measured on a live map while resolving a ticket: the spec's query reported a 2-ticket frontier; the
+real frontier was 6. Three takeable tickets were invisible, including one whose decision was due
+that same day.
+
+- **Fix:** `select(([.blockedBy.nodes[] | select(.state == "OPEN")] | length) == 0)`.
+- **Second trap documented** under the existing `blockedBy` trap. The file already warned about the
+  object-vs-array shape; that warning caught one instance and missed this one in the very query it
+  was written to protect. The generalisable lesson, now recorded: a hand-written `jq` filter over a
+  GitHub payload needs a check against a known-good case before it is trusted, and the spec's own
+  suggested verification (`gh api .../dependencies/blocked_by`) would have caught it.
+
 ## 0.2.2 (2026-09-10)
 
 **Orient the human before the first claim.** Work mode gained step 2: before any write,

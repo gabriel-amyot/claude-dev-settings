@@ -33,24 +33,24 @@ Binding rules for every document and code comment in `app-ttd-trading-mcp`. Dist
 
 ## 6. Positive phrasing first
 
-- Lead with what the system does: "X does Y." A negative guarantee ("X never does Z") may follow as a second sentence, never lead a section.
+- Lead with the verified scope of the behavior. Use a qualified declarative when paths differ ("Calls that reach `record` attempt persistence"). A negative guarantee may follow as a second sentence, never lead a section.
 - Exception: a safety invariant whose whole content is a prohibition may state the prohibition directly.
 
 ## 7. Define every term
 
 - Jargon gets a definition at first use or a GLOSSARY.md entry. No unexplained terms ("loopback rehearsal", "walk", "seat").
-- One name for one thing across the whole tree. No synonym rotation.
+- One name for one thing across the whole tree. A document touching a contested concept keeps a term map (approved term, exact meaning, supporting symbol). A new verb or noun for a mapped concept is a terminology defect.
 
 ## 8. Table-first
 
 - If a fact fits a column, it is a column. Cells hold one or two words.
-- Details and edge cases demote to an Examples section below the table, not into the cells.
+- Exceptions that change scope, delivery, persistence, error conversion, or control flow belong in the main table. Examples hold only illustrative inputs and outputs that do not qualify the stated behavior.
 
 ## 9. Register: STE / short declaratives
 
 - One idea per sentence. Active voice. Minimum words.
 - No meta-commentary (no "this document describes", no "note that", no narration of how the doc was produced).
-- No "trust me" claims (no "robust", "comprehensive", "battle-tested"). State the guarantee or omit the sentence.
+- No unsupported quality claims ("robust", "comprehensive", "battle-tested"). State a verified guarantee when one exists. Otherwise state the verified scope, the normal path, and the exceptions.
 - No em-dash as a sentence separator. Em-dash is legal only as a heading label.
 - No semicolons. Write two sentences.
 
@@ -70,10 +70,10 @@ Binding rules for every document and code comment in `app-ttd-trading-mcp`. Dist
 
 ## 12. No absolute claim without a mechanism (the anti-bullshit rule)
 
-- Every absolute claim about runtime behavior ("always", "every", "never", "only", "exactly one", "guaranteed") names the enforcing mechanism by symbol.
-- No single mechanism enforces it = the absolute claim is forbidden. State the honest weaker claim (best-effort, the normal path) and enumerate the exceptions by symbol.
-- When a reviewer refutes a claim that already survived one reformulation, the claim itself is the defect. Remove it or demote it. Rewording it again is forbidden.
-- Litmus: for each absolute sentence ask "what one code path would falsify this?" If you can name one, the sentence is wrong before any reviewer reads it.
+- A claim is absolute when a reasonable reader can infer it applies to all relevant calls, phases, outcomes, or paths. This covers prose, headings, tables, diagrams, glossary definitions, counts, and implied relationships — not only sentences containing "always" or "every".
+- An absolute claim names the enforcing mechanism by symbol. No single mechanism enforces it = the absolute claim is forbidden. State the verified scope, the normal path, and the exceptions by symbol.
+- When a reviewer refutes a behavioral claim, every paraphrase, implication, count, table row, diagram edge, and dependent claim in the document is the same claim family. Search and revalidate the whole document before writing any replacement. Never move the claim into a detail section, glossary, table, or diagram.
+- Litmus per behavior claim: "which reachable path would falsify this scope?" If one exists, state the scope and the exception. The absence of trigger words proves nothing.
 
 ## 13. Hard boundary for this flow
 

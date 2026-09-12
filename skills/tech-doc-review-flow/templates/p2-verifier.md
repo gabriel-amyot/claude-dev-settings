@@ -1,8 +1,8 @@
 <!-- TEMPLATE from the KTP-1182 app-ttd-trading-mcp run (the worked example).
-Adapt before use: ticket key, repo name, the four allowed .py files, persona
-file paths (verify they exist), pass-1 mission specifics (contract sources,
-glossary term list). Keep: gates, ledger duties, Codex SOP discipline, severity
-ladders, churn detection, token discipline, the anti-bullshit rule. -->
+Adapt before use: ticket key, repo name, the allowed .py files, persona file
+paths (verify they exist), pass-1 mission specifics. Keep: gates, ledger
+duties, Codex SOP discipline, severity ladders, churn detection, token
+discipline, the anti-bullshit evidence-record rule. -->
 
 # Pass 2 Verifier — Usability & Clarity, Adversarial Counterpart (Codex CLI)
 

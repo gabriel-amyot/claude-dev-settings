@@ -28,6 +28,10 @@ The exit was to stop making the claim: state the posture the ADR already named (
 - The doc states a stronger promise than the ADR that governs the area (KTP-1182: the page promised audit-grade delivery while ADR-0003 is literally titled "an operational log, not an audit log").
 - Synonym rotation around the same verb slot ("attempts" / "reaches" / "is handed to" / "leaves a line") — four verbs for two concepts means the author has not decided what is actually guaranteed.
 
+## The endgame when churn survives demotion
+
+KTP-1182 round 7 demoted the headline guarantee correctly and then reintroduced absolutes in the details ("both paths", "five call sites", "always dispatched as skipped"). Lesson: when a page describes a **non-uniform subsystem**, no quantified prose sentence over the set survives review. The terminal fix is structural, and the charter already names it (rule 8, table-first): one row per call site with symbol-anchored cells (caller | dispatch condition | exception behavior | persistence behavior), the posture sentence as the only prose, and a ban on quantifying words ("both", "all", "every", counts) anywhere on the page. A wrong cell is a one-cell fix; a wrong sentence is another round.
+
 ## The generalization
 
 This is the documentation instance of a house rule that already exists for code and tickets: **a claim must not exceed its code.** A test that can't fail proves nothing; an AC that presupposes its answer decides nothing; a doc sentence no code path enforces guarantees nothing. The detector just makes the doc version mechanical.

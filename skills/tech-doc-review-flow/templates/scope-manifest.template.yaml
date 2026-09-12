@@ -1,0 +1,115 @@
+# Scope manifest — tech-doc-review-flow (KTP-1182)
+# Every target file in app-ttd-trading-mcp with its disposition.
+# Paths are repo-relative. "charter pass" = bring into full style-charter compliance,
+# no structural redesign beyond what the charter forces.
+
+repo: app-ttd-trading-mcp
+repo_path: /Users/gabrielamyot/Developer/grp-beklever-com/grp-faas/grp-app/grp-backend/grp-mcp/app-ttd-trading-mcp
+gitlab_url: https://cicd.prod.datasophia.com/grp-cst/grp-beklever-com/grp-faas/grp-app/grp-backend/grp-mcp/app-ttd-trading-mcp
+branch: KTP-1182-doc-review-flow
+base: origin/dev (after MR !18, branch KTP-1182-adr-spec-reconciliation, is merged)
+
+targets:
+  - path: agent-os/INDEX.md
+    disposition: >
+      Rewrite as a pure index: read order with one-line roles, plus the standing
+      rule (a directive, so it stays). Corrections, convention history, related
+      tickets, and cross-repo narratives all move out or die.
+
+  - path: agent-os/standards/
+    disposition: >
+      Rules that outlive the decisions, currently stranded in the INDEX or in ADR
+      prose, extract to a standards file (new or existing). Charter pass on all
+      existing standards files (graphql-documents.md, money-and-decimals.md,
+      safety-invariants.md, versioning-and-bundle-release.md, INDEX.md).
+
+  - path: agent-os/architecture/adr/INDEX.md
+    disposition: >
+      Pure table: number, title, one-word status (Accepted / Amended / Abandoned /
+      Superseded), link. No prose glosses.
+
+  - path: agent-os/architecture/adr/*.md
+    disposition: >
+      Banner + fold. A superseded or amended ADR gets a dated banner at the top
+      naming what replaced which clause. Dead detail folds into <details>.
+      History stays intact. Strike-style stays legal inside ADRs only.
+      Ticket keys and dates stay legal here.
+
+  - path: agent-os/architecture/contracts/mcp-tools.md
+    disposition: >
+      Rebuild as a real contract. Per tool: input schema (source: the schemas the
+      protocol exposes, as pinned by tests/test_tool_schemas.py and
+      tests/test_documents_golden.py), output shape, behavior, error/refusal
+      modes. No line refs, no transport trivia prose.
+
+  - path: agent-os/architecture/contracts/exit-codes.md
+    disposition: >
+      Table with a Guarantee column. Prose demotes to an Examples section.
+
+  - path: agent-os/architecture/contracts/environment-variables.md
+    disposition: >
+      Current-state tables only, corrections removed. Add a Defense column
+      (what enforces the variable's constraint). Symbol citations.
+
+  - path: agent-os/architecture/contracts/media-api-routes.md
+    disposition: charter pass
+  - path: agent-os/architecture/contracts/desktop-bundle.md
+    disposition: charter pass
+  - path: agent-os/architecture/contracts/INDEX.md
+    disposition: pure index per charter rule 1
+  - path: agent-os/architecture/INDEX.md
+    disposition: pure index per charter rule 1
+  - path: agent-os/architecture/seat-model.md
+    disposition: charter pass
+  - path: agent-os/architecture/system-design.md
+    disposition: charter pass
+  - path: agent-os/architecture/apply-cli-targets.md
+    disposition: charter pass
+  - path: agent-os/architecture/operational-log.md
+    disposition: charter pass
+  - path: agent-os/architecture/known-limits.md
+    disposition: >
+      Charter pass. It stays beside the ADRs in architecture/. Its role gets one
+      defining line in the INDEX read order.
+
+  - path: agent-os/GLOSSARY.md
+    disposition: >
+      NEW. Define at least: seat, book, bid, draft / propose / apply, loopback
+      rehearsal, walk, connection, flight, decision power, partner, ad group,
+      operator bundle, trader bundle. One term, one row, one-sentence definition.
+      Linked from the INDEX read order. Pass 1 drafts it, pass 2 completes it.
+
+  - path: src/ttd_trading_mcp/documents.py
+    disposition: &py-sweep >
+      Comment/docstring-only sweep per charter rule 11. Specification prose moves
+      into the agent-os doc it belongs to; the code keeps a one-line repo-relative
+      pointer. Remove pm-repo paths, dates, ticket refs, meta-commentary.
+      GraphQL documents gain inline "#" field comments where a field-specific
+      fact exists. Zero executable-code changes (ast-guard enforced).
+  - path: src/ttd_trading_mcp/bid_safety.py
+    disposition: *py-sweep
+  - path: src/ttd_trading_mcp/discovery.py
+    disposition: *py-sweep
+  - path: src/ttd_trading_mcp/server.py
+    disposition: *py-sweep
+
+out_of_scope:  # ledgered as follow-ups; no code changes in this flow
+  - externalizing MCP tool prompts to a file
+  - documents.py restructuring
+  - .graphql file extraction
+  - WriteRun.operator_label rename
+  - server.py split
+  - OpenSpec adoption (open decision, taken on a clean tree)
+
+verification:
+  every_round:
+    - "python3 <review-flow>/ast-guard.py --repo <worktree> --base <BASE_SHA>  # zero executable-code drift"
+    - "uv run pytest -q  # counts must equal the Setup baseline (expected 613 passed / 21 skipped)"
+  pass_exit: "Codex counterpart verdict with zero Major/Critical findings, max 5 rounds"
+  ship:
+    - "docs link lint: 0 broken repo-relative links under agent-os/"
+    - "git rev-list --count HEAD..origin/dev == 0 before push"
+    - "version bump (next patch over merged base) + packaging/manifest.json + CHANGELOG entry"
+  end_to_end_read_test: >
+    Pass 2's verifier explicitly answers: can a fresh technical reader consume
+    mcp-tools.md as a contract and agent-os/INDEX.md as an index.

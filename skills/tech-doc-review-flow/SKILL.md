@@ -35,7 +35,7 @@ Model tiering (binding): editors and Ship = `opus`, verifier wrappers = `sonnet`
 - **Codex per the SOP** (`sops/autonomous-workflows/codex-cli-adversarial-review-patterns.md`): neutral empty cwd, positional prompt with stdin closed, foreground, `--output-last-message`, tight file list, CONFIRMED/PLAUSIBLE labels, triage-by-refutation before accepting.
 - **Every round ≥2 is told what the previous round changed** and hunts what the fix broke.
 - **Budget overrides are human decisions.** A pass exhausting its rounds stops the workflow; the human authorizes extra rounds (per-pass `EXTRA_ROUNDS`), optionally with a standing "continue while blocking counts shrink" — the convergence guard stops on a stall.
-- **Unattended mode** (explicit human opt-in, e.g. overnight): a pass reaching its budget not-clean gets exactly one final round, then its leftovers carry to the ledger and the flow moves to the next pass — the workflow never stops for a budget. Carried blockers surface in the final report, the MR description, and the closing comment.
+- **Unattended mode** (explicit human opt-in, e.g. overnight): a pass reaching its budget not-clean gets exactly one final round, then its leftovers carry to the ledger and the flow moves to the next pass — the workflow never stops for a budget. Carried blockers surface in the final report, the MR description, and the closing comment — but verify each one against the final tree before reporting it: a later pass often fixes a carried item (KTP-1182's two carried cells were fixed by pass 2 round 1), and the `carried` map is captured at pass exit, not re-checked.
 
 ## Resume discipline
 

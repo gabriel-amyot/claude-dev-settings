@@ -7,7 +7,7 @@ export const meta = {
   name: 'tech-doc-review-flow',
   description: 'Three-pass editor + Codex-adversarial review of app-ttd-trading-mcp agent-os docs (KTP-1182)',
   phases: [
-    { title: 'Setup', detail: 'gate on !18 merged, worktree from origin/dev, baseline suite' },
+    { title: 'Setup', detail: 'prerequisite-merge gate, worktree from the base, baseline suite' },
     { title: 'Pass 1 — Technical accuracy', detail: 'Winston+Amelia editor vs Codex counterpart, max 5 rounds' },
     { title: 'Pass 2 — Usability & clarity', detail: 'John (PM) + Leo lens vs Codex counterpart, max 5 rounds' },
     { title: 'Pass 3 — Editorial & style', detail: 'Paige editor vs Codex counterpart, max 5 rounds' },

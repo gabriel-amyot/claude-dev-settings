@@ -39,7 +39,7 @@ Model tiering (binding): editors and Ship = `opus`, verifier wrappers = `sonnet`
 
 ## Resume discipline
 
-The Workflow cache keys on each call's (prompt, opts) — schema included. To resume a stranded run: keep completed calls byte-identical (gate new `model`/round-cap/directive changes on constants like `CACHED_ROUNDS`), bump `VERIFY_RETRY['pX-N']` to re-run exactly one verifier, and never `resumeFromRunId` after a blocked Setup you expect to pass now — wait, that one DOES need the resume with the gate re-evaluated live, so cache-bust Setup or launch fresh. On an external block (credits, quota): background probe loop + auto-resume; never park passively.
+The Workflow cache keys on each call's (prompt, opts) — schema included. To resume a stranded run: keep completed calls byte-identical (gate new `model`/round-cap/directive changes on constants like `CACHED_ROUNDS`), and bump `VERIFY_RETRY['pX-N']` to re-run exactly one verifier. A Setup that returned blocked is a completed call — a resume replays the cached block — so after clearing the prerequisite, launch fresh instead of resuming. On an external block (credits, quota): background probe loop + auto-resume; never park passively.
 
 ## Anti-bullshit detector
 

@@ -202,7 +202,7 @@ Parse the project prefix from the first ticket key. Map to org:
 
 | Prefix | Org | Jira `--org` | PM Root |
 |--------|-----|--------------|---------|
-| KTP, INS | klever | klever | `~/Developer/grp-beklever-com/project-management` |
+| KTP, KTT, INS | klever | klever | `~/Developer/grp-beklever-com/project-management` |
 | SPV | supervisrai | supervisrai | `~/Developer/supervisr-ai/project-management` |
 | PER | personal | n/a | `~/Developer/gabriel-amyot/project-management` |
 

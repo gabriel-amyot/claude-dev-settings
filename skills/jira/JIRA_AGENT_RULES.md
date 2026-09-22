@@ -108,21 +108,42 @@ Jira is the board colleagues read. Every ticket on it costs other people attenti
 work does not belong there, and a `create` is mechanically blocked until the audience decision
 is recorded on the command.
 
-**The audience test — will a colleague need to see this?**
+**Two questions, asked in order.** The first picks the tracker. The second picks the Jira
+project, and only runs if the first answered Yes.
+
+**1. Will a colleague need to see this?**
 
 | Answer | Destination |
 |---|---|
-| **No** | GitHub Issues, `gabriel-amyot/klever-project-management`. Decisions, open questions, pivots, your own task decomposition, reading and approval items. Wayfinder decision tickets always land here. |
-| **Yes** | Jira, re-run with `--audience team` |
+| **No** | GitHub Issues, `gabriel-amyot/klever-project-management`. Decisions, open questions, pivots, your own task decomposition, reading and approval items. Tooling, skills and hooks. Wayfinder decision tickets always land here. |
+| **Yes** | Jira, re-run with `--audience team`, then answer question 2 |
 | **Unsure** | Ask Gabriel. Do not guess, and do not pick Jira because Jira is habitual. |
+
+**2. Which Jira project? Horizon first, then readiness.**
+
+| Condition | Project |
+|---|---|
+| Committed or roadmapped for the next three months, **and** clear, scoped and refined | `KTP` |
+| Fails either gate: no date, or near-term but not yet refined | `KTT` |
+| Horizon not knowable from the ticket | Ask Gabriel |
+
+`KTT` is the long-term tech and product backlog: tech debt, architecture, a recorded bug,
+an unscheduled need. Rough is fine. It is still team-facing, so it still needs
+`--audience team`. Mechanics and constraints: [[ktt-board]].
+
+**KTT is not a dump target.** Creating any Jira ticket still needs an explicit go from
+Gabriel. `--audience team` records *who the ticket is for*, never *that you may create it*.
 
 ```bash
 # internal — the default
 gh issue create --repo gabriel-amyot/klever-project-management \
   --title "<the question or decision>" --body "<detail>"
 
-# team-facing — requires the recorded decision
-python3 jira_skill.py --org klever create ... --audience team
+# team-facing, roadmapped and refined
+python3 jira_skill.py --org klever create --project KTP ... --audience team
+
+# team-facing, but no date or not yet refined
+python3 jira_skill.py --org klever create --project KTT --type Task ... --audience team
 ```
 
 **What counts as explicit Jira intent.** The user names Jira or the board: "create a jira ticket
@@ -133,7 +154,8 @@ subtasks. Absent an explicit signal, assume internal.
 **Enforcement.** `hooks/jira-create-gate.sh` (PreToolUse, Bash) blocks any `jira_skill.py create`
 without `--audience team`. `--audience internal` is blocked with the GitHub command. The flag is
 stripped in `jira_skill.py` next to `--org` and never reaches the API. Regressions:
-`hooks/evals/fixtures/jira-create-gate.yaml` (21 cases, includes reword-past-the-gate).
+`hooks/evals/fixtures/jira-create-gate.yaml` (23 cases, includes reword-past-the-gate and
+both KTT paths).
 
 The hook sees the Bash tool only. A create through another tool path is unseen and is **not**
 thereby approved. Kill-switch: `touch ~/.claude/.jira-audience-gate-off`.

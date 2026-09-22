@@ -74,7 +74,7 @@ Store the repo type. Gates 4 and 5 use it to decide whether to run or skip. **Ja
 git branch --show-current
 ```
 
-Must be on a feature branch (not `dev`, `main`, or `master`). Extract ticket ID from branch name (pattern: `KTP-XXX-*` or `INS-XXX-*`).
+Must be on a feature branch (not `dev`, `main`, or `master`). Extract ticket ID from branch name (pattern: `KTP-XXX-*`, `KTT-XXX-*` or `INS-XXX-*`).
 
 If on dev/main/master, FAIL: "You're on a protected branch. Create a feature branch first."
 

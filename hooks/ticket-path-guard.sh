@@ -40,7 +40,7 @@ esac
 # 2. Ticket paths must be tickets/{PREFIX}/{EPIC|no-epic}/{TICKET-ID}/...
 case "$REL" in
   tickets/*)
-    if echo "$REL" | grep -qE '^tickets/(KTP|SPV|INS|PER)-[0-9]+/'; then
+    if echo "$REL" | grep -qE '^tickets/(KTP|KTT|SPV|INS|PER)-[0-9]+/'; then
       P=$(echo "$REL" | sed -E 's|^tickets/([A-Z]+)-[0-9]+/.*|\1|')
       T=$(echo "$REL" | sed -E 's|^tickets/([A-Z]+-[0-9]+)/.*|\1|')
       warn "flat ticket path: $REL" \

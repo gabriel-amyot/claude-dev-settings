@@ -7,6 +7,38 @@ Why it matters: every run trailer records the `spec_version` it ran under. If th
 changes without a bump, runs are attributed to a spec that no longer exists and the
 evidence for the next improvement is quietly wrong.
 
+## 0.3.0 (2026-09-12)
+
+**A finding from outside the route had no typed way onto the map.** The loop was outbound: a route
+session claims a ticket, resolves it, records it. A session that learned something without owning a
+ticket had two options, and both lose information. A bare `gh issue comment` leaves no trailer, so
+`harvest` never counts the run. The `wayfinder-feedback:` convention *is* harvested, but it carries
+to the reflection brief, which is the retro on the vehicle, not to the next route session that needs
+to act on the finding.
+
+Adds a third option, typed and addressed to the route:
+
+- **`wayfinder_runs.py report`**, with `mode: report` and a `reported` outcome. Both were required:
+  `validate_run` whitelisted mode to `chart|resolve|reflect` and outcome to the six terminal states,
+  so a report trailer parsed as valid YAML and was then bucketed as `malformed_trailers` — traced,
+  but reported as broken telemetry. `--source` is required, because an outside run is only
+  trustworthy if it says what produced it.
+- **`## Report back` on every ticket.** The moment a ticket is written is the only moment the map
+  knows what it will be waiting for. Named facts when the shape is known, an open question when it
+  is not.
+- **A `Report back` section**, defining the inbound path and splitting it on whether the reporting
+  session owned a ticket.
+
+**What this does NOT change.** `resolve` already closed any ticket carrying a `wayfinder:` label,
+including types outside the taxonomy, and `--force` already bypassed the foreign-assignee guard. A
+session that owned a ticket could always close it traceably. The `--ticket` shape of `report` is a
+telemetry-fidelity improvement over that, not a new capability: it records `mode: report` with a
+`--source` instead of `mode: resolve`, which would attribute the run to a route session that never
+happened, and it avoids overloading `--force`, which also suppresses the duplicate-comment guard.
+
+The skill is `wayfinder-report-back`, a sibling. Deposit and dispose stay separate: a reporting
+session never graduates fog, creates tickets, or edits the map body.
+
 ## 0.2.3 (2026-09-10)
 
 **The frontier query counted closed blockers.** `select((.blockedBy.totalCount // 0) == 0)` filtered

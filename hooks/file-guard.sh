@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# File Guard: PreToolUse hook for Edit|Write
-# Blocks edits to protected files (CLAUDE.md, .claude/settings.json, agent-os/sbe/).
-# Replaces: config-protect.sh, prompt hook, claude-md-guard.sh
+# File Guard: PreToolUse hook for Edit|Write|Bash
+# Blocks edits AND Bash-level deletes/moves/overwrites of protected files
+# (CLAUDE.md, .claude/settings.json, agent-os/sbe/).
+# Replaces: config-protect.sh (superseded, kept on disk but not registered), prompt hook, claude-md-guard.sh
 # Toggle with: bash ~/.claude/hooks/toggle-protection.sh
 
 PROTECTION_FLAG="$HOME/.claude/hooks/.protection-enabled"
@@ -10,9 +11,40 @@ if [ ! -f "$PROTECTION_FLAG" ]; then
   exit 0
 fi
 
-# Read tool input from stdin (correct API)
 INPUT=$(cat)
 
+TOOL_NAME=$(echo "$INPUT" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+print(data.get('tool_name', ''))" 2>/dev/null)
+
+if [ "$TOOL_NAME" = "Bash" ]; then
+  COMMAND=$(echo "$INPUT" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+ti = data.get('tool_input', {})
+print(ti.get('command', ''))" 2>/dev/null)
+
+  # Only inspect commands that look like delete/move/overwrite/truncate operations
+  if echo "$COMMAND" | grep -qE '(^|[;&|]|[[:space:]])(rm|unlink|mv|shred|truncate)[[:space:]]'; then
+    for TARGET in "CLAUDE.md" ".claude/settings.json" "agent-os/sbe/"; do
+      if echo "$COMMAND" | grep -qF "$TARGET"; then
+        cat >&2 <<EOF
+BLOCKED: command references a protected path ($TARGET) alongside a destructive operation (rm/mv/unlink/shred/truncate).
+Command: $COMMAND
+
+To proceed:
+1. Tell the user exactly what you want to delete/move and why.
+2. Provide a ready-to-run shell command for the user to execute manually.
+EOF
+        exit 2
+      fi
+    done
+  fi
+  exit 0
+fi
+
+# Read tool input from stdin (correct API)
 FILE_PATH=$(echo "$INPUT" | python3 -c "
 import sys, json
 data = json.load(sys.stdin)

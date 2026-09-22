@@ -40,7 +40,12 @@ Session-lifecycle plumbing (`session-start.sh`, `session-init-reminder.sh`, `pro
   when the surrounding conversation is entirely about another repo. The Bash tool's cwd also
   resets between calls, so a `cd` earlier in the session does not protect a later command. Fix:
   always run `git -C <absolute-repo-path> worktree add ...`. The guard's own error message says
-  this. Learned 2026-08-27 (session `crisp-pike`).
+  this. Learned 2026-08-27 (session `crisp-pike`). **Confirmed 2026-09-01 (session
+  `deft-wolf`): the gap also holds inside a single compound command.** A `cd <repo> && git
+  worktree add ...` chain run as ONE Bash call still gets blocked, even though the `cd` moves
+  into the target repo before the worktree command runs in the same string. The guard checks
+  the shell's resting cwd, not the compound command's effective cwd at execution time. Same
+  fix applies: `git -C <repo-path> worktree add ...`.
 - `file-guard.sh` blocks Edit/Write on **any file named `CLAUDE.md`**, not only agent-config ones.
   A vendor-documentation page that happens to be named `CLAUDE.md` (e.g. a bibliothèque skill
   quick-start) is protected identically to a real config file. The escape hatch is explicit: hand

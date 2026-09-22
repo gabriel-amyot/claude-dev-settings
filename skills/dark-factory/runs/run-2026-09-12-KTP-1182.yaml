@@ -1,0 +1,135 @@
+run_id: run-2026-09-12-KTP-1182
+ticket: KTP-1182
+ticket_summary: "Powers-MCP wayfinder issue 47 slice: six model-facing tool-description corrections + stale-startup-notice clear on first successful read (app-ttd-trading-mcp)"
+epic: none
+org: klever
+date: 2026-09-12
+terminal_status: READY_TO_SHIP
+ticket_folder: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/KTP/no-epic/KTP-1182
+tool_belt: python-service
+primary_repo: grp-app/grp-backend/grp-mcp/app-ttd-trading-mcp
+tdd_gate_mode: halt
+tdd_warn_violations: []
+note: >
+  Cleanest run in the telemetry set. AC-LOCAL.md (crit-approved, issue 45 gate closed) drove the
+  slice. All 7 phases passed with soft confidence 88-92. TDD gate ran in halt mode with zero
+  violations; qa/ holds a red.out + green .out pair for each of the 6 SBEs plus an MCP stdio
+  handshake proof against the served tools/list surface (SBE-1/2/6 + SBE-3 sample asserted true)
+  and a full suite of 634 passed / 21 skipped. A post-implement adversarial review of the served
+  descriptions (AST-extracted at baseline dev fed321f6 vs head 49c7ee27, MR !19) confirmed the
+  changes and measured the token surface. Terminal READY_TO_SHIP; main loop opened MR !19,
+  commented issue 47, and logged the Jira evidence comment.
+
+phases:
+  - phase: concierge
+    status: PASS
+    confidence: 90
+    note: "Front gate clean. AC-LOCAL.md override honored over the Jira umbrella description; start gate (issue 45 spec gate closed 2026-09-11) verified."
+  - phase: design
+    status: PASS
+    confidence: 88
+    note: "Impl plan + ADR draft (a successful read clears the stale startup notice). Lowest soft confidence of the run at 88 — the SBE-5 behaviour change was the only non-string work."
+  - phase: grill
+    status: PASS
+    confidence: 92
+    note: "Grill report on disk; plan stress-tested. Fixed-string scope + one narrow behaviour change left no open forks."
+  - phase: implement
+    status: PASS
+    confidence: 92
+    note: "Six description corrections + SBE-5 clear-on-first-read landed in a worktree off dev. Model-facing strings kept fixed, fault verdicts preserved, char bounds respected."
+  - phase: review
+    status: "criticals:0"
+    confidence: 91
+    note: >
+      0 criticals. The heavyweight evidence is the served-surface adversarial review under
+      reports/architecture/ (AST extraction, per-tool char deltas, verdict 'net positive, should
+      merge, not finished'). The ticket's review/ subfolder itself is empty, and the
+      carried-findings record needed a post-hoc correction commit (F1/F2 were in fact fixed in
+      pass 2).
+  - phase: qa
+    status: ALL_PASS
+    confidence: 92
+    note: >
+      Strongest QA artifact set of any logged run: per-SBE red→green pairs (AC-SBE-1..6 .red.out +
+      .out), live stdio handshake against the served tools/list, full suite 634 passed / 21
+      skipped in 52.6s. The 21 skips carry no skip-reason inventory in the QA folder.
+  - phase: ship-prep
+    status: PASS
+    confidence: 92
+    note: "Version bump + CHANGELOG per AC. MR !19 open on dev; issue 47 comment and Jira evidence comment posted through the post-log. Deterministic model evaluation explicitly deferred by the AC constraints."
+
+scores:
+  task_confidence: 92
+  factory_fitness: 90
+
+deductions:
+  # task_confidence (start 100 → 92)
+  - points: 3
+    reason: "task_confidence: the served-surface adversarial review's verdict is 'net positive, should merge, but not finished' — residual proposals (description trims to pay for the projected +1,780-char SBE-3 sentence, ~2,550 tokens/turn served surface) are not resolved in this slice."
+  - points: 2
+    reason: "task_confidence: the deterministic model evaluation is deferred by AC constraint — every accepted string is proven at its serving surface, but the intended model-behaviour effect (e.g. the model no longer refusing a direct apply) is unproven until that eval runs."
+  - points: 2
+    reason: "task_confidence: full-suite.out shows 21 skipped tests with no skip-reason inventory in the qa/ artifacts; a reader cannot tell whether any skip touches the changed surface."
+  - points: 1
+    reason: "task_confidence: minimum per-phase soft confidence 88 (design) — small residual uncertainty on the SBE-5 behaviour change."
+  # factory_fitness (start 100 → 90)
+  - points: 3
+    reason: "factory_fitness: run records drifted and needed two post-hoc correction commits (20f8187c carried-findings F1/F2 were actually fixed in pass 2; f424cfc6 p3 r2 changed-file count) — the review/fix-loop bookkeeping does not verify itself against the fix-pass outcome before being committed."
+  - points: 3
+    reason: "factory_fitness: the ticket scaffold's review/ and tdd/ subfolders are empty; the review evidence landed under reports/architecture/ and the red/green evidence under qa/. Phase artifacts and their contract locations drifted, which weakens any future gate that checks the canonical folders."
+  - points: 2
+    reason: "factory_fitness: no model-facing token-budget gate exists for MCP description work — the +2,161-char served-surface growth (and the projected ~10,200-char / 2,550-token surface after SBE-3) was caught only by the post-hoc adversarial review, not by design or grill."
+  - points: 2
+    reason: "factory_fitness: a list_ad_groups probe dead end was burned mid-run and then reported to the wayfinder map (5fbd4e89) — a pre-probe check of the wayfinder/library for known dead ends would have saved the cycle."
+
+red_flags:
+  - "Two record-correction commits in one run (carried-findings F1/F2, p3 r2 changed-file count): the factory's own bookkeeping was wrong until manually fixed — a future session reading the uncorrected record would have re-fixed already-fixed findings."
+  - "review/ and tdd/ ticket subfolders are empty despite review reporting criticals:0 and TDD running in halt mode; the real evidence sits in reports/architecture/ and qa/. Canonical-location checks would report this run as missing artifacts."
+  - "21 skipped tests in full-suite.out with zero explanation on disk."
+  - "The adversarial review found the 2026-08-20 outage sentence still live on dev baseline (draft_bid_change 'separate, human step' text) — the exact failure text this slice removes sat in prod-path dev for three weeks; nothing in the factory watches served model-facing strings between tickets."
+  - "Served description surface grew +2,161 chars this slice and SBE-3 mandates ~+1,780 more; per-turn token cost of the server is growing unbudgeted."
+  - "list_ad_groups dead end probed mid-run before the wayfinder map was consulted/updated."
+  - "Deterministic model evaluation deferred with no tracked follow-up gate — string-level PASS can be misread as behaviour-level PASS."
+
+improvements:
+  - title: "Contract 7 (review/fix loop): the carried-findings record must be verified against the fix-pass outcome before commit"
+    detail: >
+      The fix loop should re-read each carried finding after the pass that claims to fix it and
+      update the record in the same commit (finding id → fixed_in_pass, evidence line). A record
+      that says 'carried' for a finding the diff fixed is a false artifact; this run needed a
+      manual correction commit (20f8187c) to repair it.
+  - title: "Add a model-facing token-budget check to design/grill for MCP-server tickets"
+    detail: >
+      When the primary repo serves @mcp.tool descriptions, design must state the baseline served
+      chars, the projected head chars, and a budget. Grill fails the plan if growth is unbudgeted.
+      The AST-extraction snippet in reports/architecture/2026-09-12-mcp-tool-prompt-adversarial-review.md
+      is reusable as the measurement tool.
+  - title: "Contract 8 (QA): a skipped test count > 0 requires a skip inventory line"
+    detail: >
+      QA must not report ALL_PASS on a suite with skips unless qa/ contains one line per skip
+      group (marker/reason) and an assertion that no skip covers a changed surface. 634/21 here is
+      almost certainly fine, but 'almost certainly' is exactly what the artifact should remove.
+  - title: "Route phase artifacts to the canonical ticket subfolders (review/, tdd/) or delete them from the scaffold"
+    detail: >
+      Either the review contract writes its findings ledger to tickets/.../review/ and the TDD
+      gate writes its red/green manifest to tdd/, or ticket-init stops scaffolding folders no
+      contract fills. Empty canonical folders next to full non-canonical ones make every
+      artifact-existence gate unreliable.
+  - title: "Pre-probe wayfinder/library dead-end check in the tool belts"
+    detail: >
+      Before any exploratory API/tool probe, the belt checks the wayfinder map (and org
+      bibliothèque) for a recorded dead end on that route. The list_ad_groups cycle this run was
+      spent rediscovering a reportable dead end.
+  - title: "Deferred evaluations must leave a tracked follow-up at ship-prep"
+    detail: >
+      When an AC constraint defers a verification (here: the deterministic model evaluation),
+      ship-prep must emit a follow-up item (inbox file or issue) linking the MR and stating what
+      remains unproven, so READY_TO_SHIP is never silently read as behaviour-verified.
+
+summary: >
+  KTP-1182 (issue-47 slice: six tool-description corrections + stale-startup-notice clear on
+  app-ttd-trading-mcp) ran the cleanest pipeline logged to date: all phases 88-92, TDD halt mode
+  with zero violations, per-SBE red→green proof at the serving surface, 634-test suite green,
+  READY_TO_SHIP with MR !19 open. task_confidence 92, factory_fitness 90; the residual work is
+  record-integrity (two post-hoc correction commits), a token budget for the growing served
+  description surface, and the deferred deterministic model evaluation.

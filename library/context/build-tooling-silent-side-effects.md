@@ -86,6 +86,32 @@ This is the same failure family as two `promotion-image-preflight.sh` false-RED 
 
 **How to apply:** When a scan or gate returns a suspiciously clean or suspiciously uniform negative across every input, verify the tool ran before trusting the negative. Test it against one known-positive case first.
 
+**Fourth instance: an expired `gcloud` token returns empty output, not an error (2026-09-16).** Five consecutive polls for a dev image tag returned blank. The credential had expired, and that failure surfaced only later as a prompt to re-authenticate. Each blank line read as "not deployed yet". A `gcloud --format="value(...)"` call prints nothing both when the field is absent and when the command never ran. Re-run without `--format` and read stderr before you draw a conclusion. This is the same shape as the zsh-glob case above, with a credential as the cause instead of a shell. Klever instance and context: `documentation/bibliotheque/sops/dac-workflow-patterns.md`.
+
+**Three more instances, one session (2026-09-19, Klever KTP-571 Planning Map shell build):**
+
+1. `gitlab_skill.py mr --action list` returns only `iid`, `source_branch`, `state`,
+   `target_branch`, `title`, `web_url` — no `description` field at all. Reading an empty field in
+   that output as "the MR description write failed" was a false negative about a write that may
+   have succeeded; the field is simply never returned by `list`, so absence there proves nothing.
+2. An `api_request(endpoint, method, ...)` helper takes the endpoint argument first. Called with
+   the arguments swapped, it returned `None` for every field, which read as "the MR has no title,
+   no branches, nothing" instead of "this call was malformed."
+3. An overnight attestor honestly reported `remoteDevSha: UNKNOWN` when `git ls-remote` hit an
+   HTTP 502. The workflow's assertion compared `UNKNOWN` against the baseline SHA and announced
+   that `dev` had moved and the verification was invalid. `dev` had not moved; the probe simply
+   could not run.
+
+Same family as every case above: a wrong API shape, a swapped argument, and a transient outage all
+produced a clean-looking negative result instead of an error, and each one was read as a finding
+rather than a failed measurement.
+
+**How to apply (restated for this instance):** Before treating any negative as a finding — an
+empty field, a `None` return, an `UNKNOWN` value — confirm the call that produced it actually ran
+as intended. Check the tool's real output shape (not the shape you expect), check argument order
+against the function signature, and treat a sentinel like `UNKNOWN` as "could not measure," never
+as "measured and it differs." These demand opposite responses.
+
 ---
 
-**Source (above two sections):** session `plain-ibis`, Klever post-close worktree cleanup (2026-09-02).
+**Source (above two sections):** session `plain-ibis`, Klever post-close worktree cleanup (2026-09-02). Fourth instance: session `rare-wren`, Klever media-api 0.20.3 prod promotion (2026-09-16). Fifth instance (three sub-cases): session `agile-marten`, Klever KTP-571 Planning Map shell build (2026-09-19).

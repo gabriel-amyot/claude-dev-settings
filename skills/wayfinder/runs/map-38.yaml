@@ -1,7 +1,7 @@
 map: 38
 map_title: 'Powers MCP in production: traders using it against the live Powers book'
 map_state: OPEN
-harvested: '2026-09-10T20:05:26+00:00'
+harvested: '2026-09-22T14:39:32+00:00'
 telemetry_epoch: '2026-09-10'
 runs:
 - run_id: 1d6a310f
@@ -15,7 +15,199 @@ runs:
   friction: []
   issue_state: OPEN
   comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/38#issuecomment-5624713751
-gaps: []
+- run_id: fb337081
+  spec_version: 0.3.0
+  mode: report
+  map: 38
+  date: '2026-09-13'
+  outcome: reported
+  tickets_created: 0
+  fog_graduated: 0
+  friction: []
+  source: 'map #1 issue #6 resolution (Powers prod cluster routing), run b16076bf'
+  issue_state: OPEN
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/38#issuecomment-5653454937
+- run_id: 7addb04d
+  spec_version: 0.3.0
+  mode: resolve
+  map: 38
+  date: '2026-09-12'
+  outcome: resolved
+  tickets_created: 0
+  fog_graduated: 0
+  friction: []
+  ticket: 58
+  ticket_type: research
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/58#issuecomment-5647981373
+- run_id: e409103e
+  spec_version: 0.3.0
+  mode: resolve
+  map: 38
+  date: '2026-09-12'
+  outcome: resolved
+  tickets_created: 0
+  fog_graduated: 0
+  friction: []
+  ticket: 57
+  ticket_type: research
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/57#issuecomment-5648137949
+- run_id: fde186e2
+  spec_version: 0.3.0
+  mode: resolve
+  map: 38
+  date: '2026-09-12'
+  outcome: resolved
+  tickets_created: 0
+  fog_graduated: 0
+  friction:
+  - tag: process
+    note: grilling HITL side stood in by Winston persona + external Codex per explicit
+      user instruction
+  ticket: 55
+  ticket_type: grilling
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/55#issuecomment-5648172836
+- run_id: 5bffeb18
+  spec_version: 0.3.0
+  mode: resolve
+  map: 38
+  date: '2026-09-12'
+  outcome: resolved
+  tickets_created: 0
+  fog_graduated: 0
+  friction:
+  - tag: process
+    note: grilling HITL side stood in by Winston persona + external Codex per explicit
+      user instruction
+  ticket: 50
+  ticket_type: grilling
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/50#issuecomment-5647989315
+- run_id: afa48891
+  spec_version: 0.3.0
+  mode: resolve
+  map: 38
+  date: '2026-09-12'
+  outcome: resolved
+  tickets_created: 0
+  fog_graduated: 0
+  friction: []
+  ticket: 47
+  ticket_type: unknown
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/47#issuecomment-5648480583
+- run_id: 920290db
+  spec_version: 0.2.1
+  mode: resolve
+  map: 38
+  date: '2026-09-10'
+  outcome: resolved
+  tickets_created: 0
+  fog_graduated: 0
+  friction:
+  - tag: spec-missing
+    note: work mode has no opening frontier-overview step; Gabriel expected an overview
+      and delegated dispatch before the first claim
+  ticket: 44
+  ticket_type: research
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/44#issuecomment-5625891922
+- run_id: f5a66d60
+  spec_version: 0.3.0
+  mode: resolve
+  map: 38
+  date: '2026-09-12'
+  outcome: resolved
+  tickets_created: 0
+  fog_graduated: 0
+  friction:
+  - tag: process
+    note: user-authorized multi-ticket autonomous session; grilling HITL side stood
+      in by Winston persona + external Codex per explicit user instruction
+  ticket: 43
+  ticket_type: grilling
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/43#issuecomment-5647959871
+- run_id: '43517681'
+  spec_version: 0.3.0
+  mode: resolve
+  map: 38
+  date: '2026-09-13'
+  outcome: resolved
+  tickets_created: 4
+  fog_graduated: 1
+  friction:
+  - tag: spec-wrong
+    note: CR-2 asked for cursor pagination, but discovery.walk already pages fully;
+      the 200 refusal is a result-set cap, not a paging gap. The change request was
+      written against an assumed implementation, not the code.
+  - tag: spec-wrong
+    note: CR-5 asked for a likely_causes taxonomy TTD does not expose; the request
+      specified an output shape before checking the vendor signal existed.
+  - tag: spec-ambiguous
+    note: CR-4 was blocked on a layer question the change request itself flagged but
+      nobody answered in the two weeks it sat; a 15-minute test was named and never
+      run.
+  ticket: 41
+  ticket_type: grilling
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/41#issuecomment-5653444718
+- run_id: 290ec4ed
+  spec_version: 0.2.1
+  mode: resolve
+  map: 38
+  date: '2026-09-10'
+  outcome: resolved
+  tickets_created: 0
+  fog_graduated: 0
+  friction: []
+  ticket: 39
+  ticket_type: task
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/39#issuecomment-5626021960
+gaps:
+- issue: 132
+  title: Fill prod.json with the live prod client ids and build the production bundle
+  type: unknown
+  closed_at: '2026-09-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 131
+  title: Provision the prod bid-write signing secret before 0.17.0 deploys
+  type: task
+  closed_at: '2026-09-15'
+  reason: closed with no run trailer — this run was never traced
+- issue: 53
+  title: Build and distribute the prod bundle to the traders
+  type: unknown
+  closed_at: '2026-09-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 51
+  title: Point the Powers seat at prod TTD and enable the write flags
+  type: unknown
+  closed_at: '2026-09-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 49
+  title: Provision the Auth0 clients in the prod tenant
+  type: task
+  closed_at: '2026-09-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 45
+  title: Reconcile the ADRs and the specification before anything is built
+  type: grilling
+  closed_at: '2026-09-12'
+  reason: closed with no run trailer — this run was never traced
+- issue: 42
+  title: Review, push and merge the documentation corrections already committed
+  type: task
+  closed_at: '2026-09-11'
+  reason: closed with no run trailer — this run was never traced
+- issue: 40
+  title: 'Decide what the tools tell the model: six wrong or missing descriptions'
+  type: grilling
+  closed_at: '2026-09-11'
+  reason: closed with no run trailer — this run was never traced
 malformed_trailers: []
 missing_reflection: false
 pre_telemetry_closures: 0

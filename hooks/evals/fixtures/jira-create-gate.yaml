@@ -27,6 +27,17 @@ cases:
     stdin: {tool_input: {command: "python3 jira_skill.py --org klever create --project KTP --summary 'Real delivery work' --audience team"}}
     expected_exit: 0
 
+  # KTT is the long-term tech backlog. It is team-facing, so the gate must open for it
+  # exactly as it does for KTP. The KTP-vs-KTT choice is a judgment, not a gate.
+  - name: 04b-create-ktt-audience-team-allowed
+    stdin: {tool_input: {command: "python3 jira_skill.py --org klever create --project KTT --type Task --summary 'Tech debt worth recording' --audience team"}}
+    expected_exit: 0
+
+  - name: 04c-create-ktt-without-audience-still-blocks
+    stdin: {tool_input: {command: "python3 jira_skill.py --org klever create --project KTT --type Task --summary 'Tech debt worth recording'"}}
+    expected_exit: 2
+    needle: "KTT"
+
   - name: 05-equals-form-allowed
     stdin: {tool_input: {command: "python3 jira_skill.py create --summary 'X' --audience=team"}}
     expected_exit: 0

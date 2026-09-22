@@ -92,7 +92,8 @@ FRICTION_TAGS = {
 # a later map; an out-of-scope one was rejected outright. Collapsing them would
 # make a retro read every deferral as a scoping mistake, which is the exact
 # confusion the Horizon section exists to end.
-OUTCOMES = ("charted", "resolved", "out_of_scope", "horizon", "partial", "abandoned")
+OUTCOMES = ("charted", "resolved", "out_of_scope", "horizon", "partial", "abandoned",
+            "reported")
 
 RECURRING_THRESHOLD = 3
 
@@ -236,8 +237,8 @@ def validate_run(run: dict) -> list[str]:
     problems = []
     if not isinstance(run.get("run_id"), str) or not run["run_id"]:
         problems.append("run_id missing or not a string")
-    if run.get("mode") not in ("chart", "resolve", "reflect"):
-        problems.append(f"mode {run.get('mode')!r} is not chart|resolve|reflect")
+    if run.get("mode") not in ("chart", "resolve", "reflect", "report"):
+        problems.append(f"mode {run.get('mode')!r} is not chart|resolve|reflect|report")
     if not isinstance(run.get("map"), int):
         problems.append("map missing or not an integer")
     if run.get("outcome") not in OUTCOMES:
@@ -710,6 +711,120 @@ def cmd_resolve(args) -> int:
 
 
 # --------------------------------------------------------------------------
+# report — the inbound path, for sessions that are not walking the map
+# --------------------------------------------------------------------------
+
+
+def cmd_report(args) -> int:
+    """Record a run by a session that was never a wayfinder route session.
+
+    Two shapes, and the difference is whether the session owned a ticket:
+
+      * `--ticket N` — a WORKING session. Another vehicle (dark-factory, a
+        review, a manual run) took a ticket off the map and finished it. It
+        satisfies the ticket's `## Report back` contract, then closes, exactly
+        as `resolve` would. This is the only traced way to close a ticket type
+        that wayfinder itself is forbidden to resolve.
+      * `--map N` alone — an INCIDENTAL session. It owned nothing. It found
+        something the map should hold and deposits it. It closes nothing,
+        because there is nothing it claimed to close.
+
+    Why this is not just `resolve` with a flag: `resolve` asserts a wayfinder
+    session made a decision, and the assignee check treats a foreign claim as a
+    collision. A reporting session is foreign BY DEFINITION, so that check would
+    refuse every legitimate call.
+    """
+    friction = parse_friction(args.friction)
+    number = args.ticket
+
+    if number is None:
+        # Both of these are a misunderstanding of the two shapes, not a typo, so
+        # say which shape the caller is actually in rather than failing later.
+        if args.close:
+            raise WayfinderError(
+                "--close needs --ticket. An incidental report owns no ticket, so "
+                "there is nothing it has the standing to close."
+            )
+        if args.map is None:
+            raise WayfinderError(
+                "--map is required when there is no --ticket: an incidental report "
+                "is deposited on the map."
+            )
+        # Incidental deposit. The map is the target and nothing closes.
+        map_number = args.map
+        data = issue(map_number, "title,labels,state")
+        if "map" not in wayfinder_labels(data.get("labels")):
+            raise WayfinderError(
+                f"#{map_number} \"{data['title']}\" is not labelled wayfinder:map. "
+                "An incidental report is deposited on the MAP, not on a ticket."
+            )
+        target, kind, outcome = map_number, None, "reported"
+    else:
+        data = issue(number, "title,state,labels,parent")
+        parent = (data.get("parent") or {}).get("number")
+        map_number = args.map or parent
+        if map_number is None:
+            raise WayfinderError(f"#{number} has no parent map and --map was not given")
+        if not wayfinder_labels(data.get("labels")):
+            raise WayfinderError(
+                f"#{number} \"{data['title']}\" carries no wayfinder: label — refusing "
+                "to report against it. Check the issue number."
+            )
+        target, kind = number, ticket_type_of(data.get("labels"))
+        outcome = args.outcome
+
+    body_path = Path(args.body_file).expanduser()
+    if not body_path.exists():
+        raise WayfinderError(f"--body-file {body_path} does not exist")
+
+    run = build_run(
+        mode="report",
+        map_number=map_number,
+        outcome=outcome,
+        ticket=number,
+        ticket_type=kind,
+        tickets_created=args.tickets_created,
+        fog=args.fog_cleared,
+        friction=friction,
+    )
+    # Provenance is the whole point of an outside run: a reader who finds this
+    # trailer months later needs to know which MR, review or session produced it.
+    run["source"] = args.source
+
+    comment = body_path.read_text(encoding="utf-8").rstrip() + render_trailer(run)
+
+    if args.dry_run:
+        print(comment)
+        return 0
+
+    post_comment(target, comment)
+    print(f"  report posted on #{target} (run {run['run_id']}, source {args.source})")
+
+    if number is not None and args.close:
+        state = (data.get("state") or "").upper()
+        if state == "CLOSED":
+            print(f"  #{number} was already closed — trailer posted, nothing to close.")
+        else:
+            try:
+                gh("issue", "close", str(number), "--repo", REPO)
+                print(f"  #{number} closed")
+            except WayfinderError as exc:
+                print(f"  CLOSE FAILED: {exc}", file=sys.stderr)
+                print("  The trailer IS posted. Close the issue by hand, or re-run "
+                      "with --close; harvest already counts this run as traced.",
+                      file=sys.stderr)
+                return 1
+        print("\n  Append to the map's `## Decisions so far` (edit the gist to taste):")
+        print(f"  - [{data['title']}](https://github.com/{REPO}/issues/{number}): <one-line gist>")
+    elif number is None:
+        print("  Nothing closed: an incidental report owns no ticket. A later "
+              "wayfinder session decides what this becomes.")
+
+    print_recurring(map_number, friction)
+    return 0
+
+
+# --------------------------------------------------------------------------
 # harvest — the only writer
 # --------------------------------------------------------------------------
 
@@ -1033,6 +1148,31 @@ def build_parser() -> argparse.ArgumentParser:
                    help="post a second, superseding trailer (default is resume, not duplicate)")
     add_friction(r)
     r.set_defaults(func=cmd_resolve)
+
+    rb = sub.add_parser(
+        "report",
+        help="record a run by a session that was NOT walking the map "
+             "(see the wayfinder-report-back skill)",
+    )
+    rb.add_argument("--map", type=int,
+                    help="required for an incidental report; otherwise defaults "
+                         "to the ticket's parent")
+    rb.add_argument("--ticket", type=int,
+                    help="the ticket this session owned. Omit for an incidental "
+                         "report, which deposits on the map and closes nothing.")
+    rb.add_argument("--body-file", required=True, help="the report, markdown")
+    rb.add_argument("--source", required=True, metavar="URL-OR-REF",
+                    help="what produced this run: an MR/PR url, a ticket key, a "
+                         "session name. Provenance is why an outside run is trustworthy.")
+    rb.add_argument("--outcome", choices=OUTCOMES, default="resolved",
+                    help="ignored for an incidental report, which is always 'reported'")
+    rb.add_argument("--close", action="store_true",
+                    help="close the ticket after posting. Only legal with --ticket: "
+                         "the session that worked the ticket owns closing it.")
+    rb.add_argument("--tickets-created", type=int, default=0)
+    rb.add_argument("--fog-cleared", type=int, default=0)
+    add_friction(rb)
+    rb.set_defaults(func=cmd_report)
 
     f = sub.add_parser(
         "reflect",

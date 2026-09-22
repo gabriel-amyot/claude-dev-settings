@@ -76,7 +76,7 @@ work-type needing different room *logic* is a rare new floor, not a belt. Refini
 
 ## How to run it
 
-1. **Resolve** org from the ticket key (KTP/INS → klever).
+1. **Resolve** org from the ticket key (KTP/KTT/INS → klever).
 2. **Invoke the Workflow tool** with:
    - `scriptPath`: `/Users/gabrielamyot/.claude/skills/dark-factory/dark-factory.workflow.js`
    - `args`: `{ "ticket": "<TICKET>", "org": "<org>" }`

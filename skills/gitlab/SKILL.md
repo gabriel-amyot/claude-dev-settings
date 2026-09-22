@@ -15,7 +15,7 @@ nav:
 
 | Ticket prefix | Org flag | GitLab instance |
 |---|---|---|
-| KTP, INS | `--org klever` | cicd.prod.datasophia.com (IAP-protected) |
+| KTP, KTT, INS | `--org klever` | cicd.prod.datasophia.com (IAP-protected) |
 | SPV, PER | `--org supervisrai` | gitlab.prod.origin8cares.com |
 | Origin8 infra | `--org origin8` | gitlab.prod.origin8cares.com |
 

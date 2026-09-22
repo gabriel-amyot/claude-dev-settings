@@ -5,7 +5,7 @@ organizations:
   klever:
     root: ~/Developer/grp-beklever-com
     jira_flag: --org klever
-    jira_projects: [KTP, INS]
+    jira_projects: [KTP, KTT, INS]   # KTP = product board (sprints). KTT = long-term tech backlog (Kanban, no sprints).
     gitlab_url: https://cicd.prod.datasophia.com
     iap_cookie: ~/.config/git-gcp-iap/gamyot-beklever@cicd.prod.datasophia.com.cookie
     # IMPORTANT: grp-app/, grp-app/grp-backend/, grp-app/grp-frontend/ are NOT git repos.
@@ -106,5 +106,11 @@ organizations:
 # Ticket prefix resolution
 ticket_routing:
   KTP: klever
+  KTT: klever
   INS: klever
   SPV: supervisr
+
+# Sprint scope means KTP. A ticket moved from KTP to KTT keeps its old sprint value,
+# so a named-sprint JQL can return KTT rows. Filter sprint queries to project = KTP.
+sprint_project:
+  klever: KTP

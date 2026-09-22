@@ -384,3 +384,33 @@ The damage is invisible at the call site: `fetch` reports success, and the loss 
 The underlying fix is either to make `fetch` merge rather than overwrite, or to correct the SKILL.md claim. Neither is done.
 
 **Source:** sessions of 2026-09-04, KTP-571 decision-record work and the KTP-472 closure.
+
+## A `--description-file` create can report success and write nothing
+
+A `create` call with `--description-file` returned `{"created": true, "key": "KTP-1220"}` while `fields.description` stayed null. The ticket carried a summary and nothing else for an hour before anyone noticed.
+
+This is the same family as the known GitLab MR bug: `mr --action create --description-file` also returns `created: true` with an empty description. Treat it as a trait of these CLIs, not a one-off.
+
+**How to apply:** After any `--description-file` write, re-read the ticket from Jira and verify `fields.description` is populated. Never accept a tool's own return value as proof a write landed.
+
+**Source:** session `quiet-lynx`, KTP-1220 (2026-09-18).
+
+## A Jira changelog is authoritative for edits, silent on creation
+
+Jira does not log a description supplied at issue creation as a changelog item. It only logs later edits. So "no description entry in the changelog" cannot distinguish "never had one" from "had one since creation."
+
+`fields.description = null` on a ticket created within the hour, with several sessions live on the board, is a timestamp, not a property. An agent used the missing-changelog inference to conclude a field was never set. It happened to be true, by luck, and would have been wrong on any ticket created with a description.
+
+**How to apply:** Re-read the live ticket before drawing a conclusion this strong. A changelog can confirm a change happened. It can never prove one did not.
+
+**Source:** session `quiet-lynx` (2026-09-18).
+
+## Five more CLI traps (flag order, comment flag, fetch cwd, sprint clear, parent field)
+
+- **Flag order matters.** `jira_skill.py --org klever unlink K1 K2` fails with "requires two issue keys." `jira_skill.py unlink K1 K2 --org klever` works. The `--org` prefix shifts `sys.argv` positions.
+- **`add-comment` takes `--comment`, not `--file`.** There is no `comment` verb. The verb is `add-comment`, and a `--file` flag is silently rejected. (See "Subcommand names" above for the related `--body` mistake.)
+- **`fetch` writes `./KTP-XXXX/` into the current working directory.** Running it from a repo root litters the root with ticket folders. Run it from a temp directory instead.
+- **`update --sprint ""` cannot clear a sprint.** It runs `int(sprint)` internally and throws. Clearing a sprint requires setting `customfield_10020` to `None` through the `jira` client directly.
+- **`fetch`'s `ticket.yaml` `parent` field is unreliable.** It reported `parent: None` for a ticket that a `parent = KTP-571` JQL correctly returns. Trust the JQL over the fetched field.
+
+**Source:** session `quiet-lynx`, KTP-571 board consolidation (2026-09-18).

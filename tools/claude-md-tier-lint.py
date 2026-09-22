@@ -32,7 +32,7 @@ TARGETS = [
 ]
 BUDGET_FILE = Path.home() / ".claude-shared-config/tools/.claude-md-budget.json"
 
-TICKET = re.compile(r"\b(?:KTP|SPV|INS|PER)-\d+\b")
+TICKET = re.compile(r"\b(?:KTP|KTT|SPV|INS|PER)-\d+\b")
 NARRATIVE = re.compile(r"\(?Learned from\b", re.I)
 # A line is "linked" if it points at a library page, a wikilink, or a doc path.
 LINKED = re.compile(r"\[\[[^\]]+\]\]|library/context/|bibliotheque/|documentation/|\.md\b")

@@ -61,6 +61,7 @@ Loaded by trigger from `~/.claude/CLAUDE.md`. Never bulk-load; read only when th
 | File | Trigger | Description |
 |------|---------|-------------|
 | [macos-terminal-automation-gotchas.md](context/macos-terminal-automation-gotchas.md) | Driving Ghostty (or another single-instance macOS terminal app) via `open` or AppleScript keystroke injection | Ghostty single-instance behavior, keystroke drop on long strings, `activate`-frontmost race condition, Accessibility permission target |
+| [macos-disk-reclaim-measurement-traps.md](context/macos-disk-reclaim-measurement-traps.md) | Running `/disk-management` or any macOS disk-space cleanup, sizing deletion candidates for `AskUserQuestion` | `df -h /` hides real usage on APFS (read `/System/Volumes/Data`), `brew cleanup --prune=all` vs plain cleanup, size the exact deletion target not its parent, `vm_bundles`/`stremio-cache` live outside `Caches/`, `Caches/` vs `Application Support/` for browser data |
 | [zsh-dotfiles-double-sourcing-gotcha.md](context/zsh-dotfiles-double-sourcing-gotcha.md) | Intermittent `command not found: brew` in `.zshrc`, diagnosing zsh startup order issues | `.zshenv` sourcing `.zshrc` directly runs it twice, once before `.zprofile` sets up PATH |
 
 ### Jira & Ticketing

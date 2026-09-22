@@ -1,0 +1,130 @@
+run_id: run-2026-09-12-KTP-1182-issue46
+ticket: KTP-1182
+ticket_summary: "Powers-MCP wayfinder issue 46 slice: Windows bid writes via a sidecar lock (ADR-0011) in app-ttd-trading-mcp — oplog fcntl lock replaced by a cross-platform <log>.lock sidecar, ensure_writable refusal removed"
+epic: none
+org: klever
+date: 2026-09-12
+terminal_status: READY_TO_SHIP
+ticket_folder: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/KTP/no-epic/KTP-1182
+tool_belt: python-service
+primary_repo: grp-app/grp-backend/grp-mcp/app-ttd-trading-mcp
+branch: KTP-1182-issue46-sidecar-log-lock (pushed to origin, tip 32e4596)
+tdd_gate_mode: halt
+tdd_warn_violations: []
+note: >
+  Second dark-factory run on KTP-1182 the same day (the issue-47 slice shipped earlier as
+  run-2026-09-12-KTP-1182). AC-LOCAL.md drove the slice; ADR-0011 (grilled by Winston + Codex,
+  reports/architecture/2026-09-12-adr-0011-*) was the design source. All 7 phases passed, TDD gate
+  in halt mode with zero violations. QA: per-AC red proofs (issue46-AC-1..4.red.out), targeted
+  greens (sidecar-tip 19 passed, bundle 4 passed, skip-guard), a skip INVENTORY with per-skip
+  reasons (prior run's improvement #3, applied), live MCP stdio handshake OK, full suite
+  653 passed / 26 skipped in 53.0s. Version bumped 0.9.6 -> 0.9.7 with CHANGELOG. Terminal
+  READY_TO_SHIP; MR + Jira comment belong to the main loop and are not yet in post-log (by design).
+
+phases:
+  - phase: concierge
+    status: PASS
+    confidence: 88
+    note: "AC-LOCAL.md override honored. Local checkout 60 commits behind origin/dev correctly detected; build mandated a worktree off origin/dev."
+  - phase: design
+    status: PASS
+    confidence: 88
+    note: "Impl plan pinned to origin/dev line numbers via git show; ADR-0011 sidecar-lock design grilled twice by Codex before build. Superseded issue-47 design archived to design/_archive-issue47/."
+  - phase: grill
+    status: PASS
+    confidence: 88
+    note: "Grill report on disk. Brownfield gate explicitly checked: modifies the existing lock path, no parallel writer."
+  - phase: implement
+    status: PASS
+    confidence: 88
+    note: "Sidecar lock context manager in oplog.py, ensure_writable refusal removed, adversarial edges added (symlink planted at sidecar path refused, 2091ffc). Call-site names preserved per plan."
+  - phase: review
+    status: "criticals:0"
+    confidence: 88
+    note: "0 criticals. review/ ticket subfolder is again empty; the review evidence trail lives in commits and reports/architecture/ ADR grills — second consecutive slice with the canonical folder unfilled."
+  - phase: qa
+    status: ALL_PASS
+    confidence: 92
+    note: >
+      Per-AC reds (AC-1..4), grouped greens (sidecar-tip.out 19 passed, AC-5-bundle.out 4 passed,
+      skip-guard 'Skips as expected: 26 across 3 file(s)'), skip inventory with named reasons
+      (Windows bundle not built; LockFileEx Windows-only, seam-covered), stdio handshake OK,
+      full suite 653/26 green. Greens are not 1:1 named against the AC-N reds.
+  - phase: ship-prep
+    status: PASS
+    confidence: 93
+    note: "0.9.7 bump + CHANGELOG committed (32e4596); branch pushed to origin. No issue-46 post-log entry yet — MR/Jira are the main loop's job after this retro."
+
+scores:
+  task_confidence: 93
+  factory_fitness: 91
+
+deductions:
+  # task_confidence (start 100 -> 93)
+  - points: 4
+    reason: "task_confidence: the slice's whole point is Windows write behaviour, and every real-LockFileEx test is SKIPPED on darwin ('a real LockFileEx exists only on Windows; the seam-based tests cover this logic elsewhere'). Seam/mock coverage is the ceiling; the change is unexecuted on the target platform."
+  - points: 2
+    reason: "task_confidence: four phases (concierge, design, grill, implement, review) sit at soft confidence 88 — a flat residual uncertainty band wider than the issue-47 run's."
+  - points: 1
+    reason: "task_confidence: red->green traceability is asymmetric — per-AC reds (issue46-AC-1..4.red.out) but grouped greens (sidecar-tip/bundle/full-suite); no issue46-AC-N.out pairs, so mapping each AC's green relies on reading the grouped runs."
+  # factory_fitness (start 100 -> 91)
+  - points: 3
+    reason: "factory_fitness: review/ and tdd/ canonical ticket subfolders are empty for the SECOND consecutive slice — the prior run's improvement #4 (route artifacts to canonical folders or delete them from the scaffold) was not applied, and the debt repeated within the same day."
+  - points: 2
+    reason: "factory_fitness: contract 9's telemetry filename run-<DATE>-<TICKET>.yaml collides when the same ticket runs twice in one day; this retro had to invent an -issue46 suffix. The contract has no run/slice disambiguator."
+  - points: 2
+    reason: "factory_fitness: the python-service belt has no Windows execution leg — for a Windows-targeted AC the factory can only prove seams, and nothing forces a tracked follow-up to run the Windows-only suite on a real Windows host before promotion."
+  - points: 2
+    reason: "factory_fitness: QA contract has no red/green pairing convention — it accepted grouped greens against per-AC reds without a mapping line, weakening per-AC evidence audits."
+
+red_flags:
+  - "Telemetry filename collision: run-2026-09-12-KTP-1182.yaml already existed (issue-47 slice); contract 9 would have overwritten it without a manual suffix."
+  - "review/ and tdd/ subfolders empty two slices in a row despite review criticals:0 and TDD halt mode — canonical-location gates would flag both clean runs as missing artifacts."
+  - "All 8 real-Windows tests (LockFileEx sidecar + Windows bundle runtime) are skipped on darwin; READY_TO_SHIP rests on seam tests for a Windows-behaviour ticket."
+  - "Flat 88 soft confidence across five phases carries no signal — it reads as a default, not an assessment."
+  - "Greens are grouped (sidecar-tip, bundle, full-suite) while reds are per-AC — an evidence audit cannot pair issue46-AC-2.red.out with a named green."
+  - "Prior-run improvement #3 (skip inventory) WAS applied this run (issue46-AC-5-skips.out + skip-guard) — the loop works when the improvement lands in the QA prompt; the unapplied ones (canonical folders) repeated. Improvement application is ad hoc, not gated."
+
+improvements:
+  - title: "Contract 9: disambiguate the telemetry run id for repeat runs on one ticket"
+    detail: >
+      The filename rule must be run-<DATE>-<TICKET>[-<slice>].yaml with an explicit
+      'if the file exists, append a slice/sequence suffix and never overwrite' clause.
+      Two same-day runs on KTP-1182 collided today; the suffix was improvised.
+  - title: "Apply or retire the canonical-folder rule (review/, tdd/) — now confirmed twice"
+    detail: >
+      Same finding as the issue-47 retro, one slice later, still unfixed: either contract 5/6
+      (review, TDD gate) write their ledger/manifest into tickets/.../review/ and tdd/, or
+      ticket-init stops scaffolding those folders. Two clean runs in a row would fail any
+      artifact-existence gate. This is now the top carry-over.
+  - title: "Contract 8 (QA): enforce a red->green pairing convention"
+    detail: >
+      For every AC-N.red.out there must be either an AC-N.out green or one mapping line in a
+      qa/PAIRING.md (AC-N -> green artifact + test ids). Grouped greens stay allowed but must be
+      claimed explicitly.
+  - title: "Platform-reality follow-up: unexecutable target platforms get a tracked item at ship-prep"
+    detail: >
+      When an AC targets a platform the belt cannot execute (here: Windows LockFileEx and the
+      Windows bundle runtime), ship-prep must emit an inbox item / issue linking the MR and
+      stating 'unproven on <platform> — run tests/test_sidecar_lock_windows.py and the bundle
+      suite on a Windows host before relying on it'. Same shape as the deferred-eval rule from
+      the issue-47 retro.
+  - title: "Soft-confidence rubric: a non-90 value requires a one-line reason"
+    detail: >
+      Five phases reported a flat 88 with no stated cause. Each contract's return should require
+      confidence_reason when the value deviates from the 90 anchor, so the retro can convert
+      confidence into deductions instead of guessing.
+  - title: "Gate improvement application: the next run on the same factory must ack the open handoff"
+    detail: >
+      The concierge should read runs/INDEX.md + the latest dark-factory-improvements-* handoff
+      and record which open improvements it applies or defers. Improvement #3 (skip inventory)
+      landed this run only because the QA author happened to carry it; #4 (canonical folders)
+      silently repeated.
+
+summary: >
+  KTP-1182 issue-46 slice (sidecar oplog lock, ADR-0011) reached READY_TO_SHIP cleanly: TDD halt
+  with zero violations, per-AC reds, skip inventory (prior improvement applied), 653/26 suite
+  green, handshake OK, 0.9.7 bumped and branch pushed. task_confidence 93 — the residual is that
+  a Windows-behaviour change is proven only through seams on darwin. factory_fitness 91 — the
+  telemetry filename collided with the same-day issue-47 run, and the empty review//tdd/
+  canonical folders repeated for a second slice.

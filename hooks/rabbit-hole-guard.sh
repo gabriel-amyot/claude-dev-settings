@@ -61,7 +61,7 @@ printf '%s' "$PROMPT" | grep -qiE "$DIVE_PHRASE" || exit 0
 # 2) Are we mid-trail? (scope guard: a dive is a divergence FROM ongoing work, not the first prompt.)
 MIDTRAIL="false"
 if [ -n "${TRANSCRIPT_PATH:-}" ] && [ -f "${TRANSCRIPT_PATH}" ]; then
-  if tail -n 400 "$TRANSCRIPT_PATH" 2>/dev/null | grep -qiE 'tool_use|"type":"tool|Edit|Write|Bash|working on|implement|the ticket|KTP-[0-9]|SPV-[0-9]|INS-[0-9]|let me|on-trail|committed|pushed'; then
+  if tail -n 400 "$TRANSCRIPT_PATH" 2>/dev/null | grep -qiE 'tool_use|"type":"tool|Edit|Write|Bash|working on|implement|the ticket|KTP-[0-9]|KTT-[0-9]|SPV-[0-9]|INS-[0-9]|let me|on-trail|committed|pushed'; then
     MIDTRAIL="true"
   fi
 else

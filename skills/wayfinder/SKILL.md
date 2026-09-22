@@ -1,7 +1,7 @@
 ---
 name: wayfinder
 description: Plan a huge chunk of work (more than one agent session can hold) as a shared map of decision tickets on GitHub Issues (gabriel-amyot/klever-project-management, never Jira), and resolve them one at a time until the way to the destination is clear.
-version: "0.2.3"
+version: "0.3.0"
 disable-model-invocation: true
 ---
 
@@ -81,7 +81,16 @@ Each ticket is a **child issue** of the map; its GitHub issue number is its iden
 ## Question
 
 <the decision or investigation this ticket resolves>
+
+## Report back
+
+<what the map is owed when this is done>
 ```
+
+**The `## Report back` block is the ticket's half of a contract.** A ticket is often worked by a session that is not walking the map (see [Report back](#report-back)), and the moment the ticket is written is the only moment the map knows what it will be waiting for. Fill it two ways, depending on how much of the shape you can see:
+
+- **Shape known**: list the facts later tickets depend on, by name. "The client ids, and where their secrets live." "The row count and the table it landed in." A named fact gets answered; a vague request for "findings" gets a paragraph that satisfies nobody.
+- **Shape unknown**: say so, and ask the open question instead. "Tell the map what you learned about X that it does not already hold." This is the honest state for most grilling tickets, where the interesting part is what the conversation surfaces, not what you predicted it would.
 
 Each ticket carries a `wayfinder:<type>` label, one of `research`, `prototype`, `grilling`, `task` (see [Ticket Types](#ticket-types)).
 
@@ -145,6 +154,21 @@ Fog only ever gathers _toward_ the destination. The destination fixes the scope,
 Out-of-scope work never graduates (the frontier stops at the destination), so it returns only if the destination is redrawn, and then as a fresh effort, not a resumption.
 
 Ruling something out of scope is a scoping act, not a step on the route. When a ticket that already exists turns out to sit past the destination (mis-scoped in while charting, or exposed by a resolution), **close it** (a closed ticket is unambiguously off the frontier) and leave one line in the **Out of scope** section: the gist plus why it's out of scope, linking the closed ticket. It stays out of **Decisions so far**, which records the route actually walked; a scope boundary isn't a step on it.
+
+## Report back
+
+The loop above is **outbound**: a route session claims a ticket, resolves it, records it. Work also flows the other way. A ticket gets done by another vehicle. A code review clears fog nobody was looking for. A debugging session answers, incidentally, the question a blocked ticket was waiting on.
+
+Such a session can already close a ticket it owned: `resolve` accepts any ticket carrying a `wayfinder:` label. What it had no typed way to do is carry a finding to the **route** when it owned nothing. A bare comment leaves no trailer, and `wayfinder-feedback:` is harvested but addressed to the reflection brief, which judges the vehicle rather than advancing the map.
+
+The **`wayfinder-report-back`** skill is that path, and it splits on whether the reporting session owned a ticket:
+
+- **It owned one** (an implementation ticket handed to another vehicle, say): it satisfies the `## Report back` block, posts with a trailer, and **closes the ticket itself**. The session that did the work knows whether it is done; a later wayfinder session would be guessing. `resolve --force` would also close it, but records `mode: resolve`, attributing the run to a route session that never happened.
+- **It owned nothing**: it deposits a finding on the map and closes nothing. It may name which **Not yet specified** patch it touches and propose ticket candidates, but it does not graduate fog, create tickets, or edit the map body. Those are this skill's acts, taken with the whole map loaded.
+
+**What that means for a route session.** Read the map's recent comments, not only its body: a report may be sitting there holding fog to graduate, a ticket candidate to create, or a contradiction to a recorded decision. Disposing of deposited reports is route work like any other, and the run trailer marks them with `mode: report` so they are easy to find.
+
+Write the `## Report back` block on every ticket you create, including the ones you expect to resolve yourself. Which tickets get handed off is not knowable at charting time, and the cost of the block is two lines.
 
 ## Telemetry: how the wayfinder improves itself
 

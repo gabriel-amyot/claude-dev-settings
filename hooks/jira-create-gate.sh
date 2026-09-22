@@ -130,11 +130,21 @@ Apply the audience test — WILL A COLLEAGUE NEED TO SEE THIS?
          Covers: decisions, open questions, pivots, your own task decomposition,
          reading and approval items. Wayfinder decision tickets ALWAYS land here.
 
-  YES -> team-facing delivery work. Re-run the create with the decision recorded:
-         jira_skill.py --org klever create ... --audience team
+  YES -> team-facing. Now pick the project: horizon first, then readiness.
+
+         Roadmapped for the next 3 months AND clear, scoped, refined -> KTP
+           jira_skill.py --org klever create --project KTP ... --audience team
+
+         No date, or near-term but not yet refined -> KTT (long-term tech backlog:
+         tech debt, architecture, a recorded bug, an unscheduled need. Rough is fine.
+         Task type only, no epics, no points.)
+           jira_skill.py --org klever create --project KTT --type Task ... --audience team
 
   UNSURE -> ask Gabriel which board this belongs on. Do not guess, and do not
          default to Jira because Jira is habitual. GitHub is the default.
+
+--audience team records WHO the ticket is for. It is not permission to create one.
+Creating any Jira ticket still needs an explicit go from Gabriel.
 
 Explicit Jira intent looks like: "create a jira ticket for X", "break KTP-1234 into
 smaller jira tickets", "file a bug on the board". Absent that, assume internal.

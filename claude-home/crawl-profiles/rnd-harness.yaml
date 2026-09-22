@@ -1,0 +1,33 @@
+# R&D-BAC1 Harness Profile
+# Isolated GCP project (prj-rnd-n-back1-aqsxotdlv0). Real services, no shared state.
+# Entry point: tools/supervisr-test.sh --env rnd
+
+name: rnd-harness
+description: "R&D-BAC1 isolated GCP. Real PubSub, real Datastore, full isolation."
+environment: rnd
+verification_command: "tools/supervisr-test.sh --env rnd"
+
+gcp:
+  project_id: "prj-rnd-n-back1-aqsxotdlv0"
+  region: "us-east1"
+  compute_sa: "939408834651-compute@developer.gserviceaccount.com"
+
+infrastructure:
+  setup: "tools/rnd-bac1/setup.sh"
+  deploy: "tools/rnd-bac1/deploy.sh"
+  seed: "tools/rnd-bac1/seed.sh"
+  teardown: "tools/rnd-bac1/teardown.sh"
+
+severity_overrides:
+  docker_health: WARN
+  repo_cleanliness: WARN
+  gitlab_reachable: WARN
+  gcp_reachable: FATAL
+  jira_reachable: WARN
+  disk_space: WARN
+  credential_freshness: FATAL
+
+fallback_matrix:
+  gcp_unreachable: "FATAL. R&D-BAC1 requires live GCP access."
+  gitlab_unreachable: "Images already in registry. Skip MR creation."
+  docker_unhealthy: "No impact. No local Docker needed."

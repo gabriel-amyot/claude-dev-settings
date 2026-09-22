@@ -1,0 +1,26 @@
+{
+  "_comment": "Control panel for the PMD Java gate. Hook: ~/.claude/hooks/pmd-java-gate.py",
+  "_off_switch": "Set enabled to false to kill the gate instantly, no other change needed.",
+  "enabled": true,
+  "_scope": "changed-lines = only flag lines this edit touched, legacy debt stays quiet. whole-file = flag everything in the file.",
+  "scope": "changed-lines",
+  "_advisory_rules": "These report but never block. Everything else blocks and is fed back to the agent to self-correct.",
+  "advisory_rules": [
+    "NoUncheckedThrow"
+  ],
+  "_timeout": "Hook gives up silently past this. Measured cost is ~1s per edit.",
+  "timeout_seconds": 20,
+  "ruleset_path": "config/pmd/klever-java-rules.xml",
+  "pmd_binary": "/opt/homebrew/bin/pmd",
+  "exclude_path_fragments": [
+    "/target/",
+    "/generated-sources/",
+    "/src/test/"
+  ],
+  "max_reported": 25,
+  "_ruleset": "Rules live in personal config (skills/java-quality/klever-java-rules.xml) and apply to every Java file. ruleset_path is only a REPO OVERRIDE: if a repo contains that file, the team ratified its own rules and they win.",
+  "user_ruleset_path": "~/.claude/skills/java-quality/klever-java-rules.xml",
+  "checkstyle_binary": "checkstyle",
+  "checkstyle_config": "~/.claude/skills/java-quality/klever-checkstyle.xml",
+  "_checkstyle": "Checkstyle runs alongside PMD and only carries checks PMD cannot do (unused imports, naming, fall-through, equals/hashCode). Deliberately no Javadoc* checks: stock configs REQUIRE javadoc, which is the opposite of the standard here. Set checkstyle_binary to \"\" to disable it alone."
+}

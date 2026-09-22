@@ -1,0 +1,22 @@
+# Local Harness Profile
+# Docker containers with emulators. Fully isolated, no cloud dependencies.
+# Entry point: tools/supervisr-test.sh --env local
+
+name: local-harness
+description: "Local Docker harness with emulators. No cloud dependencies."
+environment: local
+verification_command: "tools/supervisr-test.sh --env local"
+
+severity_overrides:
+  docker_health: FATAL
+  repo_cleanliness: WARN
+  gitlab_reachable: WARN
+  gcp_reachable: WARN
+  jira_reachable: WARN
+  disk_space: WARN
+  credential_freshness: WARN
+
+fallback_matrix:
+  gitlab_unreachable: "No impact. Local harness is self-contained."
+  gcp_unreachable: "No impact. Local harness uses emulators."
+  docker_unhealthy: "FATAL. Cannot proceed without Docker."

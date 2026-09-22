@@ -1,0 +1,13 @@
+{
+  "name": "sprint-harness",
+  "version": "1.0.0",
+  "description": "Hook-enforced state machine for autonomous sprint execution. Gates tool usage by phase, enforces AC-scoped work, validates transitions.",
+  "author": "Gabriel Amyot",
+  "commands": [
+    {
+      "name": "harness",
+      "description": "Sprint harness controller. Subcommands: start, advance, status, ac, reset, abort",
+      "aliases": ["sh"]
+    }
+  ]
+}

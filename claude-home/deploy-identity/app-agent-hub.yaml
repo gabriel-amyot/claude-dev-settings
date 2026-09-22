@@ -1,0 +1,9 @@
+repo_path: /Users/gabrielamyot/Developer/grp-beklever-com/grp-app/grp-backend/grp-gcp/grp-models/app-agent-hub
+deploy_branch: dev
+default_branch: main
+owner: sisi
+artifact_source: cache
+deployed_tag: 0.1.7-SNAPSHOT-20260623140332
+deployed_sha: bae8f58
+live_resolve_note: Runs on a COS instance (not Cloud Run). Live tag is in the GCE instance startup-script in dev-pipeline project; unreachable during nightly shutdown (off 20:00 EDT). When reachable, resolve the image tag from the startup-script, then git rev-parse the tag.
+ci_unconfirmed: true

@@ -1,0 +1,12 @@
+repo_path: /Users/gabrielamyot/Developer/grp-beklever-com/grp-dac/grp-dac-env/grp-dac-env-report/dac-gcp-report-doohrp
+deploy_branch: main
+default_branch: dev
+owner: gabriel
+artifact_source: terraform
+deployed_sha: 98d5521
+notes: >-
+  DAC merge-forward: dev then main, promoted by MR, never pushed directly. Each branch applies to
+  its own environment. Both init-validate-plan jobs run automatically; only "apply in dev" and
+  "apply in prod" are manual gates, and apply in prod is human-only.
+verified: 2026-08-25 — apply in prod succeeded, dataset klever_dooh_client_report created in
+  us-east1, LEDGER_BQ_TABLE wired on the prod function.

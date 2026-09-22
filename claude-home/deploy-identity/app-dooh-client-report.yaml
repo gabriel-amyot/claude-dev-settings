@@ -1,0 +1,23 @@
+repo_path: /Users/gabrielamyot/Developer/grp-beklever-com/grp-app/grp-backend/grp-gcp/grp-cloud-function/app-dooh-client-report
+deploy_branch: main
+default_branch: dev
+owner: gabriel
+artifact_source: gcs-zip
+deployed_sha: 84ee54d
+notes: >-
+  Follows the DAC norm rather than inverting it: dev is the default branch and main is what prod
+  runs. Both deploy, to different projects — dev pushes deploy to prj-d-biz-report-im9q1fvvc7 and
+  main to prj-p-biz-report-fo53kywlio.
+
+  main does NOT build. .gitlab-ci.yml sets BUILD_UPLOAD only on the dev branch, so a main pipeline
+  re-deploys an artifact some dev pipeline already published to
+  gs://bkt-atfhst-1bjvnygngl/app-dooh-client-report/zip/. Putting a version on main that no dev
+  pipeline ever built deploys a tag that does not exist.
+
+  The version lives in TWO places and both must move together on every merge to dev:
+  [project] version in pyproject.toml, and DATASOPHIA_INCL_ZIP_ARTIFACT_TAG_VERSION in
+  .gitlab-ci.yml. Only the CI variable names the artifact. The CI service account holds
+  objectCreator and not objectAdmin, so re-using a name fails with
+  "403 does not have storage.objects.delete access" rather than overwriting.
+verified: 2026-08-25 — prod applied from main, function revision confirmed ACTIVE with
+  LEDGER_BQ_TABLE set, prod ledger populated 24540 rows from 2026-05-28.

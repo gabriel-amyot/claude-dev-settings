@@ -1,0 +1,6 @@
+# Harness Scorecard — Automated Crawl Metrics
+# Written by write-scorecard.sh. Agents produce JSON; this script validates and appends.
+# Schema version: 1.0
+
+schema_version: "1.0"
+entries:

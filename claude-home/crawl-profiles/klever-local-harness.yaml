@@ -1,0 +1,38 @@
+# Klever Local Harness Profile
+# Code-only: implement, unit test, commit. No cloud deploy (requires SNAPSHOT + human approval).
+# Target repos: app-proximity-report (backend), app-front-portal (frontend)
+
+name: klever-local-harness
+description: "Klever local development. Code + unit tests only. SNAPSHOT deploy is a manual gate."
+environment: local
+
+# No automated deploy or cloud verification. Klever policy: always ask permission.
+verification_command: null
+
+repos:
+  backend: "~/Developer/grp-beklever-com/grp-app/grp-backend/grp-ms/app-proximity-report"
+  frontend: "~/Developer/grp-beklever-com/grp-app/grp-frontend/app-front-portal"
+
+test_commands:
+  backend_unit: "cd ~/Developer/grp-beklever-com/grp-app/grp-backend && ./mvnw -pl grp-ms/app-proximity-report test"
+  frontend_unit: null  # TBD, discover test runner
+
+severity_overrides:
+  docker_health: WARN
+  repo_cleanliness: WARN
+  gitlab_reachable: WARN
+  gcp_reachable: WARN
+  jira_reachable: WARN
+  disk_space: WARN
+  credential_freshness: WARN
+
+deployment:
+  method: "SNAPSHOT (manual, requires human approval)"
+  reference: "https://beklever.atlassian.net/wiki/spaces/KLEVER/pages/361201665/app+project+Gitlab+pipeline+COS#3.3--Deploy-a-branch-to-dev,-pre-or-prod-with-a-SNAPSHOT"
+  auto_deploy: false
+  human_gate: true
+
+fallback_matrix:
+  gitlab_unreachable: "WARN. Can still code and test locally."
+  gcp_unreachable: "WARN. No cloud needed for local dev."
+  docker_unhealthy: "WARN. Backend uses Maven, not Docker for local tests."

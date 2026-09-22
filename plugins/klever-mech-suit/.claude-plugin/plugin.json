@@ -1,0 +1,6 @@
+{
+  "name": "klever-mech-suit",
+  "version": "1.0.0",
+  "description": "Klever Mech Suit baseline kit. Gives non-technical Klever team members persistent memory, progressive disclosure, and process capture via Hivemind.",
+  "keywords": ["klever", "workspace", "hivemind", "progressive-disclosure"]
+}

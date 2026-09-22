@@ -1,0 +1,26 @@
+# Dev Environment Harness Profile
+# Shared GCP dev (prj-sprvsr-d-core). Real infrastructure, shared with other engineers.
+# Entry point: tools/supervisr-test.sh --env dev
+
+name: dev-harness
+description: "Shared GCP dev environment. Real infra, multi-engineer. Handle with care."
+environment: dev
+verification_command: "tools/supervisr-test.sh --env dev"
+
+gcp:
+  project_id: "prj-sprvsr-d-core-kkomv80zrg"
+  region: "us-central1"
+
+severity_overrides:
+  docker_health: WARN
+  repo_cleanliness: WARN
+  gitlab_reachable: FATAL
+  gcp_reachable: FATAL
+  jira_reachable: WARN
+  disk_space: WARN
+  credential_freshness: FATAL
+
+fallback_matrix:
+  gcp_unreachable: "FATAL. Cannot verify against dev."
+  gitlab_unreachable: "FATAL. Deployment requires GitLab pipelines."
+  docker_unhealthy: "No impact. No local Docker needed."

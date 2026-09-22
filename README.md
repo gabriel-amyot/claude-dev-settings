@@ -1,57 +1,52 @@
-# Claude Code Configuration
+# Claude Code Harness
 
-Shared Claude Code configurations for React/React Native development.
+The portable half of the Claude Code setup: skills, agents, commands, hooks, the
+cross-org library, and the plugins that carry hook-enforced gates.
 
-## Setup on New Device
+## Setup on a second machine
 
-1. **Clone this repo to your Claude config location:**
 ```bash
-git clone <your-private-repo-url> ~/.claude-shared-config
+git clone git@github.com:gabriel-amyot/claude-dev-settings.git ~/.claude-shared-config
+bash ~/.claude-shared-config/bootstrap.sh
 ```
 
-2. **Create symbolic links (or copy files):**
-```bash
-# Option A: Symbolic links (recommended)
-ln -sf ~/.claude-shared-config/settings.local.json ~/.claude/settings.json
-ln -sf ~/.claude-shared-config/commands ~/.claude/
+`bootstrap.sh` is idempotent. Re-run it after every `git pull`.
 
-# Option B: Copy files
-cp ~/.claude-shared-config/settings.local.json ~/.claude/settings.json
-cp -r ~/.claude-shared-config/commands ~/.claude/
+It symlinks `agents`, `commands`, `context`, `docs`, `git-hooks`, `hooks`,
+`library`, `skills` and `CLAUDE.md` into `~/.claude/`, restores the loose config
+from `claude-home/`, restores the plugins, and links the `ledger` helper onto
+`~/.claude/bin`.
+
+An existing `~/.claude/settings.json` is never overwritten. Diff it yourself.
+
+## What lives where
+
+| Path | Contents |
+|---|---|
+| `skills/` | Skills, symlinked to `~/.claude/skills` |
+| `agents/` | Subagent definitions, symlinked to `~/.claude/agents` |
+| `commands/` | Slash commands |
+| `hooks/` | PreToolUse / PostToolUse / SessionStart hook scripts |
+| `library/` | Cross-org bibliothèque, entry point `library/INDEX.md` |
+| `tools/` | Linters and harness checks (`ste_lint.py`, `claude-md-tier-lint.py`) |
+| `plugins/` | `klever-mech-suit`, `klever-wiki`, `sprint-harness`, and `local-marketplace-backup` (the sprint-crawl and session/ledger gates) |
+| `claude-home/` | The parts of `~/.claude` that are not symlinked: `crawl-profiles/`, `deploy-identity/`, `harness/`, `settings.json`, `statusline-command.sh`, `pmd-java-gate.json` |
+| `CLAUDE.md` | Global instructions, symlinked to `~/.claude/CLAUDE.md` |
+
+## Limits
+
+- Hook commands in `settings.json` use absolute paths under `$HOME`. They work
+  only if both machines use the same username.
+- `plugins/local-marketplace-backup/` is a copy, not a symlink. After changing a
+  plugin on either machine, re-sync it before committing.
+- Machine-local state is not in this repo: `projects/`, `todos/`, `sessions/`,
+  `tasks/`, `teams/`, `history.jsonl`, credentials.
+- MCP servers are configured per machine. Re-add them with `claude mcp add`.
+
+## Keeping both machines in sync
+
+```bash
+cd ~/.claude-shared-config && git pull && bash bootstrap.sh
 ```
 
-3. **Install MCP tools:**
-```bash
-claude mcp add react-mcp npx @modelcontextprotocol/server-react
-claude mcp add figma-mcp npx @modelcontextprotocol/server-figma
-claude mcp add github-mcp npx @modelcontextprotocol/server-github
-claude mcp add postgres-mcp npx @modelcontextprotocol/server-postgres
-claude mcp add sqlite-mcp npx @modelcontextprotocol/server-sqlite
-claude mcp add filesystem-mcp npx @modelcontextprotocol/server-filesystem
-claude mcp add web-search-mcp npx @modelcontextprotocol/server-web-search
-claude mcp add npm-mcp npx @modelcontextprotocol/server-npm
-```
-
-## Included Features
-
-### Custom Slash Commands
-- `/analyze-ticket` - Ticket analysis and implementation planning
-- `/debug-issue` - Production issue investigation
-- `/code-review` - Code quality review
-- `/refactor-plan` - Safe refactoring strategies
-- `/api-design` - API design review
-- `/performance-audit` - Performance analysis
-- `/security-review` - Security assessment
-- `/dependency-audit` - Dependency analysis
-
-### Security Settings
-- Comprehensive file protection for .env, keys, secrets
-- Safe development tool permissions
-- Blocked destructive operations
-
-## Updating
-
-To sync changes across devices:
-```bash
-cd ~/.claude-shared-config && git pull
-```
+Commit and push harness changes before switching machines.

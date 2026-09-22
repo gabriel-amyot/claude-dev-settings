@@ -1,0 +1,6 @@
+repo_path: /Users/gabrielamyot/Developer/_di-hooktest2
+deploy_branch: dev
+default_branch: main
+owner: x
+artifact_source: cache
+deployed_sha: a6ae639

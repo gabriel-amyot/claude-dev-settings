@@ -1,0 +1,9 @@
+{
+  "name": "klever-wiki",
+  "version": "1.0.0",
+  "description": "Navigate, search, and auto-update the Klever Notion Wiki cache. Progressive disclosure index with lazy freshness checks.",
+  "author": {
+    "name": "Gabriel Amyot"
+  },
+  "keywords": ["klever", "notion", "wiki", "sop", "knowledge-base"]
+}

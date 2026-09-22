@@ -30,7 +30,7 @@ An existing `~/.claude/settings.json` is never overwritten. Diff it yourself.
 | `library/` | Cross-org bibliothèque, entry point `library/INDEX.md` |
 | `tools/` | Linters and harness checks (`ste_lint.py`, `claude-md-tier-lint.py`) |
 | `plugins/` | `klever-mech-suit`, `klever-wiki`, `sprint-harness`, and `local-marketplace-backup` (the sprint-crawl and session/ledger gates) |
-| `claude-home/` | The parts of `~/.claude` that are not symlinked: `crawl-profiles/`, `deploy-identity/`, `harness/`, `settings.json`, `statusline-command.sh`, `pmd-java-gate.json` |
+| `claude-home/` | The parts of `~/.claude` that are not symlinked: `crawl-profiles/`, `deploy-identity/`, `harness/`, `skill-proposals/`, `settings.json`, `statusline-command.sh`, `pmd-java-gate.json` |
 | `CLAUDE.md` | Global instructions, symlinked to `~/.claude/CLAUDE.md` |
 
 ## Limits

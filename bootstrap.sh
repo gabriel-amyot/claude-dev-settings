@@ -38,7 +38,7 @@ for item in agents commands context docs git-hooks hooks library skills CLAUDE.m
 done
 
 echo "==> Restoring loose config from claude-home/"
-for item in crawl-profiles deploy-identity harness; do
+for item in crawl-profiles deploy-identity harness skill-proposals; do
   [ -d "$SHARED/claude-home/$item" ] || continue
   mkdir -p "$CLAUDE/$item"
   rsync -a "$SHARED/claude-home/$item/" "$CLAUDE/$item/"

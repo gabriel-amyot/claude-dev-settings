@@ -164,7 +164,7 @@ deductions:
       value at 64 characters and never calls bid_safety.safe(). These are the only server-supplied
       strings in the tree that skip safe(), whose own docstring states the reason. Review proved
       reachability end to end with a raw HTTP/1.1 server and a real httpx client: httpx/h11 passes
-      the control characters through, yielding environment == "SANDBOX[2J[HPRODUCTION".
+      the control characters through, yielding environment == "SANDBOX\x1b[2J\x1b[HPRODUCTION".
       The environment label is the field a trader reads to decide sandbox versus production before
       a money write, so a repaintable value is the worst field to leave unescaped. Same commit
       series expanded agent-os/standards/safety-invariants.md without extending the escaping

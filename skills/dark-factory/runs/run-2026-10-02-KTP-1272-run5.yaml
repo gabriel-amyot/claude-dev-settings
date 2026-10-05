@@ -1,0 +1,277 @@
+run_id: run-2026-10-02-KTP-1272-run5
+ticket: KTP-1272
+title: >
+  Planning Map layer control — run 5, the nine dev-feedback SBEs on a fresh branch from
+  origin/dev@2112b33. Scope set by reports/specs/confirmed-sbes-2026-10-02.md
+  (Gabriel-confirmed, full auto). Repo app-front-portal. Epic KTP-571.
+date: 2026-10-02
+terminal_status: NEEDS_VISUAL_VERIFY
+halt_phase: none
+halt_point: >
+  No halt. The workflow completed every phase and pushed. It stops short of READY_TO_SHIP
+  because all nine SBEs are rendered-UI criteria and QA captured zero screenshots of this
+  branch.
+
+fifth_run_on_this_ticket: >
+  Yes, and the first to reach a push with a complete TDD trail. Series:
+  run-2026-10-01-KTP-1272 (HALT_AGENT_SKIPPED, 22/65),
+  run-2026-10-01-KTP-1272-slice2 (HALT_TDD_GATE, 45/63),
+  run-2026-10-02-KTP-1272-slice3 (HALT_FIX_NOT_PUSHED, 44/60),
+  run-2026-10-02-KTP-1272-run4 (BLOCKED_NEEDS_HUMAN_AGAIN, 20/45).
+  Per-run craft keeps rising. The structural gaps named by all four prior retros have still
+  produced zero lines of gate code.
+
+phases:
+  - phase: concierge
+    status: PASS
+    confidence: 82
+    note: >
+      Verified branch, version and merge state against live origin instead of trusting the
+      prompt — the exact correction run 4's halt asked for. Chose a fresh branch from
+      origin/dev@2112b33 at 2.0.37. The human had already re-stated the facts in
+      SESSION_STATE.md, so the recovery was not mechanical.
+  - phase: design
+    status: pass
+    confidence: 78
+  - phase: grill
+    status: partial
+    confidence: 80
+  - phase: implement
+    status: pass
+    confidence: 67
+    note: >
+      Lowest confidence in the trace and the only phase under 70. No gate reacts to a
+      self-reported 67. Twenty-six commits, ordered STUB -> RED -> GREEN per SBE.
+  - phase: review
+    status: "criticals:0"
+    confidence: 78
+    note: >
+      Reported criticals_open 0 while carrying one DEMONSTRATED HIGH with a failing test.
+      The fix loop keys on CRITICAL, so it never ran.
+  - phase: qa
+    status: PARTIAL
+    confidence: 84
+    note: >
+      Segregated worktree .worktrees/KTP-1272-qa6 with its own npm ci. Honest reporting:
+      it recorded its own blind spots rather than inflating.
+  - phase: ship-prep
+    status: pass
+    confidence: 92
+
+git_state:
+  base: origin/dev@2112b33
+  branch: KTP-1272-layer-control-feedback
+  head: bb82b3d
+  pushed: true
+  remote_ref: origin/KTP-1272-layer-control-feedback
+  version_claimed: 2.0.37
+  commits_ahead_of_dev: 26
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy_config: true
+  signal: exercised_and_good
+  detail: >
+    Nine RED commits, eight re-verify as genuine test-only reds that still fail at their
+    commit with assertions surviving to the tip. The ninth (SBE-8) fails re-verification.
+
+what_went_right:
+  - >
+    The stale-premise failure that blocked run 4 did not recur. The concierge proved
+    containment against live origin and branched fresh.
+  - >
+    Nine SBEs, each with an ordered STUB -> RED -> GREEN triplet, 26 commits, pushed. All
+    55 repo test scripts pass at the tip, `next build` succeeds, `next dev` serves
+    /planning with HTTP 200.
+  - >
+    QA ran in its own segregated worktree with its own npm ci and re-verified every RED
+    three ways: test-file-only stat, checkout-and-fail, and a tip diff for assertion
+    weakening. That procedure is what caught SBE-8.
+  - >
+    Both P0s from the dev feedback round are closed in code: the no-op onToggleLayer, and
+    `if (view === "panel") return null` which unmounted the control. A mandated test now
+    asserts every ControlView value renders something.
+  - >
+    QA reported its own blind spots instead of inflating. PARTIAL with visual_pending on
+    all nine, infra_blocked named for DOOH, red_verified false recorded for SBE-8.
+
+red_flags:
+  - >
+    A DEMONSTRATED HIGH regression sits at the pushed tip and no fix loop ran, because
+    review classified it HIGH and the gate counts only CRITICAL. bb82b3d still has
+    `map.addLayer(poiCircleLayer() as never)` with no beforeId at poi-layer.ts:203, so a
+    POI off/on cycle re-registers the circles above the DOOH pins. That inverts the repo's
+    own followsManifestOrder assertion and reopens the KTP-1257 click-arbitration defect
+    class.
+  - >
+    The test that demonstrates that HIGH was left in the ticket folder
+    (review/review-poi-toggle-order.test.ts) and never committed to the repo. The suite is
+    green at the tip precisely because the proof is outside it.
+  - >
+    SBE-8's GREEN commit 570bba3 relaxed its own RED's tonal-range assertion from
+    `p95 - p05 >= 40` to `>= 25`. The recaptured light tile measures 33 and the dark 29, so
+    both would still fail the original threshold. Nothing stopped the GREEN from editing
+    the RED's bar; QA caught it afterwards and still returned PARTIAL, not FAIL.
+  - >
+    Zero screenshots were captured for this branch. The two PNGs in qa/screenshots are
+    dated 2026-10-01 23:20 and belong to the previous run. Every one of the nine SBEs is a
+    rendered-UI criterion.
+  - >
+    The frontend belt provisioned a QA worktree with no authenticated browser and no local
+    stack, on a ticket whose entire AC set is visual. The belt does not read the shape of
+    the ACs it is serving.
+  - >
+    Three MEDIUM findings are undemonstrated and unresolved, two of them default-path user
+    impact: the Storefront pane renders blank on a first /planning visit (AC-29), and POIs
+    default off so they never paint until the user finds the control (AC-24).
+  - >
+    SBE-4's "DOOH pins load" clause is infra_blocked (/api/dooh/screens returns 500
+    "Missing API URL", backend :8097 absent) and deferred. Per the always-loaded deferred-AC
+    rule it owes a Jira comment on KTP-1272, and none has been posted.
+  - >
+    Implement self-reported confidence 67, the lowest phase in the run, and nothing in the
+    workflow reacts to it.
+  - >
+    app-front-portal carries 40+ worktrees, three of them for this ticket
+    (KTP-1272-layer-control-feedback, KTP-1272-map-layer-control, KTP-1272-qa6, plus
+    KTP-1272-review). Nothing prunes them after a run ends.
+
+scores:
+  task_confidence: 55
+  factory_fitness: 52
+
+deductions:
+  task_confidence:
+    - points: 15
+      reason: >
+        Demonstrated HIGH regression open at the pushed tip. addPoiLayer re-adds
+        planning-30v1-poi-circles on top of the style after a toggle cycle; POI dots paint
+        over DOOH pins and steal their clicks.
+    - points: 12
+      reason: >
+        All nine SBEs are visual_pending with zero screenshots captured on this branch. The
+        terminal state is NEEDS_VISUAL_VERIFY, so no AC is proven to the standard its own
+        wording demands.
+    - points: 6
+      reason: >
+        SBE-8 is not red-then-green on the same assertion. The GREEN lowered the tonal-range
+        bar from 40 to 25 and the recaptured tiles (33, 29) would still fail the original.
+    - points: 5
+      reason: >
+        Three MEDIUM review findings unresolved, including two that affect the default
+        first-visit path (AC-29 blank Storefront pane, AC-24 POIs default off).
+    - points: 4
+      reason: >
+        SBE-4's "DOOH pins load" sub-clause is infra-blocked and deferred, with no Jira
+        comment posted to surface the deferral to the PO.
+    - points: 3
+      reason: >
+        Implement phase self-confidence 67 with no stated cause and no gate response.
+  factory_fitness:
+    - points: 12
+      reason: >
+        The review gate's pass predicate is criticals_open == 0. A demonstrated HIGH with a
+        reproducible failing test passed it untouched. Severity label, not evidence, decided
+        whether the fix loop ran.
+    - points: 8
+      reason: >
+        No gate requires a review finding's demonstration test to land in the repo suite.
+        The proof of the regression was archived to the ticket folder, leaving test:all
+        green over a known break.
+    - points: 8
+      reason: >
+        Nothing prevents a GREEN commit from editing the threshold its own RED set. The
+        TDD gate checks ordering and test-file-only reds; it does not diff the RED's
+        assertions against the tip. QA found it after the fact and did not fail the SBE.
+    - points: 7
+      reason: >
+        Fifth run on one ticket. Four prior retros wrote improvement docs and produced zero
+        gate code, so every gap they named was available to recur.
+    - points: 6
+      reason: >
+        The frontend belt equipped QA with no browser and no stack on an all-visual ticket.
+        The belt is chosen by repo type, never by the shape of the ACs.
+    - points: 4
+      reason: >
+        The stale-premise mechanical check requested on 2026-09-18 and re-raised by run 4 is
+        still unbuilt. Run 5 avoided the failure only because a human re-stated the facts in
+        SESSION_STATE.md.
+    - points: 3
+      reason: >
+        No worktree reaping. The run left four KTP-1272 worktrees behind in a repo already
+        holding 40+.
+
+improvements:
+  - title: Gate on demonstrated, not on severity
+    detail: >
+      Change the review gate predicate from `criticals_open == 0` to
+      `count(findings where demonstrated == true and severity in [CRITICAL, HIGH]) == 0`.
+      A finding with a reproducible failing test is a break regardless of its label. This
+      single change would have caught run 5's only shipped regression.
+    rank: 1
+  - title: A demonstrated finding's test must land in the repo
+    detail: >
+      Contract 5 should require that any finding with demonstrated == true commits its
+      test into the repo suite, not into the ticket folder. Add a ship-prep check: for each
+      demonstrated finding, assert its test_ref path exists under `git ls-files`. Green
+      test:all over an archived failing test is a false negative by construction.
+    rank: 2
+  - title: A GREEN may not weaken its own RED's assertions
+    detail: >
+      Extend the TDD gate: for each RED commit, diff the test files it introduced against
+      the branch tip. Any numeric literal in an assertion that moved in the permissive
+      direction, or any assertion deleted, halts unless the commit body carries an explicit
+      `TDD-THRESHOLD-CHANGE:` line with a rationale. SBE-8's 40 -> 25 is the worked example.
+    rank: 3
+  - title: Equip the belt from the AC shape, not only the repo type
+    detail: >
+      Add a concierge step that classifies each AC as logic / visual / data. If any AC is
+      visual, the frontend belt must provision a browser-capable QA socket (ui-probe against
+      the authenticated Chrome, or the local stack map profile) before implement starts.
+      Terminating at NEEDS_VISUAL_VERIFY on an all-visual ticket is a provisioning failure,
+      not an outcome.
+    rank: 4
+  - title: Make the retro write gate code, not only a document
+    detail: >
+      This is the fifth retro on one ticket. Require every retro's rank-1 improvement to be
+      filed as a tracked issue against the dark-factory repo with an owner, and have the
+      concierge read the open list at run start and report which recurring gaps are still
+      unmitigated. Advisory-only feedback has now demonstrably not changed behaviour across
+      five runs.
+    rank: 5
+  - title: Auto-surface a deferred AC to Jira
+    detail: >
+      When QA records infra_blocked or DEFERRED on any sub-clause, ship-prep should emit a
+      draft Jira comment to the ticket folder and block READY_TO_SHIP until it is posted
+      through /post-comment. The always-loaded rule already says a deferral must reach the
+      PO; nothing mechanical enforces it, and SBE-4's DOOH clause is sitting on disk only.
+    rank: 6
+  - title: Act on a low phase confidence
+    detail: >
+      Treat a self-reported phase confidence below 70 as a signal the next phase must
+      consume. Pass implement's confidence and its stated cause into the review prompt as a
+      targeted focus list, rather than discarding it into the trace.
+    rank: 7
+  - title: Reap worktrees at terminal state
+    detail: >
+      Ship-prep should remove the run's QA and review worktrees once their artifacts are
+      copied to the ticket folder. app-front-portal is at 40+ worktrees and four of them are
+      this ticket's.
+    rank: 8
+
+artifacts:
+  ticket_folder: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-571/KTP-1272
+  spec_source_of_truth: reports/specs/confirmed-sbes-2026-10-02.md
+  run_slice: analyst/run-slice.run5.json
+  review_findings: review/findings.json
+  qa_result: qa/result.yaml
+  handoff: reports/dark-factory-improvements-KTP-1272-run5.md
+
+summary: >
+  Run 5 is the first on this ticket to finish every phase and push: nine SBEs, 26 commits,
+  ordered RED -> GREEN, 55 test scripts green, build green, branch
+  KTP-1272-layer-control-feedback at bb82b3d on origin. It stops at NEEDS_VISUAL_VERIFY
+  because no screenshot of this branch exists and every AC is visual. Two real defects ride
+  along: a demonstrated HIGH POI stacking regression that the review gate waved through on a
+  severity label, and an SBE-8 GREEN that lowered its own RED's threshold.

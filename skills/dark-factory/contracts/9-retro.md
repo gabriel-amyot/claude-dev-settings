@@ -37,6 +37,18 @@ test_ref before allowing PASS").
    (use the date from the environment; if unknown, ask — do not invent). Include: run id, ticket,
    terminal status, per-phase status + confidence (from the trace), the two scores + deductions, red
    flags, improvements. Update `runs/INDEX.md` with a one-line entry if it exists.
+
+   **The file MUST parse as YAML, and you must prove it does.** After writing, run:
+   `python3 -c "import yaml,sys; yaml.safe_load(open(sys.argv[1]).read())" <the file you wrote>`
+   and fix it until that command is silent. Telemetry the miner cannot read is telemetry the factory
+   cannot learn from — a corrupt run file deletes that run from every future analysis, silently.
+   Two files were lost this way before the check existed:
+   - Any scalar containing `: ` (a commit subject, a path with a colon) must be **quoted**. Unquoted,
+     YAML reads it as a nested mapping and the whole file dies.
+   - Never paste raw terminal output containing control characters. Write `\x1b` as visible text.
+     The 2026-08-20 run describing an escape-injection bug embedded the real ESC bytes and corrupted
+     its own telemetry.
+   Prefer a `>` block scalar for any prose longer than a few words; it sidesteps most quoting traps.
 2. **Next-run improvement handoff** → the current session's prompts folder
    (`~/Developer/grp-beklever-com/project-management/sessions/active/<current-session>/prompts/` — or
    if you cannot resolve the active session, write to the ticket folder under `reports/`). Title it

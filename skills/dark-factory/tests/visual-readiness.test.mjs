@@ -11,7 +11,10 @@ function extract(name) {
 }
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
 const mod = new AsyncFunction(
-  extract('executionOk') + '\n' + extract('isMetNonCodeGate') + '\n' + extract('classifyQaGap') + '\n' + extract('preShipBlockers') +
+  // blockingFindings + reviewCountMismatch are preShipBlockers' dependencies as of 0.10.0 (the review
+  // gate now derives from the findings array instead of reading criticals_open).
+  extract('executionOk') + '\n' + extract('isMetNonCodeGate') + '\n' + extract('classifyQaGap') + '\n' +
+  extract('blockingFindings') + '\n' + extract('reviewCountMismatch') + '\n' + extract('preShipBlockers') +
   '\nconst log = () => {};' +
   '\nreturn { classifyQaGap, preShipBlockers };'
 )
@@ -55,7 +58,9 @@ ok('G8 visual_pending with exempt RED on the PASS AC -> visual_only',
 
 // --- preShipBlockers (visual_only must NOT block; real_gap must) ---
 const cleanImpl = { execution_verified: 'true', pushed: true }
-const cleanReview = { criticals_open: 0 }
+// `findings` is schema-required, so a real clean review returns an empty array, never an absent one.
+// 0.10.0 made preShipBlockers fail closed on a missing array, which this fixture used to omit.
+const cleanReview = { criticals_open: 0, findings: [] }
 
 ok('B1 visual_only gap does NOT block',
   preShipBlockers(cleanImpl, cleanReview, 'PARTIAL', 'visual_only').length === 0)

@@ -70,5 +70,29 @@ audit can be reconstructed without re-deriving from a raw diff. Shape:
   hunches you could not demonstrate.
 - `summary`: 1-3 sentences.
 
-The orchestrator halts if `criticals_open > 0`. Do not inflate severity on undemonstrated hunches; do
-not downgrade a demonstrated CRITICAL to keep the pipeline moving.
+## What actually blocks (0.10.0 — read this before you pick a severity)
+
+The orchestrator does **not** read `criticals_open` to decide. It derives the blocking set from your
+`findings` array:
+
+> **blocking = `severity: CRITICAL`, OR `severity: HIGH` with `demonstrated: true`.**
+
+A HIGH you proved with a failing test blocks exactly like a CRITICAL. **Evidence outranks the label.**
+Nine retros between 2026-06-22 and 2026-10-02 reported the old behaviour: a reviewer filed a real,
+test-proven defect as a demonstrated HIGH, `criticals_open` stayed 0, the fix loop never ran, and the
+bug shipped. You cannot route a proven defect past the gate by choosing a gentler word for it.
+
+Two consequences for how you work:
+
+- **Do not agonise over CRITICAL vs HIGH on something you demonstrated.** Both block. Spend the effort
+  on the test that proves it instead.
+- **`demonstrated: true` is a factual claim, not emphasis.** Set it if and only if you wrote a test,
+  ran it, and watched it fail. An undemonstrated hunch is `demonstrated: false` at any severity, and it
+  does not block — so you are free to record it honestly rather than suppress it.
+
+`criticals_open` is still required, and it is cross-checked: if your integer disagrees with the number
+of CRITICALs in your own `findings` array, the orchestrator trusts the array and records the mismatch
+as a red flag against the review. Count your own output correctly.
+
+Do not inflate severity on undemonstrated hunches; do not downgrade a demonstrated defect to keep the
+pipeline moving. Neither helps you now — the first is ignored, the second no longer works.

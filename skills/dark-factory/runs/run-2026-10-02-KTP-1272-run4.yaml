@@ -1,0 +1,279 @@
+run_id: run-2026-10-02-KTP-1272-run4
+ticket: KTP-1272
+title: >
+  Planning Map layer control — run 4, the nine confirmed SBEs. Scope set by
+  reports/specs/confirmed-sbes-2026-10-02.md (Gabriel-confirmed, handoff mode "full auto"),
+  superseding the Part 1 / Part 2 split. Repo app-front-portal. Epic KTP-571.
+date: 2026-10-02
+terminal_status: BLOCKED_NEEDS_HUMAN_AGAIN
+halt_phase: concierge
+halt_point: >
+  The front gate. The concierge produced a complete, correct slice plan and then stopped on open
+  question Q1: the human's binding resume answer ("build on top of b34cbd5, do NOT start from
+  origin/dev, we hold 2.0.35") rests on a premise that live git had already invalidated.
+
+fourth_run_on_this_ticket: >
+  Yes. run-2026-10-01-KTP-1272 (HALT_AGENT_SKIPPED, 22/65), run-2026-10-01-KTP-1272-slice2
+  (HALT_TDD_GATE, 45/63), run-2026-10-02-KTP-1272-slice3 (HALT_FIX_NOT_PUSHED, 44/60). Read as a
+  series: per-run craft keeps rising, the same structural factory gaps keep recurring, and none of
+  the three prior retros has produced a line of gate code.
+
+what_changed_since_slice_3:
+  verdict: the slice-3 halt resolved itself; a new blocker replaced it
+  verified_against: >
+    git fetch origin 2026-10-02. `git merge-base --is-ancestor origin/KTP-1272-map-layer-control
+    origin/dev` returns true. origin/dev head 2112b33, merge commit 34c55b5, branch head b34cbd5.
+  detail: >
+    Slice 3 ended with twelve commits stranded locally behind a 502. The watcher script
+    push-when-gitlab-returns.sh pushed them, the branch merged into dev, and KTP-1275 then merged
+    on top at version 2.0.36. So the slice-3 resume pointer is spent, and its premise is dead.
+
+root_cause_of_the_block:
+  class: stale premise
+  what: >
+    The human was asked for resume direction and answered on a repository state that no longer
+    existed. Three facts in the answer are now false: the branch is not unmerged, origin/dev is not
+    a thing to avoid (it strictly contains the branch), and 2.0.35 is not a free version.
+  concierge_credit: >
+    The concierge caught this itself. It ran a live fetch, proved containment two ways, wrote
+    branch_state_live into run-slice.run4.json, and recommended a fresh branch from origin/dev@2112b33
+    at 2.0.37. The detection is good work.
+  factory_gap: >
+    Detection happened AFTER the human had already spent a decision, and the run then stopped to
+    spend a second one, on a question the concierge had itself already answered with a recommendation.
+    The handoff mode was "full auto". The inbox received nothing, so the human is not even notified.
+  prior_art: >
+    general/inboxes/gabriel/pending/2026-09-18-stale-premise-class-needs-a-mechanical-check.md has
+    been pending for two weeks asking for exactly this check. It is the same failure, unmitigated.
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy_config: true
+  signal: not_exercised
+  note: >
+    The gate was configured correctly in the default halt mode with zero warn-mode violations, but
+    the run never reached a build phase, so it proves nothing about this run. The last real signal
+    is slice 3's clean ordered RED -> GREEN triplets.
+
+git_state:
+  origin_dev_head: 2112b33
+  branch: KTP-1272-map-layer-control
+  branch_head: b34cbd5
+  merged_into_dev: true
+  version_on_dev: 2.0.36
+  version_on_branch: 2.0.35
+  recommended_base: fresh branch from origin/dev@2112b33, claiming 2.0.37
+  worktree_sprawl: >
+    33 worktrees on app-front-portal, including .worktrees/KTP-1272-map-layer-control (now merged,
+    dead) and .worktrees/KTP-1272-review (detached 7e02219, still holding the review's proof test
+    as an untracked file).
+
+work_state_on_dev:
+  shipped: >
+    The control renders in shell.tsx at 88x88 with a 24 px bottom-left inset, the Light/Dark style
+    swap works, and the style epoch is carried into every layer hook.
+  shipped_broken: >
+    SBE-2 (P0): map-layer-control.tsx returns null for view === "panel", so clicking "More"
+    unmounts the control permanently; only a reload recovers it. SBE-3 (P0): the DOOH / POI /
+    Demographics toggles do not toggle. Chrome reached dev while its behaviour sat in an unbuilt
+    Part 2, which on dev reads as broken rather than partial.
+  unverified_on_dev: >
+    Slice 3 merged with QA never run and with a review that executed BEFORE the fix. The four
+    newly-wired layer hooks (use-pois, use-census-choropleth, use-competitors, use-agent-highlight)
+    have no running-app proof that they repaint POPULATED rather than merely present (hazards G13,
+    G15, G4).
+
+per_phase:
+  - phase: concierge
+    status: PASS
+    confidence: 76
+    note: >
+      Strong output for a phase that ended in a block. It fetched live, proved the merge two ways,
+      named the version collision, listed already_done_do_not_redo, set a frontend belt, and wrote
+      five discipline rules including "push after every GREEN, unpiped", "a view state that renders
+      nothing is a defect", and a wiring rule requiring an importer outside __tests__/ before any AC
+      passes. Those last two are direct, specific answers to how SBE-2 escaped to dev. Confidence 76
+      reads as honest: the plan is sound, the base is undecided.
+  - phase: design
+    status: not_reached
+    confidence: null
+  - phase: grill
+    status: not_reached
+    confidence: null
+  - phase: implement
+    status: not_reached
+    confidence: null
+  - phase: review
+    status: not_reached
+    confidence: null
+  - phase: qa
+    status: not_reached
+    confidence: null
+
+scores:
+  task_confidence: 20
+  factory_fitness: 45
+
+deductions:
+  - points: 40
+    score: task_confidence
+    reason: >
+      Zero of the nine confirmed SBEs were built. The run produced a plan and stopped at the front
+      gate. No commit, no test, no branch.
+  - points: 15
+    score: task_confidence
+    reason: >
+      Two P0 defects are live on dev right now. "More" permanently unmounts the control (null render
+      for view === "panel") and the three layer toggles do nothing. The feature is worse than absent
+      on dev, and this run was the one scheduled to fix it.
+  - points: 10
+    score: task_confidence
+    reason: >
+      Slice 3 merged into dev carrying unresolved verification debt: QA never ran, the review
+      predates the fix it was meant to check, and the four newly-wired layer hooks have no live
+      proof they repaint populated.
+  - points: 8
+    score: task_confidence
+    reason: >
+      Q1 is open, so even the starting point is undecided. Base branch and version number (2.0.35
+      vs dev's 2.0.36) are both unresolved; the next run cannot cut a branch without an answer.
+  - points: 5
+    score: task_confidence
+    reason: >
+      AC-8's 400 ms budget stays parked at issue #226 (662 to 2065 ms measured over 20 samples) and
+      AC-4's live measurement stays blocked because the DOOH proxy returns [] with x-dooh-warning.
+  - points: 2
+    score: task_confidence
+    reason: >
+      No inbox item was written for Q1. A block that the human never sees does not get unblocked.
+  - points: 12
+    score: factory_fitness
+    reason: >
+      The handoff mode was "full auto" and the run still terminated on a question it had already
+      answered itself. run-slice.run4.json carries recommended_base with a two-way containment
+      proof. A full-auto run holding its own recommendation should proceed and log the decision, not
+      stop.
+  - points: 10
+    score: factory_fitness
+    reason: >
+      Terminal state BLOCKED_NEEDS_HUMAN_AGAIN with no delivery. general/inboxes/gabriel/pending/
+      has no KTP-1272 item. CLAUDE.md requires every autonomous run to deposit unresolved decisions
+      there, and the factory has no gate enforcing it.
+  - points: 10
+    score: factory_fitness
+    reason: >
+      Stale-premise detection fires after the human has already spent a decision on dead facts. The
+      resume answers of 2026-10-02 were invalidated by a merge that had already happened. The
+      mechanical check for this class has been pending in the inbox since 2026-09-18.
+  - points: 8
+    score: factory_fitness
+    reason: >
+      Fourth run on one ticket in two days, and the improvements from runs 1, 2 and 3 are still
+      markdown: per-AC TDD gating, the disk-ledger check, prior-retro re-injection into the
+      concierge prompt, the Implement AC ceiling, the remote preflight, PARKED_AWAITING_REMOTE, and
+      review-vs-exclusion arbitration. Three retros, zero lines of gate code.
+  - points: 5
+    score: factory_fitness
+    reason: >
+      No version-collision preflight. Comparing the branch's package.json version against
+      origin/dev's is a one-line check at run start and it is the whole of Q1's second half.
+  - points: 4
+    score: factory_fitness
+    reason: >
+      33 worktrees on app-front-portal. Two belong to this ticket, one is merged and dead, and the
+      other still holds the review's proof test as an untracked file. The factory creates worktrees
+      and never reaps them.
+  - points: 3
+    score: factory_fitness
+    reason: >
+      sessions/active/state.yaml still carries an empty session_id, fourth run running. The handoff
+      falls back to the ticket folder again.
+  - points: 3
+    score: factory_fitness
+    reason: >
+      Slice 3 reached dev unverified and no alarm fired. The factory has no post-merge check that
+      asks whether the merged work ever passed QA.
+
+red_flags:
+  - "Terminal state is BLOCKED_NEEDS_HUMAN_AGAIN and no inbox item exists. The human has no way to know the run is waiting."
+  - "Handoff mode was declared 'full auto' and the run blocked anyway, on a question whose answer it had already written into run-slice.run4.json."
+  - "The human's binding resume answer was built on three facts that git had already falsified: branch unmerged, dev to be avoided, 2.0.35 free."
+  - "Second consecutive human block on this ticket ('AGAIN' is in the status name) and the fourth run in two days."
+  - "Two P0 defects are live on dev: 'More' permanently unmounts the control, and the three layer toggles do nothing."
+  - "Slice 3 merged into dev with QA never run and with a review that executed before the fix it was reviewing."
+  - "The four newly-wired layer hooks reached dev with no running-app proof they repaint populated (hazards G13, G15, G4 still open)."
+  - "The stale-premise mechanical check has been pending in the inbox since 2026-09-18 and the same class of failure caused this halt."
+  - "33 worktrees on app-front-portal; .worktrees/KTP-1272-review still holds the review's proof test untracked, one git clean from gone."
+  - "sessions/active/state.yaml session_id is still empty, so the handoff falls back to the ticket folder for the fourth time."
+  - "Prior-run retro improvements remain prose across four runs. The factory is learning on paper and not in code."
+
+improvements:
+  - title: "A full-auto run may not block on a question it has already answered"
+    detail: >
+      When the concierge emits a recommendation (here recommended_base, with a two-way containment
+      proof) and the handoff mode is full auto, workflow.js should adopt the recommendation, stamp
+      the decision and its evidence into the run record, and continue. Reserve the human block for
+      questions with no defensible default. Rank this first: it is the single change that would have
+      let this run build.
+  - title: "Make BLOCKED_NEEDS_HUMAN_* unreachable without an inbox item"
+    detail: >
+      Add a terminal-state gate: any status containing NEEDS_HUMAN must write
+      general/inboxes/gabriel/pending/<date>-<ticket>-<slug>.md stating the question, both options,
+      the recommendation, and the cost of waiting, then update that folder's INDEX.md. If the file
+      is not on disk the state is not accepted. A block nobody can see is worse than a halt.
+  - title: "Verify the premises of a human answer before the run consumes it"
+    detail: >
+      A resume answer referencing a branch, a base or a version is a claim about repo state. At run
+      start, re-derive each claim: is the branch merged, is the base still ahead, is the version
+      free. Any falsified claim invalidates that clause of the answer and the concierge must say so
+      before planning around it. This closes the inbox item pending since 2026-09-18, and it is the
+      direct cause of this halt.
+  - title: "Add a version-collision preflight"
+    detail: >
+      Compare package.json version on the working branch against origin/dev before the belt is
+      chosen. A branch holding a version that dev has already claimed is a guaranteed MR conflict,
+      and klever-mr will catch it far too late. One line, and it is half of Q1.
+  - title: "Stop re-typing the last four retros and put them in workflow.js"
+    detail: >
+      Carried unimplemented across four runs: per-AC TDD gating at each GREEN, the gate reading
+      tdd/AC-<N>.md off disk rather than only the returned JSON, the Implement AC ceiling,
+      PARKED_AWAITING_REMOTE with a bounded resume probe, review-vs-exclusion arbitration, and
+      automatic re-injection of runs/run-*-<TICKET>*.yaml into the concierge prompt. Pick the two
+      cheapest, write them as code, and let the rest wait. Four runs of prose is the metric that
+      matters here.
+  - title: "A view state that renders nothing must fail a gate, not a code review"
+    detail: >
+      SBE-2 reached dev because view === 'panel' returned null and no panel existed. The concierge
+      already wrote the rule for run 4. Promote it to a frontend-belt test requirement: every value
+      of a view/state union must have a test asserting it renders a non-empty surface. This is the
+      class of defect that makes a partial feature read as a broken one.
+  - title: "Reap worktrees when their branch merges"
+    detail: >
+      33 worktrees exist on one repo. At run end, any worktree whose branch is an ancestor of
+      origin/dev should be reported for removal, and any untracked file inside one should be
+      surfaced before it is lost. The review proof test for this ticket survives only because a
+      human copied it into the ticket folder.
+  - title: "Alarm when work reaches dev without QA"
+    detail: >
+      Slice 3 merged with QA never run and a review that predated its fix. A post-merge check should
+      compare the merged branch against the run records for that ticket and raise an item when no
+      run reached a QA PASS. Merging is not evidence.
+
+what_went_right:
+  - "The concierge ran a live fetch and refused to plan on the handed-down premise. It proved containment two ways rather than trusting the resume note."
+  - "It named the version collision explicitly, with the consequence spelled out, instead of discovering it at MR time."
+  - "The slice-3 stranded push resolved: the watcher script pushed, the branch merged into dev, and nothing was lost."
+  - "The discipline block in run-slice.run4.json reads like a direct answer to how SBE-2 escaped: an importer outside __tests__/ before any AC passes, and no view state that renders nothing."
+  - "The scope was rebuilt from human-confirmed SBEs with screenshots, abandoning the Part 1 / Part 2 split that caused the broken-on-dev read."
+  - "Blocking was not wrong in itself. The base-branch question is real. Only the channel and the full-auto contract were wrong."
+
+resume_pointer: >
+  Answer Q1 and the run proceeds. The recommendation already on disk is sound: cut a FRESH branch
+  from origin/dev@2112b33 and claim 2.0.37. It loses no KTP-1272 work, because dev strictly contains
+  the branch, and it removes the KTP-1275 rebase entirely. Then build the nine SBEs with SBE-2 and
+  SBE-3 first, since both are P0 and both are visibly broken on dev. Keep edits to shell.tsx,
+  use-drill-down.ts and use-zip-selection.ts small; KTP-1275 shares them. Carry forward from slice 3:
+  live ui-probe proof that POI, competitor and census layers repaint POPULATED after a basemap swap.
+  AC-8 stays parked at issue #226. Do not reopen U1; it is refuted. Full detail in
+  reports/dark-factory-improvements-KTP-1272-run4.md in the ticket folder.

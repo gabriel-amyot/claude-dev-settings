@@ -1,0 +1,181 @@
+run_id: run-2026-09-30-KTP-1257
+ticket: KTP-1257
+date: 2026-09-30
+terminal_status: HALT_PRESHIP
+repo: app-proximity-report
+branch: KTP-1257-dooh-screen-detail-and-image-proxy
+tip_sha: da14993
+belt: java
+ticket_folder: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-571/KTP-1257
+spec_source: AC-LOCAL.md (overrides the Jira description)
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  red_commits_verified: 4
+  red_verification_note: >
+    Every RED commit (cc42e16, 9d6a3b5, c9bf11f, c5bd661) is test-file-only, fails on assertions at
+    its own commit, and its test file is byte-identical (AC-5a: additions only) at the branch tip.
+
+phases:
+  - phase: concierge
+    status: PASS
+    confidence: 86
+  - phase: design
+    status: pass
+    confidence: 82
+  - phase: grill
+    status: pass
+    confidence: 88
+  - phase: implement
+    status: pass
+    confidence: 82
+  - phase: review
+    status: "criticals:1"
+    confidence: 78
+  - phase: fix-1
+    status: pass
+    confidence: 86
+  - phase: review-2
+    status: "criticals:0"
+    confidence: 82
+  - phase: qa
+    status: PARTIAL
+    confidence: 85
+
+ac_outcomes:
+  AC-5: PASS
+  AC-5a: PASS  # non-blocking startup clause is wiring-proven, not test-proven
+  AC-6: PARTIAL
+  AC-6a: PASS
+  AC-C: FAIL
+
+scores:
+  task_confidence: 60
+  factory_fitness: 66
+
+deductions:
+  # task_confidence (100 -> 60)
+  - score: task_confidence
+    points: 15
+    reason: >
+      AC-6 is PARTIAL on a demonstrated functional defect at tip. DoohImageProxyService:84 passes
+      the publisher URL to RestTemplate.execute(String,...), which expands it as a URI TEMPLATE.
+      A percent-encoded asset URL is double-encoded (%20 -> %2520) and a brace-bearing URL throws
+      before any request. Both end as a silent 404 and a blank popup image.
+  - score: task_confidence
+    points: 12
+    reason: >
+      AC-C is a FAIL. documentation/architecture/contracts/dooh-screens-api.md was never touched
+      (last commit 5f92ee5d, pre-KTP-1257). None of the eight new fields, the image endpoint, or
+      locationTypeName/locationCategory appear in it. The deliverable was never produced.
+  - score: task_confidence
+    points: 6
+    reason: >
+      Terminal state is HALT_PRESHIP. The branch is not shippable without a further fix pass, so
+      the ticket is not done and not deployable as it stands.
+  - score: task_confidence
+    points: 4
+    reason: >
+      AC-5a's non-blocking-startup clause is wiring-proven only (@EventListener(ApplicationReadyEvent)
+      + @Async). No test asserts that startup is not blocked, so one clause of a PASS rests on
+      structural reading.
+  - score: task_confidence
+    points: 3
+    reason: >
+      The live Goldfish fixture (screen 303989021, network 3425) was available and named in the
+      concierge decisions, but no end-to-end check was run against it. Every proof is unit-level.
+  # factory_fitness (100 -> 66)
+  - score: factory_fitness
+    points: 12
+    reason: >
+      The fix loop is severity-gated on CRITICAL. Review round 1 demonstrated the URI-template HIGH
+      with a passing-to-failing probe, fix-1 fixed only the CRITICAL, and review-2 reported
+      criticals:0 with that HIGH still open. The factory declared the review clean and then QA had
+      to rediscover the same defect as the PARTIAL cause.
+  - score: factory_fitness
+    points: 8
+    reason: >
+      No gate covers a non-code deliverable. AC-C is a documentation contract update; implement,
+      review and review-2 all passed without noticing it did not exist. QA caught it with a grep
+      that any earlier phase could have run.
+  - score: factory_fitness
+    points: 6
+    reason: >
+      Review probes are archived to review/probes/ and then abandoned. QA had to copy
+      ReviewKtp1257ImageUrlTest into the QA worktree by hand to re-check it. A demonstrated probe
+      should become a first-class test the build runs.
+  - score: factory_fitness
+    points: 6
+    reason: >
+      Every shipped unit test mocks RestTemplate, so outbound URI handling was never exercised.
+      No gate requires at least one test with a real (or MockRestServiceServer-backed) client on an
+      outbound HTTP path, which is exactly where the escaped defect lives.
+  - score: factory_fitness
+    points: 2
+    reason: >
+      review/findings.json still records criticals_open:1 after fix-1 resolved that CRITICAL. The
+      artifact contradicts the phase trace, so a later reader cannot trust either.
+
+red_flags:
+  - "review-2 reported criticals:0 while a DEMONSTRATED HIGH (URI-template double-encoding) stayed open; QA then failed the same AC on it."
+  - "A review probe that fails at branch tip was archived rather than promoted into the test suite."
+  - "AC-C (documentation contract) reached QA untouched. No phase before QA checked that a non-code deliverable exists."
+  - "review/findings.json criticals_open:1 is stale after fix-1; the phase trace says criticals:0."
+  - "100% of image-proxy unit tests mock RestTemplate, so the class under test was never exercised against real URI handling."
+  - "AC-5a passes with one clause proven by reading wiring rather than by a test."
+  - "A live fixture was available (Goldfish screen 303989021) and never used for an end-to-end check."
+  - "No phase confidence exceeded 88; review sat at 78 and the run still advanced without a confidence-triggered escalation."
+
+improvements:
+  - title: "Fix loop must clear DEMONSTRATED findings at any severity, not just CRITICAL"
+    detail: >
+      In workflow.js, change the fix-loop entry predicate from severity == CRITICAL to
+      (severity == CRITICAL) OR (demonstrated == true). A finding with a reproducible failing probe
+      is a fact about the branch, not an opinion about it. review-2 must not be allowed to report a
+      clean gate while any demonstrated finding is unresolved; make the review contract emit
+      demonstrated_open alongside criticals_open, and gate on both.
+  - title: "Promote every demonstrated review probe into the branch's test suite"
+    detail: >
+      Contract 7 (fix) should require that each demonstrated probe is moved from review/probes/ into
+      src/test and committed, either green (fixed) or documented as a known-fail waiver signed at the
+      ticket level. Add a gate: the QA phase fails if any file under review/probes/ has no
+      counterpart under src/test. This alone would have turned the KTP-1257 HIGH into a build-visible
+      red before QA.
+  - title: "Add a deliverable-manifest gate for non-code ACs"
+    detail: >
+      The design phase should write factory/deliverables.yaml listing every AC's concrete artifact
+      (file path + a grep assertion for doc ACs). Add a JS gate before review that runs each
+      assertion and blocks on a missing artifact. AC-C would have failed at implement, not at QA,
+      costing minutes instead of a HALT.
+  - title: "Require one non-mocked-client test on every outbound HTTP path"
+    detail: >
+      Add a java-belt rule to contract 5/6: when a diff introduces or changes a class that calls
+      RestTemplate/WebClient, at least one test must use MockRestServiceServer or a real client
+      against a local stub, asserting the requested URI string. A full-mock suite on an HTTP client
+      proves the mock, not the code.
+  - title: "Make review/findings.json single-source and mutated by the fix phase"
+    detail: >
+      Contract 7 must rewrite findings.json in place, setting per-finding status (fixed / open /
+      waived) and recomputing criticals_open and demonstrated_open. Add a consistency gate that the
+      counts in findings.json match the phase trace before QA runs.
+  - title: "Spend the live fixture when the concierge names one"
+    detail: >
+      When factory/decisions.yaml records an available live fixture, contract 8 (QA) should require
+      at least one probe against it, or an explicit skip reason. KTP-1257 named screen 303989021 and
+      network 3425 and never called them, so the casing trap that burned KTP-791 is still only
+      unit-proven.
+  - title: "Escalate on low phase confidence instead of only on gate status"
+    detail: >
+      No phase in this run cleared 88 and review sat at 78, yet nothing changed strategy. Add a soft
+      rule to workflow.js: a phase confidence below 80 forces an extra adversarial pass on that
+      phase's output before advancing. This is the roadmap item in contract 9 and this run is the
+      case for it.
+
+summary: >
+  KTP-1257's backend slice landed 3 of 5 ACs on genuine RED-verified TDD proof with a clean PMD
+  scan, then halted pre-ship on two escapes: a demonstrated image-proxy URI-template defect that
+  review-2 waved through because it was HIGH and not CRITICAL, and a documentation contract AC that
+  no phase before QA ever checked for existence. The TDD gate ran in halt mode with zero violations,
+  so the run's proof is trustworthy; the fitness loss is in the fix loop's severity blindness and
+  the absence of a deliverable-existence gate.

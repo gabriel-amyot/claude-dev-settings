@@ -1,6 +1,6 @@
 ---
 name: dark-factory
-version: "0.10.0"
+version: "0.10.1"
 description: "The ticket-to-dev factory for a SINGLE ticket, driven by a Jira ticket OR a wayfinder GitHub issue, orchestrated by the Workflow tool instead of prose. Gates are code (un-skippable), with a human concierge gate at the front. The concierge proposes a tool belt from the crib (java, scripting, frontend, terraform-dac-infra, or python-service); the build + tester sockets are equipped from that belt, so the same line handles multiple work-types without duplication. Review + bounded fix loop + QA. The workflow does code work and pushes the branch (terminal state READY_TO_SHIP); the main loop creates the MR + Jira comment and runs post-merge validate. For multi-ticket / epic DAGs use Sprint Factory (/sprint-factory). Triggers on: '/dark-factory', 'dark factory', 'ticket to dev', 'run this ticket'. Klever."
 user_invocable: true
 nav:
@@ -30,7 +30,7 @@ ticket through this factory. More belts + rigor on the roadmap (`docs/roadmap.md
 
 The **workflow** does the code work: concierge → design → grill → implement (TDD with a **proven RED per
 AC** — test-only RED commit, fail-on-assertion — execution check, **pushes the feature branch**) → review
-→ **fix loop** (on a CRITICAL: targeted fix + re-review, max 2 rounds) → QA (proves each AC **and
+→ **fix loop** (on a blocking finding — a CRITICAL, or a HIGH the reviewer demonstrated with a failing test: targeted fix + re-review, max 2 rounds) → QA (proves each AC **and
 re-verifies the RED commit**) → ship-prep (version bump + push). It ends at `READY_TO_SHIP`. The **main loop** (this conversational context) does the things a workflow agent
 can't safely do: open the MR/PR on the code repo's forge, post the status comment (`/post-comment`),
 close out on the tracker (Jira transition, or `/wayfinder-report-back` for a GitHub issue), and —
@@ -67,7 +67,10 @@ work-type needing different room *logic* is a rare new floor, not a belt. Refini
 
 - `dark-factory.workflow.js` — the orchestrator (steps + JS gates + tool-belt routing + Retro).
 - `contracts/*.md` — per-phase instructions worker agents read and execute (1-8 + 9-retro).
-- `toolcrib/*.md` — tool belts (build/tester loadouts per work-type): `java`, `scripting`, `frontend`.
+- `toolcrib/*.md` — tool belts (build/tester loadouts per work-type): `java`, `scripting`, `frontend`,
+  `terraform-dac-infra`, `python-service`.
+- `tests/*.test.mjs` — gate regression harnesses; every one extracts the REAL workflow source.
+- `tools/mine-telemetry.py` — mines `runs/*.yaml` for recurring asks (the loop-closure test).
 
 ## Invocation
 
@@ -188,7 +191,8 @@ Only three things vary by source:
 
 No direct push to dev/main; no destructive git; DAC repos dev-only; ticket transition ceiling =
 In Review/Testing; all external posts via `/post-comment`. The workflow's JS gates enforce
-execution-verified, branch-pushed, zero-open-CRITICAL, evidence-backed QA, QA-green-before-ship, the
+execution-verified, branch-pushed, zero-open-blocking-findings (CRITICAL **or** demonstrated HIGH),
+evidence-backed QA, QA-green-before-ship, the
 **TDD RED gate** (a proven failing-first test per AC, re-verified by QA on the branch), the **visual-AC
 gate** (rendered-UI ACs route to `NEEDS_VISUAL_VERIFY` for a real render instead of a surprise
 `HALT_PRESHIP`; a `missing` data fixture is caught at the front gate), plus the front human gate.
@@ -216,6 +220,14 @@ updates are noise (Gab directive 2026-06-16, `feedback_no_external_status_update
 `READY_TO_SHIP` and a successful `NEEDS_VISUAL_VERIFY` render (screenshots = proof) post as usual.
 
 ## Status
+
+`0.10.1` — **the review gate acts on evidence, not on a self-reported label.** The bounded fix loop and
+the pre-ship gate now derive their blocking set from the `findings` array: a finding blocks when it is
+`CRITICAL`, **or** a `HIGH` the reviewer `demonstrated` with a failing test. Nine retros asked for this
+between 2026-06-22 and 2026-10-02. A count that disagrees with its own array is itself a blocker, and a
+missing array fails closed. Telemetry: two unparseable run files repaired (every prior analysis had
+silently run on 52 of 54 runs) and contract 9 now parse-checks what the Retro writes. New:
+`tools/mine-telemetry.py`. Guard: `tests/review-gate.test.mjs` (27 cases, 8 mutations detected).
 
 `0.10.0` — **GitHub Issues as a ticket driver.** The factory was Jira-only by assumption, not by
 design: the spine already treated the ticket as a black-box string, and the coupling was three

@@ -1,0 +1,239 @@
+run_id: run-2026-09-30-KTP-1257-phase2
+ticket: KTP-1257
+date: 2026-09-30
+terminal_status: HALT_TDD_GATE
+halt_phase: Implement
+repo: app-front-portal
+branch: KTP-1257-dooh-popup
+tip_sha: 4bf121e
+pushed: true
+belt: frontend
+ticket_folder: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-571/KTP-1257
+spec_source: AC-LOCAL.md (overrides the Jira description)
+run_note: >
+  Second dark-factory run on KTP-1257 today. The first (run-2026-09-30-KTP-1257, HALT_PRESHIP) built
+  the backend half on app-proximity-report. This run builds the frontend half on app-front-portal.
+  The two are separate runs on one Jira ticket, so this telemetry file is separate.
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  gate_layer: 1 (tddViolations, requireComplete=true)
+  ledger_repair_retry_fired: false
+  ledger_repair_note: >
+    The trace carries no implement-ledger-repair entry. isShapeOnlyTdd() therefore returned false, so
+    the violation was NOT a done-AC missing a ledger line. It was a malformed exempt, a missing
+    red.artifact, or an unconfirmed GREEN. The workflow does not persist the tdd_violations array to
+    disk, so this retro reconstructed the violating AC from git rather than reading it.
+  reconstructed_violating_ac: AC-0a
+  reconstruction_evidence: >
+    11 ACs are in scope (analyst/phase2/ac-list.json). tdd/phase2/ holds a RED and a GREEN capture for
+    AC-0b, AC-0c, AC-0d, AC-1, AC-2, AC-3, AC-4, AC-7, AC-8, AC-9. AC-0a has neither. package.json at
+    the tip registers 8 new test scripts, none of them for AC-0a. AC-0a's production code (the three
+    DOOH circle layers becoming symbol layers in use-dooh-pins.ts) landed only in 7cc7d5e, a
+    723-line production commit with no test file in it.
+
+phases:
+  - phase: concierge
+    status: PASS
+    confidence: 84
+  - phase: design
+    status: pass
+    confidence: 82
+  - phase: grill
+    status: partial
+    confidence: 73
+  - phase: implement
+    status: pass
+    confidence: 76
+  - phase: review
+    status: never_ran
+    confidence: null
+  - phase: fix
+    status: never_ran
+    confidence: null
+  - phase: qa
+    status: never_ran
+    confidence: null
+  - phase: preship
+    status: never_ran
+    confidence: null
+
+tdd_evidence_that_is_real:
+  note: >
+    The TDD work that WAS done is genuine, and that matters for reading the score. This was not a
+    fabricated ledger.
+  red_green_pairs: 10
+  red_commits_are_test_only: true
+  red_commits_fail_on_assertions: true
+  sample: >
+    tdd/phase2/RED-AC-0d.out shows "3 passed, 3 failed" with named assertion failures;
+    GREEN-AC-0d.out shows "6 passed, 0 failed". Every RED/GREEN pair differs byte-wise (checked with
+    cmp on all 8 pairs). Commits alternate RED (test file only) then GREEN (source only) across
+    c778508..0802368, with two explicit STUB commits (d3b4fa6, e02a9f2) so the RED fails on an
+    assertion and not on a missing symbol.
+  test_layer: >
+    tsx assertion scripts under components/planning-map-30v1/__tests__/, per the corrected
+    test_layer decision in factory/decisions.yaml. No new framework was scaffolded.
+
+scores:
+  task_confidence: 41
+  factory_fitness: 60
+
+deductions:
+  # --- task_confidence: 100 -> 41 ---
+  - score: task_confidence
+    points: 20
+    reason: >
+      The run halted at Implement. Review, the bounded fix loop, QA and pre-ship never ran. No
+      segregated reviewer has looked at this diff, no QA has re-verified a single RED, and there is
+      no MR. The branch is pushed but unexamined.
+  - score: task_confidence
+    points: 12
+    reason: >
+      AC-0a has no RED, no GREEN, no test file, no test script and no ledger entry. Its production
+      code (three circle layers becoming symbol layers, canvas icon registered by doohPinImageName)
+      is entirely unproven. It is the AC the gate halted on.
+  - score: task_confidence
+    points: 12
+    reason: >
+      Commit 7cc7d5e is 723 insertions of production code across 6 files (use-dooh-popup.ts 187 new,
+      dooh-picker.tsx 89, dooh-card.css 209, use-dooh-pins.ts +215, shell.tsx, store.ts) with zero
+      tests. It is the wiring that actually makes AC-1, AC-0b, AC-0c and AC-9 true at runtime. Their
+      earlier GREEN commits proved the pure modules (click-arbitration, dooh-cluster-click,
+      dooh-popup-render, store) and not the behaviour a user gets. Those four ledger entries are
+      stale proofs.
+  - score: task_confidence
+    points: 6
+    reason: >
+      10 of the 11 ACs are declared ac_kind "visual" in analyst/phase2/ac-list.json, and not one was
+      observed in a running browser. execute-verify-build.log and execute-verify-dev-boot.log prove a
+      Next build and a dev-server boot, nothing about what renders.
+  - score: task_confidence
+    points: 5
+    reason: >
+      AC-3's name/chip rows and AC-4's with-image path read backend fields that exist only on the
+      unmerged MR !144 (decisions.yaml, unmerged_backend_contract, Option A). Re-verification after
+      that merge is an outstanding real deliverable, not a formality.
+  - score: task_confidence
+    points: 4
+    reason: >
+      Contract 4 requires a per-AC ledger at <ticket_folder>/tdd/AC-<N>.md carrying the RED command,
+      failing output and commit sha, then the same for GREEN. Phase 2 wrote bare tdd/phase2/*.out
+      captures with no command line and no sha. tdd/AC-*.md in the folder are still phase 1's backend
+      ACs. Artifact-to-commit linkage has to be rebuilt by hand from git log.
+
+  # --- factory_fitness: 100 -> 60 ---
+  - score: factory_fitness
+    points: 10
+    reason: >
+      The gate fired only after the implement agent had written, committed and PUSHED 21 commits.
+      There is no mid-implement checkpoint, so a single missing RED costs the entire phase and leaves
+      an unreviewed branch on origin. The gate is correct and late.
+  - score: factory_fitness
+    points: 8
+    reason: >
+      tddViolations() cannot see the stale-GREEN pattern. An AC holding a valid RED/GREEN pair passes
+      the gate even when a later commit rewrites the behaviour it claims to prove. AC-1, AC-0b, AC-0c
+      and AC-9 passed layer 1 on exactly that basis.
+  - score: factory_fitness
+    points: 6
+    reason: >
+      The implement agent wrote its ledger to tdd/phase2/*.out instead of the contract-named
+      tdd/AC-<N>.md, and nothing in the workflow noticed. The gate reads the returned ac_tdd array and
+      never checks that red.artifact resolves to a file that exists.
+  - score: factory_fitness
+    points: 5
+    reason: >
+      No phase-2 run note was written. tdd/run-note.md is still phase 1's backend note, so the ticket
+      folder tells a reader the wrong story about the newest run.
+  - score: factory_fitness
+    points: 4
+    reason: >
+      The factory has no first-class notion of a multi-repo ticket. Phase 2 hand-namespaced its
+      artifacts (analyst/phase2/, tdd/phase2/, review/diff-phase2.patch) with no schema support, and
+      two runs on one ticket collide on the default run-<date>-<ticket>.yaml filename.
+  - score: factory_fitness
+    points: 4
+    reason: >
+      ac_kind "visual" carried no consequence. The concierge recorded it for 10 of 11 ACs and the
+      factory still routed every one to a unit belt, requiring no runtime observation anywhere.
+  - score: factory_fitness
+    points: 3
+    reason: >
+      The HALT_TDD_GATE payload (tdd_violations) is returned to the caller and never written to disk.
+      This retro had to reconstruct the violating AC from git history and file listings.
+
+red_flags:
+  - "AC-0a shipped production code with no test, no RED, no ledger entry and no exempt — the halt cause, and the one AC of eleven with nothing at all."
+  - "The final production commit 7cc7d5e is 723 lines across 6 files with zero tests, and it carries five AC ids in its subject line. Four of those five already had GREEN commits, so their ledger entries no longer describe the code that ships."
+  - "Grill returned status 'partial' at confidence 73, the lowest of the run, and the run continued into Implement without the partial being resolved into a pass."
+  - "10 of 11 ACs are ac_kind 'visual' and none was observed in a browser. The proof is a Next build plus a dev-server boot."
+  - "The per-AC TDD ledger required by contract 4 (tdd/AC-<N>.md, with shas) was never written for phase 2; only unlabelled .out captures exist, with no command line and no commit linkage."
+  - "The 8 new test:dooh* scripts were registered in package.json only in the last commit, so a reader checking out any RED commit cannot re-run that RED through the documented interface."
+  - "tdd/run-note.md in the ticket folder is phase 1's backend note. The phase-2 run left no run note, so the folder misrepresents the newest run."
+  - "Two dark-factory runs on KTP-1257 on the same day would have overwritten one telemetry file under the contract's default naming; this one needed a manual -phase2 suffix."
+  - "The whole frontend slice is built against unmerged backend fields from MR !144 (an accepted human decision, Option A), so the branch cannot be fully verified until that merge lands."
+  - "The branch is pushed to origin in an unreviewed, gate-halted state. Nothing on the remote marks it as not-ready."
+
+improvements:
+  - title: "Gate the last commit: no untested production commit after the final GREEN"
+    detail: >
+      Add a layer-1b check in dark-factory.workflow.js: after the implement agent reports pushed=true,
+      walk git log origin/dev..HEAD and flag any commit that touches production files (non-test,
+      non-CHANGELOG, non-package.json-version) and sits AFTER the GREEN sha of every AC it names in
+      its subject. 7cc7d5e would have been flagged as 723 production lines landing after four ACs had
+      already gone green. Halt with "stale GREEN: AC-N's proof predates the code that ships it."
+  - title: "Require red.artifact to resolve to a real file, and require the contract-named ledger path"
+    detail: >
+      tddViolations() currently trusts red.artifact as a string. Make it fs.existsSync() the path and
+      additionally require a tdd/AC-<N>.md (or tdd/<phase>/AC-<N>.md) that contains both commit shas.
+      Phase 2 wrote tdd/phase2/*.out with no shas and no command lines, and the gate was blind to the
+      divergence from contract 4.
+  - title: "Persist the halt payload to the ticket folder"
+    detail: >
+      On every HALT_* return, write the full payload (status, phase, tdd_violations, branch, tip sha)
+      to <ticket_folder>/factory/halt-<phase>-<timestamp>.json before returning. This retro spent most
+      of its budget reconstructing which AC failed the gate from git listings, because the violations
+      array exists only in the caller's return value.
+  - title: "Make ac_kind 'visual' bind to a runtime observation"
+    detail: >
+      The concierge already classifies each AC as visual or logic. Give the classification teeth: a
+      visual AC should require either a ui-probe proof screenshot or an explicit
+      visual_deferred(<why>) in the ledger, checked by the same gate. On this run 10 visual ACs were
+      proven entirely in tsx assertion scripts and the factory raised nothing.
+  - title: "Checkpoint the TDD gate per AC instead of once at the end of Implement"
+    detail: >
+      Run tddViolations() incrementally as the implement agent reports each AC, so a missing RED costs
+      one AC rather than 21 commits and a push. Today one unproven AC out of eleven discards a phase
+      whose other ten ACs have honest, byte-verified RED/GREEN pairs.
+  - title: "First-class multi-repo / multi-phase tickets"
+    detail: >
+      KTP-1257 needed two runs in two repos on one Jira key. Add a phase or slice identifier to the
+      run id so telemetry writes run-<date>-<ticket>-<slice>.yaml natively, and namespace the ticket
+      folder subtrees (analyst/, tdd/, review/) by that same slice instead of leaving agents to invent
+      phase2/ by hand.
+  - title: "Do not push a gate-halted branch bare; mark it"
+    detail: >
+      The implement contract pushes before the gate runs, so a halted run leaves an unreviewed branch
+      on origin that looks like any other. Either push after the gate, or on halt push an empty commit
+      or a branch description recording HALT_TDD_GATE so a human reading the remote sees it.
+  - title: "Resolve a 'partial' grill before entering Implement"
+    detail: >
+      Grill returned partial at confidence 73 (its rulings G3 and G6 changed the plan materially) and
+      the workflow only halts on status 'stuck'. Require a short design-amend round trip on 'partial',
+      or record the unresolved grill findings into the implement prompt so they cannot be silently
+      dropped.
+
+next_steps_for_the_ticket:
+  - "Write the AC-0a RED: assert doohPinImageName idempotency and that addDoohLayers emits symbol layers, against the pure icon module. If no unit surface exists, return exempt:'not_applicable(<why>)' honestly rather than a fabricated RED."
+  - "Split 7cc7d5e's behaviour under test, or ledger it explicitly as integration wiring with a visual proof."
+  - "Run ui-probe against the branch for the 10 visual ACs and attach proof screenshots."
+  - "Re-verify AC-3's name/chip rows and AC-4's with-image path after MR !144 merges."
+  - "Post the three outstanding frontend PO questions to Jira (noted as unposted in tdd/run-note.md), per the deferred-AC rule."
+
+summary: >
+  The frontend half of KTP-1257 halted on the TDD gate at Implement with 10 of 11 ACs carrying honest,
+  byte-verified RED/GREEN pairs and AC-0a carrying nothing. The deeper problem the gate did not catch
+  is a 723-line untested wiring commit that lands after four ACs had already gone green, which makes
+  their proofs stale.

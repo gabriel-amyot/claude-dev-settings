@@ -1,0 +1,247 @@
+run_id: run-2026-10-01-KTP-1272-slice2
+ticket: KTP-1272
+title: >
+  Planning Map layer control — slice 2, the integration-first run. Four binding steps: mount the
+  control in shell.tsx and call the swap from the real style path, fix grill G2 (DOOH restore must
+  repaint from lastPayload, never refetch), fix grill G1 (styleEpoch must reach use-zip-selection
+  and use-drill-down, with the strokeColorMemo re-seed), then AC-4 and AC-8 measured in the running
+  app. AC-15/16/17/17b explicitly out. Repo app-front-portal. Epic KTP-571.
+date: 2026-10-01
+terminal_status: HALT_TDD_GATE
+halt_phase: Implement
+halt_point: >
+  The layer-1 TDD gate after the full Implement pass. Violations were NOT shape-only, so the bounded
+  ledger-repair retry did not apply (no implement-ledger-repair entry in the trace) and the run hard
+  halted before Review, Fix and QA ever started.
+second_run_today: >
+  Yes. run-2026-10-01-KTP-1272 (HALT_AGENT_SKIPPED, 22/65) was the 20-AC slice earlier the same day.
+  This run is the recovery slice it handed off. Compare the two.
+session: >
+  unresolved — sessions/active/state.yaml carries an empty session_id. Handoff fell back to the
+  ticket folder under reports/, same as the first run.
+ticket_folder: ~/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-571/KTP-1272
+worktree: >
+  app-front-portal/.worktrees/KTP-1272-map-layer-control @ c17609a, branch
+  KTP-1272-map-layer-control. PUSHED: origin/KTP-1272-map-layer-control == HEAD, 0 commits ahead.
+  Working tree clean. Draft MR !423 open and must not merge.
+mr: >
+  https://cicd.prod.datasophia.com/grp-cst/grp-beklever-com/grp-faas/grp-app/grp-frontend/app-front-portal/-/merge_requests/423
+  (draft, deliberate)
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy_config: true
+  signal: real_and_correct
+  note: >
+    The gate ran in the default halt mode with zero warn-mode violations, so the configuration is
+    trustworthy and this halt is a true positive, not a config artifact. The gate did its job: it
+    caught a real missing-RED and refused to let an unproven AC through to Review. The commit graph
+    shows why. AC-2, AC-3, AC-6 and AC-12 each carry a clean STUB -> RED -> GREEN triplet. AC-4 and
+    AC-8 do not: commit c130307 "AC-4/AC-8 — the swap measured in the running app" added
+    e2e/ktp-1272-style-swap-live.spec.ts in ONE commit with no named RED before it. A live timing
+    budget asserted by a spec that was never proven to fail first proves nothing.
+  what_the_gate_bought: >
+    This is the gate's best showing to date. It held the line on exactly the AC pair that was most
+    tempting to wave through, and it halted a run whose other work is genuinely good.
+
+commit_evidence:
+  clean_triplets:
+    - "AC-12/AC-6: d09a5d1 STUB -> 46b37e1 RED -> 737e318 GREEN (control mounted, swap on the real path)"
+    - "AC-2: 5504803 STUB -> 462cffd RED -> 965b27e GREEN (DOOH restore re-registers from lastPayload)"
+    - "AC-1/AC-3: 61adaf2 STUB -> 8292fd0 RED -> b6c7a3e GREEN (ZIP fills in the manifest, stroke memo reset)"
+  no_triplet:
+    - "AC-4/AC-8: c130307 — e2e spec added in a single commit, no RED, no GREEN pair"
+  unlabelled_tail:
+    - "226a0f6 — wiring gate extended to the two id modules (test infra, not an AC)"
+    - "c17609a — suite runner ported to TypeScript (test infra, not an AC)"
+  ledger_on_disk:
+    - "tdd/AC-1.md only. Six-plus ACs were touched; one ledger file exists. The gate reads the returned JSON, not the disk, so disk and gate disagreed silently."
+
+per_phase:
+  - phase: concierge
+    status: PASS
+    confidence: 82
+    note: >
+      Front gate carried the first run's rulings forward intact (AC-13 dropped, component at
+      components/map-layer-control/, Streets click goes to Light, prototype copy including "Map
+      type", KLEVER_COLORS over mockup neutrals, planning-map-30v1 rename out of scope). It also
+      cut the slice from 20 ACs to four binding steps. That is the prior retro's improvement #1
+      applied by hand.
+  - phase: design
+    status: pass
+    confidence: 82
+    note: >
+      Integration-first ordering, which is the prior retro's improvement #3 applied by hand. The
+      plan put mount-and-wire at step 1 and the pure-function ACs behind it. The commit graph shows
+      the plan was followed in order.
+  - phase: grill
+    status: partial
+    confidence: 74
+    note: >
+      Partial again, as in run 1. The difference is that this time G1 and G2 were scheduled as slice
+      steps 2 and 3 instead of being carried past the gate unresolved. Both are now fixed in
+      committed code. G12 (a reorderToManifest reconciler plus a live post-swap order assertion) is
+      still open and is named as out-of-slice inside tdd/AC-1.md.
+  - phase: implement
+    status: partial
+    confidence: 68
+    note: >
+      Self-reported partial and honest about it. Real integration landed: shell.tsx, left-panel.tsx,
+      use-zip-selection.ts, use-drill-down.ts and layer-manifest.ts were all edited, so the dead-code
+      failure of run 1 is closed. The branch was pushed. The worktree exited clean. The miss is
+      narrow and specific: AC-4 and AC-8 have no RED.
+  - phase: review
+    status: not_reached
+    confidence: null
+  - phase: fix
+    status: not_reached
+    confidence: null
+  - phase: qa
+    status: not_reached
+    confidence: null
+
+scores:
+  task_confidence: 45
+  factory_fitness: 63
+
+deductions:
+  - points: 20
+    score: task_confidence
+    reason: >
+      Halted before Review, Fix and QA. No AC on this branch has been checked by anything other than
+      the agent that wrote it. Layer-2 QA re-verification of the REDs never ran.
+  - points: 10
+    score: task_confidence
+    reason: >
+      AC-4 and AC-8, the two ACs that need a running app, landed as one commit (c130307) with no
+      RED-first triplet. The 400 ms swap budget and the zero-request rule are asserted by a spec
+      never proven able to fail. These are the slice's two highest-risk ACs.
+  - points: 8
+    score: task_confidence
+    reason: >
+      Implement returned status partial at soft confidence 68, its own estimate that the slice is
+      not finished.
+  - points: 7
+    score: task_confidence
+    reason: >
+      AC-15, AC-16, AC-17 and AC-17b were cut out of the slice on purpose. The ticket needs at least
+      one more run after this branch merges.
+  - points: 5
+    score: task_confidence
+    reason: >
+      The on-disk tdd/ ledger holds one file (AC-1.md) for six-plus touched ACs. The documented
+      recovery save point is mostly empty, so a session that dies here rebuilds from git log again.
+  - points: 5
+    score: task_confidence
+    reason: >
+      MR !423 is a deliberate draft that must not merge, and grill G12 is still open. Nothing from
+      this run is deployable today.
+  - points: 10
+    score: factory_fitness
+    reason: >
+      The ticket needed a second run the same day. The prior retro's top improvement (cap the
+      Implement slice at the AC ceiling in workflow.js) was written to a markdown handoff and then
+      re-applied by a human concierge, not by code. An improvement that only lives in prose is not
+      a factory improvement.
+  - points: 8
+    score: factory_fitness
+    reason: >
+      The TDD gate fires once, after the ENTIRE Implement pass. Twelve commits of good work ran
+      before the gate said AC-4/AC-8 had no RED. A per-AC checkpoint would have said so at 23:20,
+      with the context still live and the fix costing one commit.
+  - points: 7
+    score: factory_fitness
+    reason: >
+      A genuine missing-RED has no cheap path back. isShapeOnlyTdd deliberately excludes it, so the
+      only recovery is a full re-run of Implement. The run was one RED commit away from clearing
+      the gate and got no bounce to produce it.
+  - points: 5
+    score: factory_fitness
+    reason: >
+      Contract 4 asks for tdd/AC-<N>.md per AC, but tddViolations reads only the returned ac_tdd
+      JSON. Disk and gate can disagree with no alarm, and here they did: one file, six-plus ACs.
+  - points: 4
+    score: factory_fitness
+    reason: >
+      Two tail commits (226a0f6, c17609a) are legitimate test infrastructure with no AC and no
+      triplet. The contract has no slot for them, so honest infra work looks like gate noise and an
+      agent is nudged toward mislabelling it as an AC commit.
+  - points: 3
+    score: factory_fitness
+    reason: >
+      Nothing re-injects a prior retro's improvements into the next run of the SAME ticket. The
+      concierge happened to read SESSION_STATE.md. That was luck plus a careful human, not a gate.
+
+red_flags:
+  - "AC-4 and AC-8 landed in one commit with no RED. The two ACs needing a live app are the two with the weakest proof, for the second run in a row."
+  - "The gate fired only after the whole Implement pass, twelve commits downstream of the defect it caught."
+  - "The ledger-repair bounce did not apply (violations not shape-only), so a one-commit gap cost the entire Implement phase."
+  - "tdd/ holds AC-1.md and nothing else, while the gate was fed a fuller ac_tdd array. Disk evidence and gate evidence diverged with no warning."
+  - "Two unlabelled test-infra commits sit at HEAD, so HEAD is not a GREEN commit even though the code is sound."
+  - "Grill came back partial for the second consecutive run on this ticket. G12 is still open."
+  - "Second dark-factory run on one ticket in one day. The first run's top improvement was applied by a human, not by workflow.js."
+  - "Session unresolved again: sessions/active/state.yaml still has an empty session_id, so the handoff fell back to the ticket folder for the second time today."
+  - "The slice deliberately defers four ACs (AC-15/16/17/17b), so the gate's halt is layered on top of a slice that was already partial by design."
+
+improvements:
+  - title: "Gate each AC at its GREEN, not the whole pass at the end"
+    detail: >
+      In workflow.js, run tddViolations on the single AC the agent just reported, at each GREEN,
+      instead of only on the full ac_tdd array after Implement returns. A missing RED then halts one
+      AC at a cost of one commit, with the agent's context still warm. On this run that converts a
+      HALT_TDD_GATE into a 60-second correction at 23:20. Keep the end-of-pass completeness check as
+      a backstop.
+  - title: "Give a genuine missing-RED one bounded RED-repair bounce"
+    detail: >
+      Add a sibling to the ledger-repair retry: when the ONLY violations are missing-RED on ACs that
+      already have GREEN code, bounce once to a repair agent with the worktree and a single
+      instruction — revert the GREEN hunks for that AC in a scratch checkout, write and run the
+      failing test, commit it as a test-only RED BEFORE the existing GREEN, then re-gate. It must
+      fail honestly if the test cannot be made to fail for the right reason. This is strictly
+      narrower than a full Implement re-run and preserves the gate's teeth.
+  - title: "Make the gate read the disk ledger, not just the JSON"
+    detail: >
+      tddViolations should require that tdd/AC-<N>.md exists for every non-exempt entry and that it
+      names the RED and GREEN shas. A returned ac_tdd entry with no file is a violation. This run
+      would have surfaced the gap at AC-2, five commits earlier, and the recovery save point
+      promised by CLAUDE.md would actually exist.
+  - title: "Cap the Implement slice in code, not in the handoff"
+    detail: >
+      Carry over unimplemented from run 1. workflow.js should refuse an Implement slice above the
+      2-3 AC ceiling unless the concierge supplies an explicit split, and a granted raise should
+      force sequential sub-agents of at most five ACs each. Run 1 took 20 ACs and died; run 2 took
+      four and nearly cleared. The evidence for this rule is now two runs deep on one ticket.
+  - title: "Front-load the runtime-proof ACs inside the slice"
+    detail: >
+      AC-4 and AC-8 were step 4 of 4 in a slice that already put integration first. They still ended
+      up last and still ended up the weakest. The plan contract should order any AC requiring a
+      running app ahead of the pure-function ACs that depend on the same design, so a failed timing
+      budget invalidates the design early rather than at the end.
+  - title: "Add an explicit infra commit class"
+    detail: >
+      Contract 4 should name a fourth commit prefix for test-harness work that belongs to no AC
+      (here: the wiring-gate extension and the TypeScript suite runner), and the gate should ignore
+      it. Without a slot, honest infra work either looks like noise or gets mislabelled onto an AC.
+  - title: "Re-inject the previous retro automatically when a ticket re-enters the factory"
+    detail: >
+      On start, workflow.js should look for runs/run-*-<TICKET>*.yaml and paste the prior run's red
+      flags and improvements into the concierge prompt. On this run a careful human did that by
+      hand through SESSION_STATE.md. The next ticket may not get one.
+  - title: "Require a GREEN commit at HEAD before Review"
+    detail: >
+      An exit check that HEAD is a GREEN or infra commit, never a RED. Run 1 halted on a RED HEAD;
+      run 2 halted on unlabelled infra. Neither is a state another session should resume from
+      blind.
+
+what_went_right:
+  - "Integration-first worked. shell.tsx, left-panel.tsx, use-zip-selection.ts, use-drill-down.ts and layer-manifest.ts were all edited. The dead-code failure of run 1 is closed."
+  - "The branch is pushed and the worktree is clean at the halt. Both are direct fixes of run 1 red flags 3 and 9."
+  - "Grill G1 and G2 were scheduled as slice steps instead of being carried past the gate. Both are fixed in committed code."
+  - "Four ACs carry clean, correctly ordered STUB -> RED -> GREEN triplets."
+  - "The gate caught a real defect in halt mode with zero warn violations. This halt is the system working."
+
+resume_pointer: >
+  See reports/dark-factory-improvements-KTP-1272-slice2.md in the ticket folder. Short version: do
+  NOT restart the ticket and do NOT re-run Implement from scratch. The branch is pushed at c17609a.
+  Write the AC-4/AC-8 RED, re-gate, then let Review and QA run.

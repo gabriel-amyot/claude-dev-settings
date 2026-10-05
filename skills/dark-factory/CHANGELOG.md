@@ -2,6 +2,39 @@
 
 Every SKILL.md / workflow.js / contract change bumps the version and adds an entry.
 
+## 0.10.1 (2026-10-05)
+
+**The review gate acts on evidence, not on a self-reported label** — plus repair of the telemetry the
+auto-improve loop learns from. Driven by a mining pass over all 54 `runs/*.yaml` (new tool:
+`tools/mine-telemetry.py`), which found the loop half-closing: 13 retros explicitly declare their own
+finding a repeat of an earlier one, and only 9 of 54 runs reached `READY_TO_SHIP`.
+
+- **`blockingFindings()` replaces `review.criticals_open` as the gate predicate** in both the bounded
+  fix loop and `preShipBlockers`. A finding blocks when it is `CRITICAL`, **or** a `HIGH` the reviewer
+  marked `demonstrated: true` (meaning they wrote a test and watched it fail). Nine retros between
+  2026-06-22 and 2026-10-02 filed this; run 5 of KTP-1272 shipped past a demonstrated HIGH with a
+  failing test because the fix loop keyed on CRITICAL alone. The schema has carried `severity` +
+  `demonstrated` per finding since 0.9.3 — the gate was ignoring data it already had, so this needed
+  no new agent work.
+- **The findings array outranks the count.** `criticals_open` is a claim about data that is sitting
+  right there. `reviewCountMismatch()` surfaces a disagreement as its own pre-ship blocker and a log
+  line, rather than letting a review miscount its own output silently.
+- **Fail closed on a malformed review.** Deriving from the array means a MISSING array must block.
+  The 0.9.0 visual-readiness harness caught this the moment the derive landed: a review claiming
+  `criticals_open: 1` with no `findings` array would have shipped clean. `findings` is schema-required,
+  so its absence is a malformed review, not a quiet one.
+- **Contract 5 tells the reviewer what actually blocks**, so severity choice stops being a lever on the
+  pipeline: both CRITICAL and demonstrated-HIGH block, `demonstrated` is a factual claim rather than
+  emphasis, and an undemonstrated hunch is free to be recorded honestly because it does not block.
+- **Telemetry repair + a write-time guard.** Two run files did not parse, so every prior analysis
+  silently ran on 52 of 54 runs. `run-2026-08-20-KTP-869` embedded literal ESC bytes while describing
+  an escape-injection bug and corrupted itself; `run-2026-10-02-KTP-1272-slice3` left a commit subject
+  containing `: ` unquoted. Both fixed, and contract 9 now requires the Retro to parse-check the YAML
+  it writes, with both traps named.
+- Guard: `tests/review-gate.test.mjs` — 27 cases, mutation-checked with 8 mutations, all detected.
+  `tests/visual-readiness.test.mjs` gained the two new functions as extraction dependencies and a
+  schema-valid `cleanReview` fixture. All four harnesses green (27/24/22/18).
+
 ## 0.10.0 (2026-10-05)
 
 **GitHub Issues as a ticket driver, alongside Jira.** Asked for by Gab to unblock work tracked on a

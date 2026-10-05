@@ -1,0 +1,237 @@
+run_id: run-2026-10-01-KTP-1272
+ticket: KTP-1272
+title: >
+  Planning Map layer control — one bottom-left control in three views (collapsed square, row,
+  panel) plus a light/dark/streets basemap switch that survives a mapbox setStyle. Run slice =
+  Part 1 (AC-1..AC-17b, AC-13 dropped) plus AC-36, AC-37, AC-39 = 20 ACs in ONE run. Repo
+  app-front-portal. Epic KTP-571.
+date: 2026-10-01
+terminal_status: HALT_AGENT_SKIPPED
+halt_phase: Implement
+halt_point: "AC-15 RED (commit 724c335) — 43rd commit; agent returned null before AC-15 GREEN"
+session: >
+  unresolved — sessions/active/state.yaml has an empty session_id and no ledger session was opened
+  on 2026-10-01. Handoff fell back to the ticket folder under reports/.
+ticket_folder: ~/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-571/KTP-1272
+worktree: >
+  app-front-portal/.worktrees/KTP-1272-map-layer-control @ 724c335,
+  branch KTP-1272-map-layer-control, base origin/dev @ b62c137 (v2.0.32). NOT pushed to origin.
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy_config: true
+  signal: real_but_partial
+  note: >
+    The gate ran in the default halt mode with zero warn-mode violations, so the configuration is
+    trustworthy. The signal is real: the branch carries a clean STUB -> RED -> GREEN triplet for
+    each of 14 ACs, 43 commits, every RED named and committed before its GREEN. The signal is also
+    narrow: every RED is a pure-function or fixture test. No AC was proven against the mounted
+    Planning Map, so a GREEN here means "the module computes the right answer", not "the user sees
+    the behaviour".
+
+per_phase:
+  - phase: concierge
+    status: PASS
+    confidence: 82
+    note: >
+      Front gate did real work: ruled six AC-LOCAL divergences (click interaction, "Map type" copy,
+      geometry, AC-13 drop, components/map-layer-control/ location, Streets -> Light), and raised the
+      2-3 AC session ceiling to 20 deliberately, with WIP-commit-per-AC named as the safety net.
+  - phase: design
+    status: pass
+    confidence: 80
+    note: design/impl-plan.md — styleEpoch mechanism, seam choice sound, 11 steps.
+  - phase: grill
+    status: partial
+    confidence: 79
+    note: >
+      design/grill-report.md verified 10 plan claims against origin/dev and raised 11 gaps, two
+      CRITICAL (G1 missing epoch deps on use-zip-selection + use-drill-down; G2 the AC-2 lastKey
+      null branch fails AC-4's zero-requests rule), two needing a human ruling (G5, G6), two
+      unverified assumptions (G8 setStyle failure behaviour, G9 the 400 ms budget). The workflow
+      advanced to Implement with all six still open.
+  - phase: Implement
+    status: agent_null
+    confidence: null
+    note: >
+      Agent returned null -> HALT_AGENT_SKIPPED. 43 commits and 2997 insertions across 32 files
+      survive in the local worktree. 14 of the 20 slice ACs reached GREEN. The tree is dirty at the
+      halt (style-contrast.ts +225 uncommitted, scratch-contrast-check.ts untracked).
+  - phase: review
+    status: not_reached
+    confidence: null
+  - phase: qa
+    status: not_reached
+    confidence: null
+
+ac_coverage:
+  slice_size: 20
+  green: [AC-1, AC-2, AC-3, AC-5, AC-6, AC-7, AC-9, AC-10, AC-11, AC-12, AC-14, AC-36, AC-37, AC-39]
+  green_count: 14
+  incomplete:
+    - AC-15   # RED committed, GREEN never written — the halt point
+    - AC-16
+    - AC-17
+    - AC-17b
+    - AC-4    # zero-request proof — never attempted
+    - AC-8    # 400 ms budget, 10/10 runs — never attempted
+  caveat: >
+    All 14 GREENs are fixture-level. See integration_gap.
+
+integration_gap:
+  severity: critical
+  finding: >
+    The run produced a complete, tested, parallel module set that nothing uses. `styleEpoch` appears
+    in zero files outside the new style-swap module. No existing hook was touched
+    (use-dooh-pins.ts, use-pois.ts, use-zip-selection.ts, use-drill-down.ts, use-census-choropleth.ts,
+    use-competitors.ts, use-agent-highlight.ts, boundaries.ts are all unmodified). shell.tsx is
+    unmodified, so <MapLayerControl> is never mounted. The only link from existing code into the new
+    code is one `import type` in store.ts.
+  consequence: >
+    Zero user-visible behaviour exists on the branch. A reviewer reading "14 of 20 ACs GREEN" would
+    over-read it. The grill's two CRITICAL findings (G1, G2) are also untested by construction,
+    because the hooks they concern were never edited.
+  cause: >
+    The plan ordered every pure-function AC before the integration step, and the single Implement
+    agent died before reaching it. A 20-AC slice with integration last puts the whole payoff behind
+    the longest possible context window.
+
+artifacts_produced:
+  - analyst/ac.json (20-AC run slice, post-divergence), analyst/affected-repos.json, analyst/assumptions.json
+  - AC-LOCAL.md (authoritative spec, six divergences ruled by Gabriel, Leo-reviewed)
+  - design/impl-plan.md, design/grill-report.md (11 gaps, exact file:line evidence against origin/dev)
+  - architecture/adr/ADR-draft-style-epoch-re-registration.md
+  - mockup/extracted/ (prototype rendered and measured)
+  - branch KTP-1272-map-layer-control — 43 commits, 32 files, 2997 insertions, 13 new test files
+  - 14 new npm test:* scripts in package.json
+artifacts_missing:
+  - tdd/ ledger folder exists but is EMPTY — no per-AC RED/GREEN ledger was written
+  - review/ folder exists but is EMPTY — the review phase never ran
+  - No QA run, no MR, no push; the branch exists only on this machine
+  - No integration commit: control unmounted, no hook carries styleEpoch
+
+scores:
+  task_confidence: 22
+  factory_fitness: 65
+
+deductions:
+  # ---- task_confidence: 100 -> 22
+  - points: 30
+    reason: >
+      task_confidence: Implement halted on agent_null at AC-15 RED. Six of the 20 slice ACs are
+      incomplete (AC-15 GREEN, AC-16, AC-17, AC-17b, plus AC-4 and AC-8 which were never attempted).
+      The run ended mid-triplet, which is the worst stopping point in a TDD line.
+  - points: 22
+    reason: >
+      task_confidence: zero integration. No hook carries styleEpoch, shell.tsx is untouched, the
+      control is never mounted. The feature a user would see does not exist on the branch, so none
+      of the 14 GREENs is deployable behaviour.
+  - points: 10
+    reason: >
+      task_confidence: the branch was never pushed. 43 commits and 2997 lines live in one local
+      worktree with no remote copy. A `git clean`, a worktree prune, or a disk loss takes the whole
+      run with it.
+  - points: 8
+    reason: >
+      task_confidence: review and QA never ran. review/ is empty and tdd/ holds no AC ledger, so
+      nothing independent has looked at the 2997 lines.
+  - points: 5
+    reason: >
+      task_confidence: the grill's CRITICAL G1 (use-zip-selection + use-drill-down missing from the
+      epoch dependency list) and G2 (the lastKey-null branch contradicts AC-4) are unresolved, and
+      the code as committed still nulls lastKey at use-dooh-pins.ts:496/511. Rework is already owed.
+  - points: 3
+    reason: >
+      task_confidence: G5 and G6 need a one-line human ruling (colour-token policy) and G8/G9 are
+      unverified assumptions (setStyle failure behaviour, the 400 ms budget). AC-5 and AC-8 are
+      built on untested premises.
+  # ---- factory_fitness: 100 -> 65
+  - points: 12
+    reason: >
+      factory_fitness: no slice-size gate. The factory accepted a 20-AC single-agent Implement, four
+      times the standing 2-3 AC ceiling. The ceiling exists because of exactly this failure mode, and
+      the run died from it. "WIP commits are the safety net" protected the code but not the run.
+  - points: 8
+    reason: >
+      factory_fitness: no checkpoint push. The factory committed 43 times and pushed zero times.
+      A push after every GREEN costs nothing and converts a halt into a resumable state.
+  - points: 6
+    reason: >
+      factory_fitness: the grill returned `partial` with two CRITICAL defects and two open human
+      rulings, and the workflow advanced into Implement anyway. A partial grill should gate.
+  - points: 5
+    reason: >
+      factory_fitness: no integration gate. Nothing in the line asks "is any of this reachable from
+      a mounted component?" The factory can report 14 GREENs for code with no call sites.
+  - points: 4
+    reason: >
+      factory_fitness: agent_null returned no partial state. Progress had to be reconstructed in the
+      retro from `git log` and a diff of the worktree, because no phase wrote the tdd/ ledger it was
+      meant to maintain as it went.
+
+red_flags:
+  - "Implement returned agent_null after 43 commits — no error, no partial result, no resume token."
+  - "The halt landed on a RED commit (AC-15), so HEAD is a knowingly-failing state."
+  - "43 commits, 2997 insertions, never pushed. The entire run is one `git clean` from gone."
+  - "styleEpoch appears in zero files outside the new module: 14 ACs GREEN with no call site."
+  - "shell.tsx untouched — the control the ticket is about is not mounted anywhere."
+  - "The grill's two CRITICAL findings were carried into Implement unresolved; use-dooh-pins.ts still nulls lastKey, which G2 says fails AC-4."
+  - "A 20-AC slice was approved at the concierge gate against the 2-3 AC ceiling, with no extra checkpoint machinery added to compensate."
+  - "tdd/ and review/ exist but are empty — folders scaffolded, ledger never written."
+  - "Dirty worktree at the halt: style-contrast.ts +225 uncommitted and scratch-contrast-check.ts untracked."
+  - "AC-4 and AC-8 (the two runtime-proof ACs) sat last in the order and were never attempted — the proof-hardest ACs are the ones a long run always loses."
+  - "`npx tsx` runs the whole new test suite unpinned from the registry (grill G11); 14 more test:* scripts now depend on it."
+
+improvements:
+  - title: Cap the Implement slice, or force a checkpoint agent per N ACs
+    detail: >
+      workflow.js should refuse an Implement phase whose slice exceeds the AC ceiling unless the
+      concierge supplies an explicit split. When a raise is granted, the gate must split Implement
+      into sequential sub-agents of <= 5 ACs, each handing the next a one-page state note. KTP-1272
+      ran 20 in one agent and lost the last 6 plus all integration.
+  - title: Push after every GREEN, not at the end of the phase
+    detail: >
+      Add a post-GREEN hook in the TDD loop running `git push -u origin <branch>` unpiped. A halt
+      then leaves a remote branch another session can pick up. Today a HALT_AGENT_SKIPPED leaves the
+      work reachable only from one machine's .worktrees/ directory.
+  - title: Make an integration AC the FIRST build step, not the last
+    detail: >
+      Reorder the plan contract so the mount/wire step (component rendered in the real shell, the
+      new mechanism called from one real hook) is step 1, with the pure-function ACs built behind
+      it. A thin vertical slice first means a halt leaves something that works.
+  - title: Gate on "every new module has a non-test call site"
+    detail: >
+      Add a code gate before Implement reports PASS: for each new source file, grep for an importer
+      outside __tests__/. KTP-1272 would have failed it on 13 of 13 new files. This is the check
+      that would have caught the integration gap at the phase boundary instead of in the retro.
+  - title: A `partial` grill must block Implement until its CRITICAL items are resolved
+    detail: >
+      Contract 3 should emit `critical_findings[]`. workflow.js blocks the Implement phase while any
+      is unresolved, and the resolution has to be written into AC-LOCAL.md or the plan. G1 and G2
+      were CRITICAL, correct, and ignored.
+  - title: Write the tdd/ ledger as the loop runs, not at phase end
+    detail: >
+      One file per AC appended at each STUB/RED/GREEN transition. The retro for this run had to
+      rebuild AC coverage from `git log --format=%s`, which only worked because the commit subjects
+      happened to name their ACs.
+  - title: Require a clean worktree at every phase exit
+    detail: >
+      Exit-check `git status --porcelain` is empty. The halt left 225 uncommitted lines in
+      style-contrast.ts and an untracked scratch-contrast-check.ts, both of which die silently.
+  - title: Front-load the runtime-proof ACs that need a human or a dev server
+    detail: >
+      AC-4 (zero network requests) and AC-8 (400 ms, 10/10 runs) plus the grill's G8/G9 unverified
+      assumptions all need a running app. Schedule them early: if the budget misses, the whole
+      styleEpoch design changes, and discovering that at AC-20 wastes the run.
+
+next_run:
+  resume_from: >
+    The branch is live and good. Do NOT restart. Check out
+    .worktrees/KTP-1272-map-layer-control @ 724c335, push it first, then: (1) commit or discard the
+    dirty style-contrast.ts and delete scratch-contrast-check.ts, (2) finish AC-15 GREEN,
+    (3) do the integration step (mount the control in shell.tsx, wire styleEpoch through the hooks
+    INCLUDING use-zip-selection and use-drill-down per grill G1), (4) fix G2 (stop nulling lastKey;
+    re-register from lastPayload), (5) then AC-16, AC-17, AC-17b, AC-4, AC-8.
+  blocked_on_human:
+    - "G5/G6: the colour-token ruling (map the mockup neutrals onto KLEVER_COLORS and accept drift, or keep them as a ticket-scoped exception in tokens.ts)."

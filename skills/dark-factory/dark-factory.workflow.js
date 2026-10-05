@@ -342,12 +342,66 @@ function executionOk(ev) {
   return v === 'true' || v.indexOf('not_applicable') === 0
 }
 
+// What the fix loop and the pre-ship gate must actually act on (0.10.0).
+//
+// Both used to read `review.criticals_open`, a self-reported integer. Two failure modes followed, and
+// the retros filed the same complaint nine times between 2026-06-22 and 2026-10-02 without it landing:
+//
+//  1. A reviewer holding a FAILING TEST filed it as `severity: HIGH, demonstrated: true`, so
+//     criticals_open stayed 0 and the fix loop never ran. A proven defect is a proven defect; the
+//     severity label is the reviewer's opinion, the failing test is evidence. Evidence outranks the label.
+//  2. criticals_open could disagree with the findings array it supposedly counts. A count is a claim
+//     about the data; the data is right there. Derive, never trust the summary field.
+//
+// The schema has carried `severity` + `demonstrated` per finding since 0.9.3 — no new agent work is
+// needed, the gate was simply ignoring data it already had.
+function blockingFindings(review) {
+  if (!review || !Array.isArray(review.findings)) return []
+  return review.findings.filter((f) => {
+    if (!f) return false
+    const sev = String(f.severity || '').toUpperCase()
+    if (sev === 'CRITICAL') return true
+    return sev === 'HIGH' && f.demonstrated === true
+  })
+}
+
+// The self-reported count disagreeing with the findings array is itself worth surfacing: it means a
+// review agent miscounted its own output, which is exactly the kind of drift the Retro should see.
+function reviewCountMismatch(review) {
+  if (!review || !Array.isArray(review.findings)) return null
+  const actualCriticals = review.findings.filter((f) => f && String(f.severity || '').toUpperCase() === 'CRITICAL').length
+  const claimed = review.criticals_open
+  if (typeof claimed === 'number' && claimed !== actualCriticals) {
+    return `review reported criticals_open=${claimed} but its findings array holds ${actualCriticals} CRITICAL(s)`
+  }
+  return null
+}
+
 function preShipBlockers(impl, review, qaCapped, qaGap) {
   const b = []
   if (!impl || !executionOk(impl.execution_verified)) b.push(`execution not verified (${impl ? impl.execution_verified : 'no impl'})`)
   if (!impl || impl.pushed !== true) b.push('feature branch was not pushed (review/QA could not see the code)')
   if (!review) b.push('no review artifact')
-  else if (review.criticals_open > 0) b.push(`${review.criticals_open} open CRITICAL finding(s)`)
+  else if (!Array.isArray(review.findings)) {
+    // Deriving from the findings array means a MISSING array must fail closed. `findings` is
+    // schema-required, so its absence is a malformed review, not a clean one — and if the review
+    // also claims open criticals, believing the claim is the only safe reading.
+    b.push(review.criticals_open > 0
+      ? `review claims ${review.criticals_open} open CRITICAL finding(s) but returned no findings array`
+      : 'review returned no findings array (schema-required; cannot verify it was clean)')
+  } else {
+    const blocking = blockingFindings(review)
+    if (blocking.length) {
+      const crit = blocking.filter((f) => String(f.severity).toUpperCase() === 'CRITICAL').length
+      const demoHigh = blocking.length - crit
+      const parts = []
+      if (crit) parts.push(`${crit} open CRITICAL finding(s)`)
+      if (demoHigh) parts.push(`${demoHigh} DEMONSTRATED HIGH finding(s) (proven defect, severity label notwithstanding)`)
+      b.push(parts.join(' + '))
+    }
+    const mismatch = reviewCountMismatch(review)
+    if (mismatch) b.push(mismatch)
+  }
   // A QA verdict below ALL_PASS blocks ONLY when the gap is real (a logic AC failed, or a PASS AC lacked
   // evidence/RED). A 'visual_only' gap — every non-PASS AC is a rendered-UI AC awaiting a live screenshot —
   // does NOT block here; it routes to NEEDS_VISUAL_VERIFY so the main loop renders it against the local
@@ -678,24 +732,32 @@ record is unverifiable).`
   phase('Review')
   let review = await agent(reviewPrompt, { schema: REVIEW_SCHEMA, label: 'review', phase: 'Review', isolation: 'worktree' })
   if (!review) return { ...agentSkipped('Review'), branch: impl.branch }
-  rec('review', review, 'criticals:' + review.criticals_open)
+  rec('review', review, 'blocking:' + blockingFindings(review).length)
+  {
+    const mm = reviewCountMismatch(review)
+    if (mm) log(`Review self-count mismatch — ${mm}. Trusting the findings array.`)
+  }
 
-  // Bounded fix loop (0.6.0): on a CRITICAL, bounce back to a targeted fix + re-review instead of
-  // halting on the first pass. Harvested from v1's Quinn-attacks/Amelia-fixes loop and sprint-crawl's
-  // review->implement revert. Bounded so a persistent critical still HALTs rather than looping forever.
+  // Bounded fix loop (0.6.0): on a blocking finding, bounce back to a targeted fix + re-review instead
+  // of halting on the first pass. Harvested from v1's Quinn-attacks/Amelia-fixes loop and sprint-crawl's
+  // review->implement revert. Bounded so a persistent defect still HALTs rather than looping forever.
+  // 0.10.0: keys on blockingFindings() (CRITICAL, or a DEMONSTRATED HIGH) instead of the self-reported
+  // criticals_open integer — see the comment on blockingFindings for the nine retros that asked for this.
   const MAX_FIX_ROUNDS = 2
   let fixRounds = 0
-  while (review.criticals_open > 0 && fixRounds < MAX_FIX_ROUNDS) {
+  while (blockingFindings(review).length > 0 && fixRounds < MAX_FIX_ROUNDS) {
     fixRounds++
-    const criticals = (review.findings || []).filter((f) => f.severity === 'CRITICAL')
+    const criticals = blockingFindings(review)
     phase('Fix')
     const fix = await agent(`${readContract('4-implement')}
-FIX MODE (round ${fixRounds}/${MAX_FIX_ROUNDS}). You are addressing ONLY the open CRITICAL review findings
+FIX MODE (round ${fixRounds}/${MAX_FIX_ROUNDS}). You are addressing ONLY the blocking review findings
 below — do NOT add scope, refactor unrelated code, or touch ACs that already pass. The runtime gave you
 your own worktree: 'git fetch origin ${impl.branch}' then 'git checkout ${impl.branch}'. For each finding:
 write/keep a test that demonstrates the bug, fix the code minimally, re-run the affected tests, then PUSH
 the branch. Return execution_verified honestly and pushed=true.
-OPEN CRITICAL FINDINGS: ${JSON.stringify(criticals)}`,
+A finding is listed below because it is CRITICAL, or because it is a HIGH the reviewer DEMONSTRATED with
+a failing test. Both are proven defects — do not argue the severity label, fix the defect.
+BLOCKING FINDINGS: ${JSON.stringify(criticals)}`,
       { schema: IMPLEMENT_SCHEMA, label: `fix-round-${fixRounds}`, phase: 'Fix', isolation: 'worktree' })
     if (!fix) return { ...agentSkipped('Fix'), branch: impl.branch }
     rec(`fix-${fixRounds}`, fix)
@@ -710,9 +772,15 @@ OPEN CRITICAL FINDINGS: ${JSON.stringify(criticals)}`,
     phase('Review')
     review = await agent(reviewPrompt, { schema: REVIEW_SCHEMA, label: `review-r${fixRounds + 1}`, phase: 'Review', isolation: 'worktree' })
     if (!review) return { ...agentSkipped('Review'), branch: impl.branch }
-    rec(`review-${fixRounds + 1}`, review, 'criticals:' + review.criticals_open)
+    rec(`review-${fixRounds + 1}`, review, 'blocking:' + blockingFindings(review).length)
   }
-  if (review.criticals_open > 0) return { status: 'BLOCKED_REVIEW_CRITICAL', ticket, branch: impl.branch, review, impl, fix_rounds: fixRounds }
+  {
+    const blocking = blockingFindings(review)
+    if (blocking.length) {
+      return { status: 'BLOCKED_REVIEW_CRITICAL', ticket, branch: impl.branch, review, impl,
+        fix_rounds: fixRounds, blocking_findings: blocking }
+    }
+  }
 
   // Hand QA the RED commits to re-verify on the branch (deft-falcon layer 2) — just what it needs to check.
   const redLedger = JSON.stringify((impl.ac_tdd || []).map((e) => ({ ac: e.ac, red_commit: e.red && e.red.commit, exempt: e.exempt || null })))

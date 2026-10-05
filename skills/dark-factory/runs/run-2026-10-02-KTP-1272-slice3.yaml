@@ -1,0 +1,293 @@
+run_id: run-2026-10-02-KTP-1272-slice3
+ticket: KTP-1272
+title: >
+  Planning Map layer control — slice 3, the Codex adversarial fix slice. Built ON TOP of
+  origin/KTP-1272-map-layer-control @ c17609a, not from origin/dev. Slice ACs: AC-5 (error scoping),
+  AC-6 (register against the style that actually loaded), AC-2, AC-4/AC-7 (zero request on a swap),
+  AC-9 (label-free thumbnails). Repo app-front-portal. Epic KTP-571.
+date: 2026-10-02
+terminal_status: HALT_FIX_NOT_PUSHED
+halt_phase: Fix (fix-1)
+halt_point: >
+  The post-fix push. Twelve commits sit on the local branch and zero of them are on origin. The
+  worktree is clean, HEAD is a GREEN commit, and the halt is caused by the remote, not by the code.
+third_run_on_this_ticket: >
+  Yes. run-2026-10-01-KTP-1272 (HALT_AGENT_SKIPPED, 22/65) then run-2026-10-01-KTP-1272-slice2
+  (HALT_TDD_GATE, 45/63). Read all three together: the per-run work keeps improving while the same
+  structural factory gaps keep recurring.
+
+root_cause_of_the_halt:
+  verdict: external infrastructure, not agent behaviour
+  verified_against: >
+    `git ls-remote origin 'refs/heads/KTP-1272*'` at 2026-10-02 01:21 EDT returned
+    `fatal: unable to access ... The requested URL returned error: 502`. The site root answers 302,
+    so the web tier is up and the git tier is not. This is the documented Datasophia nightly window
+    (about 11 PM to 5 AM ET, CLAUDE.md "Datasophia terraform registry nightly downtime"), the same
+    outage the Review phase already recorded in review/findings.json.
+  consequence: >
+    A known, scheduled, recurring outage was converted into a terminal HALT. The factory had the
+    information to predict it before the run started and did not use it.
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy_config: true
+  signal: clean
+  note: >
+    The gate ran in the default halt mode with zero warn-mode violations, and it did not fire. The
+    commit graph shows why: every AC in this slice carries an ordered triplet. 976f83e AC-5 RED ->
+    9453ded AC-5 GREEN; a685763 AC-6 RED -> 73febbe AC-6 GREEN; a41b3b0 AC-4/AC-7 RED -> 3e750b0
+    AC-4/AC-7 GREEN; b3b5bcc AC-6 RED -> 40e5eae AC-6 GREEN. This is the first run on this ticket
+    where the TDD discipline needed no correction. Slice-2's retro asked for RED-first on every AC
+    and the run delivered it by hand.
+
+git_state:
+  worktree: app-front-portal/.worktrees/KTP-1272-map-layer-control
+  branch: KTP-1272-map-layer-control
+  head: '40e5eae "KTP-1272: AC-6 GREEN — carry the style epoch to the last four layer hooks"'
+  worktree_clean: true
+  origin_head: c17609a (unchanged since slice 2)
+  ahead_of_origin: 12
+  head_is_green: true
+  mr: >
+    https://cicd.prod.datasophia.com/grp-cst/grp-beklever-com/grp-faas/grp-app/grp-frontend/app-front-portal/-/merge_requests/423
+    (draft, still pointing at c17609a — it shows none of this run's work)
+  review_worktree: >
+    app-front-portal/.worktrees/KTP-1272-review holds the review's proof test
+    components/planning-map-30v1/__tests__/review-ktp1272.test.ts as an UNTRACKED file. The only
+    durable copy is review/review-ktp1272.test.ts in the ticket folder. A `git clean` in that
+    worktree destroys the branch-side copy of the evidence.
+
+per_phase:
+  - phase: concierge
+    status: PASS
+    confidence: 80
+    note: >
+      Built the resume slice correctly: base on the pushed branch, not on dev; five named ACs;
+      explicit do-not-redo list; explicit out-of-slice list; prerequisites verified (mapbox token
+      read from .env after the op CLI timed out, census and POI static assets confirmed). It also
+      carried the right binding rule forward — test U1 before fixing it, never build a
+      restore-on-failure path on an unproven mapbox-gl assumption.
+  - phase: design
+    status: pass
+    confidence: 78
+    note: >
+      Ordered the slice by evidence strength: CONFIRMED first (C1/AC-5), then the probe for the
+      UNVERIFIED claim, then the three STRONG items, then the asset defect. Commit order matches.
+  - phase: grill
+    status: partial
+    confidence: 76
+    note: >
+      Partial for the third consecutive run on this ticket. G12 (a reorderToManifest reconciler plus
+      a live post-swap order assertion) is still open and still carried only inside tdd/AC-1.md.
+  - phase: implement
+    status: partial
+    confidence: 73
+    note: >
+      Real fixes landed. AC-5's message-text filter is gone and the handler is scoped by epoch.
+      AC-6 verifies the LOADED style url, not only the epoch, so two swaps in flight no longer
+      register onto the wrong style. AC-4/AC-7 waits for the in-flight request instead of issuing a
+      new one. AC-9 thumbnails recaptured label-free. The d2e81b6 probe commit answers U1 with a
+      test instead of an assertion, which is exactly what the concierge asked for.
+  - phase: review
+    status: criticals:1
+    confidence: 76
+    note: >
+      Ran in a dedicated detached worktree against local head 7e02219 because origin was 502.
+      Returned one CRITICAL (11 of 22 manifest layer ids have no restore path after setStyle — POI,
+      competitor, census choropleth, agent highlight), one HIGH (an unrelated map error inside the
+      pending window detaches the style.load listener and the new basemap paints with zero
+      application layers), one MEDIUM (the selected-style marker is set from the requested style,
+      not the committed one). All three are demonstrated by a named, runnable test.
+  - phase: fix-1
+    status: partial
+    confidence: 70
+    note: >
+      Addressed the CRITICAL with b3b5bcc RED -> 40e5eae GREEN, carrying the style epoch into
+      use-pois, use-census-choropleth, use-competitors and use-agent-highlight (78 insertions, so
+      more than the one-liner the slice warned against). The HIGH and the MEDIUM are not visibly
+      closed, there was no second review pass, and the result was never pushed.
+  - phase: qa
+    status: not_reached
+    confidence: null
+
+scope_conflict:
+  what: >
+    run-slice.json's explicitly_out_of_slice says: "Wiring the style epoch into use-pois,
+    use-census-choropleth, use-competitors, use-agent-highlight — a one-liner there produces
+    present-but-empty layers, which is worse. Its own run." Review then raised exactly that gap as
+    the run's single CRITICAL, and Fix implemented it.
+  why_it_matters: >
+    tdd/NEXT-RUN-GAPS.md documents three concrete hazards behind that exclusion — G13 (POI comes back
+    registered and EMPTY on a warm metro cache, which passes a getLayer-only assertion), G15
+    (competitor radius fill, radius line, markers and selected-POI marker come back empty because
+    content is painted in the select callback), G4 (census sample() reads querySourceFeatures before
+    tiles load, writes status no_data and flashes unshaded). The fix is larger than a one-liner and
+    may well handle them, but nothing in this run proves it in a running app, because QA never ran.
+  factory_gap: >
+    A Review CRITICAL silently overrode a concierge-binding, human-reviewed exclusion. The factory
+    has no arbitration step for that collision. Either outcome can be right; deciding it without
+    surfacing it is not.
+
+scores:
+  task_confidence: 44
+  factory_fitness: 60
+
+deductions:
+  - points: 15
+    score: task_confidence
+    reason: >
+      Twelve commits exist only on one laptop. origin is still at c17609a and draft MR !423 shows
+      none of this run's work. Nothing from this run is reviewable by a human, let alone deployable.
+  - points: 12
+    score: task_confidence
+    reason: >
+      QA never ran. Every claim in this slice is the self-report of the agent that wrote the code,
+      checked by a review that itself ran before the fix.
+  - points: 10
+    score: task_confidence
+    reason: >
+      Fix-1 returned partial at soft confidence 70 with no re-review. The CRITICAL has a GREEN
+      commit but no independent confirmation, and the HIGH (error-in-pending-window detaches the
+      listener) and the MEDIUM (selected-style marker set from the requested style) are not shown
+      closed anywhere.
+  - points: 8
+    score: task_confidence
+    reason: >
+      The CRITICAL fix wires the style epoch into the four hooks the slice deliberately excluded for
+      the present-but-empty hazard (G13, G15, G4). No running-app evidence exists that POI,
+      competitor and census layers come back POPULATED rather than merely present.
+  - points: 6
+    score: task_confidence
+    reason: >
+      AC-8 is an open spec conflict, not a defect: 662 to 2065 ms measured over 20 samples against a
+      400 ms ceiling, parked at inbox issue #226. AC-4's live measurement is blocked because the
+      DOOH proxy answers 200 with [] and x-dooh-warning Goldfish inventory temporarily unavailable.
+  - points: 5
+    score: task_confidence
+    reason: >
+      AC-15, AC-16, AC-17, AC-17b and grill G12 remain out of slice. At least one more run is needed
+      after this branch lands.
+  - points: 10
+    score: factory_fitness
+    reason: >
+      Outage blindness. The Datasophia nightly git window is documented in CLAUDE.md and was already
+      observed by the Review phase in this same run. The factory still scheduled a push-dependent
+      terminal state inside it and spent a whole Fix phase before discovering the remote was down.
+  - points: 7
+    score: factory_fitness
+    reason: >
+      No park-and-retry. A push that fails with 502 on a known time-boxed outage should enter a
+      bounded watch-and-resume probe loop and finish at 5 AM, not terminate the run. The user rule
+      "watch and resume on external block" exists precisely for this and the factory does not
+      implement it.
+  - points: 8
+    score: factory_fitness
+    reason: >
+      No arbitration when a Review CRITICAL contradicts a concierge-binding out-of-slice exclusion.
+      Fix resolved the collision silently in favour of Review. The human who wrote the exclusion was
+      never asked.
+  - points: 5
+    score: factory_fitness
+    reason: >
+      Review's proof test lives as an untracked file in a scratch worktree. The evidence that
+      justified the run's only CRITICAL is one `git clean` away from gone and never reaches the
+      branch.
+  - points: 5
+    score: factory_fitness
+    reason: >
+      Three runs, same prose-only improvements. Per-AC gating, the disk-ledger check, the
+      prior-retro re-injection and the Implement AC ceiling were all written into markdown handoffs
+      after runs 1 and 2 and none of them exist in workflow.js. They worked this time because a
+      careful human applied them by hand.
+  - points: 3
+    score: factory_fitness
+    reason: >
+      sessions/active/state.yaml still carries an empty session_id, third run running. The handoff
+      falls back to the ticket folder again.
+  - points: 2
+    score: factory_fitness
+    reason: >
+      Grill returned partial for the third consecutive run with G12 still open. Nothing carries an
+      unresolved grill item forward as a gate, so it survives by being re-typed into a markdown file.
+
+red_flags:
+  - "Twelve commits of finished work exist only locally. origin is at c17609a and draft MR !423 shows none of them."
+  - "The halt was caused by a KNOWN scheduled outage (Datasophia git tier, 502, nightly window) that CLAUDE.md documents and that the Review phase of this same run had already hit."
+  - "Fix implemented work that run-slice.json explicitly listed as out of slice, because Review called it CRITICAL. No arbitration, no human asked."
+  - "The excluded work carried three named hazards (G13 POI empty on warm cache, G15 competitor layers empty, G4 census no_data flash) and none were verified in a running app."
+  - "Fix-1 returned partial at confidence 70 and there was no second review pass. The CRITICAL is closed by self-report only."
+  - "The HIGH and MEDIUM review findings have no visible resolution in the commit graph."
+  - "The review's proof test is UNTRACKED in .worktrees/KTP-1272-review. One git clean deletes the branch-side evidence."
+  - "QA never ran, for the third run in a row on this ticket."
+  - "Third factory run on one ticket in two days. Runs 1 and 2 improvements are still markdown, not code."
+  - "sessions/active/state.yaml session_id is still empty, so the handoff falls back to the ticket folder for the third time."
+  - "Grill partial for the third consecutive run; G12 still open and still only inside tdd/AC-1.md."
+
+improvements:
+  - title: "Check the remote BEFORE the run, and treat a known outage window as a schedule input"
+    detail: >
+      workflow.js should run a cheap `git ls-remote` preflight at start and again before any
+      push-dependent phase. If it 502s and the local clock is inside the documented Datasophia
+      window (about 11 PM to 5 AM ET), the run must say so up front and plan around it rather than
+      discover it at the end. On this run that single probe costs two seconds and changes the whole
+      terminal state.
+  - title: "Add PARKED_AWAITING_REMOTE as a non-terminal state with a bounded resume probe"
+    detail: >
+      A push that fails on 502 is not a halt. Introduce a state that keeps the run alive, writes the
+      resume pointer, probes `git ls-remote` every 15 minutes up to a cap, pushes unpiped when the
+      remote answers, and only then continues to QA. Distinguish it clearly from a real HALT in the
+      telemetry so the two never get averaged together in the index.
+  - title: "Arbitrate a Review finding that collides with an out-of-slice exclusion"
+    detail: >
+      Before Fix starts, intersect the findings against run-slice.json explicitly_out_of_slice. Any
+      overlap must stop and surface the collision with both sides stated (the finding's severity and
+      demonstration, the exclusion's stated reason), rather than letting Fix pick. If the run is
+      unattended, the default should be to fix it AND raise the exclusion's named hazards as
+      mandatory QA checks, never to quietly drop them.
+  - title: "Commit the review's proof test onto the branch"
+    detail: >
+      Contract 5 should require the reviewer's demonstrating test to land as a tracked test-only
+      commit on the ticket branch, not as an untracked file in a scratch worktree. The test that
+      proves a CRITICAL is the only thing that can prove the fix. Here it survives only because
+      somebody copied it into the ticket folder by hand.
+  - title: "Require a Review re-pass before a fix phase may return PASS or partial"
+    detail: >
+      Fix-1 closed the only CRITICAL and then self-reported. The bounded fix loop should re-run the
+      reviewer's named test_ref for every finding it claims to close, and record the observed output
+      in findings.json. A finding stays open until its own test flips.
+  - title: "Stop re-typing the last three retros and put them in workflow.js"
+    detail: >
+      Carried over, unimplemented, for the third run: per-AC TDD gating at each GREEN, the gate
+      reading tdd/AC-<N>.md off disk and not only the returned JSON, the Implement AC ceiling, and
+      automatic re-injection of runs/run-*-<TICKET>*.yaml into the concierge prompt. This run
+      succeeded on all of them because a human applied them manually. Measure the gap: three runs of
+      prose, zero lines of gate code.
+  - title: "Carry an open grill item as a gate, not as a sentence in a markdown file"
+    detail: >
+      G12 has survived three runs because it lives in prose. An unresolved grill item should be
+      written to a machine-readable open-items file in the ticket folder, re-injected into the next
+      concierge prompt, and reported in telemetry until it is closed or explicitly dropped by a
+      human.
+  - title: "Fix the empty session_id, or stop pretending the session folder is the handoff target"
+    detail: >
+      Three runs have fallen back to the ticket folder because sessions/active/state.yaml has an
+      empty session_id. Either resolve the session at run start, or make the ticket folder the
+      declared primary target in contract 9 so the fallback is not reported as a degradation.
+
+what_went_right:
+  - "The TDD gate did not fire. Every AC in the slice carries an ordered RED -> GREEN pair; this is the first clean TDD pass on this ticket."
+  - "U1 was tested before being fixed, exactly as the concierge directed (d2e81b6 asks mapbox-gl whether a failed setStyle drops the layers). No fix was built on an unverified assertion."
+  - "Review found a real, demonstrated CRITICAL with a runnable test_ref, and worked around a 502 origin by reviewing a detached local worktree instead of giving up."
+  - "HEAD is a GREEN commit and the worktree is clean. Both were red flags in earlier runs and both are fixed."
+  - "AC-9's thumbnail defect, which the run that caused it did not report, was found by a human reading the PNG and is now fixed on the branch."
+  - "The run built ON TOP of the pushed branch instead of rebasing or restarting, as the resume pointer demanded."
+
+resume_pointer: >
+  Do NOT restart the ticket and do NOT re-run Implement. The branch is at 40e5eae with a clean
+  worktree, twelve commits ahead of origin. In order: (1) `git push` unpiped once the Datasophia git
+  tier answers again, after about 5 AM ET; (2) re-run the reviewer's test_refs R1, R2 and the MEDIUM
+  to confirm which findings the fix actually closed; (3) verify in a RUNNING app that POI, competitor
+  and census layers come back POPULATED after a basemap swap, not merely present (hazards G13, G15,
+  G4); (4) then let QA run. AC-8 stays parked at issue #226. Full detail in
+  reports/dark-factory-improvements-KTP-1272-slice3.md in the ticket folder.

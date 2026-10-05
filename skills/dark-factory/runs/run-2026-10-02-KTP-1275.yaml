@@ -1,0 +1,275 @@
+run_id: run-2026-10-02-KTP-1275
+ticket: KTP-1275
+title: >
+  Ask Agent tab must allow user to search nationwide + Canada. Move the geography search out of the
+  Storefront Research panel onto the Planning Map chrome, make a picked US ZIP open the Audience panel
+  in Ask the Agent only, fit a Canadian pick to its FSA rather than to the six-character postal code,
+  and name the ZIP in the empty area-status sentence. Repo app-front-portal. Epic KTP-571, parent
+  KTP-1139, implements AC-4 of the spike KTP-1150.
+date: 2026-10-02
+terminal_status: HALT_PRESHIP
+halt_phase: QA
+halt_point: >
+  The pre-ship gate after contract 6. QA returned PARTIAL, not PASS: six of seven ACs are machine-proven
+  but visual_pending (no live render captured), and AC-1b carries a demonstrated logic gap that the
+  bounded fix loop never picked up because it is graded MEDIUM, not CRITICAL.
+ticket_folder: ~/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-571/KTP-1275
+worktree: >
+  app-front-portal, branch KTP-1275-map-geography-search @ 9318fc6, base origin/dev, 17 commits ahead.
+  PUSHED: origin/KTP-1275-map-geography-search == local HEAD. QA ran in a segregated detached worktree
+  at app-front-portal/.worktrees/KTP-1275-qa.
+mr: >
+  none created. The run halted before the main loop's MR + Jira comment step. The only external post
+  made was the Jira description fill (field was empty, nothing overwritten) and the Relates link to
+  KTP-1150, both logged in reports/ship/post-log.yaml.
+session: >
+  unresolved — sessions/active/state.yaml carries an empty session_id and no named session folder was
+  touched during the run. Handoff fell back to the ticket folder under reports/, the same fallback the
+  two KTP-1272 runs used.
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy_config: true
+  signal: real_and_correct
+  note: >
+    The gate ran in the default halt mode with an empty warn-mode violation list, so the configuration
+    is trustworthy and nothing was waved through. QA then re-verified every ledger entry against git
+    rather than trusting the returned JSON: five ACs carry a real RED commit that is test-file-only and
+    fails at its own commit on the assertion, not on an import error, and whose same-named tests are
+    green at the tip. The two exempt entries (AC-1, AC-4) were checked on the diff and the exemption
+    holds — both are CSS and JSX with no extractable pure function.
+  red_verification:
+    - "AC-1b: 06bb6be test-only, 2 passed / 3 failed at its own commit (qa/AC-1b.red.out) -> green at tip"
+    - "AC-2: f1f5c4b test-only, 13 passed / 2 failed (qa/AC-2.red.out) -> green at tip"
+    - "AC-3: 6c5a5d8 test-only, 7 passed / 2 failed (qa/AC-3.red.out) -> green at tip"
+    - "AC-3b: a8e0d09 test-only, 9 passed / 3 failed (qa/AC-3b.red.out) -> green at tip"
+    - "AC-5: e814157 test-only, 4 passed / 2 failed (qa/AC-5.red.out) -> green at tip"
+    - "AC-1, AC-4: exempt, no pure function in the diff — exemption confirmed against 20aabdb"
+  what_the_gate_bought: >
+    A clean run for the gate. It cost nothing because the implementor produced real triplets, and QA's
+    independent git re-verification is the strongest TDD evidence any run has carried so far. This is
+    the prior KTP-1272 retro's improvement applied: do not trust the ledger JSON, read the commits.
+
+per_phase:
+  - phase: concierge
+    status: PASS
+    confidence: 88
+    note: >
+      Highest confidence of the run. The front gate resolved two blockers against live evidence rather
+      than assumption (the census chunk inventory on origin/dev, and a geocoder probe for 12345 that
+      moved AC-5's test case off 00501). It also produced AC-LOCAL.md with an explicit header stating
+      the Jira description was empty and was filled from this file, so the override relationship is
+      documented rather than implied.
+  - phase: design
+    status: pass
+    confidence: 74
+    note: >
+      Lowest confidence of the run and the place the AC-1b defect was born. The design named the FSA
+      fit as a new path (fitFsa) without reconciling it against use-drill-down.ts, which already solves
+      the identical problem with clampFitZoom against the layer reveal floor. An ADR draft exists
+      (architecture/adr/ADR-draft-scoped-override-of-shared-map-chrome.md) but it covers the chrome
+      override, not the camera-fit reuse.
+  - phase: grill
+    status: pass
+    confidence: 84
+    note: >
+      131-line grill report. It sharpened AC-1b into its own AC (FSA, not six-character postal code)
+      and pinned the inconsistent spacing in the geocoder response, which is why normalization landed
+      correctly. It did not ask what happens when the FSA is larger than the viewport, which is the
+      one question that would have caught the defect.
+  - phase: implement
+    status: pass
+    confidence: 78
+    note: >
+      17 commits, clean STUB -> RED -> GREEN triplets on every AC that had an extractable function, a
+      deliberate baseline pin on AC-1 before the restyle, and a final commit dropping the lockfile
+      churn npm install left behind. next build exits 0 and both suites pass 38/38.
+  - phase: review
+    status: "criticals:0"
+    confidence: 72
+    note: >
+      Four findings, zero CRITICAL. Finding 1 is DEMONSTRATED with an executed probe
+      (review-fitfsa.test.ts, deliberately uncommitted): fitFsa lands the camera at about z5.3 against
+      the z7 Canadian postal reveal floor. Grading a demonstrated, AC-touching defect MEDIUM is what
+      let it pass the fix loop untouched.
+    findings_open:
+      - "MEDIUM, demonstrated: fitFsa omits the reveal-floor clamp (navigation-search.tsx:291-310)"
+      - "MEDIUM, reasoned: FSA_STAGE_ZOOM = floor + 2 narrows the query viewport (navigation-search.tsx:245-250)"
+      - "MEDIUM, reasoned: click on the info affordance closes the popover hover opened; unopenable on touch (navigation-search.tsx:505-517)"
+      - "LOW, reasoned: Escape in the search box closes the Audience panel (navigation-search.tsx:515-526)"
+  - phase: qa
+    status: PARTIAL
+    confidence: 83
+    note: >
+      The most honest QA artifact the factory has produced. It states plainly that every AC on this
+      ticket is ac_kind visual, that a headless subagent cannot capture a live render, and it marks
+      each such AC PARTIAL with visual_pending: true rather than claiming PASS. It independently
+      reproduced the fitFsa defect with its own probe (z4.32 against a z7 floor) instead of relaying
+      the review finding.
+    per_ac:
+      - "AC-1: PARTIAL, visual_pending — 5 screenshots owed (15834, H4S, Texas, Harris County, Nashville)"
+      - "AC-1b: PARTIAL, NOT visual_pending — blocked on the demonstrated fitFsa floor gap"
+      - "AC-2: PARTIAL, visual_pending — tab-switch screenshot owed"
+      - "AC-3: PARTIAL, visual_pending — one screenshot per table row owed"
+      - "AC-3b: PARTIAL, visual_pending — 15834-then-Texas sequence owed"
+      - "AC-4: PARTIAL, visual_pending — keyboard-only walk owed; no executable proof layer exists"
+      - "AC-5: PARTIAL, visual_pending — empty-state screenshot for 12345 owed"
+
+gates:
+  next_build: "pass (exit 0) — qa/next-build.out"
+  lint_types: "8 errors, ALL pre-existing, zero in the 8 changed files — qa/lint-types.out"
+  next_lint: "repo-wide pre-existing debt; zero error or warning under components/planning-map-30v1 — qa/lint.out"
+  tests: "nav-search 30/30, area-status 8/8, 38/38 at tip"
+  next_dev_smoke: "not run by QA; deferred to the implementor's execute-verify socket"
+  review_artifact: "review/findings.json present, non-empty, 0 CRITICAL"
+
+scores:
+  task_confidence: 68
+  factory_fitness: 71
+
+deductions:
+  - points: 12
+    score: task_confidence
+    reason: >
+      AC-1b carries a demonstrated, unfixed defect. fitFsa flies to cameraForBounds(..., {maxZoom:12})
+      with no lower bound, so a large FSA (X0A, X0B, P0T) lands below the Canadian postal layer's z7
+      reveal floor and the planner sees a bare basemap. Two independent probes reproduced it. The AC
+      says "a Canadian postal query such as H4S", so the AC is not met for the general case.
+  - points: 8
+    score: task_confidence
+    reason: >
+      Every AC on this ticket carries an explicit screenshot evidence clause, and six of seven are
+      visual_pending. No live render was captured for any of them. The ticket cannot be called done
+      on compile plus unit assertions when the spec names the screenshots as the evidence.
+  - points: 5
+    score: task_confidence
+    reason: >
+      Three review findings remain open at the halt: the FSA_STAGE_ZOOM staging zoom that narrows
+      rather than widens the query viewport, the info affordance that closes on click and is
+      effectively unopenable on touch, and the Escape handler that closes the Audience panel while
+      the planner is typing.
+  - points: 4
+    score: task_confidence
+    reason: >
+      AC-1 and AC-4 have no executable proof layer at all. Both are DOM, ARIA, CSS and event wiring,
+      the repo ships no React component test runner, and the only machine signal behind them is that
+      the project compiles. Their correctness is entirely unverified until the visual pass runs.
+  - points: 3
+    score: task_confidence
+    reason: >
+      No MR was created, nothing reached dev, and no deploy-side validation ran. The branch is pushed
+      and in sync with origin, but the work is one unreviewed, unmerged branch.
+  - points: 10
+    score: factory_fitness
+    reason: >
+      The factory routed a ticket whose every AC is ac_kind visual to a headless QA socket that
+      structurally cannot capture a screenshot. The PARTIAL was predictable from contract 0, not
+      discovered at contract 6. No gate read the AC kinds up front and equipped a visual-capable
+      tester (ui-probe) or declared the visual tail out of scope.
+  - points: 8
+    score: factory_fitness
+    reason: >
+      The fix loop is keyed on criticals_open. Review found a defect that is demonstrated by an
+      executed failing probe and that falsifies a named AC, graded it MEDIUM, and the loop therefore
+      never ran. Severity, not evidence strength, decided whether the factory fixed a proven bug.
+  - points: 4
+    score: factory_fitness
+    reason: >
+      Design closed at confidence 74 and review at 72, the two lowest numbers in the trace, and
+      neither fed any gate. The soft confidence is recorded and then ignored. Design's 74 is exactly
+      where the AC-1b defect entered.
+  - points: 4
+    score: factory_fitness
+    reason: >
+      Design did not reconcile the new fitFsa path against use-drill-down.ts, which already solves
+      the same camera-fit problem with clampFitZoom and even carries the matching caveat comment at
+      :226-231. The factory has no step that asks "does a sibling path in this repo already do this".
+  - points: 3
+    score: factory_fitness
+    reason: >
+      Review and QA each wrote their own uncommitted probe for the same fitFsa defect
+      (review-fitfsa.test.ts and qa/qa-fitfsa-floor.probe.ts) and reported slightly different landing
+      zooms (z5.32 vs z4.32). Duplicated investigation, and two numbers for one fact.
+
+red_flags:
+  - "Every AC on the ticket is ac_kind visual, and the QA socket that was equipped cannot render. The PARTIAL was structural, not a QA failure."
+  - "A review finding marked demonstrated:true with an executed failing probe, falsifying a named AC, was graded MEDIUM and so skipped the fix loop entirely."
+  - "Two ACs (AC-1, AC-4) shipped with no executable proof layer. The compile is their only machine signal."
+  - "Review and QA independently built two probes for the same defect and reported two different landing zooms (z5.32, z4.32)."
+  - "Design confidence 74 and review confidence 72 are the run's lowest, and nothing consumed either number."
+  - "The new fitFsa path reimplements a camera fit that use-drill-down.ts already solves correctly in the same component tree."
+  - "sessions/active/state.yaml carries an empty session_id for the third consecutive run, so the handoff keeps falling back to the ticket folder."
+  - "The run halted before the MR step, so a pushed 17-commit branch sits on origin with no MR and no reviewer."
+  - "8 lint:types errors are pre-existing repo debt that every run has to re-explain in its gate notes."
+
+improvements:
+  - title: "Contract 0 must classify AC kinds and equip a visual-capable tester before Implement"
+    detail: >
+      The concierge already writes analyst/acs.json. Add an ac_kind field per AC and have workflow.js
+      read it. If any AC is visual, the QA socket must be equipped with ui-probe (which reuses the
+      authenticated Chrome session) instead of, or alongside, the headless subagent, OR the run must
+      declare the visual tail explicitly out of scope at the front gate. A run whose every AC needs a
+      screenshot should never reach contract 6 before anyone notices.
+  - title: "Make the fix loop key on evidence, not only on severity"
+    detail: >
+      Change the gate predicate from criticals_open > 0 to criticals_open > 0 OR any finding with
+      demonstrated == true AND a non-empty ac_ref. A finding backed by an executed failing probe that
+      names an AC is a blocker regardless of the label the reviewer typed. KTP-1275's fitFsa defect
+      satisfies both conditions and was still waved past the loop.
+  - title: "Contract 2 (design) needs a sibling-path reuse question"
+    detail: >
+      Add one required output to the design contract: for each new function that moves a camera,
+      fetches data or mutates shared map state, name the existing function in the repo that does the
+      closest thing, and state why it is reused or why it is not. fitFsa versus
+      use-drill-down.ts:268 clampFitZoom is the exact miss. One grep-backed line in the design would
+      have cost nothing and saved the AC.
+  - title: "Review probes must be handed to QA, not rebuilt"
+    detail: >
+      review/findings.json already carries test_ref with the probe path and command. Contract 6 should
+      run the reviewer's probe verbatim and report its output, and only write a new probe when the
+      reviewer's one does not execute. Two probes for one defect produced two different landing zooms
+      and cost a QA cycle.
+  - title: "Give the frontend belt a React component test runner, or stop accepting ACs that need one"
+    detail: >
+      AC-4 (focus, aria-expanded, Escape, popover) had no proof layer, and three of the four review
+      findings are reasoned rather than executed for the same reason. Either add a component test
+      runner to app-front-portal as a standing tool-belt task, or have the concierge flag any AC whose
+      only proof would be a component render and route it to the visual pass up front.
+  - title: "Consume the per-phase confidence numbers"
+    detail: >
+      Add a soft gate: if any phase closes below 75, the next phase's prompt must receive that phase's
+      stated uncertainty as an explicit list of things to re-examine. Design closed at 74 with the
+      camera-fit question open and Implement never saw that.
+  - title: "Fix the empty session_id so handoffs stop falling back"
+    detail: >
+      Three consecutive runs (KTP-1272 x2, KTP-1275) resolved no active session and wrote the handoff
+      into the ticket folder. Either make contract 9 call the session helper to resolve the slug, or
+      drop the session path from the contract and make the ticket folder the documented primary
+      location.
+  - title: "Baseline the 8 pre-existing lint:types errors once"
+    detail: >
+      Record the three offending files in the frontend belt config so the gate can report
+      "8 known-pre-existing, 0 new" automatically. Every frontend run currently spends review and QA
+      prose re-establishing the same fact.
+
+next_run:
+  immediate: >
+    Fix AC-1b before anything else: Math.max(camera.zoom, BOUNDARY_ZOOM.fsaCanada) on both the easeTo
+    and the fitBounds fallback in fitFsa, or reuse clampFitZoom. Add the RED first, driving fitFsa with
+    a wide-FSA stub. Then decide on FSA_STAGE_ZOOM (stage at the floor, not floor + 2).
+  then: >
+    Run the visual pass with ui-probe against the local stack or dev: the five AC-1 grains, the H4S
+    whole-FSA frame, the tab switch, the 15834 panel open in Ask the Agent and shut in Storefront
+    Research, the 15834-then-Texas clear, the keyboard-only walk on the info affordance, and the 12345
+    empty state. Then create the MR.
+  do_not: >
+    Do not merge on the current evidence. Six ACs have never been rendered and one is demonstrably
+    unmet for large Canadian FSAs.
+
+summary: >
+  A technically clean build halted correctly at pre-ship. The TDD gate ran in halt mode with zero
+  warn-mode violations and QA re-verified every RED against git, which is the strongest TDD evidence
+  the factory has carried. The two failures are both factory design, not implementor error: a ticket
+  whose every AC is visual was handed to a QA socket that cannot render, and a defect proven by an
+  executed failing probe was graded MEDIUM and so never reached the fix loop.

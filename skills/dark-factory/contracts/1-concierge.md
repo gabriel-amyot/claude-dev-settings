@@ -9,23 +9,65 @@ Merges the old skill's Phase 1 (ANALYZE) and Phase 2 prerequisites/escalation in
 
 ## Steps
 
-1. **Fetch the ticket.** `cd ~/.claude/skills/jira && python3 jira_skill.py get <TICKET> --full --org <ORG>`
+### Ticket source
+
+The orchestrator tells you the **source** of this ticket: `jira` or `github`. It decides only how you
+FETCH the ticket (step 1) and where the ticket FOLDER lands (step 2). Everything after step 2 is
+identical. The source does NOT decide which forge the code ships to — the repo does.
+
+1-JIRA. **Fetch the ticket** (`source: jira`). `cd ~/.claude/skills/jira && python3 jira_skill.py get <TICKET> --full --org <ORG>`
    (substitute the org you were given). Read description, ACs, comments, linked issues.
+
+1-GH. **Fetch the issue** (`source: github`). The orchestrator gave you the exact command:
+   `gh issue view <N> --repo gabriel-amyot/klever-project-management --json number,title,body,state,labels,url,parent,comments,assignees`.
+   Do NOT call `jira_skill.py` — this ticket does not exist in Jira, and do not create it there.
+   Read the body, the labels, the parent map, and **every comment**. A wayfinder ticket is a decision
+   ticket: its answer often lives in the comment thread, and the body alone can be the original
+   question rather than the settled spec. Also read the **parent map issue** (`gh issue view <map>
+   --repo gabriel-amyot/klever-project-management`) — its Destination and Notes are the standing
+   context for the effort, and its Decisions-so-far may already settle something the ticket asks.
+   **Check the labels before anything else — they say whether this ticket is factory work at all.**
+   The tracker carries two label families, and both must agree:
+
+   | Label | Meaning for this run |
+   |---|---|
+   | `wayfinder:implementation` | Build work, never resolved by a wayfinder session. **Factory work.** |
+   | `wayfinder:task` | A unit of work on the map. Factory work if it has a code deliverable. |
+   | `wayfinder:research` / `:grilling` / `:prototype` / `:reflection` | A **decision** ticket. Wayfinder plans, it does not build. **Not factory work.** |
+   | `wayfinder:map` | A whole map, not a ticket. **Not factory work.** |
+   | `vehicle:dark-factory` | Routed here on purpose. Proceed. |
+   | `vehicle:service-factory` / `vehicle:manual` | Routed to a DIFFERENT vehicle. **Not factory work.** |
+
+   On any "not factory work" row: set `spec_quality: FAIL`, name the offending label in `summary`, and
+   recommend the right vehicle. Do not try to build a decision ticket — that is a category error, and
+   failing fast at the gate costs one agent call instead of a whole run.
+   A `human needed` label is a standing blocker: set `needs_human: true` and quote why from the thread.
 1b. **Consume existing spec-gate verdicts (0.9.3 pre-dispatch triage — 4 retros, 3 dead dispatches).**
    Glob the ticket folder (and its sprint mirror if one exists) for `*spec-gate*.md` / prior Leo
    reviews. If a spec-gate artifact exists with a verdict below ~75, or contains "do not start" /
-   "blocked pending" language whose blocking question is UNANSWERED in the live Jira comments, then:
+   "blocked pending" language whose blocking question is UNANSWERED in the live tracker comments, then:
    set `needs_human: true` with an open_question that (a) quotes the gate's blocking question, (b)
    recommends routing it to the PO via `/post-comment` as the unblock. Re-read the LIVE ticket first —
-   if the question was answered in Jira since the gate was written, the gate is stale: proceed and note
-   it in `summary`. A drafted-but-unposted PO question parked on disk is the known failure mode
+   if the question was answered in the tracker since the gate was written, the gate is stale: proceed
+   and note it in `summary`. A drafted-but-unposted PO question parked on disk is the known failure mode
    (deferred-AC SOP); dispatching code work on top of it burns a full run.
-2. **Resolve the ticket folder** (absolute path) per `project-management/CLAUDE.md` placement rules:
+2-JIRA. **Resolve the ticket folder** (absolute path) per `project-management/CLAUDE.md` placement rules:
    `<PM_ROOT>/tickets/<PREFIX>/<EPIC-or-no-epic>/<TICKET>/`. Create it if missing. Return it as
    `ticket_folder` (expanded absolute path, not `~`).
-   **Bucketed-path guard:** the resolved path MUST sit under `<PM_ROOT>/tickets/...`. If it would be the
-   PM root itself, or a direct child of PM root that is not `tickets/`, STOP and fix the resolution
-   before writing anything. Never create `<PM_ROOT>/<TICKET>/` at the root.
+2-GH. **Resolve the ticket folder** for a wayfinder issue. Wayfinder keeps no per-ticket folder on
+   disk (GitHub is its source of truth), so anchor on its **map** identity, the same unit its own run
+   telemetry uses (`wayfinder/runs/map-<M>.yaml`):
+   `<PM_ROOT>/tickets/wayfinder/map-<M>/issue-<N>/`, where `<M>` is the parent map's issue number from
+   the `parent` field. If the issue has no parent map, use `<PM_ROOT>/tickets/wayfinder/no-map/issue-<N>/`.
+   **The `no-map` case is common, not exotic** — implementation tickets are often created without being
+   linked to their map. Do not go hunting for a plausible-looking map and adopt it: an unlinked ticket
+   gets `no-map/`, and you note the missing link in `summary`.
+   Before creating it, glob `<PM_ROOT>/tickets/wayfinder/*/issue-<N>/` — if a folder for this issue
+   already exists under another map, REUSE it rather than creating a second one.
+
+   **Bucketed-path guard (both sources):** the resolved path MUST sit under `<PM_ROOT>/tickets/...`. If it
+   would be the PM root itself, or a direct child of PM root that is not `tickets/`, STOP and fix the
+   resolution before writing anything. Never create `<PM_ROOT>/<TICKET>/` at the root.
 3. **Spec quality.** Are the ACs clear, testable, unambiguous? Classify each AC. If too vague,
    contradictory, or incomplete to implement safely → `spec_quality: FAIL`.
    **Backend-gated sub-ACs.** For each AC, check whether any sub-criterion depends on un-landed backend

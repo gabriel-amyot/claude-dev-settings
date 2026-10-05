@@ -1,9 +1,9 @@
 # Contract 7 — Ship-prep (code only)
 
 **Code preparation only.** Version bump, CHANGELOG, commit, push. You do **NOT** create the MR, post
-to Jira, or transition the ticket — those use skills (`/klever-mr`, `/post-comment`) that are not
-reliably callable from inside a workflow agent, so the **main loop** does them after this workflow
-returns. (Verified constraint, see docs/review-findings-v0.1.0.md V2.)
+to the tracker, or transition/resolve the ticket — those use skills (`/klever-mr`, `/post-comment`,
+`/wayfinder-report-back`) that are not reliably callable from inside a workflow agent, so the **main
+loop** does them after this workflow returns. (Verified constraint, see docs/review-findings-v0.1.0.md V2.)
 
 The orchestrator already ran the pre-ship gate before calling you (execution verified, zero open
 CRITICAL, QA green) — do not re-litigate it.
@@ -26,7 +26,8 @@ your prompt): `git fetch origin <branch> && git checkout <branch>`.
 
 ## Do NOT
 
-- Do NOT run `/klever-mr`, `/post-comment`, or `jira_skill.py transition`.
+- Do NOT run `/klever-mr`, `gh pr create`, `/post-comment`, `/wayfinder-report-back`, `gh issue
+  comment`, `gh issue close`, or `jira_skill.py transition`.
 - Do NOT push to `dev`, `main`, or `uat`.
 - Do NOT merge.
 
@@ -38,6 +39,9 @@ your prompt): `git fetch origin <branch> && git checkout <branch>`.
 - `pushed`: boolean
 - `summary`: 1-2 sentences (include the version)
 
-The main loop will: create the MR via `/klever-mr` (no auto-merge), post the Jira comment via
-`/post-comment` (MR link + AC summary + QA evidence), transition the ticket to In Review/Testing, and
-run the post-merge validate (contract 8) once the human merges.
+The main loop will: open the merge/pull request with no auto-merge, using the forge of the **code
+repo** (a Klever GitLab repo uses `/klever-mr`; a GitHub repo uses `gh pr create`) — the ticket source
+does not decide this; post the status comment via `/post-comment` (MR link + AC summary + QA
+evidence); close out on the tracker (Jira: transition to In Review/Testing; a wayfinder GitHub issue:
+`/wayfinder-report-back`, leaving closure to the wayfinder resolve path); and run the post-merge
+validate (contract 8) once the human merges.

@@ -2,6 +2,56 @@
 
 Every SKILL.md / workflow.js / contract change bumps the version and adds an entry.
 
+## 0.10.0 (2026-10-05)
+
+**GitHub Issues as a ticket driver, alongside Jira.** Asked for by Gab to unblock work tracked on a
+wayfinder map. The factory was Jira-only by assumption rather than by design: the spine already
+treated the ticket as a black-box string (`// Built BLIND to any specific ticket`), and an audit
+found the real coupling was only three points — the concierge fetch, the ticket-folder path, and the
+close-out.
+
+- **The tracker is a driver, decoupled from the code forge.** `resolveTicketSource(args.ticket)`
+  returns `{ source, ticket, issue_repo, issue_number }` and the pipeline branches on `source`.
+  Accepted: a Jira key (`KTP-1234`) or a wayfinder issue (`#123`, `gh#123`, `123`,
+  `gabriel-amyot/klever-project-management#123`, or the issue URL). The forge the code ships to still
+  follows the **repo**, so a GitHub issue can drive a GitLab MR on a Klever repo — the close-out step
+  now says so explicitly instead of hardcoding `/klever-mr`.
+- **Wayfinder tracker only, enforced by a throw.** Wayfinder's SKILL.md states its tracker is "not
+  configurable and there is no fallback." A GitHub reference to any other repo raises rather than
+  silently retargeting a factory run at an unsupported tracker. Silently posting a run's output into
+  the wrong issue tracker is worse than a crash, so this is a hard stop, not a default.
+- **Contract 1 gains `1-GH` / `2-GH`.** The GitHub fetch reads body, labels, **every comment**, and
+  the **parent map** (its Destination + Notes are the standing context for the effort; its
+  Decisions-so-far may already settle what the ticket asks). The label check is first and is a table
+  of the tracker's **live** vocabulary, read off the repo rather than guessed: `wayfinder:implementation`
+  ("never resolved by a wayfinder session") and `wayfinder:task` are factory work; `wayfinder:research`
+  / `:grilling` / `:prototype` / `:reflection` / `:map` are not; and the `vehicle:*` family
+  (`dark-factory` / `service-factory` / `manual`) says which vehicle the ticket was routed to. A
+  mismatch fails the spec gate on purpose — routing a decision ticket into a build factory is a
+  category error, and failing at the gate costs one agent call instead of a whole run.
+- **Ticket folder anchors on the map.** Wayfinder keeps no per-ticket folder on disk (GitHub is its
+  source of truth), so the folder uses wayfinder's own run unit — `tickets/wayfinder/map-<M>/issue-<N>/`,
+  mirroring `wayfinder/runs/map-<M>.yaml` — falling back to `no-map/` when an issue has no parent. The
+  concierge globs `tickets/wayfinder/*/issue-<N>/` first so a re-parented issue cannot spawn a second
+  folder. The headless `decisions.yaml` glob got the matching GitHub branch. `no-map/` is the common
+  case, not the exotic one: of the tracker's issues only 63 carry a parent, and the nine census
+  implementation tickets (#228-236) have none — so the contract tells the concierge to accept
+  `no-map/` and note the missing link, never to adopt a plausible-looking map.
+- **Close-out is source-aware.** Jira keeps `/post-comment` + the In Review/Testing transition. A
+  wayfinder issue gets `/post-comment` + `/wayfinder-report-back` (whose stated trigger is exactly "a
+  dark-factory run that finished a wayfinder implementation ticket"), and the factory never closes the
+  issue itself — closure stays on the wayfinder resolve path so the run stays traced in its telemetry
+  rather than vanishing. Applied to `READY_TO_SHIP`, `NEEDS_VISUAL_VERIFY`, and the
+  `READY_FOR_VISUAL_QA` fallback.
+- **Every terminal carries `source` + `tracker_ref`** (stamped before the three early returns too), so
+  the main loop never re-parses `args.ticket`.
+- Guard: `tests/ticket-source.test.mjs` — 22 cases over the extracted real resolver, mutation-checked
+  with 6 mutations (dropped repo guard, case-insensitive Jira regex, bare-number parse, PR-URL accept,
+  dropped trim, wrong capture group); all 6 detected. `node --check` clean; 16/16 + 18/18 harnesses
+  still pass.
+- Not yet exercised end-to-end: the first live validation is one `concierge_only` run against a real
+  wayfinder issue.
+
 ## 0.9.5 (2026-07-05)
 
 **Gate-loop hardening from a fresh-context adversarial review of 0.9.4** (findings #2/#3/#5/#9; the

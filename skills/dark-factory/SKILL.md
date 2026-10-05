@@ -1,11 +1,11 @@
 ---
 name: dark-factory
-version: "0.9.5"
-description: "The ticket-to-dev factory for a SINGLE ticket, orchestrated by the Workflow tool instead of prose. Gates are code (un-skippable), with a human concierge gate at the front. The concierge proposes a tool belt from the crib (java, scripting, frontend, terraform-dac-infra, or python-service); the build + tester sockets are equipped from that belt, so the same line handles multiple work-types without duplication. Review + bounded fix loop + QA. The workflow does code work and pushes the branch (terminal state READY_TO_SHIP); the main loop creates the MR + Jira comment and runs post-merge validate. For multi-ticket / epic DAGs use Sprint Factory (/sprint-factory). Triggers on: '/dark-factory', 'dark factory', 'ticket to dev', 'run this ticket'. Klever."
+version: "0.10.0"
+description: "The ticket-to-dev factory for a SINGLE ticket, driven by a Jira ticket OR a wayfinder GitHub issue, orchestrated by the Workflow tool instead of prose. Gates are code (un-skippable), with a human concierge gate at the front. The concierge proposes a tool belt from the crib (java, scripting, frontend, terraform-dac-infra, or python-service); the build + tester sockets are equipped from that belt, so the same line handles multiple work-types without duplication. Review + bounded fix loop + QA. The workflow does code work and pushes the branch (terminal state READY_TO_SHIP); the main loop creates the MR + Jira comment and runs post-merge validate. For multi-ticket / epic DAGs use Sprint Factory (/sprint-factory). Triggers on: '/dark-factory', 'dark factory', 'ticket to dev', 'run this ticket'. Klever."
 user_invocable: true
 nav:
   bay: build
-  when: "Run a Java-service, scripting/side-effect, frontend (Next.js/React UI), OR terraform/DAC infra Klever ticket through the v2 (workflow-orchestrated) factory. Code gates, front human gate, tool belt per work-type."
+  when: "Run a Java-service, scripting/side-effect, frontend (Next.js/React UI), OR terraform/DAC infra Klever ticket through the workflow-orchestrated factory. Driven by a Jira key (KTP-1234) or a wayfinder GitHub issue (#123). Code gates, front human gate, tool belt per work-type."
   when_not: "SQL tickets (no belt racked yet - rack one in toolcrib/ first). Multi-ticket epics (use /sprint-factory). Overnight per-AC autonomous (use sprint-crawl). Quick ship (use /autonomous-ticket-ship)."
   personas: [amelia, quinn, winston]
   org: [klever]
@@ -32,8 +32,9 @@ The **workflow** does the code work: concierge → design → grill → implemen
 AC** — test-only RED commit, fail-on-assertion — execution check, **pushes the feature branch**) → review
 → **fix loop** (on a CRITICAL: targeted fix + re-review, max 2 rounds) → QA (proves each AC **and
 re-verifies the RED commit**) → ship-prep (version bump + push). It ends at `READY_TO_SHIP`. The **main loop** (this conversational context) does the things a workflow agent
-can't safely do: create the MR (`/klever-mr`), post the Jira comment (`/post-comment`), transition the
-ticket, and — after the human merges — run post-merge validate (contract 8). This split is forced by
+can't safely do: open the MR/PR on the code repo's forge, post the status comment (`/post-comment`),
+close out on the tracker (Jira transition, or `/wayfinder-report-back` for a GitHub issue), and —
+after the human merges — run post-merge validate (contract 8). This split is forced by
 verified Workflow-API limits (skills aren't reliably callable inside an agent; no native wait).
 
 ## Instrumentation (auto-improve loop)
@@ -71,8 +72,43 @@ work-type needing different room *logic* is a rare new floor, not a belt. Refini
 ## Invocation
 
 ```
-/dark-factory <TICKET>      # e.g. /dark-factory ABC-123
+/dark-factory KTP-1234      # a Jira ticket
+/dark-factory #123          # a wayfinder GitHub issue
 ```
+
+## Ticket sources (0.10.0)
+
+The **tracker is a driver, decoupled from the code forge.** Two sources are accepted:
+
+| Source | `args.ticket` forms | Fetched with |
+|---|---|---|
+| `jira` | `KTP-1234`, `INS-7` (uppercase prefix + number) | `jira_skill.py get --full --org <org>` |
+| `github` | `#123`, `gh#123`, `123`, `gabriel-amyot/klever-project-management#123`, or the issue URL | `gh issue view <n> --repo gabriel-amyot/klever-project-management --json ...` |
+
+GitHub tickets come from the **wayfinder tracker only** (`gabriel-amyot/klever-project-management`).
+Wayfinder states its tracker is not configurable, so a reference to any other repo **throws** rather
+than silently retargeting the run. Every terminal carries `source`, `tracker_ref`, `issue_repo`, and
+`issue_number` so the main loop never re-parses the arg. Guard: `tests/ticket-source.test.mjs`
+(22 cases, mutation-checked).
+
+Only three things vary by source:
+
+1. **Fetch** — contract 1 steps `1-JIRA` / `1-GH`. The GitHub path reads the body, labels, **all
+   comments**, and the **parent map** (its Destination + Notes are standing context). The labels
+   decide whether the ticket is factory work at all: `wayfinder:implementation` / `wayfinder:task`
+   plus `vehicle:dark-factory` is a go; a decision ticket (`wayfinder:research` / `:grilling` /
+   `:prototype` / `:reflection`) or another vehicle (`vehicle:manual`, `vehicle:service-factory`)
+   fails at the gate, because wayfinder plans and does not build.
+2. **Ticket folder** — Jira keeps `tickets/<PREFIX>/<EPIC|no-epic>/<TICKET>/`. A wayfinder issue
+   anchors on its map, the same unit wayfinder's own telemetry uses:
+   `tickets/wayfinder/map-<M>/issue-<N>/` (or `tickets/wayfinder/no-map/issue-<N>/`).
+3. **Close-out** — Jira gets a `/post-comment` + the In Review/Testing transition. A wayfinder issue
+   gets a `/post-comment` + `/wayfinder-report-back`; the factory never closes the issue itself, so
+   closure stays on the wayfinder resolve path and the run stays traced in its telemetry.
+
+**The forge is NOT a third thing.** It follows the code repo: a Klever GitLab repo ships a
+`/klever-mr` whether a Jira ticket or a GitHub issue drove the run; a GitHub code repo ships a
+`gh pr create`.
 
 ## How to run it
 
@@ -126,12 +162,15 @@ work-type needing different room *logic* is a rare new floor, not a belt. Refini
    - `HALT_PRESHIP` → report `blockers` (execution not verified / branch not pushed / open CRITICAL /
      QA not green); do not ship.
    - `HALT_SHIPPREP_FAILED` / `HALT_AGENT_SKIPPED` → report; nothing shipped.
-   - `READY_TO_SHIP` → the code is done, reviewed, QA'd, version-bumped, and pushed. Now the MAIN LOOP:
+   - `READY_TO_SHIP` → the code is done, reviewed, QA'd, version-bumped, and pushed. Follow
+     `next_steps_for_main_loop` verbatim — it is already branched on `source`. In outline:
      1. **Mechanically verify the TDD RED commits** (`tdd_red_audit`): for each, `git show --stat <sha>`
         touches test file(s) only AND the same test fails at that commit. Any failure → do NOT open the MR.
-     2. `/klever-mr` (no auto-merge) for `branch`.
-     3. `/post-comment` — Jira comment: MR link + AC summary + QA evidence highlights.
-     4. Transition the ticket to In Review/Testing (ceiling).
+     2. Open the MR/PR (no auto-merge) for `branch`, using the **code repo's** forge: `/klever-mr` for a
+        Klever GitLab repo, `gh pr create` for a GitHub repo.
+     3. `/post-comment` — MR link + AC summary + QA evidence highlights, to the tracker named by `source`.
+     4. Close out: Jira → transition to In Review/Testing (ceiling). GitHub → `/wayfinder-report-back`;
+        do NOT close the issue yourself.
      5. After the human merges: run contract 8 (`docs`/`contracts/8-validate.md`) as a post-merge step.
    - `NEEDS_VISUAL_VERIFY` (0.9.0) → all machine-provable work is green + pushed; the only non-PASS ACs are
      rendered-UI ACs awaiting a live screenshot (`visual_acs`). The MAIN LOOP does the render step the
@@ -177,6 +216,18 @@ updates are noise (Gab directive 2026-06-16, `feedback_no_external_status_update
 `READY_TO_SHIP` and a successful `NEEDS_VISUAL_VERIFY` render (screenshots = proof) post as usual.
 
 ## Status
+
+`0.10.0` — **GitHub Issues as a ticket driver.** The factory was Jira-only by assumption, not by
+design: the spine already treated the ticket as a black-box string, and the coupling was three
+points (concierge fetch, folder path, close-out). Those are now branched on a `source` resolved from
+`args.ticket` — see "Ticket sources" above. Wayfinder issues on
+`gabriel-amyot/klever-project-management` drive a run end to end; any other GitHub repo throws rather
+than silently retargeting the tracker. The code forge stays bound to the repo, so a GitHub issue can
+drive a GitLab MR. Guard: `tests/ticket-source.test.mjs` (22 cases, 6 mutations all detected).
+
+`0.9.5` — **gate-loop hardening** from a fresh-context adversarial review of 0.9.4: deterministic
+`decision_file` pin, a staleness guard on `decisions.yaml` entries (id AND question text must match),
+and `spec_quality: FAIL` routed to `GATE_REQUIRED` in headless. See CHANGELOG 0.9.5.
 
 `0.9.4` — **headless mode / gate-as-handoff** (approved by Gab 2026-07-05, Phase 3 of the evolution
 roadmap pulled forward). `args.headless: true` converts an unanswered human gate into the clean

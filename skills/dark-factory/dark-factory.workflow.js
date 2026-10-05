@@ -1,6 +1,6 @@
 export const meta = {
   name: 'dark-factory',
-  description: 'Ticket-to-dev factory v2 (seed). Deterministic Workflow orchestration, work-type-agnostic: the concierge proposes a tool belt from the crib and the build + tester sockets equip it. Gates are JS code, not prose, so no phase can be skipped or self-certified past. Human concierge gate at the front. Every phase returns a soft confidence (0-100). A final Retro phase scores the run, captures red flags, and writes telemetry + a next-run improvement handoff. Terminal state READY_TO_SHIP: the workflow does code work + pushes the branch; the main loop runs the MR + Jira + post-merge validate.',
+  description: 'Ticket-to-dev factory v2 (seed). Deterministic Workflow orchestration, work-type-agnostic: the concierge proposes a tool belt from the crib and the build + tester sockets equip it. Gates are JS code, not prose, so no phase can be skipped or self-certified past. Human concierge gate at the front. Every phase returns a soft confidence (0-100). A final Retro phase scores the run, captures red flags, and writes telemetry + a next-run improvement handoff. Driven by either a Jira ticket or a wayfinder GitHub issue (the tracker is a driver; the code forge follows the repo). Terminal state READY_TO_SHIP: the workflow does code work + pushes the branch; the main loop runs the MR + tracker close-out + post-merge validate.',
   phases: [
     { title: 'Concierge', detail: 'analyze + context + prereqs; surface decisions for the human' },
     { title: 'Design',    detail: 'tactical impl plan + test specs' },
@@ -34,7 +34,45 @@ const RUNS = '/Users/gabrielamyot/.claude/skills/dark-factory/runs'
 const TOOLCRIB = '/Users/gabrielamyot/.claude/skills/dark-factory/toolcrib'
 const SUPPORTED_BELTS = ['java', 'scripting', 'frontend', 'terraform-dac-infra', 'python-service'] // tool belts racked in the crib; concierge proposes one
 
-const ticket = (args && args.ticket) || null
+// ---- Ticket source (0.10.0): the TRACKER is a driver, decoupled from the code FORGE ----
+// A ticket can come from Jira (the colleague-facing board) or from a wayfinder decision ticket on
+// GitHub Issues. The forge the code ships to is decided by the REPO, not by the tracker: a GitHub
+// issue can perfectly well drive a GitLab MR on a Klever repo. Only three things vary by source:
+// how the concierge FETCHES the ticket, where the ticket FOLDER lands, and who gets the status
+// comment at the end.
+// Wayfinder's tracker is `gabriel-amyot/klever-project-management` and the skill states it is not
+// configurable. Honour that here: a GitHub reference to any OTHER repo throws rather than silently
+// retargeting a factory run at an unsupported tracker.
+const WAYFINDER_REPO = 'gabriel-amyot/klever-project-management'
+function resolveTicketSource(raw) {
+  const s = String(raw || '').trim()
+  if (!s) return null
+  if (/^[A-Z][A-Z0-9]*-\d+$/.test(s)) return { source: 'jira', ticket: s, issue_repo: null, issue_number: null }
+  const url = s.match(/^https?:\/\/github\.com\/([^/]+\/[^/]+)\/issues\/(\d+)\/?$/)
+  const qual = s.match(/^([^/\s]+\/[^/#\s]+)#(\d+)$/)
+  const bare = s.match(/^(?:gh#|#)?(\d+)$/)
+  const hit = url || qual
+  if (hit) {
+    if (hit[1] !== WAYFINDER_REPO) {
+      throw new Error(`dark-factory GitHub tickets come from the wayfinder tracker (${WAYFINDER_REPO}) only; got "${hit[1]}". Wayfinder states its tracker is not configurable, so this is a hard stop, not a default.`)
+    }
+    return { source: 'github', ticket: `GH-${hit[2]}`, issue_repo: WAYFINDER_REPO, issue_number: Number(hit[2]) }
+  }
+  if (bare) return { source: 'github', ticket: `GH-${bare[1]}`, issue_repo: WAYFINDER_REPO, issue_number: Number(bare[1]) }
+  throw new Error(`dark-factory could not parse args.ticket "${s}". Expected a Jira key (KTP-1234) or a wayfinder issue (#123, gh#123, ${WAYFINDER_REPO}#123, or its issue URL).`)
+}
+const _src = resolveTicketSource(args && args.ticket)
+if (!_src) throw new Error('dark-factory requires args.ticket (e.g. "KTP-1234" or "#123")')
+const source = _src.source
+const ticket = _src.ticket
+const issueRepo = _src.issue_repo
+const issueNumber = _src.issue_number
+// How the concierge reaches the tracker, and what the run calls it in prose.
+const TRACKER = source === 'github'
+  ? { name: 'the wayfinder GitHub issue', ref: `${issueRepo}#${issueNumber}`,
+      fetch: `gh issue view ${issueNumber} --repo ${issueRepo} --json number,title,body,state,labels,url,parent,comments,assignees` }
+  : { name: 'the Jira ticket', ref: ticket,
+      fetch: `cd ~/.claude/skills/jira && python3 jira_skill.py get ${ticket} --full --org <ORG>` }
 const org = (args && args.org) || 'klever'
 const humanDecisions = (args && args.humanDecisions) || null
 // TDD gate mode (deft-falcon, D4): 'halt' (default, un-skippable) | 'warn' (cap + telemetry, no halt).
@@ -62,7 +100,6 @@ const headless = !!(args && args.headless === true)
 // silently MISS the human's answers. The gate handoff records decision_file; the re-entry caller
 // passes it back here so the path is pinned by code, not re-derived.
 const decisionFileArg = (args && args.decision_file) || null
-if (!ticket) throw new Error('dark-factory requires args.ticket (e.g. "ABC-123")')
 
 // ---- Schemas (handoffs are validated objects, not parsed text) ----
 
@@ -410,7 +447,7 @@ Also return two SOFT signal fields (not a gate): "confidence" (integer 0-100 = h
 let _tf = null
 let _belt = null
 const readContract = (name) =>
-  `Read ${CONTRACTS}/${name}.md and execute it exactly for ticket ${ticket} (org: ${org}). Ticket folder (absolute): ${_tf || '(resolved by concierge)'}. Tool belt for this run: ${_belt || '(proposed by concierge)'} — equip it from ${TOOLCRIB}/${_belt || '<belt>'}.md (read it for the build / execute-verify / proof tooling; do NOT assume a stack).${CONFIDENCE_BLURB}`
+  `Read ${CONTRACTS}/${name}.md and execute it exactly for ticket ${ticket} (org: ${org}). Ticket source: ${source} (${TRACKER.ref}) — re-read it with \`${TRACKER.fetch}\` if you need the original wording. Ticket folder (absolute): ${_tf || '(resolved by concierge)'}. Tool belt for this run: ${_belt || '(proposed by concierge)'} — equip it from ${TOOLCRIB}/${_belt || '<belt>'}.md (read it for the build / execute-verify / proof tooling; do NOT assume a stack).${CONFIDENCE_BLURB}`
 
 // Trace of phase outcomes for the Retro phase.
 const trace = []
@@ -446,7 +483,11 @@ async function runPipeline() {
   const headlessNote = headless
     ? `\n\nHEADLESS RUN (gate-as-handoff): the human is NOT interactive; your open_questions will be routed
 to a gate handoff for later human pickup. BEFORE raising any question, look for answered decisions:
-${decisionFileArg ? `the caller pinned the decision file at ${decisionFileArg} — read THAT path.` : `check <ticket_folder>/factory/decisions.yaml; if the folder you resolved has none, glob tickets/*/*/${ticket}/factory/decisions.yaml AND tickets/*/no-epic/${ticket}/factory/decisions.yaml (a prior run may have bucketed the ticket folder differently — if an existing ticket folder for ${ticket} exists ANYWHERE under tickets/, reuse it rather than creating a second one).`}
+${decisionFileArg
+  ? `the caller pinned the decision file at ${decisionFileArg} — read THAT path.`
+  : source === 'github'
+    ? `check <ticket_folder>/factory/decisions.yaml; if the folder you resolved has none, glob tickets/wayfinder/*/issue-${issueNumber}/factory/decisions.yaml (a prior run may have resolved a different parent map — if a folder for issue-${issueNumber} exists ANYWHERE under tickets/wayfinder/, reuse it rather than creating a second one).`
+    : `check <ticket_folder>/factory/decisions.yaml; if the folder you resolved has none, glob tickets/*/*/${ticket}/factory/decisions.yaml AND tickets/*/no-epic/${ticket}/factory/decisions.yaml (a prior run may have bucketed the ticket folder differently — if an existing ticket folder for ${ticket} exists ANYWHERE under tickets/, reuse it rather than creating a second one).`}
 decisions.yaml is a list of entries { id, question, answer }. CONSUME an entry ONLY when BOTH its id and
 its question text match a question you would raise now — the question-text match is the staleness guard.
 An entry whose question does not match anything you would ask is a leftover from a PREVIOUS gate: IGNORE
@@ -455,6 +496,9 @@ Only set needs_human=true for questions with no matching consumed answer.`
     : ''
   const conciergePrompt =
     `Read ${CONTRACTS}/1-concierge.md and execute it for ticket ${ticket} (org: ${org}).
+TICKET SOURCE: ${source}. ${source === 'github'
+  ? `This run is driven by ${TRACKER.name} ${TRACKER.ref}. Fetch it with: ${TRACKER.fetch}. Read the title, body, labels, parent map, and ALL comments — a wayfinder ticket carries its decision in the comment thread, not only the body. Follow contract 1 step 1-GH and step 2-GH for the GitHub fetch and the wayfinder ticket-folder path. Do NOT call jira_skill.py; this ticket does not exist in Jira.`
+  : `This run is driven by ${TRACKER.name} ${TRACKER.ref}. Follow contract 1 step 1-JIRA and step 2-JIRA.`}
 You are the concierge: validate spec quality, gather context, extract ACs, check prerequisites, and
 RESOLVE the absolute ticket-folder path (return it as ticket_folder). This is the front gate. If
 anything needs a human decision (ambiguous spec, missing/unknown repo or stack, a greenfield infra
@@ -716,6 +760,20 @@ ${impl.branch}'. Version bump + CHANGELOG, commit, push the branch with git. Do 
   }
   const redAuditStep = 'MECHANICALLY verify each tdd_red_audit entry: `git show --stat <red_commit>` touches test file(s) only (no production source), and the same test FAILS when checked out at that commit. If any fails, do NOT open the MR — re-run or halt.'
 
+  // Close-out is source-aware (0.10.0). The FORGE follows the code repo (a Klever repo ships a GitLab
+  // MR whether a Jira ticket or a wayfinder issue drove the run); only the TRACKER side differs.
+  const mrStep = (branch) => `Open the merge/pull request for branch ${branch} with NO auto-merge, using the forge of the code repo (${(concierge.repos || []).join(', ') || 'see concierge.repos'}): a Klever GitLab repo uses /klever-mr; a GitHub repo uses \`gh pr create\`. The ticket source does NOT decide this — the repo does.`
+  const trackerSteps = source === 'github'
+    ? [
+        `Invoke /post-comment to comment on ${TRACKER.ref} (MR/PR link + AC summary + QA evidence). The wayfinder tracker is Gabriel's own planning repo, but this is still an external post — route it through /post-comment, do not call \`gh issue comment\` directly.`,
+        `Invoke /wayfinder-report-back for issue ${issueNumber}: a dark-factory run that finished a wayfinder implementation ticket is exactly its stated trigger. It owns the resolution comment, the run trailer, and the map's Decisions-so-far line.`,
+        `Do NOT close the issue yourself and do NOT transition anything in Jira — this ticket does not exist there. Closure belongs to the wayfinder resolve path, so that the run stays traced in wayfinder's telemetry instead of vanishing.`,
+      ]
+    : [
+        'Invoke /post-comment for the Jira comment (MR link + AC summary + QA evidence)',
+        'Transition the ticket to In Review/Testing (ceiling)',
+      ]
+
   // Visual-AC gate (0.9.0): the ONLY non-PASS ACs are rendered-UI ACs awaiting a live screenshot. The
   // machine-provable work is done + pushed, but visual proof can't run in a subagent (skills unreliable
   // there, and it needs the local stack). Hand the visual step to the MAIN LOOP, which CAN run skills.
@@ -730,9 +788,9 @@ ${impl.branch}'. Version bump + CHANGELOG, commit, push the branch with git. Do 
         redAuditStep,
         'Start the local stack: /klever-local-stack (use klever-local-stack-real-bq when a visual AC needs real data). Seed any fixture marked "seedable" in visual_acs.',
         'For each visual_acs AC, render it against http://localhost:3000 and capture a screenshot: prefer the ui-probe skill (reuses your authenticated Chrome); else /klever-test AC-validation (headless Playwright — localhost has no IAP wall).',
-        'If EVERY visual AC renders correctly: treat as READY_TO_SHIP — /klever-mr (no auto-merge) for ' + shipPrep.branch + ', /post-comment with the screenshots as AC evidence, transition to In Review/Testing.',
+        'If EVERY visual AC renders correctly: treat as READY_TO_SHIP — ' + mrStep(shipPrep.branch) + ' Then: ' + trackerSteps.join(' '),
         'If a visual AC renders WRONG: it is a real gap — do NOT ship; report it (a fix is needed).',
-        'If the stack will not start, a fixture is genuinely unavailable (concierge marked it "missing"), or no browser is drivable: fall back to READY_FOR_VISUAL_QA — /klever-mr (open the MR), but do NOT post a Jira status comment and do NOT transition the ticket. PARK the drafted comment on disk in the ticket folder ("visual QA pending: ' + visualAcs.map((v) => v.ac).join(', ') + '"). Post ONE consolidated comment only when real proof (verified visual evidence) exists — status-only updates are noise (Gab directive 2026-06-16, feedback_no_external_status_updates_without_proof).',
+        'If the stack will not start, a fixture is genuinely unavailable (concierge marked it "missing"), or no browser is drivable: fall back to READY_FOR_VISUAL_QA — open the MR/PR, but do NOT post a status comment to ' + TRACKER.name + ' and do NOT transition or resolve the ticket. PARK the drafted comment on disk in the ticket folder ("visual QA pending: ' + visualAcs.map((v) => v.ac).join(', ') + '"). Post ONE consolidated comment only when real proof (verified visual evidence) exists — status-only updates are noise (Gab directive 2026-06-16, feedback_no_external_status_updates_without_proof).',
       ],
     }
   }
@@ -741,9 +799,8 @@ ${impl.branch}'. Version bump + CHANGELOG, commit, push the branch with git. Do 
     ...shipped, status: 'READY_TO_SHIP',
     next_steps_for_main_loop: [
       redAuditStep,
-      'Invoke /klever-mr (no auto-merge) for branch ' + shipPrep.branch,
-      'Invoke /post-comment for the Jira comment (MR link + AC summary + QA evidence)',
-      'Transition the ticket to In Review/Testing (ceiling)',
+      mrStep(shipPrep.branch),
+      ...trackerSteps,
       'After the human merges: run contract 8 (validate) as a post-merge step',
     ],
   }
@@ -751,7 +808,12 @@ ${impl.branch}'. Version bump + CHANGELOG, commit, push the branch with git. Do 
 
 // =================== RUN + RETRO ===================
 
-const result = await runPipeline()
+// Stamp the ticket source onto EVERY terminal (0.10.0), including the three that return early below.
+// The main loop branches its close-out on this, so it must never have to re-parse args.ticket.
+const result = Object.assign(
+  { source, tracker_ref: TRACKER.ref, issue_repo: issueRepo, issue_number: issueNumber },
+  await runPipeline(),
+)
 
 // AWAITING_HUMAN is a pause (will resume), not an end — no retro yet.
 if (result.status === 'AWAITING_HUMAN') return result

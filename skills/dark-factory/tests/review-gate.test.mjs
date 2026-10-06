@@ -15,11 +15,17 @@ function extract(name) {
   if (!m) throw new Error('could not extract ' + name + ' from the workflow file')
   return m[0]
 }
+function extractConst(name) {
+  const m = src.match(new RegExp('^const ' + name + ' = .*$', 'm'))
+  if (!m) throw new Error('could not extract const ' + name + ' from the workflow file')
+  return m[0]
+}
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
-const { blockingFindings, reviewCountMismatch, preShipBlockers } = await new AsyncFunction(
-  extract('blockingFindings') + '\n' + extract('reviewCountMismatch') + '\n' +
+const { blockingFindings, reviewCountMismatch, preShipBlockers, handoffUncertainty } = await new AsyncFunction(
+  extractConst('LOW_CONFIDENCE') + '\n' +
+  extract('handoffUncertainty') + '\n' + extract('blockingFindings') + '\n' + extract('reviewCountMismatch') + '\n' +
   extract('executionOk') + '\n' + extract('preShipBlockers') +
-  '\nreturn { blockingFindings, reviewCountMismatch, preShipBlockers };'
+  '\nreturn { blockingFindings, reviewCountMismatch, preShipBlockers, handoffUncertainty };'
 )()
 
 let pass = 0, fail = 0
@@ -95,6 +101,23 @@ ok('P9 missing findings array blocks even at criticals_open:0',
     .some((b) => b.includes('no findings array')))
 ok('P10 empty findings array is clean and ships',
   preShipBlockers(goodImpl, rev([], 0), 'ALL_PASS', 'all_pass').length === 0)
+
+// --- handoffUncertainty: carry a low-confidence phase's own doubt forward (0.10.1) ---
+ok('U1 confident phase hands nothing forward',
+  handoffUncertainty({ confidence: 90, confidence_deductions: [{ points: 10, reason: 'x' }] }, 'Design') === '')
+ok('U2 exactly at the threshold is NOT low',
+  handoffUncertainty({ confidence: 75 }, 'Design') === '')
+ok('U3 below threshold emits a note naming the phase and score',
+  handoffUncertainty({ confidence: 67, confidence_deductions: [] }, 'Implement').includes('Implement phase closed at confidence 67'))
+ok('U4 deduction reasons are carried verbatim',
+  handoffUncertainty({ confidence: 60, confidence_deductions: [{ points: 20, reason: 'mapbox layer order unverified' }] }, 'Grill')
+    .includes('mapbox layer order unverified'))
+ok('U5 missing deductions still warns rather than going silent',
+  handoffUncertainty({ confidence: 40 }, 'Design').includes('no deductions recorded'))
+ok('U6 absent confidence hands nothing forward (not treated as 0)',
+  handoffUncertainty({ status: 'pass' }, 'Design') === '')
+ok('U7 null phase is safe', handoffUncertainty(null, 'Design') === '')
+ok('U8 non-numeric confidence is ignored', handoffUncertainty({ confidence: 'low' }, 'Design') === '')
 
 console.log(`\n${pass} passed, ${fail} failed`)
 process.exit(fail ? 1 : 0)

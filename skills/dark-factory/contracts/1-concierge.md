@@ -57,11 +57,31 @@ identical. The source does NOT decide which forge the code ships to — the repo
 2-GH. **Resolve the ticket folder** for a wayfinder issue. Wayfinder keeps no per-ticket folder on
    disk (GitHub is its source of truth), so anchor on its **map** identity, the same unit its own run
    telemetry uses (`wayfinder/runs/map-<M>.yaml`):
-   `<PM_ROOT>/tickets/wayfinder/map-<M>/issue-<N>/`, where `<M>` is the parent map's issue number from
-   the `parent` field. If the issue has no parent map, use `<PM_ROOT>/tickets/wayfinder/no-map/issue-<N>/`.
-   **The `no-map` case is common, not exotic** — implementation tickets are often created without being
-   linked to their map. Do not go hunting for a plausible-looking map and adopt it: an unlinked ticket
-   gets `no-map/`, and you note the missing link in `summary`.
+   `<PM_ROOT>/tickets/wayfinder/map-<M>/issue-<N>/`, where `<M>` is the parent issue's number.
+
+   **Finding `<M>`: `--json parent` LIES. Do not use it.** Verified 2026-10-05 against issue #236,
+   which is a genuine child of #227: `gh issue view 236 --json parent` returns **null**, and
+   `gh api repos/<repo>/issues/227/sub_issues` returns **[]**. Both are wrong. This is the same class
+   of trap wayfinder's own SKILL.md documents for `blockedBy` — a `gh` JSON field that reports a
+   falsy value for a real relationship, so the bug reads as "no parent" instead of as an error.
+
+   The method that works is the search:
+   ```
+   gh issue list --repo gabriel-amyot/klever-project-management --state all \
+     --search "parent:<CANDIDATE>" --json number --jq '[.[].number]'
+   ```
+   To find the parent OF issue N, run that search against candidate parents (sibling-numbered issues
+   near N, or any issue the body references) and take the one whose result CONTAINS N. Confirm the
+   hit — on #236 the search returned exactly 228-236, the nine tracks of #227, which is corroboration
+   you can state. If no search contains N, there is no parent.
+
+   **A parent is not necessarily a `wayfinder:map`.** #227 is labelled `wayfinder:implementation` and
+   is an umbrella that nine tracks hang off. The `map-<M>` folder segment means "the parent issue",
+   whatever its label.
+
+   If the issue genuinely has no parent, use `<PM_ROOT>/tickets/wayfinder/no-map/issue-<N>/`.
+   **`no-map` is a real case, not a failure** — do not adopt a plausible-looking parent to avoid it.
+   Adopt a parent only on the search evidence above; otherwise take `no-map/` and note it in `summary`.
    Before creating it, glob `<PM_ROOT>/tickets/wayfinder/*/issue-<N>/` — if a folder for this issue
    already exists under another map, REUSE it rather than creating a second one.
 

@@ -494,6 +494,27 @@ function tddVerifiedCap(qa, overall) {
   return overall
 }
 
+// Carry a low-confidence phase's own stated doubt into the NEXT phase (0.10.1).
+//
+// Every phase has self-reported `confidence` + `confidence_deductions` since the seed build, and for
+// four months nothing read either one. Seven retros filed the same note; KTP-1272 run 5 put it
+// plainly: Implement closed at 67, the lowest in the trace, and "no gate reacts to a self-reported 67."
+//
+// This is deliberately NOT a gate. A phase can be honestly uncertain and still correct, so halting on
+// a number an agent chose about itself would punish honesty and invite inflation. What the number IS
+// good for is telling the next worker where to look. The deductions are already a list of "here is
+// what I am unsure about" — handing that forward is free, and it is the whole value the field has.
+const LOW_CONFIDENCE = 75
+function handoffUncertainty(prev, prevName) {
+  if (!prev || typeof prev.confidence !== 'number' || prev.confidence >= LOW_CONFIDENCE) return ''
+  const ded = Array.isArray(prev.confidence_deductions) ? prev.confidence_deductions : []
+  const lines = ded
+    .filter((d) => d && d.reason)
+    .map((d) => `  - (${d.points != null ? d.points : '?'} pts) ${d.reason}`)
+    .join('\n')
+  return `\n\nUPSTREAM UNCERTAINTY: the ${prevName} phase closed at confidence ${prev.confidence}/100, below ${LOW_CONFIDENCE}. It accounted for the gap like this:\n${lines || '  - (no deductions recorded — treat the whole phase as unverified)'}\nThese are the places the previous worker told you it was unsure. Treat them as the first things to check, not as settled. If you find one of them is actually wrong, say so plainly — correcting an upstream phase is worth more than completing your own.`
+}
+
 // Soft-signal instruction appended to every phase prompt.
 const CONFIDENCE_BLURB = `
 Also return two SOFT signal fields (not a gate): "confidence" (integer 0-100 = how confident you are this phase is correct and complete) and "confidence_deductions" (array of { points, reason } accounting for EVERY point below 100). Be honest — this feeds the run eval.`
@@ -650,13 +671,13 @@ one run today — surface it so the split-fan-out (a later capability) or a huma
     : 'No human decisions were required.'
 
   phase('Design')
-  const design = await agent(`${readContract('2-design')}\n${decisionsNote}`, { schema: PHASE_SCHEMA, label: 'design', phase: 'Design' })
+  const design = await agent(`${readContract('2-design')}\n${decisionsNote}${handoffUncertainty(concierge, 'Concierge')}`, { schema: PHASE_SCHEMA, label: 'design', phase: 'Design' })
   if (!design) return agentSkipped('Design')
   rec('design', design)
   if (design.status === 'stuck') return { status: 'HALT_DESIGN_STUCK', ticket, design }
 
   phase('Grill')
-  const grill = await agent(`${readContract('3-grill')}\nInterrogate the design plan against the actual codebase (use git, not just local files). ${decisionsNote}`, { schema: PHASE_SCHEMA, label: 'grill', phase: 'Grill' })
+  const grill = await agent(`${readContract('3-grill')}\nInterrogate the design plan against the actual codebase (use git, not just local files). ${decisionsNote}${handoffUncertainty(design, 'Design')}`, { schema: PHASE_SCHEMA, label: 'grill', phase: 'Grill' })
   if (!grill) return agentSkipped('Grill')
   rec('grill', grill)
   if (grill.status === 'stuck') return { status: 'HALT_GRILL_UNWORKABLE', ticket, design, grill }
@@ -674,7 +695,7 @@ for work with no unit surface; 'infra_blocked(<why>)' only if the test cannot ev
 the infra (infra_blocked does NOT excuse a unit RED you could have written). After all ACs are green,
 ATTEMPT to run the artifact and record execution_verified honestly (never skip). Then PUSH the feature
 branch to origin and write 'git diff origin/dev..HEAD' to a file in the ticket folder; return its path
-as diff_artifact and set pushed=true. ${decisionsNote}`,
+as diff_artifact and set pushed=true. ${decisionsNote}${handoffUncertainty(grill, 'Grill')}`,
     { schema: IMPLEMENT_SCHEMA, label: 'implement', phase: 'Implement', isolation: 'worktree' })
   if (!impl) return agentSkipped('Implement')
   rec('implement', impl)
@@ -793,7 +814,7 @@ below: 'git show --stat <red_commit>' must touch the TEST file only (no producti
 test must FAIL when run at that commit — set red_verified=true when both hold, false when not, 'exempt'
 for an exempt entry. A PASS whose RED you cannot re-verify gets capped. Return raw verdicts; do NOT
 self-assign the level.
-RED LEDGER: ${redLedger}`,
+RED LEDGER: ${redLedger}${handoffUncertainty(impl, 'Implement')}`,
     { schema: QA_SCHEMA, label: 'qa', phase: 'QA', isolation: 'worktree' })
   if (!qa) return { ...agentSkipped('QA'), branch: impl.branch }
   rec('qa', qa, qa.raw_overall)

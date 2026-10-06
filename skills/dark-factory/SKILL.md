@@ -1,6 +1,6 @@
 ---
 name: dark-factory
-version: "0.10.1"
+version: "0.10.2"
 description: "The ticket-to-dev factory for a SINGLE ticket, driven by a Jira ticket OR a wayfinder GitHub issue, orchestrated by the Workflow tool instead of prose. Gates are code (un-skippable), with a human concierge gate at the front. The concierge proposes a tool belt from the crib (java, scripting, frontend, terraform-dac-infra, or python-service); the build + tester sockets are equipped from that belt, so the same line handles multiple work-types without duplication. Review + bounded fix loop + QA. The workflow does code work and pushes the branch (terminal state READY_TO_SHIP); the main loop creates the MR + Jira comment and runs post-merge validate. For multi-ticket / epic DAGs use Sprint Factory (/sprint-factory). Triggers on: '/dark-factory', 'dark factory', 'ticket to dev', 'run this ticket'. Klever."
 user_invocable: true
 nav:
@@ -220,6 +220,12 @@ updates are noise (Gab directive 2026-06-16, `feedback_no_external_status_update
 `READY_TO_SHIP` and a successful `NEEDS_VISUAL_VERIFY` render (screenshots = proof) post as usual.
 
 ## Status
+
+`0.10.2` — **first live GitHub-issue run (#236), which corrected contract 1.** `gh issue view --json
+parent` returns null for a genuinely parented issue, so the documented method would have filed every
+parented ticket under `no-map/`. The working method is `gh issue list --search "parent:<N>"`; contract
+1 now says so and names the trap. Also noted: a parent may be a `wayfinder:implementation` umbrella
+rather than a `wayfinder:map`, so the `map-<M>` path segment means "parent issue", whatever its label.
 
 `0.10.1` — **the review gate acts on evidence, not on a self-reported label.** The bounded fix loop and
 the pre-ship gate now derive their blocking set from the `findings` array: a finding blocks when it is

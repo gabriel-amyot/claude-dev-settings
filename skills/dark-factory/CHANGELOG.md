@@ -2,6 +2,28 @@
 
 Every SKILL.md / workflow.js / contract change bumps the version and adds an entry.
 
+## 0.10.2 (2026-10-05)
+
+**First live GitHub-issue run, and it found a bug in my own contract.** A `concierge_only` pass
+against wayfinder issue #236 returned a correct `CONCIERGE_ONLY_COMPLETE`: source `github`, belt
+`scripting`, five logic ACs, `prereqs_ok: false`, five well-formed blocking questions. Two corrections
+came out of it.
+
+- **`gh issue view --json parent` LIES, and contract 1 told the concierge to trust it.** Verified:
+  #236 is a genuine child of #227 (`gh issue list --search "parent:227"` returns exactly 228-236, the
+  nine census tracks), yet `--json parent` returns **null** and `gh api .../227/sub_issues` returns
+  **[]**. Following my contract would have filed every parented ticket under `no-map/`. The concierge
+  distrusted the field, found the search method, and corroborated it. Contract 1 now documents the
+  search as the only working method and names the trap — the same shape wayfinder's SKILL.md already
+  records for `blockedBy`, where a falsy JSON field reads as "no relationship" instead of as an error.
+- **A parent is not necessarily a `wayfinder:map`.** #227 is `wayfinder:implementation`, an umbrella
+  with nine tracks under it. The `map-<M>` path segment means "the parent issue", whatever its label.
+  Flagged to Gab: the segment name is now a mild misnomer.
+- The run also surfaced a real architectural conflict nobody had written down: #236 names
+  `project-management` as its primary repo, but that repo's CLAUDE.md forbids the branch and worktree
+  dark-factory requires. That is a ticket problem, not a factory problem, and the gate caught it
+  before any code work — which is what the gate is for.
+
 ## 0.10.1 (2026-10-05)
 
 **The review gate acts on evidence, not on a self-reported label** — plus repair of the telemetry the
@@ -66,10 +88,10 @@ close-out.
   source of truth), so the folder uses wayfinder's own run unit — `tickets/wayfinder/map-<M>/issue-<N>/`,
   mirroring `wayfinder/runs/map-<M>.yaml` — falling back to `no-map/` when an issue has no parent. The
   concierge globs `tickets/wayfinder/*/issue-<N>/` first so a re-parented issue cannot spawn a second
-  folder. The headless `decisions.yaml` glob got the matching GitHub branch. `no-map/` is the common
-  case, not the exotic one: of the tracker's issues only 63 carry a parent, and the nine census
-  implementation tickets (#228-236) have none — so the contract tells the concierge to accept
-  `no-map/` and note the missing link, never to adopt a plausible-looking map.
+  folder. The headless `decisions.yaml` glob got the matching GitHub branch.
+  **CORRECTED in 0.10.2:** this entry originally claimed the nine census tickets (#228-236) had no
+  parent. They are all children of #227. The claim came from `gh issue view --json parent`, which
+  returns null for them — see 0.10.2 for the field that lies and the search that works.
 - **Close-out is source-aware.** Jira keeps `/post-comment` + the In Review/Testing transition. A
   wayfinder issue gets `/post-comment` + `/wayfinder-report-back` (whose stated trigger is exactly "a
   dark-factory run that finished a wayfinder implementation ticket"), and the factory never closes the

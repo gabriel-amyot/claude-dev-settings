@@ -1,0 +1,324 @@
+run_id: run-2026-10-06-GH-230
+ticket: GH-230
+source: github
+issue_url: https://github.com/gabriel-amyot/klever-project-management/issues/230
+parent_map: 227
+title: >
+  Serve census from GCS. POST /api/v1/map/census at ZIP grain, backed by a per-ZIP byte-slice
+  Caffeine cache over the 894 three-digit chunk files. Repo app-proximity-report, belt java,
+  branch GH-230-serve-census-zip-grain cut from origin/dev.
+date: 2026-10-06
+terminal_status: HALT_FIX_NOT_PUSHED
+halt_phase: Fix (fix-1)
+ticket_folder: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/wayfinder/map-227/issue-230
+
+halt_point: >
+  The post-fix push. Twenty-four commits sit on the local branch and zero reach origin. The
+  worktree is clean, HEAD is verified green, and the halt comes from the remote, not from the code.
+
+root_cause_of_the_halt:
+  verdict: external infrastructure, not agent behaviour
+  verified_against: >
+    git ls-remote origin on the GH-230 worktree at 2026-10-06 returned
+    "fatal: unable to access https://cicd.prod.datasophia.com/... The requested URL returned
+    error: 502". The commits are stamped 00:50 to 00:55 EDT, inside the documented Datasophia
+    nightly window of about 11 PM to 5 AM ET that the global CLAUDE.md already records.
+  consequence: >
+    A known, scheduled, recurring outage was converted into a terminal HALT for the second time
+    in four days. run-2026-10-02-KTP-1272-slice3 halted on the identical 502 and its number-one
+    improvement was "check the remote BEFORE the run, and treat a known outage window as a
+    schedule input". That improvement was never implemented, so the factory walked into the same
+    wall with the same clock.
+
+repeat_of_prior_improvements:
+  note: >
+    Four of this run's red flags are verbatim repeats of improvements filed by
+    run-2026-10-02-KTP-1272-slice3. None of them became code.
+  recurring:
+    - "Check the remote before the run, and treat a known outage window as a schedule input"
+    - "Add PARKED_AWAITING_REMOTE as a non-terminal state with a bounded resume probe"
+    - "Commit the review's proof test onto the branch"
+    - "Require a Review re-pass before a fix phase may return PASS or partial"
+    - "Fix the empty session_id, or stop pretending the session folder is the handoff target"
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy_config: true
+  signal: clean
+  note: >
+    The gate ran in the default halt mode with zero warn-mode violations, and it did not fire.
+    The commit graph carries an ordered RED then GREEN pair for every one of the eight ACs,
+    AC-1 through AC-8, plus a RED-first pair for the two review fixes. This is the cleanest TDD
+    discipline of any recent run on this factory line.
+
+green_verification:
+  verified_by_retro: true
+  command: "mvn -o -Dtest=Census* -DfailIfNoTests=false test"
+  jdk: "zulu-21 (JDK 25 breaks Lombok and Mockito in this repo)"
+  result: "Tests run: 41, Failures: 0, Errors: 0, Skipped: 0. BUILD SUCCESS."
+  at_commit: 0efc0d0
+  caveat: >
+    The review's own proof test did not run here. It lives untracked in the separate review
+    worktree and is not on the branch, so this 41-test green covers the branch only.
+
+git_state:
+  worktree: /Users/gabrielamyot/Developer/grp-beklever-com/.claude/worktrees/GH-230-census-serving
+  branch: GH-230-serve-census-zip-grain
+  head: '0efc0d0 "GH-230: GREEN — ship census off rather than pointed at a source no environment publishes"'
+  worktree_clean: true
+  ahead_of_origin_dev: 24
+  pushed: false
+  head_is_green: true
+  mr: "none — the branch never reached origin, so no MR exists"
+  review_worktree: >
+    /Users/gabrielamyot/Developer/grp-beklever-com/.claude/worktrees/GH-230-review is a detached
+    HEAD at 0a900d0 holding
+    src/test/java/com/klever/proximity/report/review/CensusReviewFindingsTest.java as an
+    UNTRACKED file. There is no copy in the ticket folder. A git clean in that worktree destroys
+    the only copy of the review evidence.
+
+per_phase:
+  - phase: concierge
+    status: PASS
+    confidence: 84
+    note: >
+      Resolved the repo, the belt and the scope correctly and answered both gate questions in
+      writing (factory/decisions.yaml). Q1 refused both offered cache shapes and named a third,
+      per-ZIP byte slices, with the heap arithmetic behind it. Q2 bounded the run to the eight
+      ACs plus the _inventory.json admission check, and deferred D6, D11 and the condemnation
+      machine with a stated reason. Both answers are the best gate writing in the recent record.
+  - phase: design
+    status: pass
+    confidence: 78
+    note: >
+      impl-plan.md, 272 lines, ordered by evidence strength with named design decisions DD-1
+      through DD-6. It carried one hedge, a readValueAsTree fallback for the byte-offset slicer,
+      that the grill then retired by experiment.
+  - phase: grill
+    status: partial
+    confidence: 73
+    note: >
+      The strongest artifact of the run. It ran two real JDK 21 probes against the real
+      100.json corpus, proved the byte-offset slicer round-trips on all 42 slices, and pinned
+      the failure mode (createParser(String) returns byte offset -1, so the slicer must be fed
+      byte[]). It found G1, a genuine correctness hole: 106 of 1,000 prefixes have no chunk, so
+      a real ZIP like 00501 would have 503-ed the whole request. It wrote the fix as an ADR
+      draft. The partial is honest: G6 (inventory read frequency) and G7 (the CacheControl
+      number) were left as recommendations with no gate behind them.
+  - phase: implement
+    status: partial
+    confidence: 84
+    note: >
+      Twenty-one commits, eight ordered AC pairs, all eight ACs covered. G1 was closed in code
+      before the AC-3 pair (f41ae2c "let the inventory decide what the release contains"), which
+      is the grill's carry-forward item honoured in the right order. Partial reflects the
+      deferred items the concierge excluded, not missing AC work.
+  - phase: review
+    status: "blocking:2"
+    confidence: 78
+    note: >
+      Found two blocking defects and both were real. One, the shipped defaults enabled census
+      against classpath:census/, a directory no artifact publishes, so every deployed request
+      would answer 503. Two, LocalDirectoryCensusChunkSource dropped the release argument, so
+      two releases read the same bytes under different labels while the cache key promised
+      isolation. Neither is cosmetic. The phase wrote NO findings file to the ticket folder;
+      review/ is empty.
+  - phase: fix
+    status: partial
+    confidence: 62
+    note: >
+      Both blocking findings were fixed RED-first (c96ee28 RED, then d360297 and 0efc0d0 GREEN),
+      with the second fix shipping census disabled by default and failing fast at startup on a
+      misconfigured local source. The work is good. The partial at 62 cannot be audited, because
+      there is no findings file to check the fixes against and no second review pass was run.
+      The closure is self-report only.
+  - phase: qa
+    status: never_ran
+    confidence: null
+    note: >
+      No QA phase appears in the trace at all. The retro ran the test suite itself to establish
+      that HEAD is green. A factory should not need its retro to do that.
+
+artifact_integrity:
+  written:
+    - analyst/ac.json (8 ACs, each with ac_kind, proof and contract_refs)
+    - analyst/affected-repos.json
+    - analyst/assumptions.json
+    - design/impl-plan.md
+    - design/grill-report.md
+    - architecture/adr/ADR-draft-missing-prefix-is-not-found.md
+    - factory/decisions.yaml
+  empty_folders:
+    - "review/ — scaffolded and left empty. The two blocking findings exist only in commit messages."
+    - "tdd/ — scaffolded and left empty."
+  orphaned: >
+    CensusReviewFindingsTest.java, untracked, single copy, in a detached-HEAD worktree.
+
+scores:
+  task_confidence: 58
+  factory_fitness: 58
+
+deductions:
+  - points: 14
+    reason: >
+      TASK. Twenty-four commits of finished, verified-green work exist only on this machine.
+      Nothing is on origin, there is no MR, and no reviewer or environment can see any of it.
+  - points: 9
+    reason: >
+      TASK. No QA phase ran. Every AC claim rests on the unit and web-slice tests the implement
+      phase wrote for itself, with no independent pass.
+  - points: 7
+    reason: >
+      TASK. Fix-1 returned partial at confidence 62 with no findings file and no review re-pass.
+      Both blocking fixes look correct on inspection, but correctness here is inferred by the
+      retro, not established by the phase that was supposed to establish it.
+  - points: 6
+    reason: >
+      TASK. GcsCensusChunkSource is never exercised against a real bucket (#229 is open), and
+      the fix ships census disabled, so the endpoint is absent in every environment until #229
+      and #232 land. This is the right call, and it still means nothing is provable end to end.
+  - points: 4
+    reason: >
+      TASK. Grill returned partial with G6 (inventory read frequency, which the deferred 894
+      chunk warm will force) and G7 (the response CacheControl value, user-visible) unresolved.
+      Neither has a visible decision in the commit graph or in any artifact.
+  - points: 2
+    reason: >
+      TASK. The review's proof test is untracked in a detached-HEAD worktree with no second
+      copy. One git clean deletes the only evidence of what Review actually checked.
+  - points: 12
+    reason: >
+      FACTORY. The run was scheduled and pushed inside a documented, recurring outage window.
+      The prior retro's number-one improvement said exactly this four days earlier and was never
+      implemented, so the same outage produced the same terminal halt a second time.
+  - points: 8
+    reason: >
+      FACTORY. There is still no PARKED_AWAITING_REMOTE state and no bounded resume probe, so a
+      transient remote converts a complete, green, reviewed, fixed body of work into a HALT.
+  - points: 7
+    reason: >
+      FACTORY. review/ and tdd/ were scaffolded and left empty. The factory's own memory of what
+      Review found and what the TDD gate checked is gone, and this retro had to reconstruct both
+      from commit messages and a test run.
+  - points: 6
+    reason: >
+      FACTORY. The fix socket may return partial with no re-review. The gate cannot tell a fix
+      that closed two blockers from one that closed neither.
+  - points: 5
+    reason: >
+      FACTORY. The QA socket never fired and nothing in the pipeline objected to its absence.
+  - points: 4
+    reason: >
+      FACTORY. sessions/active/state.yaml still carries an empty session_id, so the improvement
+      handoff falls back to the ticket folder for the fourth consecutive run.
+
+red_flags:
+  - >
+    Twenty-four commits of verified-green work exist only locally. origin/dev is untouched and
+    there is no MR.
+  - >
+    The halt was caused by a KNOWN scheduled outage (Datasophia git tier, 502, nightly window)
+    that CLAUDE.md documents and that the previous retro already filed as improvement number one.
+  - >
+    Four improvements from run-2026-10-02-KTP-1272-slice3 recurred verbatim in this run. None
+    of them became code.
+  - >
+    review/ is empty. Two blocking findings were found, fixed and never written down anywhere a
+    future session can read.
+  - >
+    tdd/ is empty. The gate passed, but its evidence lives only in commit subjects.
+  - >
+    Fix-1 returned partial at 62 and there was no second review pass. Closure is self-report.
+  - >
+    QA never ran. The retro ran the test suite itself to learn whether HEAD was green.
+  - >
+    The review proof test is untracked in a detached-HEAD worktree, single copy.
+  - >
+    Grill partial, with G6 and G7 open and carried only as prose in a markdown file, the same
+    shape of unenforced carry-forward the last two retros flagged.
+  - >
+    sessions/active/state.yaml session_id is empty again, so the handoff lands in the ticket
+    folder by fallback rather than by design.
+  - >
+    The feature ships disabled and the GCS source is never live-exercised, so a green run here
+    proves the local path only.
+
+improvements:
+  - title: Make the remote outage window a schedule input, in workflow.js, not in a retro
+    detail: >
+      Add a preflight step to the concierge gate that runs git ls-remote against the target
+      remote and reads the clock. If the remote answers 502, or if local time sits inside the
+      documented 11 PM to 5 AM ET Datasophia window, the gate must either refuse to start a run
+      whose terminal state requires a push, or start it with push deferred and the operator
+      told. This is the third filing of this item. It is now the single highest-value change on
+      the list because it has demonstrably cost two complete runs.
+  - title: Add PARKED_AWAITING_REMOTE as a non-terminal state with a bounded resume probe
+    detail: >
+      When the worktree is clean, HEAD is green and the only failure is the push, the run must
+      not end in HALT. Record the branch, the HEAD sha and the ticket folder, then poll
+      git ls-remote every fifteen minutes for up to six hours and push on the first success.
+      Only after the budget expires does it become a halt.
+  - title: Make review/findings.json a hard write gate before the fix socket may run
+    detail: >
+      The fix socket must refuse to start unless review/findings.json exists in the ticket
+      folder with one entry per finding, each carrying id, severity and the file and line it
+      concerns. Fix then closes findings by id. This run found two real blocking defects and
+      left no machine-readable trace of either.
+  - title: Forbid a fix phase from returning partial or PASS without a review re-pass
+    detail: >
+      After fix-1, re-run the review socket against the new HEAD and require every blocking
+      finding id to be marked closed with a commit sha. A fix that self-reports partial at
+      confidence 62 is exactly the case the gate exists for. This is the second filing.
+  - title: Commit the review proof test onto the branch, never leave it in a review worktree
+    detail: >
+      The review socket should write its proof test into the ticket folder under review/ AND
+      cherry-pick it onto the feature branch as its own commit. Second filing. This run again
+      leaves the only copy untracked in a detached-HEAD worktree.
+  - title: Make the QA socket's absence an explicit, recorded decision
+    detail: >
+      QA did not appear in the trace at all. Either the socket must run, or the workflow must
+      emit a qa phase with status skipped and a reason, so the trace shows a decision rather
+      than a gap. No run should need its retro to discover whether HEAD compiles.
+  - title: Turn an open grill gap into a gate item, not a markdown sentence
+    detail: >
+      G6 and G7 are both decisions the grill asked the implement phase to make explicitly. Carry
+      every unresolved grill gap into a machine-readable design/open-gaps.json that the implement
+      socket must resolve or explicitly defer by id. Third filing of this shape.
+  - title: Fix the empty session_id or delete the session-folder branch of the handoff rule
+    detail: >
+      sessions/active/state.yaml has carried an empty session_id for four runs, so contract 9's
+      primary handoff target never resolves and the fallback is always taken. Either populate it
+      at session init or simplify the contract to write to the ticket folder unconditionally.
+
+what_went_right:
+  - >
+    The concierge gate answers are the best in the recent record. Q1 rejected both offered cache
+    shapes, named a third (per-ZIP byte slices), and justified it with the request-path and heap
+    arithmetic for all three options. It also forbade quoting the ~120 MiB figure as measured.
+  - >
+    The grill ran real experiments instead of reasoning. Two compiled JDK 21 probes over the real
+    corpus retired the plan's highest-risk item and pinned its exact failure mode.
+  - >
+    G1 is a genuine, shipped-bug-class find: 106 of 1,000 prefixes have no chunk, so a real USPS
+    ZIP such as 00501 would have returned 503 for an entire 4,000-id request. The grill derived
+    the fix from the contract's own definition of not_found and recorded it as an ADR draft.
+  - >
+    TDD discipline was clean without correction. Eight ordered AC pairs, plus a RED-first pair
+    for the review fixes.
+  - >
+    Both blocking review findings were real and both fixes are sound. Shipping census disabled,
+    and failing fast at startup on an unresolvable local directory, is better than the 503 per
+    request that the shipped defaults would have produced.
+  - >
+    Scope was held. The concierge excluded the startup warm, the semaphore and the condemnation
+    machine with a stated reason, and the implement phase did not drift into them.
+
+resume_pointer: >
+  Push GH-230-serve-census-zip-grain from
+  /Users/gabrielamyot/Developer/grp-beklever-com/.claude/worktrees/GH-230-census-serving once the
+  Datasophia git tier answers, then open the MR. Before that push, cherry-pick
+  CensusReviewFindingsTest.java out of the GH-230-review worktree onto the branch and run the
+  suite again. Then write review/findings.json retroactively from the two fix commit messages so
+  the next session can audit the closure. Raise the follow-up issue under #227 for D6, D11 and
+  the condemnation state machine, sequenced after #232.

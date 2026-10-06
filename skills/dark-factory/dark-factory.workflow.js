@@ -100,6 +100,9 @@ const headless = !!(args && args.headless === true)
 // silently MISS the human's answers. The gate handoff records decision_file; the re-entry caller
 // passes it back here so the path is pinned by code, not re-derived.
 const decisionFileArg = (args && args.decision_file) || null
+// Current time, ISO-8601 UTC, supplied by the CALLER (the spine cannot read a clock — Date.now()
+// throws inside a Workflow script). Used only to warn about the known nightly remote outage.
+const nowIso = (args && args.now) || null
 
 // ---- Schemas (handoffs are validated objects, not parsed text) ----
 
@@ -170,6 +173,9 @@ const IMPLEMENT_SCHEMA = {
   type: 'object',
   required: ['status', 'execution_verified', 'ac_progress', 'branch', 'pushed', 'diff_artifact', 'ac_tdd'],
   properties: {
+    // 0.10.3: when a push fails, say WHY verbatim. looksLikeRemoteOutage() reads this to tell a
+    // dead remote (park, work is fine) apart from a real failure (halt).
+    push_error: { type: 'string' },
     status: { type: 'string', enum: ['pass', 'partial', 'stuck'] },
     execution_verified: { type: 'string', pattern: '^(true|false|infra_blocked\\(.*\\)|not_applicable\\(.*\\))$' },
     ac_progress: { type: 'object' },
@@ -244,6 +250,10 @@ const REVIEW_SCHEMA = {
         properties: {
           severity: { type: 'string', enum: ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] },
           title: { type: 'string' }, file: { type: 'string' }, demonstrated: { type: 'boolean' },
+          // 0.10.3: name the AC a demonstrated finding falsifies. Set it and the finding BLOCKS at any
+          // severity — "AC-N does not hold" is a fact, not an impact opinion. Two runs shipped past a
+          // proven unmet AC by grading it MEDIUM (KTP-1275) and LOW (GH-231).
+          ac: { type: 'string' },
         },
       },
     },
@@ -292,6 +302,9 @@ const SHIPPREP_SCHEMA = {
   type: 'object',
   required: ['status', 'branch', 'pushed'],
   properties: {
+    // 0.10.3: when a push fails, say WHY verbatim. looksLikeRemoteOutage() reads this to tell a
+    // dead remote (park, work is fine) apart from a real failure (halt).
+    push_error: { type: 'string' },
     status: { type: 'string', enum: ['pass', 'partial', 'stuck'] },
     branch: { type: 'string', minLength: 1 },
     version: { type: 'string' },
@@ -337,6 +350,88 @@ function evidenceCappedOverall(qa) {
   return qa.raw_overall
 }
 
+// ---- Visual-AC readiness, checked at the FRONT gate (0.10.3) ----
+//
+// 0.9.0 classified every AC visual|logic at the concierge and routed a visual tail to
+// NEEDS_VISUAL_VERIFY at the END. That works, and it is why visual-only pre-ship halts largely stopped
+// after June. What it does NOT do is tell anyone UP FRONT that a run has no machine-provable work in
+// it at all. Such a run spends a full pipeline — design, grill, implement, review, QA — before anyone
+// learns that contract 6 was never going to prove anything.
+//
+// This is not a halt. An all-visual ticket is legitimate work and the main loop CAN render it. It is a
+// label computed at the front so the run's shape is known before the money is spent.
+function visualReadiness(acs) {
+  const list = Array.isArray(acs) ? acs.filter(Boolean) : []
+  if (!list.length) return { shape: 'unknown', visual: 0, logic: 0, total: 0, missing_fixture: [] }
+  const visual = list.filter((a) => String(a.ac_kind).toLowerCase() === 'visual')
+  const logic = list.filter((a) => String(a.ac_kind).toLowerCase() === 'logic')
+  const missing = visual.filter((a) => String(a.fixture).toLowerCase() === 'missing').map((a) => a.id)
+  let shape = 'logic_only'
+  if (visual.length && logic.length) shape = 'mixed'
+  else if (visual.length && !logic.length) shape = 'all_visual'
+  else if (!visual.length && !logic.length) shape = 'unknown'
+  return { shape, visual: visual.length, logic: logic.length, total: list.length, missing_fixture: missing }
+}
+
+// ---- Known remote outage window (0.10.3) ----
+//
+// The Datasophia git tier returns 502 nightly, ~11 PM to 5 AM ET. Global CLAUDE.md documents it to the
+// hour. On 2026-10-06 GH-230 and GH-231 both drove a full pipeline to green and then lost the push to
+// it — 38 commits stranded locally, no MR, both scored as failures. Their retros called it "the third
+// terminal halt on the identical 502 in five days" and noted two earlier retros had already filed it.
+//
+// The spine CANNOT read the clock: Date.now() / new Date() throw inside a Workflow script (they would
+// break resume). So the caller passes args.now, and this stays a pure function of that string.
+//
+// Window in UTC: 11 PM-5 AM ET is 04:00-10:00 UTC under EST and 03:00-09:00 UTC under EDT. We take the
+// UNION (03:00-10:00 UTC) rather than resolve the DST rule. This is a WARNING, not a halt, so erring
+// wide costs a needless caution and erring narrow costs another stranded run.
+const OUTAGE_UTC_START = 3
+const OUTAGE_UTC_END = 10
+function remoteOutageRisk(nowIso) {
+  if (typeof nowIso !== 'string' || !nowIso) return { known: false, inWindow: false }
+  const m = nowIso.match(/T(\d{2}):/)
+  if (!m) return { known: false, inWindow: false }
+  const hourUtc = Number(m[1])
+  if (!Number.isInteger(hourUtc) || hourUtc < 0 || hourUtc > 23) return { known: false, inWindow: false }
+  const inWindow = hourUtc >= OUTAGE_UTC_START && hourUtc < OUTAGE_UTC_END
+  return {
+    known: true,
+    inWindow,
+    hour_utc: hourUtc,
+    note: inWindow
+      ? `Local time is inside the documented Datasophia nightly outage window (~11 PM-5 AM ET; ${OUTAGE_UTC_START}:00-${OUTAGE_UTC_END}:00 UTC). Pushes to the Klever remote are expected to 502. The run will still do the code work, but expect to park before the push.`
+      : null,
+  }
+}
+
+// Did a failed push fail because of the remote, or because of the code/branch?
+// The difference decides whether the run is a FAILURE (the code is wrong) or a PARK (the code is fine
+// and the world was closed). Scoring an outage as a failure is what made GH-230/231 look like bad runs.
+const REMOTE_OUTAGE_RX = /\b(502|503|504|bad gateway|service unavailable|gateway time ?out|could not read from remote|connection timed out|failed to connect|remote end hung up|TLS|unable to access)\b/i
+function looksLikeRemoteOutage(pushError) {
+  return typeof pushError === 'string' && REMOTE_OUTAGE_RX.test(pushError)
+}
+
+// A run whose code is green and whose only failure is a dead remote is NOT a failed run. It is a
+// finished run waiting for the world to reopen. Giving it its own terminal keeps the work recoverable
+// and stops the Retro scoring an outage as a code defect (GH-230 scored 58, GH-231 62, both green).
+function parkedAwaitingRemote(phaseName, branch, pushError, extra) {
+  return {
+    status: 'PARKED_AWAITING_REMOTE', phase: phaseName, ticket, branch,
+    push_error: pushError || '(not reported)',
+    outage_window: remoteOutageRisk(nowIso),
+    note: 'The code work completed and the commits are on the LOCAL branch. The push failed against the remote, not against the code. Nothing here needs re-running.',
+    next_steps_for_main_loop: [
+      'Do NOT re-run the factory. The work exists on the local branch; a re-run would rebuild it from scratch.',
+      `Wait for the remote to return (the Datasophia tier is documented down ~11 PM-5 AM ET), then: git -C <repo> push -u origin ${branch}`,
+      'Verify the push with an UNPIPED command (a piped push reports the pipe status, not the push).',
+      'Then continue the normal close-out: open the MR, post the status comment, and run contract 8 after the merge.',
+    ],
+    ...(extra || {}),
+  }
+}
+
 function executionOk(ev) {
   const v = String(ev)
   return v === 'true' || v.indexOf('not_applicable') === 0
@@ -361,8 +456,37 @@ function blockingFindings(review) {
     if (!f) return false
     const sev = String(f.severity || '').toUpperCase()
     if (sev === 'CRITICAL') return true
-    return sev === 'HIGH' && f.demonstrated === true
+    if (f.demonstrated !== true) return false
+    if (sev === 'HIGH') return true
+    // 0.10.3 — a demonstrated finding that NAMES AN AC blocks at any severity.
+    //
+    // 0.10.1 closed the demonstrated-HIGH escape. Two runs then slipped through the next hole down:
+    // KTP-1275 (2026-10-02) held "a demonstrated logic gap the fix loop never picked up because it is
+    // graded MEDIUM", and GH-231 (2026-10-06) shipped AC-5 "reported proven while being, at the cap,
+    // not what the AC says — the mismatch was found by review, graded LOW."
+    //
+    // Severity is the reviewer's opinion about how much the defect matters. "AC-N does not hold" is a
+    // fact about the deliverable. A run exists to satisfy its ACs, so a proven unmet AC is never a
+    // judgement call about impact — and the reviewer naming the AC is what distinguishes it from an
+    // ordinary demonstrated edge case, which still does not block.
+    return typeof f.ac === 'string' && f.ac.trim() !== ''
   })
+}
+
+// Split the blocking set into its three reasons, so the halt message says WHICH rule fired.
+// A blocker a human cannot attribute is a blocker they will argue with.
+function describeBlocking(blocking) {
+  const crit = blocking.filter((f) => String(f.severity).toUpperCase() === 'CRITICAL')
+  const demoHigh = blocking.filter((f) => String(f.severity).toUpperCase() === 'HIGH' && f.demonstrated === true && !crit.includes(f))
+  const acGap = blocking.filter((f) => !crit.includes(f) && !demoHigh.includes(f))
+  const parts = []
+  if (crit.length) parts.push(`${crit.length} open CRITICAL finding(s)`)
+  if (demoHigh.length) parts.push(`${demoHigh.length} DEMONSTRATED HIGH finding(s) (proven defect, severity label notwithstanding)`)
+  if (acGap.length) {
+    const acs = acGap.map((f) => f.ac).filter(Boolean).join(', ')
+    parts.push(`${acGap.length} DEMONSTRATED finding(s) proving an AC is not met (${acs}) — a proven unmet AC blocks at any severity`)
+  }
+  return parts.join(' + ')
 }
 
 // The self-reported count disagreeing with the findings array is itself worth surfacing: it means a
@@ -391,14 +515,7 @@ function preShipBlockers(impl, review, qaCapped, qaGap) {
       : 'review returned no findings array (schema-required; cannot verify it was clean)')
   } else {
     const blocking = blockingFindings(review)
-    if (blocking.length) {
-      const crit = blocking.filter((f) => String(f.severity).toUpperCase() === 'CRITICAL').length
-      const demoHigh = blocking.length - crit
-      const parts = []
-      if (crit) parts.push(`${crit} open CRITICAL finding(s)`)
-      if (demoHigh) parts.push(`${demoHigh} DEMONSTRATED HIGH finding(s) (proven defect, severity label notwithstanding)`)
-      b.push(parts.join(' + '))
-    }
+    if (blocking.length) b.push(describeBlocking(blocking))
     const mismatch = reviewCountMismatch(review)
     if (mismatch) b.push(mismatch)
   }
@@ -544,6 +661,9 @@ function agentSkipped(phaseName) {
 async function runPipeline() {
   phase('Concierge')
   log(`Dark Factory v2 (seed) — ${ticket}`)
+  const outage = remoteOutageRisk(nowIso)
+  if (outage.inWindow) log(`WARNING — ${outage.note}`)
+  else if (!outage.known) log('No args.now supplied: cannot check the nightly remote-outage window. Pass now:"<ISO-8601 UTC>" to enable it.')
   // Resume path (ADR-003 / 0.5.0 #6): when a human supplied decisions, fold them into the concierge
   // prompt. This (a) busts the resume cache so the concierge RE-RUNS instead of replaying its stale
   // needs_human verdict, and (b) forces a LIVE re-read of the ticket where the human may have resolved
@@ -617,6 +737,7 @@ one run today — surface it so the split-fan-out (a later capability) or a huma
       spec_quality: concierge.spec_quality, needs_human: concierge.needs_human, ac_count: concierge.ac_count,
       prereqs_ok: concierge.prereqs_ok, repos: concierge.repos, tool_belt: concierge.tool_belt,
       acs: concierge.acs || [], open_questions: concierge.open_questions || [],
+      visual_readiness: visualReadiness(concierge.acs),
       confidence: concierge.confidence, summary: concierge.summary, concierge,
     }
   }
@@ -657,6 +778,17 @@ one run today — surface it so the split-fan-out (a later capability) or a huma
       note: 'Answers were supplied AND the concierge re-ran live, yet a still-unresolved blocker remains (see decision_packet). This is a genuinely NEW/unanswered question, not a replayed verdict. Resolve it in the ticket and re-invoke with the additional answer, or run fresh.' }
   }
 
+  // Front-gate visual-AC shape (0.10.3). Computed BEFORE design/implement so the run's provability is
+  // known up front rather than discovered at contract 6. Not a halt — a label plus a loud log.
+  const vis = visualReadiness(concierge.acs)
+  if (vis.shape === 'all_visual') {
+    log(`VISUAL-ONLY TICKET — all ${vis.total} AC(s) are rendered-UI. No AC can be machine-proven inside the workflow, so QA will mark them visual_pending and this run is EXPECTED to end at NEEDS_VISUAL_VERIFY for a main-loop render. Equip a visual tester (ui-probe / local stack) before you rely on the result.`)
+  } else if (vis.shape === 'unknown') {
+    log('Concierge returned no usable ac_kind classification — the visual-AC routing cannot be trusted this run.')
+  }
+  if (vis.missing_fixture.length) {
+    log(`Visual AC(s) with NO renderable fixture: ${vis.missing_fixture.join(', ')} — a stack cannot conjure unseeded data.`)
+  }
   _tf = concierge.ticket_folder
   _belt = concierge.tool_belt
   // Honest halt: no tool belt racked for this work-type. Rack one in toolcrib/ before running.
@@ -700,6 +832,12 @@ as diff_artifact and set pushed=true. ${decisionsNote}${handoffUncertainty(grill
   if (!impl) return agentSkipped('Implement')
   rec('implement', impl)
   if (impl.status === 'stuck') return { status: 'HALT_IMPLEMENT_STUCK', ticket, branch: impl.branch, impl }
+  // Park BEFORE Review when the push died on the remote (0.10.3). Review and QA each fetch the pushed
+  // branch, so an unpushed branch makes every downstream phase meaningless — GH-230/231 burned the rest
+  // of the pipeline after the push was already lost. Park here instead of discovering it at pre-ship.
+  if (impl.pushed !== true && looksLikeRemoteOutage(impl.push_error)) {
+    return parkedAwaitingRemote('Implement', impl.branch, impl.push_error, { impl })
+  }
   // TDD gate, layer 1 (deft-falcon): structural RED-green proof per AC. Un-skippable in 'halt' mode.
   {
     let v = tddViolations(impl, true)
@@ -776,13 +914,18 @@ below — do NOT add scope, refactor unrelated code, or touch ACs that already p
 your own worktree: 'git fetch origin ${impl.branch}' then 'git checkout ${impl.branch}'. For each finding:
 write/keep a test that demonstrates the bug, fix the code minimally, re-run the affected tests, then PUSH
 the branch. Return execution_verified honestly and pushed=true.
-A finding is listed below because it is CRITICAL, or because it is a HIGH the reviewer DEMONSTRATED with
-a failing test. Both are proven defects — do not argue the severity label, fix the defect.
+A finding is listed below for ONE of three reasons: it is CRITICAL; it is a HIGH the reviewer
+DEMONSTRATED with a failing test; or it is a DEMONSTRATED finding naming an AC it proves is not met
+(any severity). All three are proven defects — do not argue the severity label, fix the defect. For an
+AC-naming finding, "fixed" means that AC now holds as WORDED, not that the gap was narrowed.
 BLOCKING FINDINGS: ${JSON.stringify(criticals)}`,
       { schema: IMPLEMENT_SCHEMA, label: `fix-round-${fixRounds}`, phase: 'Fix', isolation: 'worktree' })
     if (!fix) return { ...agentSkipped('Fix'), branch: impl.branch }
     rec(`fix-${fixRounds}`, fix)
-    if (fix.pushed !== true) return { status: 'HALT_FIX_NOT_PUSHED', ticket, branch: impl.branch, fix, review }
+    if (fix.pushed !== true) {
+      if (looksLikeRemoteOutage(fix.push_error)) return parkedAwaitingRemote('Fix', impl.branch, fix.push_error, { fix, review, fix_rounds: fixRounds })
+      return { status: 'HALT_FIX_NOT_PUSHED', ticket, branch: impl.branch, fix, review, push_error: fix.push_error || null }
+    }
     // TDD gate on the fix's own bug-tests (completeness off — a fix only re-reports the ACs it touched).
     {
       const v = tddViolations(fix, false)
@@ -833,7 +976,8 @@ ${impl.branch}'. Version bump + CHANGELOG, commit, push the branch with git. Do 
   if (!shipPrep) return { ...agentSkipped('ShipPrep'), branch: impl.branch }
   rec('ship-prep', shipPrep)
   if (shipPrep.status === 'stuck' || shipPrep.pushed !== true) {
-    return { status: 'HALT_SHIPPREP_FAILED', ticket, branch: impl.branch, shipPrep, impl, review, qa }
+    if (looksLikeRemoteOutage(shipPrep.push_error)) return parkedAwaitingRemote('ShipPrep', impl.branch, shipPrep.push_error, { shipPrep, impl, review, qa, version: shipPrep.version })
+    return { status: 'HALT_SHIPPREP_FAILED', ticket, branch: impl.branch, shipPrep, impl, review, qa, push_error: shipPrep.push_error || null }
   }
 
   // Shared payload for both ship-ready terminal states.
@@ -841,6 +985,7 @@ ${impl.branch}'. Version bump + CHANGELOG, commit, push the branch with git. Do 
     ticket, branch: shipPrep.branch, version: shipPrep.version,
     execution_verified: impl.execution_verified, qa_capped: qaCapped, qa_gap: qaGap, ticket_folder: _tf,
     tdd_gate_mode: tddGateMode,
+    visual_readiness: vis,
     tdd_warnings: tddWarnings, // non-empty only in warn mode; a warn run can never look clean
     // Deterministic backstop (adversarial finding): layers 1+2 are agent-reported; the MAIN LOOP can run
     // git for real. It mechanically audits each RED commit before opening the MR — the one non-LLM check.

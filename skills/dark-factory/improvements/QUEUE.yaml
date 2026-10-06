@@ -30,6 +30,40 @@ entries:
   - run-2026-08-04-KTP-1020
   - run-2026-08-04-KTP-708
   - run-2026-10-02-KTP-1272-slice3
+- key: review-phase-must-persist-a-findings-artifact-ev
+  theme: review-severity-gate
+  status: open
+  times_proposed: 7
+  first_proposed: '2026-06-11'
+  last_proposed: '2026-10-06'
+  titles:
+  - Review phase must persist a findings artifact even at zero criticals
+  - Review must always write a findings artifact, even when criticals:0
+  - Write a review artifact to review/ even when criticals:0
+  - Review phase must persist a findings artifact, especially when confidence is sub-threshold
+  - Write a review artifact even when criticals:0
+  - Review phase must always write an artifact to review/, even on criticals:0
+  - Make review/findings.json a hard write gate before the fix socket may run
+  detail: 'Contract 5 (review) should require writing review/findings.yaml — counts by severity, each
+    finding with file:line and disposition (fixed/accepted), and an explicit ''criticals: 0'' record with
+    what was inspected — alongside diff.patch. The workflow gate should refuse a review PASS whose findings
+    file is absent, exactly as QA refuses a PASS without test_ref.
+
+    '
+  runs:
+  - run-2026-06-11-KTP-678
+  - run-2026-06-15-KTP-784-preship
+  - run-2026-06-15-KTP-792
+  - run-2026-07-10-KTP-861
+  - run-2026-07-30-KTP-1015
+  - run-2026-08-04-KTP-1020
+  - run-2026-10-06-GH-230
+  closed_on: '2026-10-06'
+  landed_in: 0.10.1
+  notes:
+  - handoffUncertainty() carries a sub-75 phase's deductions to the next phase
+  - 'REOPENED run-2026-10-06-GH-230: re-proposed after being marked open in 0.10.1 — the fix did not hold.'
+  reopened: true
 - key: retry-idempotent-read-only-phases-once-before-ha
   theme: agent-null-dispatch
   status: open
@@ -53,32 +87,6 @@ entries:
   - run-2026-06-11-KTP-791
   - run-2026-06-11-KTP-792
   - run-2026-07-07-KTP-877
-- key: review-phase-must-persist-a-findings-artifact-ev
-  theme: review-severity-gate
-  status: open
-  times_proposed: 6
-  first_proposed: '2026-06-11'
-  last_proposed: '2026-08-04'
-  titles:
-  - Review phase must persist a findings artifact even at zero criticals
-  - Review must always write a findings artifact, even when criticals:0
-  - Write a review artifact to review/ even when criticals:0
-  - Review phase must persist a findings artifact, especially when confidence is sub-threshold
-  - Write a review artifact even when criticals:0
-  - Review phase must always write an artifact to review/, even on criticals:0
-  detail: 'Contract 5 (review) should require writing review/findings.yaml — counts by severity, each
-    finding with file:line and disposition (fixed/accepted), and an explicit ''criticals: 0'' record with
-    what was inspected — alongside diff.patch. The workflow gate should refuse a review PASS whose findings
-    file is absent, exactly as QA refuses a PASS without test_ref.
-
-    '
-  runs:
-  - run-2026-06-11-KTP-678
-  - run-2026-06-15-KTP-784-preship
-  - run-2026-06-15-KTP-792
-  - run-2026-07-10-KTP-861
-  - run-2026-07-30-KTP-1015
-  - run-2026-08-04-KTP-1020
 - key: capture-skip-reason-in-every-halt-agent-skipped-
   theme: agent-null-dispatch
   status: open
@@ -4712,21 +4720,6 @@ entries:
     '
   runs:
   - run-2026-10-02-KTP-1275
-- key: consume-the-per-phase-confidence-numbers
-  theme: confidence-is-inert
-  status: open
-  times_proposed: 1
-  first_proposed: '2026-10-02'
-  last_proposed: '2026-10-02'
-  titles:
-  - Consume the per-phase confidence numbers
-  detail: 'Add a soft gate: if any phase closes below 75, the next phase''s prompt must receive that phase''s
-    stated uncertainty as an explicit list of things to re-examine. Design closed at 74 with the camera-fit
-    question open and Implement never saw that.
-
-    '
-  runs:
-  - run-2026-10-02-KTP-1275
 - key: fix-the-empty-session-id-so-handoffs-stop-fallin
   theme: unthemed
   status: open
@@ -4757,3 +4750,52 @@ entries:
     '
   runs:
   - run-2026-10-02-KTP-1275
+- key: consume-the-per-phase-confidence-numbers
+  theme: confidence-is-inert
+  status: landed
+  times_proposed: 1
+  first_proposed: '2026-10-02'
+  last_proposed: '2026-10-02'
+  titles:
+  - Consume the per-phase confidence numbers
+  detail: 'Add a soft gate: if any phase closes below 75, the next phase''s prompt must receive that phase''s
+    stated uncertainty as an explicit list of things to re-examine. Design closed at 74 with the camera-fit
+    question open and Implement never saw that.
+
+    '
+  runs:
+  - run-2026-10-02-KTP-1275
+  closed_on: '2026-10-06'
+  landed_in: 0.10.1
+  notes:
+  - handoffUncertainty() carries a sub-75 phase's own deductions into the next phase prompt
+- key: remote-outage-window
+  theme: unthemed
+  status: landed
+  times_proposed: 1
+  first_proposed: '2026-10-06'
+  last_proposed: '2026-10-06'
+  titles:
+  - Make the remote outage window a schedule input, in workflow.js, not in a retro
+  detail: GH-230 + GH-231 both lost the push to the nightly Datasophia 502; third halt in five days
+  runs:
+  - run-2026-10-06-GH-231
+  closed_on: '2026-10-06'
+  landed_in: 0.10.3
+  notes:
+  - landed as blockingFindings ac-rule / PARKED_AWAITING_REMOTE + remoteOutageRisk
+- key: review-severity-gate
+  theme: unthemed
+  status: landed
+  times_proposed: 1
+  first_proposed: '2026-10-06'
+  last_proposed: '2026-10-06'
+  titles:
+  - Make a demonstrated AC-wording mismatch a blocking outcome, not a LOW finding
+  detail: GH-231 AC-5 proven not-as-worded, graded LOW, shipped
+  runs:
+  - run-2026-10-06-GH-231
+  closed_on: '2026-10-06'
+  landed_in: 0.10.3
+  notes:
+  - landed as blockingFindings ac-rule / PARKED_AWAITING_REMOTE + remoteOutageRisk

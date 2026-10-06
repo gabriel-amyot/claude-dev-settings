@@ -21,11 +21,13 @@ function extractConst(name) {
   return m[0]
 }
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
-const { blockingFindings, reviewCountMismatch, preShipBlockers, handoffUncertainty } = await new AsyncFunction(
-  extractConst('LOW_CONFIDENCE') + '\n' +
-  extract('handoffUncertainty') + '\n' + extract('blockingFindings') + '\n' + extract('reviewCountMismatch') + '\n' +
+const { blockingFindings, reviewCountMismatch, preShipBlockers, handoffUncertainty, describeBlocking, remoteOutageRisk, looksLikeRemoteOutage, visualReadiness } = await new AsyncFunction(
+  extractConst('LOW_CONFIDENCE') + '\n' + extractConst('OUTAGE_UTC_START') + '\n' +
+  extractConst('OUTAGE_UTC_END') + '\n' + extractConst('REMOTE_OUTAGE_RX') + '\n' +
+  extract('handoffUncertainty') + '\n' + extract('describeBlocking') + '\n' +
+  extract('visualReadiness') + '\n' + extract('remoteOutageRisk') + '\n' + extract('looksLikeRemoteOutage') + '\n' + extract('blockingFindings') + '\n' + extract('reviewCountMismatch') + '\n' +
   extract('executionOk') + '\n' + extract('preShipBlockers') +
-  '\nreturn { blockingFindings, reviewCountMismatch, preShipBlockers, handoffUncertainty };'
+  '\nreturn { blockingFindings, reviewCountMismatch, preShipBlockers, handoffUncertainty, describeBlocking, remoteOutageRisk, looksLikeRemoteOutage, visualReadiness };'
 )()
 
 let pass = 0, fail = 0
@@ -118,6 +120,82 @@ ok('U6 absent confidence hands nothing forward (not treated as 0)',
   handoffUncertainty({ status: 'pass' }, 'Design') === '')
 ok('U7 null phase is safe', handoffUncertainty(null, 'Design') === '')
 ok('U8 non-numeric confidence is ignored', handoffUncertainty({ confidence: 'low' }, 'Design') === '')
+
+// --- 0.10.3: a DEMONSTRATED finding naming an AC blocks at ANY severity ---
+// KTP-1275 shipped past a proven gap graded MEDIUM; GH-231 past one graded LOW. Severity is an
+// opinion about impact; "AC-N does not hold" is a fact about the deliverable.
+const FA = (severity, demonstrated, ac) => ({ severity, demonstrated, ac, title: 't' })
+ok('A1 demonstrated MEDIUM naming an AC blocks (KTP-1275)',
+  blockingFindings(rev([FA('MEDIUM', true, 'AC-1b')], 0)).length === 1)
+ok('A2 demonstrated LOW naming an AC blocks (GH-231)',
+  blockingFindings(rev([FA('LOW', true, 'AC-5')], 0)).length === 1)
+ok('A3 demonstrated MEDIUM with NO ac does not block (ordinary edge case)',
+  blockingFindings(rev([FA('MEDIUM', true, undefined)], 0)).length === 0)
+ok('A4 UNdemonstrated finding naming an AC does not block (hunch)',
+  blockingFindings(rev([FA('MEDIUM', false, 'AC-2')], 0)).length === 0)
+ok('A5 empty/whitespace ac string does not count as naming an AC',
+  blockingFindings(rev([FA('LOW', true, '')], 0)).length === 0 &&
+  blockingFindings(rev([FA('LOW', true, '   ')], 0)).length === 0)
+ok('A6 non-string ac does not count',
+  blockingFindings(rev([FA('LOW', true, 7)], 0)).length === 0)
+ok('A7 preShip names the AC in the blocker text',
+  preShipBlockers(goodImpl, rev([FA('LOW', true, 'AC-5')], 0), 'ALL_PASS', 'all_pass')
+    .some((b) => b.includes('AC-5') && b.includes('any severity')))
+ok('A8 describeBlocking attributes all three rules separately',
+  (() => {
+    const d = describeBlocking(blockingFindings(rev([F('CRITICAL', false), F('HIGH', true), FA('LOW', true, 'AC-9')], 1)))
+    return d.includes('CRITICAL') && d.includes('DEMONSTRATED HIGH') && d.includes('AC-9')
+  })())
+
+// --- 0.10.3: known nightly remote-outage window ---
+ok('O1 inside the window is flagged', remoteOutageRisk('2026-10-06T04:30:00Z').inWindow === true)
+ok('O2 outside the window is not', remoteOutageRisk('2026-10-06T14:30:00Z').inWindow === false)
+ok('O3 window start is inclusive', remoteOutageRisk('2026-10-06T03:00:00Z').inWindow === true)
+ok('O4 window end is exclusive', remoteOutageRisk('2026-10-06T10:00:00Z').inWindow === false)
+ok('O5 missing now -> unknown, not false-confident',
+  remoteOutageRisk(null).known === false && remoteOutageRisk(null).inWindow === false)
+ok('O6 malformed timestamp -> unknown', remoteOutageRisk('not-a-date').known === false)
+ok('O7 in-window result carries an explanatory note',
+  typeof remoteOutageRisk('2026-10-06T05:00:00Z').note === 'string')
+
+ok('R1 a 502 reads as a remote outage', looksLikeRemoteOutage('fatal: unable to access ... 502 Bad Gateway'))
+ok('R2 503/504 too', looksLikeRemoteOutage('503 Service Unavailable') && looksLikeRemoteOutage('gateway timeout'))
+ok('R3 connection failures too', looksLikeRemoteOutage('Could not read from remote repository'))
+ok('R4 a REJECTED push is NOT an outage (non-fast-forward is a real failure)',
+  looksLikeRemoteOutage('! [rejected] dev -> dev (non-fast-forward)') === false)
+ok('R5 a permission failure is NOT an outage',
+  looksLikeRemoteOutage('remote: Permission to repo denied') === false)
+ok('R6 pre-receive hook rejection is NOT an outage',
+  looksLikeRemoteOutage('remote: error: pre-receive hook declined') === false)
+ok('R7 null/undefined is not an outage',
+  looksLikeRemoteOutage(null) === false && looksLikeRemoteOutage(undefined) === false)
+// A non-string must not be COERCED into a match: ['502 Bad Gateway'] stringifies to '502 Bad Gateway'
+// and would read as an outage without the typeof guard. Caught by mutation N7 surviving.
+ok('R8 a non-string is never coerced into an outage',
+  looksLikeRemoteOutage(['502 Bad Gateway']) === false &&
+  looksLikeRemoteOutage({ toString: () => '503' }) === false &&
+  looksLikeRemoteOutage(502) === false)
+
+// --- 0.10.3: visual-AC shape known at the FRONT gate ---
+const AC = (id, kind, fixture) => ({ id, ac_kind: kind, fixture })
+ok('V1 every AC visual -> all_visual',
+  visualReadiness([AC('AC-1','visual'),AC('AC-2','visual')]).shape === 'all_visual')
+ok('V2 mix -> mixed', visualReadiness([AC('AC-1','visual'),AC('AC-2','logic')]).shape === 'mixed')
+ok('V3 no visual -> logic_only', visualReadiness([AC('AC-1','logic')]).shape === 'logic_only')
+ok('V4 empty -> unknown, never a false all_visual', visualReadiness([]).shape === 'unknown')
+ok('V5 null/undefined acs is safe',
+  visualReadiness(null).shape === 'unknown' && visualReadiness(undefined).shape === 'unknown')
+ok('V6 unrecognised ac_kind does not count as either',
+  visualReadiness([AC('AC-1','weird')]).shape === 'unknown')
+ok('V7 case-insensitive on ac_kind',
+  visualReadiness([AC('AC-1','VISUAL'),AC('AC-2','Logic')]).shape === 'mixed')
+ok('V8 missing fixtures are listed by AC id',
+  visualReadiness([AC('AC-1','visual','missing'),AC('AC-2','visual','available')]).missing_fixture.join() === 'AC-1')
+ok('V9 counts are reported',
+  (() => { const r = visualReadiness([AC('A','visual'),AC('B','logic'),AC('C','logic')])
+           return r.visual === 1 && r.logic === 2 && r.total === 3 })())
+ok('V10 null entries inside acs are skipped',
+  visualReadiness([null, AC('AC-1','logic')]).shape === 'logic_only')
 
 console.log(`\n${pass} passed, ${fail} failed`)
 process.exit(fail ? 1 : 0)

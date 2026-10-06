@@ -75,14 +75,29 @@ audit can be reconstructed without re-deriving from a raw diff. Shape:
 The orchestrator does **not** read `criticals_open` to decide. It derives the blocking set from your
 `findings` array:
 
-> **blocking = `severity: CRITICAL`, OR `severity: HIGH` with `demonstrated: true`.**
+> **blocking =**
+> - **`severity: CRITICAL`**, OR
+> - **`severity: HIGH` with `demonstrated: true`**, OR
+> - **`demonstrated: true` with an `ac` naming the AC it proves is not met — at ANY severity.**
 
 A HIGH you proved with a failing test blocks exactly like a CRITICAL. **Evidence outranks the label.**
 Nine retros between 2026-06-22 and 2026-10-02 reported the old behaviour: a reviewer filed a real,
 test-proven defect as a demonstrated HIGH, `criticals_open` stayed 0, the fix loop never ran, and the
 bug shipped. You cannot route a proven defect past the gate by choosing a gentler word for it.
 
-Two consequences for how you work:
+**Set `ac` whenever you prove an AC does not hold.** This is the field that matters most, and it is the
+one two runs were lost for want of. KTP-1275 graded a proven logic gap MEDIUM; GH-231 graded AC-5
+"reported proven while being, at the cap, not what the AC says" as LOW. Both shipped past the gate.
+Severity is your opinion about how much a defect matters. **"AC-5 does not hold as worded" is a fact
+about the deliverable**, and the run exists to satisfy its ACs — so it blocks regardless of how small
+the gap looks. Naming the AC is what separates this from an ordinary demonstrated edge case, which
+still does not block.
+
+A near-miss counts. If the AC says "all ZIPs" and the code caps at 500, the AC does not hold: set
+`ac: "AC-5"`, `demonstrated: true`, and whatever severity you honestly think. Do not round it up to
+"substantially met".
+
+Two further consequences for how you work:
 
 - **Do not agonise over CRITICAL vs HIGH on something you demonstrated.** Both block. Spend the effort
   on the test that proves it instead.

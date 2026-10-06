@@ -1,0 +1,422 @@
+run_id: run-2026-10-06-GH-231
+ticket: GH-231
+source: github
+issue_url: https://github.com/gabriel-amyot/klever-project-management/issues/231
+parent_map: 227
+sibling_run: run-2026-10-06-GH-230
+title: >
+  03 — Frontend proxy route and switchable census base, default unchanged. Repo
+  app-front-portal, belt frontend, branch GH-231-census-proxy-route cut from origin/dev.
+date: 2026-10-06
+terminal_status: HALT_PRESHIP
+halt_phase: pre-ship (push / MR)
+ticket_folder: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/wayfinder/map-227/issue-231
+
+halt_point: >
+  The pre-ship push. Fourteen commits sit on the local branch and zero reach origin. The
+  worktree is clean and HEAD builds, lints at baseline and passes 61 assertions across five
+  suites plus two route suites. The halt comes from the remote, not from the code.
+
+root_cause_of_the_halt:
+  verdict: external infrastructure, not agent behaviour
+  verified_against: >
+    git ls-remote origin in the GH-231-census-proxy worktree at 2026-10-06 returned
+    "fatal: unable to access https://cicd.prod.datasophia.com/.../app-front-portal.git/:
+    The requested URL returned error: 502". The run sits inside the documented Datasophia
+    nightly window of about 11 PM to 5 AM ET that the global CLAUDE.md already records.
+  consequence: >
+    Third terminal halt on this identical, scheduled, documented outage in five days
+    (run-2026-10-02-KTP-1272-slice3, run-2026-10-06-GH-230, this run). GH-230 halted on the
+    same 502 a few hours earlier in the same night and filed the same improvement as its
+    number one. The factory ran GH-231 into the same wall on the same clock.
+
+repeat_of_prior_improvements:
+  note: >
+    Five of this run's red flags are verbatim repeats of improvements filed by
+    run-2026-10-02-KTP-1272-slice3 and re-filed by run-2026-10-06-GH-230. None became code.
+  recurring:
+    - "Check the remote before the run, and treat a known outage window as a schedule input"
+    - "Add PARKED_AWAITING_REMOTE as a non-terminal state with a bounded resume probe"
+    - "Give non-blocking review findings an owner and a closure path"
+    - "Fix the empty session_id, or stop pretending the session folder is the handoff target"
+    - "Turn an unresolved gap into a machine-readable gate item, not a markdown sentence"
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy_config: true
+  signal: clean
+  note: >
+    The gate ran in the default halt mode with zero warn-mode violations. The commit graph
+    carries an ordered RED then GREEN pair for every one of the six ACs. QA then independently
+    re-verified every RED by four conditions: the RED commit touches test files only,
+    the test fails at that commit, git diff RED..HEAD on the test file is empty (so the test
+    was not swapped), and the test is green at the tip. All six pass all four.
+  one_irregularity: >
+    AC-2's RED was reached by commit c23a664, which REMOVED the Planning gate that AC-1's
+    GREEN had already added, so that AC-2's test could fail first. The commit message says so
+    plainly and the four re-verification conditions still hold, so the RED is honest. It is
+    recorded because a gate that only reads "test fails before the fix" cannot distinguish
+    this from a genuine first-write RED.
+
+green_verification:
+  verified_by_retro: false
+  source: QA phase, independently run in its own worktree at /.worktrees/GH-231-qa
+  result: >
+    61 assertions green across five seam suites (censusbase 14, censusproxy 9, censusviewport 11,
+    censusoutcomes 13, censusedges 14) plus censusupstream 11 and censusgate 7. next build
+    exit 0, "Compiled successfully in 18.0s". next dev "Ready in 1094ms" and served live POSTs.
+  baselines: >
+    lint 44 errors on branch and 44 on origin/dev; lint:types 8 errors in 3 files on branch and
+    the same 8 in the same 3 files on origin/dev. None of the 3 files is in the changed set.
+
+git_state:
+  worktree: /Users/gabrielamyot/Developer/grp-beklever-com/.worktrees/GH-231-census-proxy
+  branch: GH-231-census-proxy-route
+  head: '196c65d "GH-231: attack the edges the acceptance criteria do not name, and prepare the ship"'
+  worktree_clean: true
+  ahead_of_origin_dev: 14
+  pushed: false
+  head_is_green: true
+  mr: "none — the branch never reached origin, so no MR exists"
+  diff_base: "origin/dev 1dad677 (local ref; git fetch also 502, so this is the newest obtainable)"
+
+per_phase:
+  - phase: concierge
+    status: PASS
+    confidence: 77
+    note: >
+      Resolved repo, belt and scope correctly and answered both gate questions in writing
+      (factory/decisions.yaml). Q2 is excellent: it names NEXT_PUBLIC_CENSUS_BASE, justifies the
+      name over the alternative, defines both semantics, and names the silent failure mode at
+      the #234 cutover (a renamed var simply stays unset and the app keeps serving static files
+      while the deploy looks successful). Q1 chose the hardest option, proving the flag-on ACs
+      against a REAL local GH-230 backend, and wrote an explicit fallback. The confidence of 77
+      is honest: Q1's premise, that #230 would be mergeable, was already failing when it was
+      written.
+  - phase: design
+    status: pass
+    confidence: 84
+    note: >
+      impl-plan.md with a 13-row fact table, each row sourced to a git show on origin/dev
+      rather than to memory. The strongest input any phase handed downstream this run.
+  - phase: grill
+    status: pass
+    confidence: 76
+    note: >
+      Re-verified all 13 plan facts independently and found three the plan had missed, the most
+      important being middleware.ts:16 excluding /api from the matcher. That makes
+      requireComponent("Planning") the ONLY gate on the new route, so AC-2 is load-bearing and
+      omitting it would have shipped an open proxy. It also strengthened F6: geographies[id] is
+      byte-identical to the chunk entry by construction (RawJson custom serializer), not by
+      coincidence. Two items changed the code the implementer wrote.
+  - phase: implement
+    status: partial
+    confidence: 76
+    note: >
+      Fourteen commits, six ordered AC pairs, all six ACs covered, plus an edges commit. The
+      partial is the flag-on half of AC-4/5/6: the seam logic was written and proven at the
+      module boundary, but the live render against a real backend, which Q1 explicitly required,
+      was not performed.
+  - phase: review
+    status: "blocking:0"
+    confidence: 84
+    note: >
+      Wrote review/findings.json (7308 bytes, machine-readable) plus two committed probe tests
+      under review/probes/. Four findings, zero blocking. Two are DEMONSTRATED with a run, not
+      asserted: the 204 null-body throw and the two-request viewport at the cap. The MEDIUM also
+      records honestly that the same construction already exists in app/api/map/data/zip/route.ts,
+      so it is a repo-wide pattern and not a regression this branch introduces. This is the best
+      review artifact in the recent record and the direct opposite of GH-230, whose review/ was
+      left empty.
+  - phase: qa
+    status: PARTIAL
+    confidence: 80
+    note: >
+      Ran in its own worktree, proved AC-1 and AC-2 end to end against a live next dev server
+      with a loopback echo upstream and a User Management stub, diffed lint and typecheck against
+      the origin/dev baseline, and re-verified every TDD RED by four conditions. It also
+      reproduced the review's MEDIUM live (qa/AC-1-204.out) instead of taking it on trust. The
+      PARTIAL is AC-3 through AC-6: visual criteria whose logic is green and whose render was
+      never captured.
+  - phase: fix
+    status: never_ran
+    confidence: null
+    note: >
+      Correct by the gate's own rule, since review returned blocking:0. The consequence is that
+      four findings, including a live-reproduced MEDIUM, leave this run with no owner, no issue
+      and no closure path.
+
+acceptance_state:
+  AC-1: "PASS — proven live: body forwarded byte-identical, 200/400/503 not collapsed"
+  AC-2: "PASS — proven live: Measurement-only caller gets 403, upstream log empty, fails closed with no UM"
+  AC-3: "PARTIAL — 14/14 green at the seam, no-op guarantee proven; panel render not captured"
+  AC-4: "PARTIAL — 9/9 green; flag-on render against the real GH-230 backend not performed"
+  AC-5: "PARTIAL — 11/11 green AND a known wording mismatch, see below"
+  AC-6: "PARTIAL — 27 assertions green across two suites; rendered message not captured"
+
+ac5_wording_mismatch:
+  severity: the one substantive AC gap in the run
+  detail: >
+    AC-5 words ONE request for the viewport. CENSUS_MAX_IDS_PER_REQUEST is 2000 while
+    use-census-choropleth paints up to CENSUS_MAX_FEATURES = 4000 (census-layer.ts:43), so a
+    viewport of 2001 to 4000 ZIPs costs TWO SEQUENTIAL requests and pays two latencies. The
+    review demonstrated it (review/probes, case P5) and labelled it LOW because AC-5's intent,
+    not one per prefix and not one per ZIP, is met. Both are defensible. What is not defensible
+    is that an AC the run reports as proven is, at the cap, literally not what the AC says, and
+    nothing in the pipeline forced that to be either fixed or renegotiated before the retro.
+
+open_review_findings:
+  count: 4
+  closed: 0
+  items:
+    - severity: MEDIUM
+      title: "A 204/205/304 from the backend makes the proxy throw, so the status is NOT passed through (AC-1)"
+      demonstrated: true
+      reproduced_in_qa: true
+      note: >
+        new NextResponse(body, {status: 204}) raises inside the handler and Next answers 500.
+        Not reachable from the shipped client today and out of the serving contract, so AC-1
+        passes as worded. Repo-wide pattern, also present in app/api/map/data/zip/route.ts.
+    - severity: LOW
+      title: "A viewport at the CENSUS_MAX_FEATURES cap costs two requests, not the one AC-5 words"
+      demonstrated: true
+    - severity: LOW
+      title: 'NEXT_PUBLIC_CENSUS_BASE="/census/" silently flips the module into proxy mode and POSTs to the static path'
+      demonstrated: false
+      note: "Operator footgun at the #234 cutover. Blanket load_failed with no message naming the misconfiguration."
+    - severity: LOW
+      title: "zipCache is unbounded and now also populated in the default static mode"
+      demonstrated: false
+      note: "Memory only, never a wrong value on screen. New behaviour in the path AC-3 calls a no-op."
+
+gate_answer_not_honoured:
+  decision: Q1
+  instructed: >
+    Prove the flag-on ACs against a REAL local backend run from the GH-230 worktree via
+    /klever-local-stack. No stub. The answer argued the point at length: a stub encodes
+    someone's reading of the contract, so a screenshot against it proves the frontend agrees
+    with the stub, not with the service.
+  what_happened: >
+    The written fallback was taken. QA's AC-4 note says the flag-on render "was not performed
+    here: no authenticated browser and the backend stack is not this session's to run." The
+    fallback was authorised in the same answer, so this is compliant, not a violation. It is
+    recorded because no phase emitted the fallback as a decision with a reason. It appears only
+    as prose inside one AC's note field, which is exactly the shape of carry-forward the last
+    three retros have flagged.
+
+artifact_integrity:
+  written:
+    - analyst/ac.json (6 ACs, each with ac_kind, fixture, repo, belt, notes, consumed_decisions)
+    - analyst/affected-repos.json
+    - analyst/assumptions.json
+    - design/impl-plan.md
+    - design/grill-report.md
+    - architecture/adr/ADR-draft-census-dual-mode-seam.md
+    - factory/decisions.yaml (Q1 and Q2 answered verbatim against the decision packet)
+    - review/findings.json (4 findings, machine-readable)
+    - review/probes/zz-review-proxy.test.ts, review/probes/zz-review-static.test.ts
+    - qa/result.yaml plus 30 captured output files (curls, dev logs, lint and baseline diffs)
+  empty_folders: []
+  missing_folders:
+    - "tdd/ — never created. The RED re-verification exists as prose inside qa/result.yaml, not as data."
+  orphaned: "none — unlike GH-230, the review probes live in the ticket folder, not in a detached worktree"
+
+scores:
+  task_confidence: 62
+  factory_fitness: 62
+
+deductions:
+  - points: 12
+    reason: >
+      TASK. Fourteen commits of finished, green, reviewed work exist only on this machine.
+      Nothing is on origin, there is no MR, and no reviewer or environment can see any of it.
+  - points: 10
+    reason: >
+      TASK. Four of six ACs are PARTIAL on visual_pending. AC-3's no-op guarantee, the one the
+      gate answer said must not slip, is proven at the module seam but never rendered. The
+      flag-on path has never run against the real backend in any process.
+  - points: 6
+    reason: >
+      TASK. AC-5 is literally not met at the cap: 2001 to 4000 ZIPs cost two sequential requests
+      where the AC words one. Known, demonstrated, unfixed and not renegotiated.
+  - points: 5
+    reason: >
+      TASK. Four review findings are open and zero are closed, including a MEDIUM reproduced
+      live by QA. No fix phase ran, so they leave the run with no owner.
+  - points: 3
+    reason: >
+      TASK. The feature's whole value depends on GH-230, which is itself green, unpushed and
+      unmerged for the same 502. Neither half of the seam exists in any environment, so nothing
+      about this cutover is provable end to end today.
+  - points: 2
+    reason: >
+      TASK. Implement 76 and grill 76 both carried soft confidence under 80, and the implement
+      partial is the same flag-on half that QA then could not close.
+  - points: 14
+    reason: >
+      FACTORY. The run was scheduled and pushed inside a documented, recurring outage window.
+      This is the third terminal halt on the identical 502 in five days and the second in the
+      SAME NIGHT. The sibling run GH-230 filed this as improvement number one hours earlier and
+      the factory still started GH-231 on the same clock against the same remote.
+  - points: 8
+    reason: >
+      FACTORY. There is still no PARKED_AWAITING_REMOTE state and no bounded resume probe, so a
+      clean worktree with a green HEAD becomes a terminal HALT because a remote answered 502.
+  - points: 5
+    reason: >
+      FACTORY. Non-blocking review findings have no owner. Review correctly returned blocking:0,
+      the fix socket correctly did not run, and four demonstrated findings therefore fall off the
+      end of the pipeline. The gate has only one lever, blocking or not, where it needs two.
+  - points: 5
+    reason: >
+      FACTORY. Q1's answer was operational and specific, and the run took the written fallback
+      without any phase emitting that fallback as a decision. A gate answer that can be
+      satisfied by its own escape hatch, silently, is not a gate.
+  - points: 4
+    reason: >
+      FACTORY. sessions/active/state.yaml still carries an empty session_id and the named
+      session folder does not exist, so contract 9's primary handoff target never resolves. The
+      ticket-folder fallback is taken for the fifth consecutive run.
+  - points: 2
+    reason: >
+      FACTORY. No tdd/ folder. QA did the RED re-verification by hand and wrote it as prose. The
+      work is excellent and the factory cannot read it, so no future run can diff against it.
+
+red_flags:
+  - >
+    Fourteen commits of verified-green work exist only locally. origin/dev is untouched and
+    there is no MR.
+  - >
+    The halt was caused by a KNOWN scheduled outage (Datasophia git tier, 502, nightly window)
+    that CLAUDE.md documents and that TWO prior retros filed as improvement number one,
+    including the sibling run earlier the same night.
+  - >
+    GH-230 and GH-231 are the two halves of one seam and BOTH halted unpushed on the same 502
+    in the same window. The factory serialised two dependent tickets into a single outage.
+  - >
+    Q1 told the run to prove the flag-on ACs against the real local backend. The run took the
+    fallback and recorded that choice only inside one AC's note field.
+  - >
+    AC-5 is reported proven while being, at the cap, not what the AC says. The mismatch was
+    found by review, graded LOW, and no gate made anyone decide.
+  - >
+    Four review findings are open and zero are closed. A MEDIUM that QA reproduced live
+    (204 becomes 500) ships as-is with no issue filed anywhere.
+  - >
+    AC-2's RED was manufactured by first REMOVING a gate that AC-1's GREEN had already added.
+    Honest, self-documented, and invisible to a gate that only checks "red before green".
+  - >
+    Four of six ACs are visual and none of them was ever rendered. The run has no screenshot.
+  - >
+    git fetch on app-front-portal also 502-ed, so every diff and every fact in design, grill and
+    QA is against a LOCAL origin/dev ref (1dad677) that could not be refreshed.
+  - >
+    tdd/ was never created. The strongest TDD evidence in recent runs is unreadable prose.
+  - >
+    sessions/active/state.yaml session_id is empty again and the session folder named in the
+    ledger does not exist on disk, so the handoff lands in the ticket folder by fallback.
+
+improvements:
+  - title: Make the remote outage window a schedule input, in workflow.js, not in a retro
+    detail: >
+      Add a preflight to the concierge gate that runs git ls-remote against the target remote
+      and reads the clock. If the remote answers 502, or local time sits inside the documented
+      11 PM to 5 AM ET Datasophia window, the gate must refuse to start a run whose terminal
+      state requires a push, or start it with push deferred and the operator told. FOURTH
+      filing. It has now cost three complete runs, two of them in one night, and it is a
+      twenty-line check.
+  - title: Add PARKED_AWAITING_REMOTE as a non-terminal state with a bounded resume probe
+    detail: >
+      When the worktree is clean, HEAD is green and the only failure is the push, the run must
+      not end in HALT. Record branch, HEAD sha and ticket folder, poll git ls-remote every
+      fifteen minutes for up to six hours, push on the first success, then open the MR. Only
+      after the budget expires is it a halt. Third filing. GH-230 and GH-231 are both sitting in
+      exactly this state right now and both are recorded as failures.
+  - title: Give a non-blocking review finding an owner before the run may reach a terminal state
+    detail: >
+      Review has one lever today, blocking or not blocking, so anything below blocking falls off
+      the pipeline. Add a third outcome, carry_forward. Before any terminal state, every finding
+      in review/findings.json must be closed by a commit sha, converted into a filed follow-up
+      issue, or explicitly waived with a one-line reason recorded in the telemetry. This run
+      demonstrated a 204-becomes-500 bug with a live repro and it currently exists nowhere a
+      future session will look.
+  - title: Make a demonstrated AC-wording mismatch a blocking outcome, not a LOW finding
+    detail: >
+      Review proved AC-5 costs two requests at the cap where the AC words one. That is not a
+      code-quality note, it is the acceptance criterion failing on its own terms at a reachable
+      input. Add a review rule: if a finding contradicts the literal text of an AC, it is
+      blocking regardless of severity, and it closes by either a code fix or a recorded AC
+      renegotiation. Fixing this one is two lines, raising CENSUS_MAX_IDS_PER_REQUEST to
+      CENSUS_MAX_FEATURES, or making the batches concurrent.
+  - title: Require a gate-answer fallback to be emitted as its own decision record
+    detail: >
+      Q1 carried a primary instruction and a fallback. The run took the fallback and said so in
+      one AC's note field. When a phase takes the escape hatch of a gate answer it must write
+      factory/decisions-taken.yaml with the decision id, which branch was taken, and the
+      evidence that the primary was unavailable. The orchestrator and the MR body read from
+      that file, so the fallback cannot be silent.
+  - title: Require the TDD RED re-verification to be data, not prose
+    detail: >
+      QA's four-condition re-verification per AC is the best TDD evidence this factory has
+      produced, and it lives as YAML notes inside a result file with no schema. Emit it to
+      tdd/red-verification.json with one object per AC carrying red sha, stat summary,
+      pass and fail counts at red, diff-empty boolean and pass count at tip. Then the gate can
+      check it and future retros can diff it. Also add the AC-2 shape, a RED reached by removing
+      an existing gate, as a flag the schema can carry.
+  - title: Do not serialise two halves of one seam into the same outage window
+    detail: >
+      GH-230 and GH-231 are the backend and frontend of one cutover and both died unpushed on
+      the same 502 inside one night. When the concierge resolves a ticket with an unmerged
+      sibling dependency it should record the dependency and refuse to start the dependent half
+      while the first half is unpushed, or at minimum stamp the run as
+      depends_on_unpushed_branch so the retro and the MR say so.
+  - title: Fix the empty session_id or delete the session-folder branch of the handoff rule
+    detail: >
+      sessions/active/state.yaml has carried an empty session_id for five runs and the folder
+      named in the ledger does not exist on disk. Either populate it at session init or simplify
+      contract 9 to write the improvement handoff to the ticket folder unconditionally. Third
+      filing.
+
+what_went_right:
+  - >
+    The grill found that middleware.ts excludes /api from its matcher, which makes
+    requireComponent("Planning") the ONLY gate on the new route. Without that read, a plausible
+    implementation would have leaned on middleware and shipped an open proxy to the census
+    backend. That single fact is worth the phase.
+  - >
+    Review wrote a real machine-readable findings file and two committed probe tests inside the
+    ticket folder. Two of four findings are DEMONSTRATED with a run. The MEDIUM is honest enough
+    to record that the same construction already exists elsewhere in the repo, so it is a
+    pattern and not a regression. This is the exact failure GH-230's empty review/ had, fixed.
+  - >
+    QA re-verified every TDD RED by four independent conditions, including git diff RED..HEAD on
+    the test file, which is the condition that catches a swapped test. All six ACs pass all four.
+  - >
+    QA proved AC-1 and AC-2 against a live next dev server rather than against mocks, with a
+    loopback echo upstream and a UM stub, and kept the raw curls and server logs on disk. The
+    AC-2 proof includes the strongest possible negative evidence: the upstream log is EMPTY, so
+    the backend was never contacted.
+  - >
+    Lint and typecheck were diffed against the origin/dev baseline rather than reported raw.
+    8 TS errors and 44 lint errors on both sides, none in a changed file. No pre-existing noise
+    was laundered into this run's score, in either direction.
+  - >
+    Q2's gate answer named the variable, justified the name, defined both semantics, and named
+    the silent failure mode at the #234 cutover: a renamed var stays unset and the app keeps
+    serving static files while the deploy looks successful.
+  - >
+    Scope was held. #234's cutover, the public/census deletion and the CITY/COUNTY/STATE grains
+    were declared out of scope by the analyst and no phase drifted into them.
+
+resume_pointer: >
+  Push GH-231-census-proxy-route from
+  /Users/gabrielamyot/Developer/grp-beklever-com/.worktrees/GH-231-census-proxy once the
+  Datasophia git tier answers, and push GH-230 first so the seam lands in dependency order.
+  Before the push, fetch origin/dev again (every diff in this run is against a local ref that
+  could not be refreshed) and re-run the five seam suites. Decide AC-5 explicitly: either raise
+  CENSUS_MAX_IDS_PER_REQUEST to CENSUS_MAX_FEATURES, or make the batches concurrent, or
+  renegotiate the AC wording on issue #231. File the 204-becomes-500 MEDIUM as its own issue
+  under #227, scoped repo-wide since app/api/map/data/zip/route.ts shares the construction.
+  Then take the flag-on visual proof that Q1 asked for, with the GH-230 backend running locally
+  from its worktree, before #234 flips the default.

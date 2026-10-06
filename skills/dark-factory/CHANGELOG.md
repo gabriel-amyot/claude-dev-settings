@@ -2,6 +2,46 @@
 
 Every SKILL.md / workflow.js / contract change bumps the version and adds an entry.
 
+## 0.10.3 (2026-10-06)
+
+**Driven by the first two full GitHub-issue runs (GH-230, GH-231), which Gab ran overnight.** Both drove
+a complete pipeline to green and both lost everything at the push. The driver itself worked end to end —
+fetch, folder, belt, design, implement, review, fix, QA — which is far stronger validation of 0.10.0 than
+the concierge-only pass that preceded it.
+
+- **A DEMONSTRATED finding that NAMES AN AC now blocks at any severity.** 0.10.1 closed the
+  demonstrated-HIGH escape; two runs then slipped through the hole below it. KTP-1275 held "a
+  demonstrated logic gap the fix loop never picked up because it is graded MEDIUM"; GH-231 shipped AC-5
+  "reported proven while being, at the cap, not what the AC says — graded LOW". Severity is the
+  reviewer's opinion about impact. **"AC-N does not hold" is a fact about the deliverable**, and a run
+  exists to satisfy its ACs. New optional `ac` field on each finding; naming it is what separates a
+  proven unmet AC from an ordinary demonstrated edge case, which still does not block. `describeBlocking()`
+  now attributes which of the three rules fired, because a blocker a human cannot attribute is one they
+  will argue with.
+- **`PARKED_AWAITING_REMOTE`: a dead remote is not a failed run.** The Datasophia git tier 502s nightly
+  (~11 PM-5 AM ET; global CLAUDE.md documents it to the hour). GH-230 and GH-231 stranded 38 commits of
+  verified-green work between them and were scored 58 and 62 as if the CODE had failed. Their retros
+  called it "the third terminal halt on the identical 502 in five days", with two earlier retros already
+  filing it. Now: `looksLikeRemoteOutage(push_error)` separates a dead remote from a real push failure
+  (a rejected push, a denied permission and a declined pre-receive hook all stay HALTs), and the run
+  parks with a resume path instead of halting. Parking fires at all three push sites — Implement, Fix and
+  ShipPrep — and the Implement one fires *before* Review, since Review and QA both fetch the pushed
+  branch and are meaningless without it.
+- **The outage window is a schedule input, not a retro line.** `remoteOutageRisk(args.now)` warns at
+  startup. The spine cannot read a clock — `Date.now()` throws inside a Workflow script — so the caller
+  passes `now`. The window is the UNION of the EST and EDT mappings (03:00-10:00 UTC) rather than a DST
+  resolution: this is a warning, so erring wide costs a needless caution and erring narrow costs another
+  stranded run. With no `now`, it says so instead of implying all-clear.
+- **Visual-AC shape is computed at the FRONT gate.** `visualReadiness(concierge.acs)` labels a run
+  `all_visual` / `mixed` / `logic_only` / `unknown` before design, so a ticket with no machine-provable
+  work is known up front rather than after a full pipeline reaches contract 6. Not a halt — an all-visual
+  ticket is legitimate and the main loop can render it. Evidence note: this was the lowest-value of the
+  three fixes, since four of the five visual-only pre-ship halts predate the 0.9.0 routing and KTP-1275's
+  retro had misdiagnosed its own halt (its real cause was the MEDIUM severity gap above).
+- Guard: `tests/review-gate.test.mjs` grows to 68 cases, mutation-checked. One mutation (dropping the
+  `typeof pushError` guard) SURVIVED the first pass — a non-string like `['502 Bad Gateway']` coerces to
+  a matching string — so case R8 was added to close it. Harnesses 68/24/22/18.
+
 ## 0.10.2 (2026-10-05)
 
 **First live GitHub-issue run, and it found a bug in my own contract.** A `concierge_only` pass

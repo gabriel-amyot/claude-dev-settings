@@ -1,6 +1,6 @@
 ---
 name: dark-factory
-version: "0.10.2"
+version: "0.10.3"
 description: "The ticket-to-dev factory for a SINGLE ticket, driven by a Jira ticket OR a wayfinder GitHub issue, orchestrated by the Workflow tool instead of prose. Gates are code (un-skippable), with a human concierge gate at the front. The concierge proposes a tool belt from the crib (java, scripting, frontend, terraform-dac-infra, or python-service); the build + tester sockets are equipped from that belt, so the same line handles multiple work-types without duplication. Review + bounded fix loop + QA. The workflow does code work and pushes the branch (terminal state READY_TO_SHIP); the main loop creates the MR + Jira comment and runs post-merge validate. For multi-ticket / epic DAGs use Sprint Factory (/sprint-factory). Triggers on: '/dark-factory', 'dark factory', 'ticket to dev', 'run this ticket'. Klever."
 user_invocable: true
 nav:
@@ -161,7 +161,12 @@ Only three things vary by source:
      code (if any) stays on its branch. Operator decides.
    - `BLOCKED_REVIEW_CRITICAL` → a CRITICAL survived the bounded fix loop (up to 2 fix+re-review rounds);
      report the open finding(s) and `fix_rounds`; unshipped.
-   - `HALT_FIX_NOT_PUSHED` → a fix-loop round did not push its branch; report and stop.
+   - `HALT_FIX_NOT_PUSHED` → a fix-loop round did not push its branch for a REAL reason (rejected, denied,
+     hook declined); report and stop.
+   - `PARKED_AWAITING_REMOTE` (0.10.3) → the code is green and committed LOCALLY; only the push failed,
+     against a dead remote (the Datasophia tier 502s ~11 PM-5 AM ET). **Do NOT re-run the factory** — the
+     work exists on the branch. Wait for the remote, `git push -u origin <branch>` (unpiped), then close
+     out normally. Follow `next_steps_for_main_loop`.
    - `HALT_PRESHIP` → report `blockers` (execution not verified / branch not pushed / open CRITICAL /
      QA not green); do not ship.
    - `HALT_SHIPPREP_FAILED` / `HALT_AGENT_SKIPPED` → report; nothing shipped.
@@ -220,6 +225,13 @@ updates are noise (Gab directive 2026-06-16, `feedback_no_external_status_update
 `READY_TO_SHIP` and a successful `NEEDS_VISUAL_VERIFY` render (screenshots = proof) post as usual.
 
 ## Status
+
+`0.10.3` — **hardened by the first two full GitHub-issue runs.** A demonstrated finding that NAMES an
+`ac` now blocks at any severity (two runs shipped past a proven unmet AC by grading it MEDIUM and LOW).
+A push that dies on the known nightly Datasophia 502 now parks as `PARKED_AWAITING_REMOTE` with a resume
+path instead of scoring as a code failure — 38 commits of green work were stranded that way. The outage
+window is a startup warning via `args.now` (the spine cannot read a clock). Visual-AC shape is labelled
+at the front gate. Guard: 68 cases, mutations all detected.
 
 `0.10.2` — **first live GitHub-issue run (#236), which corrected contract 1.** `gh issue view --json
 parent` returns null for a genuinely parented issue, so the documented method would have filed every

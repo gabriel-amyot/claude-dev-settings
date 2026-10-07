@@ -54,6 +54,18 @@ Corollary: **do not expose a cursor or a page parameter.** The walk owns it. A c
 cursor is how a model ends up holding page one of three and reasoning as though it held all
 of them.
 
+**Second instance, a CLI rather than an MCP tool (2026-10-07).** `gh issue list` without `--limit`
+returns 30 issues. A query that pipes that into a `jq` filter, over a repo holding 153 open issues,
+returns nothing when the matching issues are not in the newest 30. "Nothing" reads as "there is no
+work", not "the query was truncated". Measured: the same filter returned `0` without `--limit` and
+`2` with `--limit 1000`. Always pass an explicit `--limit` when a `gh` list feeds a filter, and
+prefer a wrapper that requests a high limit **and raises on saturation**, so a full page is an
+error rather than a silent truncation.
+
+The shape to watch for: a hand-written query embedded in a spec or a doc. It gets copy-pasted and
+patched in place each time it breaks, and nothing tests it. If a query has broken more than once,
+move it into a tested subcommand rather than patch it again.
+
 ## 4. Two completeness signals are independent, and either alone fails open
 
 A Relay-style connection reports both `totalCount` and `pageInfo.hasNextPage`. They describe
@@ -97,3 +109,51 @@ on every row** and let the caller filter. Gabriel's formulation, 2026-08-31: *"I
 MCP that is opinionated. I want the MCP to get tools to fetch information, and then to act on
 it."* The test that keeps it honest is whether the tool ever drops a row the caller would have
 wanted to see.
+
+---
+
+Sections 7 to 9 added 2026-10-07 from session `tidy-heron`, a wayfinder harness failure-mode audit.
+All three describe a guard that reported success while the work did not happen.
+
+## 7. A shared agent identity defeats any assignee-based claim check
+
+When "assignment is the claim" and every agent session claims as `@me`, all claims resolve to the
+same account. A guard of the form *"refuse if someone other than me holds the claim"* can then
+never fire for agent work. It protects against a case that does not occur and misses the one that
+does.
+
+Observed: ten tickets held open claims. Nine were assigned inside a **22-second window**, a scripted
+batch. One had been held for 16 days. The collision guard passed all ten.
+
+**How to apply:** Give a claim mechanism a **per-session** identity, not a per-account one, or it is
+decorative in a multi-agent setting. Where claiming removes work from a queue, build a release path
+that does not need the claiming session to still be alive. A session that ends without releasing
+starves the queue permanently. Timestamp clustering is a cheap forensic: N assignments inside a
+seconds-wide window proves scripted origin, which separates a batch claim from N human decisions.
+
+## 8. An idempotent "resume" branch keyed on weak evidence destroys data
+
+A resume path existed to make retries safe: *if a prior marker exists, do not post a duplicate.* It
+keyed on **any** prior marker, including markers of a different kind and malformed ones. On a match
+it closed the record and returned **before reading the input file**. A normal command therefore
+closed the item, posted nothing, discarded the supplied content, and printed a success message.
+
+**How to apply:** Key an idempotency check on evidence of **the same operation**, not on evidence
+that something happened. Classify the marker before you trust it. Validate and read the input
+**before** the short-circuit decision. Never return a success path that has not read what it was
+given. Treat a malformed marker as a refusal, not as a match.
+
+## 9. A check that returns green on missing input is not a check
+
+Several proposed guards passed when the thing they inspected was simply absent. No declared block,
+no manifest, no premise section meant "nothing to verify", so "pass". That reproduces the exact
+failure being guarded against, and it is worse than no guard, because it is trusted.
+
+Related: a **read-back** proves storage accepted what you declared. It does not prove the
+declaration was correct. A model that wrote a wrong declaration will also approve it, so
+self-verification supplies no independent authority.
+
+**How to apply:** Make absence of input `UNKNOWN` or a hard error, never `PASS`. State explicitly
+what a green result does **not** cover, for example "no orphans **among labelled items**". Where a
+gate needs judgement the acting agent cannot supply, say so rather than ship a gate that will be
+believed.

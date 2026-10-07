@@ -70,5 +70,6 @@ Entry point: [INDEX.md](INDEX.md)
 - **Klever domain:** Klever Bibliothèque → ad-tech, DSPs, BQ schemas, products, people
 - **Supervisr domain:** Supervisr Bibliothèque → lead lifecycle, EQS, compliance, dreampipe
 - **Personal tooling / macOS automation:** `macos-terminal-automation-gotchas.md` (Ghostty, AppleScript keystroke injection), `zsh-dotfiles-double-sourcing-gotcha.md` (zsh startup order)
-- **LLM tool/agent design patterns:** `llm-tool-design-safety-patterns.md` (discovery vs. side-effecting action, candidate listing), `claude-code-session-crash-forensics.md` (transcript-mtime crash detection)
+- **LLM tool/agent design patterns:** `llm-tool-design-safety-patterns.md` (discovery vs. side-effecting action, candidate listing, shared-identity claim guards, idempotency keyed on weak evidence, green-on-missing-input), `claude-code-session-crash-forensics.md` (transcript-mtime crash detection)
+- **False-green failures (a tool reported success while the work did not happen):** `build-tooling-silent-side-effects.md` (missing `timeout` binary exits 0, failed-probe-reports-absence cluster) + `llm-tool-design-safety-patterns.md` §§3, 7-9 (truncated list reads as absence, decorative guards). Klever instance for counterparty and reviewer negatives: `documentation/bibliotheque/sops/autonomous-workflows/premature-causal-externalization-lessons.md`
 - **MCP server configuration:** `mcp-server-scoping-and-isolation.md` (local-scope leak, `--strict-mcp-config`, per-directory trust approval)

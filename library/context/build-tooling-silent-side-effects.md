@@ -152,3 +152,45 @@ commit.
 **How to apply:** Run `terraform fmt` against the single edited file, not the whole directory, when
 possible. If a directory-wide `fmt` is unavoidable, run `git diff --stat` right after and
 `git checkout --` any file outside the intended change before committing.
+
+**Eighth instance: a sandboxed reviewer's own 404 is not evidence about the world (session
+`tidy-heron`, wayfinder harness audit, 2026-10-07).** An adversarial reviewer running under a
+network-restricted sandbox reported that `gh api repos/.../issues/N` and the issue-dependency
+endpoints return HTTP 404. It made that the basis of its headline recommendation and blocked a
+proposed fix as dependent on a write API that does not work. Measured outside the sandbox, both
+endpoints answer normally: `--jq .id` returns a real id, and `dependencies/blocked_by` returns a
+real array with rc=0. The 404 was the reviewer's own network restriction. The sharp part: the same
+review contained the sentence *"A 404 is a failed measurement, not evidence that an edge is
+absent"* and then did exactly that.
+
+**How to apply:** Re-run any reviewer finding that rests on a negative measurement, in the real
+environment, before accepting it. A sandboxed agent cannot distinguish "this does not exist" from
+"I cannot reach this," and it will not flag the difference for you. No reviewer sits outside the
+failure class it is reviewing. Klever instance of the same rule for counterparty searches:
+`documentation/bibliotheque/sops/autonomous-workflows/premature-causal-externalization-lessons.md`.
+
+---
+
+## A Missing Wrapper Binary Exits 0 — `timeout` Is Not on macOS
+
+`timeout` is GNU coreutils. A stock macOS does not have it. Wrapping a long-running command in it
+produces one line on stderr and an exit status of 0:
+
+```
+nohup: timeout: No such file or directory
+```
+
+The command inside the wrapper never runs. Any caller that reads the exit code concludes the work
+succeeded.
+
+This fired on a **mandated adversarial review**. `nohup timeout 2400 codex exec ... &` returned 0 in
+about one second, having run no review at all. It was caught only because someone checked that the
+expected output file existed. The gate recorded a clean outcome over a process that never started.
+
+**How to apply:** Use `gtimeout` (brew coreutils) or no wrapper at all. For any long-running
+external gate, assert the output artifact exists before trusting the exit status. An exit code is
+not proof of work. This is the same shape as a mandated gate that fails open, and it is a
+sibling of the piped-mutation trap: in both, the status you read belongs to something other than
+the work you wanted done.
+
+**Source:** session `tidy-heron`, wayfinder harness failure-mode audit, map #22 (2026-10-07).

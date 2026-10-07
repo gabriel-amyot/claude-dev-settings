@@ -1,11 +1,347 @@
 map: 22
 map_title: 'Wayfinder Map: Planning Map rewrite on the Measurement Map''s infrastructure'
 map_state: OPEN
-harvested: '2026-09-10T20:05:32+00:00'
+harvested: '2026-09-29T16:15:49+00:00'
 telemetry_epoch: '2026-09-10'
-runs: []
-gaps: []
+runs:
+- run_id: 51fe529d
+  spec_version: 0.3.0
+  mode: report
+  map: 22
+  date: '2026-09-19'
+  outcome: reported
+  tickets_created: 0
+  fog_graduated: 1
+  friction: []
+  source: https://cicd.prod.datasophia.com/grp-cst/grp-beklever-com/grp-faas/grp-app/grp-frontend/app-front-portal/-/merge_requests/393
+  issue_state: OPEN
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/22#issuecomment-5746911522
+- run_id: c7e2a5c6
+  spec_version: 0.3.0
+  mode: report
+  map: 22
+  date: '2026-09-28'
+  outcome: reported
+  tickets_created: 0
+  fog_graduated: 1
+  friction: []
+  source: session vivid-marlin — Step 0 Planning Map state audit
+  issue_state: OPEN
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/22#issuecomment-5875820255
+- run_id: e65105a3
+  spec_version: 0.3.0
+  mode: chart
+  map: 22
+  date: '2026-09-28'
+  outcome: charted
+  tickets_created: 5
+  fog_graduated: 3
+  friction:
+  - tag: spec-missing
+    note: no typed run shape for a disposal session (dispose deposited reports + create
+      tickets without resolving one); charted as an incremental chart run
+  issue_state: OPEN
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/22#issuecomment-5876018322
+- run_id: ad71178d
+  spec_version: 0.3.0
+  mode: report
+  map: 22
+  date: '2026-09-28'
+  outcome: reported
+  tickets_created: 0
+  fog_graduated: 0
+  friction: []
+  source: https://cicd.prod.datasophia.com/grp-cst/grp-beklever-com/grp-faas/grp-app/grp-frontend/app-front-portal/-/merge_requests/412
+  issue_state: OPEN
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/22#issuecomment-5883046867
+- run_id: f41b227b
+  spec_version: 0.3.0
+  mode: resolve
+  map: 22
+  date: '2026-09-28'
+  outcome: resolved
+  tickets_created: 0
+  fog_graduated: 0
+  friction: []
+  ticket: 203
+  ticket_type: research
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/203#issuecomment-5876047825
+- run_id: 05d0c281
+  spec_version: 0.3.0
+  mode: resolve
+  map: 22
+  date: '2026-09-28'
+  outcome: resolved
+  tickets_created: 0
+  fog_graduated: 0
+  friction: []
+  ticket: 201
+  ticket_type: research
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/201#issuecomment-5876054934
+- run_id: c959652a
+  spec_version: 0.3.0
+  mode: resolve
+  map: 22
+  date: '2026-09-28'
+  outcome: resolved
+  tickets_created: 0
+  fog_graduated: 0
+  friction: []
+  ticket: 200
+  ticket_type: task
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/200#issuecomment-5881393653
+- run_id: 475cf8d2
+  spec_version: 0.3.0
+  mode: resolve
+  map: 22
+  date: '2026-09-29'
+  outcome: resolved
+  tickets_created: 0
+  fog_graduated: 0
+  friction: []
+  ticket: 199
+  ticket_type: unknown
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/199#issuecomment-5893689735
+- run_id: 1cd34ff7
+  spec_version: 0.3.0
+  mode: report
+  map: 22
+  date: '2026-09-21'
+  outcome: partial
+  tickets_created: 0
+  fog_graduated: 0
+  friction: []
+  ticket: 161
+  ticket_type: task
+  source: https://cicd.prod.datasophia.com/grp-cst/grp-beklever-com/grp-faas/grp-app/grp-frontend/app-front-portal/-/merge_requests/397
+  issue_state: OPEN
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/161#issuecomment-5766917911
+- run_id: 2256982f
+  spec_version: 0.3.0
+  mode: report
+  map: 22
+  date: '2026-09-21'
+  outcome: partial
+  tickets_created: 0
+  fog_graduated: 0
+  friction:
+  - tag: process
+    note: the session was dispatched to fix Canada while the priority was the US backend;
+      the handoff carried no priority context
+  ticket: 160
+  ticket_type: grilling
+  source: https://cicd.prod.datasophia.com/grp-cst/grp-beklever-com/grp-faas/grp-app/grp-frontend/app-front-portal/-/merge_requests/397
+  issue_state: OPEN
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/160#issuecomment-5766918445
+- run_id: 6a2e0384
+  spec_version: 0.3.0
+  mode: resolve
+  map: 22
+  date: '2026-09-29'
+  outcome: resolved
+  tickets_created: 0
+  fog_graduated: 0
+  friction: []
+  ticket: 148
+  ticket_type: research
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/148#issuecomment-5893697181
+- run_id: 35700b0f
+  spec_version: 0.3.0
+  mode: resolve
+  map: 22
+  date: '2026-09-18'
+  outcome: resolved
+  tickets_created: 0
+  fog_graduated: 0
+  friction: []
+  ticket: 146
+  ticket_type: grilling
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/146#issuecomment-5735997959
+- run_id: be4b8694
+  spec_version: 0.3.0
+  mode: resolve
+  map: 22
+  date: '2026-09-18'
+  outcome: horizon
+  tickets_created: 0
+  fog_graduated: 0
+  friction:
+  - tag: process
+    note: a parked HITL product question has no home between open (re-proposed every
+      session) and closed; Horizon is the right section but the spec does not say
+      to close the ticket to get there
+  ticket: 137
+  ticket_type: grilling
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/137#issuecomment-5734970999
+- run_id: 7a9903c1
+  spec_version: 0.3.0
+  mode: resolve
+  map: 22
+  date: '2026-09-18'
+  outcome: resolved
+  tickets_created: 0
+  fog_graduated: 0
+  friction:
+  - tag: spec-missing
+    note: An externally-run research ticket has no place to record that part of its
+      own report-back was NOT answerable by its stated method. Item 4 asked what we
+      already have, which needs code access; the external agent asserted an audit
+      instead of declining. The ticket format should let a report-back item be marked
+      out-of-method at authoring time.
+  ticket: 134
+  ticket_type: research
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/134#issuecomment-5730333926
+- run_id: e2953c70
+  spec_version: 0.3.0
+  mode: report
+  map: 22
+  date: '2026-09-14'
+  outcome: resolved
+  tickets_created: 1
+  fog_graduated: 0
+  friction:
+  - tag: spec-missing
+    note: A route session that CORRECTS a claimed ticket and deliberately leaves it
+      open has no traced path. 'resolve' always closes; 'report' is framed for a session
+      that was NOT walking the map, so it records mode:report for what was route work.
+      Correcting a ticket in flight is an ordinary route act and needs its own verb
+      or a --no-close on resolve.
+  - tag: process
+    note: The ticket that had to be reconciled against (#17) lives on a SIBLING map
+      (#13), so it never appears in this map's frontier and DECISIONS.md carried one
+      line out of it. The spec has no notion of a cross-map dependency, so a session
+      walking one map is structurally blind to a decision another map made about shared
+      infrastructure.
+  - tag: spec-missing
+    note: '#127 was created with no wayfinder: type label, so it was invisible to
+      the label-based tooling and the report verb refused it. Nothing at creation
+      time enforces the label.'
+  ticket: 127
+  ticket_type: grilling
+  source: 'route session on map #22, handoff 2026-09-14-planning-map-retrieval-layer.md'
+  issue_state: OPEN
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/127#issuecomment-5670632529
+- run_id: fa622ea1
+  spec_version: 0.3.0
+  mode: resolve
+  map: 22
+  date: '2026-09-18'
+  outcome: partial
+  tickets_created: 1
+  fog_graduated: 0
+  friction:
+  - tag: spec-missing
+    note: a ticket whose PARENT DECISION is retired is neither resolved nor out of
+      scope nor horizon; its measurements stay valid while its purpose evaporates.
+      'partial' is the least-wrong outcome and does not say this
+  ticket: 63
+  ticket_type: research
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/63#issuecomment-5734972642
+- run_id: 5af587d0
+  spec_version: 0.3.0
+  mode: resolve
+  map: 22
+  date: '2026-09-13'
+  outcome: partial
+  tickets_created: 0
+  fog_graduated: 0
+  friction:
+  - tag: tooling
+    note: codex exec timed out four times with zero output (10/10/10/7 min), saturated
+      by concurrent sessions; the required external adversarial review could not run
+  - tag: process
+    note: '#35 was dispatched despite its own entry condition (wait for #31''s approved
+      v1 cut) being unmet; #31 is still open with prep only'
+  - tag: process
+    note: '#35 was created with no wayfinder label, so the resolve tool refused it
+      until the label was added'
+  ticket: 35
+  ticket_type: grilling
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/35#issuecomment-5653651763
+- run_id: ad0ba765
+  spec_version: 0.3.0
+  mode: resolve
+  map: 22
+  date: '2026-09-13'
+  outcome: resolved
+  tickets_created: 0
+  fog_graduated: 0
+  friction: []
+  ticket: 34
+  ticket_type: grilling
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/34#issuecomment-5653542640
+- run_id: c76b0e54
+  spec_version: 0.3.0
+  mode: resolve
+  map: 22
+  date: '2026-09-13'
+  outcome: resolved
+  tickets_created: 1
+  fog_graduated: 1
+  friction:
+  - tag: tooling
+    note: codex exec on a long document runs 20+ min and its piped output only flushes
+      at exit; the mandated second adversarial pass did not return within the session
+  - tag: tooling
+    note: the wayfinder skill is disable-model-invocation, so a dispatched route session
+      cannot load it and must follow a relayed procedure instead
+  ticket: 31
+  ticket_type: grilling
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/31#issuecomment-5653616713
+- run_id: 6fde0804
+  spec_version: 0.3.0
+  mode: resolve
+  map: 22
+  date: '2026-09-13'
+  outcome: resolved
+  tickets_created: 0
+  fog_graduated: 0
+  friction:
+  - tag: process
+    note: 'the ticket was already merged a week before this session was dispatched;
+      map #22 still read ''built, awaiting merge'', so the route was sent to do work
+      that was done'
+  ticket: 29
+  ticket_type: task
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/29#issuecomment-5653378898
+- run_id: cc4a5108
+  spec_version: 0.3.0
+  mode: resolve
+  map: 22
+  date: '2026-09-18'
+  outcome: resolved
+  tickets_created: 0
+  fog_graduated: 0
+  friction:
+  - tag: process
+    note: the ticket was executed by another vehicle on 2026-09-18 and left open for
+      a week reading 'blocked on Gabriel's go'. Nothing links a Jira board mutation
+      back to the wayfinder ticket that authorised it, so the map kept advertising
+      finished work as frontier.
+  ticket: 28
+  ticket_type: task
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/28#issuecomment-5735035027
+gaps:
+- issue: 129
+  title: 'Two competing geography spines: #17''s zcta5 versus Sisi''s surrogate geo_id'
+  type: grilling
+  closed_at: '2026-09-18'
+  reason: closed with no run trailer — this run was never traced
 malformed_trailers: []
-missing_reflection: true
+missing_reflection: false
 pre_telemetry_closures: 6
 feedback: []

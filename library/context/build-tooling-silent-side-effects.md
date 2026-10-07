@@ -112,6 +112,43 @@ as intended. Check the tool's real output shape (not the shape you expect), chec
 against the function signature, and treat a sentinel like `UNKNOWN` as "could not measure," never
 as "measured and it differs." These demand opposite responses.
 
+**Sixth instance, three sub-cases, one session (session `warm-crane`, Klever KTP-1003 census
+serving build, 2026-10-06):**
+
+1. A tunnel opened cleanly on local port 8097, and a request through it returned a healthy 200.
+   The port was already held by a local jar running `--spring.profiles.active=local`, not the
+   tunnel. The 200 proved nothing about the dev backend it was meant to reach.
+2. A probe to `localhost:3000` on a frontend COS instance returned `HTTP 000`, which read as "the
+   container is dead." The container listened on 8080, not 3000 (`docker ps` showed
+   `0.0.0.0:8080->8080/tcp`), and had been healthy the whole time. A wrong-port probe is
+   indistinguishable from a dead service until the port mapping is read off the container.
+3. `application_default_credentials.json` kept serving GCS reads from Python while the `gcloud`
+   CLI refused every command with "Reauthentication failed." A failed `gcloud storage buckets
+   list` is evidence the CLI token expired, never evidence the bucket is absent — the CLI token and
+   ADC are separate credentials that expire independently.
+
+**How to apply (restated for these three):** Before trusting any tunneled probe, confirm what
+process actually holds the local port (`lsof -ti:<port> | xargs ps -o args=`), not just that the
+tunnel command exited 0. Before calling a service dead from a connection failure, read its real
+port mapping off the running container rather than assuming a conventional port. Before treating a
+failed `gcloud` CLI call as evidence an object does not exist, check whether a different credential
+(ADC) still works — a CLI auth failure is a credential problem, not a resource-absence finding.
+Interactive `gcloud auth login` cannot be run by an agent; when the CLI token is the blocker, say so
+and ask rather than inferring absence from it.
+
 ---
 
-**Source (above two sections):** session `plain-ibis`, Klever post-close worktree cleanup (2026-09-02). Fourth instance: session `rare-wren`, Klever media-api 0.20.3 prod promotion (2026-09-16). Fifth instance (three sub-cases): session `agile-marten`, Klever KTP-571 Planning Map shell build (2026-09-19).
+**Source (above two sections):** session `plain-ibis`, Klever post-close worktree cleanup (2026-09-02). Fourth instance: session `rare-wren`, Klever media-api 0.20.3 prod promotion (2026-09-16). Fifth instance (three sub-cases): session `agile-marten`, Klever KTP-571 Planning Map shell build (2026-09-19). Sixth instance (three sub-cases): session `warm-crane`, Klever KTP-1003 census serving build (2026-10-06).
+
+**Seventh instance: `terraform fmt <dir>` run on a whole directory reformats sibling files
+outside the change (session `swift-finch`, Klever KTP-1003, 2026-10-06).** Running
+`terraform fmt terraform/` on `dac-gcp-back-proxrp` reformatted two unrelated files
+(`compute_engine_cos_instance_group_res.tf`,
+`compute_engine_cos_instance_groupscheduler_res.tf`) not part of the change. This is a distinct
+mechanism from the split-run case above. `fmt` on a directory walks every `.tf` file in it, not
+just the edited one. Any pre-existing fmt debt anywhere in the directory surfaces in the same
+commit.
+
+**How to apply:** Run `terraform fmt` against the single edited file, not the whole directory, when
+possible. If a directory-wide `fmt` is unavoidable, run `git diff --stat` right after and
+`git checkout --` any file outside the intended change before committing.

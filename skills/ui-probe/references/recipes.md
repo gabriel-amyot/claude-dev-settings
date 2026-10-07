@@ -94,7 +94,7 @@ Tune `selectors` to what you care about. Resolution of 350–400ms is plenty —
 
 This is what proved `isLoading=undefined` reached the component in KTP-713. React stashes a `__reactFiber$<hash>` property on DOM nodes. Walk `.return` up the fiber tree, read `memoizedProps` and the `memoizedState` hook chain.
 
-> **⚠ Minified builds (the deployed portal): do NOT match by component name.** Verified 2026-06-01 — on `portal.dev.beklever.com`, app components are minified to single letters (`j`, `s`, `f`); only third-party libs keep `displayName`. Matching `displayName === 'ChatMessageList'` finds nothing. Match by **DOM anchor + hop count** or by **prop-key signature** instead (below). Name-matching is a localhost/dev-build-only convenience.
+> **⚠ Minified builds (the deployed portal): do NOT match by component name.** Verified 2026-06-01 — on `portal.dev.klever1.ai`, app components are minified to single letters (`j`, `s`, `f`); only third-party libs keep `displayName`. Matching `displayName === 'ChatMessageList'` finds nothing. Match by **DOM anchor + hop count** or by **prop-key signature** instead (below). Name-matching is a localhost/dev-build-only convenience.
 >
 > **⚠ Return keys must be neutrally named.** A key literally named `authed` gets `[BLOCKED]`; raw minified names can trip a base64 filter. Return counts, booleans, types, and whitelisted name lists — and avoid `auth`/`session`/`token`/`key` as substrings in your return KEYS.
 >

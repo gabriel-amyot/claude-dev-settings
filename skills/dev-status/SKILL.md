@@ -33,7 +33,7 @@ If within uptime window, check each service:
 
 ```bash
 # Frontend portal (Cloud Run)
-curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://portal.dev.beklever.com/ 2>/dev/null
+curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://portal.dev.klever1.ai/ 2>/dev/null
 
 # Proximity Report backend
 curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://proximity-report.dev.beklever.com/actuator/health 2>/dev/null

@@ -41,7 +41,7 @@ Returning raw minified React component names tripped `[BLOCKED: Base64 encoded d
 
 ## Deployed build is minified — do NOT match fiber by component name (verified 2026-06-01)
 
-On `portal.dev.beklever.com` the production bundle is minified: walking the fiber tree, **39 components had only 8 readable names and all 8 were third-party library components** (MenuProvider, Popper, Dialog, DropdownMenu…). Every Klever app component (`ChatSidebar`, `ChatMessageList`, `PlanningMap`, etc.) showed up as a single-letter minified name (`j`, `s`, `f`…).
+On `portal.dev.klever1.ai` the production bundle is minified: walking the fiber tree, **39 components had only 8 readable names and all 8 were third-party library components** (MenuProvider, Popper, Dialog, DropdownMenu…). Every Klever app component (`ChatSidebar`, `ChatMessageList`, `PlanningMap`, etc.) showed up as a single-letter minified name (`j`, `s`, `f`…).
 
 **Consequence:** the "walk `.return` until `displayName === 'ChatMessageList'`" strategy fails on the deployed build. (The KTP-713 RCA could name components because it was reading a build where those names survived — likely a localhost dev build or a source-mapped session. Don't assume names survive.)
 

@@ -40,7 +40,7 @@ agent-browser close
 
 ```bash
 # First time: user authenticates in headed mode
-agent-browser --session-name klever-dev --headed open https://portal.dev.beklever.com
+agent-browser --session-name klever-dev --headed open https://portal.dev.klever1.ai
 # User logs in via IAP...
 
 # Subsequent commands reuse the authenticated session

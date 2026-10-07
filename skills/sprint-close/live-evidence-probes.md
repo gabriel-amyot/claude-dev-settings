@@ -32,7 +32,7 @@ A single ticket usually mixes classes (e.g. KTP-699: AC-1 backend, AC-2/AC-3 fro
 
 Invoke the `ui-probe` skill. Key facts learned 2026-06-05/08:
 
-- ui-probe attaches to the **user's running Chrome** (inherits IAP+Auth0). It does NOT log in. If the user's Chrome has an authenticated `portal.dev.beklever.com` tab, probe **dev** directly (the real deployed target).
+- ui-probe attaches to the **user's running Chrome** (inherits IAP+Auth0). It does NOT log in. If the user's Chrome has an authenticated `portal.dev.klever1.ai` tab, probe **dev** directly (the real deployed target).
 - **Local frontend caveat:** `localhost:3000/measurement` is permission-gated. The local mock user's permission fetch to UM (`getUserPermissions`, `lib/permissions/data.ts`) returns not-ok → "Access Denied", because the seeded mock user lacks the Measurement component on the shared UM (port 8098). Do NOT mutate the shared UM to fix this if another session is using it. Prefer probing **dev** via the user's authenticated tab.
 - Read Mapbox GL ground truth via the React fiber: locate the map instance by scanning fibers for an object with `getStyle` + `queryRenderedFeatures`, stash on `window.__probeMap`. Then `map.getStyle().layers`, `map.queryRenderedFeatures({layers:[id]})`, `map.getLayoutProperty(id,'visibility')`, `map.flyTo(...)`.
 - **Always save the screenshot to disk** (`save_to_disk: true`) into `tickets/KTP/{EPIC}/{KEY}/design/screenshots/{KEY}-AC{n}-{date}.png`. A frontend PASS without a saved screenshot is not proof.

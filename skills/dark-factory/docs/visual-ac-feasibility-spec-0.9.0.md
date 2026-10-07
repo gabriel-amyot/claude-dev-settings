@@ -20,7 +20,7 @@ This spec addresses the *different* gap the TDD runs surfaced.
 ## Why the runs got stuck (corrected diagnosis)
 
 The runs concluded "ui-probe needs Gab's authenticated Chrome / dev is past nightly-off." True — **for
-dev**. `portal.dev.beklever.com` has the IAP + Auth0 wall and the 20:00 EDT off-window. But:
+dev**. `portal.dev.klever1.ai` has the IAP + Auth0 wall and the 20:00 EDT off-window. But:
 
 - **Localhost has neither.** ui-probe targets `localhost` too, and the local stack on `:3000` uses the
   local auth mock (no IAP). The Playwright e2e suite already drives the local stack headlessly. So

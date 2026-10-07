@@ -5,7 +5,7 @@ Targeted UI test for the Proximity Map feature. 14 use cases covering map layers
 ## Environment
 
 - **Local:** `http://localhost:3001/proximity` (backend on 8097)
-- **Dev:** `https://portal.dev.beklever.com/proximity` (IAP auth required)
+- **Dev:** `https://portal.dev.klever1.ai/proximity` (IAP auth required)
 
 Always ask the user which mode before starting.
 

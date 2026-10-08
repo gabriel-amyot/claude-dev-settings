@@ -164,6 +164,32 @@ const PHASE_SCHEMA = {
     summary: { type: 'string' },
     artifacts: { type: 'array', items: { type: 'string' } },
     notes: { type: 'string' },
+    // 0.10.4 (Design) — a test harness this plan INTRODUCES, and whether design actually started it.
+    // KTP-1003's design handed grill a @SpringBootTest that could not boot; grill found three defects
+    // in it, including a bean list missing two of five constructor args. Starting it once in design is
+    // where those error messages are free. harnessReadiness() routes an unchecked harness to grill.
+    new_harness: {
+      type: 'object',
+      properties: {
+        kind: { type: 'string' },              // e.g. '@SpringBootTest'
+        boot_checked: { type: 'boolean' },     // design STARTED it and it came up
+        beans_enumerated: { type: 'boolean' }, // every constructor arg of the class under test is provided
+      },
+    },
+    // 0.10.4 (Design) — patterns this plan introduces that the repo has ZERO instances of. KTP-1003's
+    // repo had no @SpringBootTest at all; grill read the absence as a past decision and the factory
+    // added the first one anyway. firstOfKindNotes() surfaces these in the ship notes for a human.
+    first_of_kind: {
+      type: 'array',
+      items: {
+        type: 'object',
+        required: ['pattern', 'repo_count'],
+        properties: {
+          pattern: { type: 'string' },        // the pattern/annotation/convention being introduced
+          repo_count: { type: 'integer' },    // instances already in the repo — 0 is the interesting case
+        },
+      },
+    },
     confidence: { type: 'integer', minimum: 0, maximum: 100 },
     confidence_deductions: { type: 'array', items: { type: 'object', properties: { points: { type: 'integer' }, reason: { type: 'string' } } } },
   },
@@ -318,6 +344,17 @@ const QA_SCHEMA = {
       },
     },
     summary: { type: 'string' },
+    // 0.10.4 — the toolchain QA actually ran, against the one the build declares. KTP-1003's QA ran
+    // JDK 21 against a pom targeting release 17, in a repo whose CLAUDE.md records a JDK 21 Lombok
+    // break. Nothing broke, which is the point: a green from an undeclared toolchain is not
+    // reproducible. For the java belt, `declared` is maven.compiler.release from the pom.
+    toolchain: {
+      type: 'object',
+      properties: {
+        declared: { type: ['string', 'number'] }, // what the build file targets
+        actual: { type: ['string', 'number'] },   // what you measured in your worktree
+      },
+    },
     confidence: { type: 'integer', minimum: 0, maximum: 100 },
     confidence_deductions: { type: 'array', items: { type: 'object', properties: { points: { type: 'integer' }, reason: { type: 'string' } } } },
   },
@@ -698,6 +735,68 @@ function tddVerifiedCap(qa, overall) {
   return overall
 }
 
+// 0.10.4 — a NEW test harness is boot-checked during design, before grill sees it.
+//
+// KTP-1003's design handed grill a `@SpringBootTest` harness that could not start. Grill named three
+// separate defects in it: a missing `@EnableAutoConfiguration`, a credentials dependency that is green
+// on a laptop and red in CI, and a bean list missing two of the controller's five constructor
+// arguments. Grill catching all three is the system working, but it only works because a grill ran —
+// the cheaper fix is to start the harness ONCE in design, where the error messages are free.
+//
+// Booting is necessary and not sufficient: the bean list is what KTP-1003 got wrong in a way a single
+// green start would not reveal, so both flags are checked.
+function harnessReadiness(design) {
+  const h = design && design.new_harness
+  if (!h || typeof h !== 'object') return ''
+  const kind = typeof h.kind === 'string' && h.kind.trim() !== '' ? h.kind.trim() : 'a new test harness'
+  if (h.boot_checked !== true) {
+    return `Design declared ${kind} but never started it — grill must boot it and enumerate the full constructor bean list of the class under test before the plan is trusted.`
+  }
+  if (h.beans_enumerated !== true) {
+    return `Design started ${kind} but did not enumerate its bean list — grill must confirm every constructor argument of the class under test is provided.`
+  }
+  return ''
+}
+
+// 0.10.4 — the toolchain QA MEASURED must be the one the build DECLARES.
+//
+// KTP-1003's QA ran JDK 21 against a pom targeting release 17, in a repo whose own CLAUDE.md records a
+// JDK 21 Lombok break. Nothing broke that run, which is exactly why it is worth recording: a green
+// result from an undeclared toolchain is a green nobody can reproduce. Reported, not halted — a
+// mismatch invalidates confidence in the measurement, it does not prove the code wrong.
+function toolchainMismatch(qa) {
+  if (!qa) return null
+  const t = qa.toolchain
+  if (!t || typeof t !== 'object') {
+    return 'QA did not record the toolchain it ran — a green from an unnamed toolchain is not reproducible'
+  }
+  const norm = (v) => (v === undefined || v === null ? '' : String(v).trim())
+  const declared = norm(t.declared), actual = norm(t.actual)
+  if (!declared || !actual) {
+    return `QA toolchain only half-recorded (declared="${declared}", measured="${actual}") — both are needed to trust the result`
+  }
+  if (declared !== actual) {
+    return `QA ran toolchain ${actual} against a build declaring ${declared} — the measured toolchain is not the declared one`
+  }
+  return null
+}
+
+// 0.10.4 — a pattern the repo has ZERO instances of is a human decision, not a default.
+//
+// KTP-1003's repo had no `@SpringBootTest` classes at all. Grill read that absence as a past decision,
+// which it probably was, and the factory then added the first one anyway without telling anyone.
+// Absence at whole-repo scale is rarely an oversight; it is usually a choice someone made, and the
+// person who made it is the one who should get asked. Surfaced in the ship notes, never auto-blocked.
+function firstOfKindNotes(design) {
+  const list = design && design.first_of_kind
+  if (!Array.isArray(list)) return ''
+  const fresh = list.filter((p) => p && typeof p.pattern === 'string' && p.pattern.trim() !== '' &&
+    (p.repo_count === undefined || p.repo_count === null || Number(p.repo_count) === 0))
+  if (!fresh.length) return ''
+  const names = fresh.map((p) => p.pattern.trim()).join(', ')
+  return `FIRST OF ITS KIND — this branch adds the repo's first ${names}. The repo having zero is usually a past decision, so confirm it with a human rather than treating the absence as an oversight.`
+}
+
 // Carry a low-confidence phase's own stated doubt into the NEXT phase (0.10.1).
 //
 // Every phase has self-reported `confidence` + `confidence_deductions` since the seed build, and for
@@ -895,8 +994,16 @@ one run today — surface it so the split-fan-out (a later capability) or a huma
   rec('design', design)
   if (design.status === 'stuck') return { status: 'HALT_DESIGN_STUCK', ticket, design }
 
+  // 0.10.4: route an unbooted new harness and any first-of-its-kind pattern into grill explicitly,
+  // rather than hoping grill thinks to look. Both were caught by luck on KTP-1003 (the harness) or
+  // missed entirely (the pattern).
+  const harnessNote = harnessReadiness(design)
+  if (harnessNote) log(`Design harness unverified — ${harnessNote}`)
+  const fokNote = firstOfKindNotes(design)
+  if (fokNote) log(fokNote)
+
   phase('Grill')
-  const grill = await agent(`${readContract('3-grill')}\nInterrogate the design plan against the actual codebase (use git, not just local files). ${decisionsNote}${handoffUncertainty(design, 'Design')}`, { schema: PHASE_SCHEMA, label: 'grill', phase: 'Grill' })
+  const grill = await agent(`${readContract('3-grill')}\nInterrogate the design plan against the actual codebase (use git, not just local files). ${decisionsNote}${harnessNote ? '\nHARNESS CHECK (0.10.4): ' + harnessNote : ''}${fokNote ? '\n' + fokNote + ' Confirm the absence is deliberate before the plan relies on introducing it.' : ''}${handoffUncertainty(design, 'Design')}`, { schema: PHASE_SCHEMA, label: 'grill', phase: 'Grill' })
   if (!grill) return agentSkipped('Grill')
   rec('grill', grill)
   if (grill.status === 'stuck') return { status: 'HALT_GRILL_UNWORKABLE', ticket, design, grill }
@@ -1064,6 +1171,10 @@ RED LEDGER: ${redLedger}${handoffUncertainty(impl, 'Implement')}`,
   if (!qa) return { ...agentSkipped('QA'), branch: impl.branch }
   rec('qa', qa, qa.raw_overall)
 
+  // 0.10.4: recorded, not capped. A toolchain mismatch invalidates confidence in the MEASUREMENT; it
+  // does not prove the code wrong, so it belongs in the record for Retro, not in the verdict.
+  const tcm = toolchainMismatch(qa)
+  if (tcm) log(`QA toolchain — ${tcm}.`)
   const qaCapped = capQaVerdict(impl.execution_verified, tddVerifiedCap(qa, evidenceCappedOverall(qa)))
   const qaGap = classifyQaGap(qa, qaCapped) // all_pass | visual_only | real_gap (0.9.0)
   const blockers = preShipBlockers(impl, review, qaCapped, qaGap)
@@ -1089,6 +1200,10 @@ ${impl.branch}'. Version bump + CHANGELOG, commit, push the branch with git. Do 
     tdd_gate_mode: tddGateMode,
     visual_readiness: vis,
     tdd_warnings: tddWarnings, // non-empty only in warn mode; a warn run can never look clean
+    // 0.10.4: things a human should see on the way out, even though none of them block.
+    // first_of_kind is the one the handoff asked for by name: a pattern the repo has zero of is
+    // usually a past decision, and the MR is the last place to say so before it becomes precedent.
+    ship_notes: [fokNote, tcm ? `TOOLCHAIN — ${tcm}.` : '', harnessNote ? `HARNESS — ${harnessNote}` : ''].filter(Boolean),
     // Deterministic backstop (adversarial finding): layers 1+2 are agent-reported; the MAIN LOOP can run
     // git for real. It mechanically audits each RED commit before opening the MR — the one non-LLM check.
     tdd_red_audit: (impl.ac_tdd || []).filter((e) => !e.exempt && e.red).map((e) => ({ ac: e.ac, red_commit: e.red.commit })),

@@ -69,6 +69,19 @@ logic is genuinely proven** — never on a logic gap, a failed assertion, or a m
 non-visual PARTIAL/FAIL (a logic AC that didn't pass, a `not_applicable` exemption that was bogus) is a
 real gap: leave `visual_pending` false/absent so it blocks.
 
+## Record the toolchain you ran (0.10.4)
+
+Return `toolchain: { declared, actual }` — what the build file targets, and what you actually measured
+in your worktree. For the java belt, `declared` is `maven.compiler.release` (or `maven.compiler.source`)
+from the pom and `actual` is `java -version` / `mvn -version`. Other belts: the engine field in
+`package.json` vs `node -v`, `requires-python` vs `python -V`.
+
+KTP-1003's QA ran JDK 21 against a pom targeting release 17, in a repo whose own `CLAUDE.md` records a
+JDK 21 Lombok break. Nothing broke that run, which is exactly why it is worth recording: **a green from
+an undeclared toolchain is a green nobody can reproduce.** A mismatch is reported, not failed — it
+invalidates confidence in the measurement, it does not prove the code wrong. Do not silently switch
+toolchains to make a red go away; record what you ran.
+
 ## Triage repo debt vs regression (0.9.3)
 
 When a typecheck/lint/test sweep fails, diff the failing files against the changed-file set
@@ -113,6 +126,7 @@ summary: "..."
 - `raw_overall`: ALL_PASS | PARTIAL | FAIL  (your raw read of the evidence)
 - `partial_cause`: one-line cause string — REQUIRED whenever raw_overall != ALL_PASS
 - `per_ac`: array of `{ ac, verdict, code_ref, test_ref, red_verified, visual_pending }`
+- `toolchain`: `{ declared, actual }` — the build's target vs what you measured (see above)
 - `summary`: 1-3 sentences
 
 **Example per_ac row (shape — `test_ref` is whatever proof your belt defines):**

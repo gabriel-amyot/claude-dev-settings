@@ -13,6 +13,13 @@ station (Implement) and tester station (execution-verify + QA).
     initialized` → stale index or missing Lombok agent. Re-run with `--rebuild` BEFORE concluding
     anything about the code. Never record an LSP finding in a ledger without that check.
 - **compile (authority):** `mvn compile -pl <module>` (scope to the module(s) the ACs touch).
+- **toolchain (QA must record it, 0.10.4):** declared = `mvn help:evaluate
+  -Dexpression=maven.compiler.release -q -DforceStdout` (fall back to `maven.compiler.source`);
+  actual = `java -version`. Return both as `toolchain: {declared, actual}`. KTP-1003's QA ran JDK 21
+  against a pom targeting release 17 in a repo whose `CLAUDE.md` records a JDK 21 Lombok break.
+  Nothing broke, which is the point — a green from an undeclared toolchain is not reproducible. A
+  mismatch is recorded, never silently "fixed" by switching JDKs until the build goes green. Klever's
+  proximity-report needs `JAVA_HOME` at 21 or 17; see `reference_proximity_report_jdk`.
 - **quality gate (BLOCKING, Implement cannot complete red):** the PMD gate fires automatically on
   every Java Edit/Write via a PostToolUse hook (~1s) and returns exit 2 with the violations. Fix
   them in the loop. Do not suppress to get past a phase.

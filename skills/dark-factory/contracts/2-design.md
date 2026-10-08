@@ -36,6 +36,23 @@ Adapted from the old skill's Phase 2 (DESIGN).
      just to have one.
 5. **Module scoping:** if the run's tool belt defines module scoping (e.g. multi-module builds), pick
    the target module(s) from the AC file paths per the belt's guidance.
+6. **Boot any NEW test harness before you hand the plan on.** If the plan introduces a harness the repo
+   does not already use (`@SpringBootTest`, a new fixture server, a new container), start it ONCE and
+   enumerate the **full constructor bean list** of the class under test. Return `new_harness: { kind,
+   boot_checked, beans_enumerated }`.
+   KTP-1003's design handed grill a `@SpringBootTest` that could not start, and grill found three
+   defects in it: a missing `@EnableAutoConfiguration`, a credentials dependency that is green on a
+   laptop and red in CI, and a bean list missing **two of the controller's five** constructor
+   arguments. Grill catching those is the system working, but a single start in design would have
+   surfaced all three for free. Booting alone is not enough — the bean list is what that run got wrong
+   in a way a green start would not reveal, which is why both flags exist.
+7. **Name anything first-of-its-kind.** Before the plan introduces a pattern, annotation, or convention,
+   count what the repo already has (`grep -r`). Return `first_of_kind: [{ pattern, repo_count }]` for
+   each one, `repo_count` included even when it is non-zero.
+   KTP-1003's repo had **zero** `@SpringBootTest` classes. Grill read that absence as a past decision,
+   which it probably was, and the factory added the first one anyway without telling anyone. Absence at
+   whole-repo scale is rarely an oversight — it is usually a choice someone made, and that person is
+   the one who should be asked. This does not block; it reaches a human in the ship notes.
 
 ## Output
 
@@ -48,3 +65,8 @@ Write `<ticket_folder>/design/impl-plan.md` (NOT committed to the code repo).
 - `summary`: what the plan covers
 - `artifacts`: paths written
 - `notes`: anything the next phases must know
+- `new_harness`: `{ kind, boot_checked, beans_enumerated }` — only when the plan introduces one (step 6).
+  An absent or `false` `boot_checked` routes the harness to grill as an explicit check, so returning it
+  honestly costs you nothing and a missing field is never read as "verified".
+- `first_of_kind`: `[{ pattern, repo_count }]` — patterns this plan introduces (step 7). A `repo_count`
+  of 0 reaches a human in the ship notes.

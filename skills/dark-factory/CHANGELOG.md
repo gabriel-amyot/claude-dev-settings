@@ -50,7 +50,27 @@ defect the fix loop should have made in-run.
   the suite and uncompilable where it sat. Contract 5 now writes demonstration tests as ordinary
   compilable source to `<ticket_folder>/review/tests/`; the fix prompt instructs the fix round to move
   the file into the real test tree and adopt it as its RED (it already fails for the right reason).
-- **Regression cover:** `tests/tdd-gate.test.mjs` 24 → 44 assertions; `tests/review-gate.test.mjs` 68 → 83. Four pre-existing assertions
+- **A new test harness is booted during design, before grill sees it.** KTP-1003's design handed grill
+  a `@SpringBootTest` that could not start; grill named three defects in it — a missing
+  `@EnableAutoConfiguration`, a credentials dependency green on a laptop and red in CI, and a bean list
+  missing two of the controller's five constructor arguments. Grill catching them is the system
+  working, but one start in design surfaces all three for free. New `new_harness: {kind, boot_checked,
+  beans_enumerated}` on the design return; `harnessReadiness()` routes an unchecked harness into the
+  grill prompt as an explicit instruction. Both flags are checked because booting alone would not have
+  caught the bean list.
+- **QA records the toolchain it ran.** KTP-1003's QA ran JDK 21 against a pom targeting release 17, in
+  a repo whose `CLAUDE.md` records a JDK 21 Lombok break. Nothing broke, which is the point: a green
+  from an undeclared toolchain is not reproducible. New `toolchain: {declared, actual}` on the QA
+  return; `toolchainMismatch()` records a mismatch, a half-filled block, and a missing block alike.
+  Reported, never capped — a mismatch invalidates confidence in the measurement, it does not prove the
+  code wrong. The java belt carries the two commands.
+- **A first-of-its-kind pattern reaches a human.** KTP-1003's repo had ZERO `@SpringBootTest` classes.
+  Grill read the absence as a past decision, which it probably was, and the factory added the first one
+  anyway without telling anyone. New `first_of_kind: [{pattern, repo_count}]` on the design return;
+  `firstOfKindNotes()` surfaces every zero-count entry to grill and into the run's `ship_notes`, where
+  the MR is the last chance to flag it before it becomes precedent. Never blocks.
+- **Regression cover:** `tests/tdd-gate.test.mjs` 24 → 44; `tests/review-gate.test.mjs` 68 → 83; new
+  `tests/design-qa-gates.test.mjs` at 26. Total 147 → 193. Four pre-existing assertions
   were INVERTED on purpose (`B4`, `A3`, `A5`/`A6`, `P2`) — they encoded the severity and `ac` carve-outs
   this release removes. New `D`-block pins the rule, new `E`-block pins the red flag. Verified against
   the real artifact: replaying KTP-1003's verbatim findings array returns `blocking: 1` (was 0), routing

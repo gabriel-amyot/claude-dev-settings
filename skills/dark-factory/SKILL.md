@@ -232,7 +232,11 @@ contract claim false with a failing test, filed it LOW with no `ac`, and the fix
 halted the run on the identical fact. `demonstrated: true` already means a test was written, run, and
 watched to fail, so a severity filter on top of it filtered against evidence. No field remains below it.
 `test_ref` now survives into telemetry as a recorded evidence gap, deliberately NOT as a gate (gating on
-it would rebuild the same hole one field lower). Guard: 83 cases.
+it would rebuild the same hole one field lower). A doc-shaped AC is exempt from RED but never from PROOF:
+new `doc_claims(<why>)` exemption listing each claim the delivered document makes with the check RUN
+against it, routed by the AC's `deliverable` rather than by the exemption word the implementor chose.
+The reviewer's demonstration test is now handed to the fix round through `review/tests/` and adopted as
+its RED instead of dying in a discarded worktree. Guard: 83 + 44 cases.
 
 `0.10.3` — **hardened by the first two full GitHub-issue runs.** A demonstrated finding that NAMES an
 `ac` now blocks at any severity (two runs shipped past a proven unmet AC by grading it MEDIUM and LOW).

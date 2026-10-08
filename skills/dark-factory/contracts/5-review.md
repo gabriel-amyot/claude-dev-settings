@@ -31,6 +31,15 @@ Find bugs that reach users. Not style. For each finding:
 1. Describe the bug and how it manifests.
 2. Write a test that demonstrates the failure.
 3. Run the test. If it passes (no bug), retract the finding.
+4. **Save the test where the fix round can adopt it: `<ticket_folder>/review/tests/`.** Write it as
+   ordinary, compilable test source — the name it would have in the repo's test tree, not a `.evidence`
+   or `.txt` sidecar. Cite that path in the finding's `test_ref`.
+
+Your worktree is thrown away and you never push, so a test you leave only in the worktree does not
+exist. KTP-1003 left its single proof at `review/ReviewCacheHeaderTest.java.evidence`, outside the suite
+and uncompilable where it sat: the next agent could not run the one artifact that proved the defect. The
+fix round is instructed to move your file into the real test tree and adopt it as its RED, so a test
+that lands cleanly there is the difference between a proof that ships and a proof that evaporates.
 
 Credit is for bugs caught, not findings filed. Focus: null/missing-parameter regressions in existing
 callers, data-path changes that break downstream consumers, edge cases the AC omits but the code must

@@ -213,9 +213,29 @@ const IMPLEMENT_SCHEMA = {
               suite_green: { type: 'boolean' },   // other tests still pass
             },
           },
-          // Structured exemption only (D3): 'not_applicable(<why>)' for no-unit-surface work, or
-          // 'infra_blocked(<why>)' ONLY when the test cannot even be authored/run without the infra.
+          // Structured exemption only (D3): 'not_applicable(<why>)' for no-unit-surface work,
+          // 'infra_blocked(<why>)' ONLY when the test cannot even be authored/run without the infra, or
+          // 'doc_claims(<why>)' (0.10.4) for a doc-shaped AC — which requires doc_claims below.
           exempt: { type: ['string', 'null'] },
+          // 0.10.4: for a `doc_claims(...)` exemption, the claims the delivered document makes about the
+          // code, each with the check actually RUN against it. KTP-1003 shipped a `[VERIFIED]`-stamped
+          // sentence that no one had executed, and it was false. A stamp is a claim about execution, so
+          // it must carry the execution. tddViolations() rejects an empty list or a missing verified_by.
+          // 0.10.4: what this AC actually ships (the primary changed path). Required in practice on any
+          // exempt entry, because it is what routes a doc-shaped AC to doc_claims regardless of which
+          // exemption word the implementor chose — KTP-1003's AC-L2 dodged on `not_applicable`.
+          deliverable: { type: 'string' },
+          doc_claims: {
+            type: 'array',
+            items: {
+              type: 'object',
+              required: ['claim', 'verified_by'],
+              properties: {
+                claim: { type: 'string' },       // the assertion the document makes, as worded
+                verified_by: { type: 'string' }, // the test/command RUN against it + the observed result
+              },
+            },
+          },
         },
       },
     },
@@ -606,8 +626,44 @@ function tddViolations(impl, requireComplete) {
   }
   for (const e of acTdd) {
     if (e.exempt) {
-      if (!/^(not_applicable|infra_blocked)\(.+\)$/.test(String(e.exempt))) {
-        violations.push(`${e.ac}: malformed exempt "${e.exempt}" — need not_applicable(<why>) or infra_blocked(<why>)`)
+      if (!/^(not_applicable|infra_blocked|doc_claims)\(.+\)$/.test(String(e.exempt))) {
+        violations.push(`${e.ac}: malformed exempt "${e.exempt}" — need not_applicable(<why>), infra_blocked(<why>) or doc_claims(<why>)`)
+        continue
+      }
+      // 0.10.4 — a doc-shaped AC is exempt from RED, never from PROOF.
+      //
+      // KTP-1003 AC-L2 delivered a contract page asserting every census response carries Cache-Control,
+      // under a `[VERIFIED against app-proximity-report@bb1b3a6]` stamp. It took a blanket
+      // not_applicable() RED exemption, nothing ever executed the claim, and the claim was false on the
+      // GRAIN_UNAVAILABLE branch. The reviewer then proved it with a test written BY HAND — which is
+      // what makes this gate's cost provably low: the check was writable all along, just never required.
+      //
+      // A document asserting something about the code is a testable artifact, so not_applicable is a
+      // false statement about it. doc_claims() is the exemption for that shape and it is not free: list
+      // each claim the document makes, and name the check actually RUN against it. A [VERIFIED] stamp
+      // with nothing behind it is the failure this closes.
+      // The rule above only fires on an AC that SELF-SELECTS into doc_claims, which is the same
+      // self-selection escape that cost 0.10.1 (grade it MEDIUM) and 0.10.3 (omit the `ac`). Replaying
+      // KTP-1003 proved it: AC-L2 as actually filed —`not_applicable(contract page, no runtime
+      // surface)` — still returned zero violations. So route by what the AC DELIVERS, not by the word
+      // the implementor reached for: an exemption whose deliverable is a document is a doc-shaped AC.
+      if (typeof e.deliverable === 'string' && /\.(md|markdown|rst|adoc|txt)$/i.test(e.deliverable.trim()) &&
+          !/^doc_claims\(/.test(String(e.exempt))) {
+        violations.push(`${e.ac}: exemption "${e.exempt}" delivers a document (${e.deliverable}) — a doc asserting things about the code is testable, use doc_claims(<why>) and list each claim with the check run against it`)
+        continue
+      }
+      if (/^doc_claims\(/.test(String(e.exempt))) {
+        const claims = e.doc_claims
+        if (!Array.isArray(claims) || claims.length === 0) {
+          violations.push(`${e.ac}: doc_claims exemption needs a non-empty doc_claims array — list each claim the document makes and the check run against it (claim + verified_by)`)
+        } else {
+          const bad = claims.filter((c) => !c ||
+            typeof c.claim !== 'string' || c.claim.trim() === '' ||
+            typeof c.verified_by !== 'string' || c.verified_by.trim() === '')
+          if (bad.length) {
+            violations.push(`${e.ac}: ${bad.length} of ${claims.length} doc_claims entr(ies) lack a claim or a verified_by — a stamped claim with no executed check behind it is the KTP-1003 defect`)
+          }
+        }
       }
       continue
     }
@@ -855,7 +911,14 @@ ledger to <ticket_folder>/tdd/AC-<N>.md (RED command + failing output + commit s
 passing output + commit sha) and return the ac_tdd array — one entry per AC you touched, with
 red.failed/red.right_reason/red.artifact and green.passed set. Use exempt:'not_applicable(<why>)' only
 for work with no unit surface; 'infra_blocked(<why>)' only if the test cannot even be AUTHORED without
-the infra (infra_blocked does NOT excuse a unit RED you could have written). After all ACs are green,
+the infra (infra_blocked does NOT excuse a unit RED you could have written). EVERY exempt entry must also
+set deliverable: the primary path that AC ships. For a DOC-SHAPED AC whose
+deliverable is a document making claims about the code (a contract page, a spec, anything you would
+stamp [VERIFIED]), use exempt:'doc_claims(<why>)' and return a doc_claims array: one entry per claim the
+document makes, each naming the check you actually RAN against it (claim + verified_by). A stamp is a
+claim about execution, so it must carry the execution — not_applicable() on a doc that asserts code
+behaviour is a false statement about the deliverable, and the gate rejects an empty or unverified list.
+After all ACs are green,
 ATTEMPT to run the artifact and record execution_verified honestly (never skip). Then PUSH the feature
 branch to origin and write 'git diff origin/dev..HEAD' to a file in the ticket folder; return its path
 as diff_artifact and set pushed=true. ${decisionsNote}${handoffUncertainty(grill, 'Grill')}`,
@@ -952,6 +1015,11 @@ A finding is listed below for ONE of two reasons: it is CRITICAL, or the reviewe
 failing test (at ANY severity — 0.10.4). Both are proven defects: do not argue the severity label, fix
 the defect. A LOW the reviewer proved is still a defect the build does not survive. Where a finding
 names an `ac`, "fixed" means that AC now holds as WORDED, not that the gap was narrowed.
+ADOPT THE REVIEWER'S TEST (0.10.4). A finding's test_ref may cite a demonstration test the reviewer left
+in <ticket_folder>/review/tests/. Move that test into the repo's real test tree and commit it — do not
+rewrite it from scratch, and do not leave it outside the suite. It already fails for the right reason,
+so it is your RED: adopt it red, fix the code, watch it go green. A proof that stays outside the suite
+leaves the branch, and the next agent cannot re-run it (KTP-1003 left its only proof at a .evidence path).
 BLOCKING FINDINGS: ${JSON.stringify(criticals)}`,
       { schema: IMPLEMENT_SCHEMA, label: `fix-round-${fixRounds}`, phase: 'Fix', isolation: 'worktree' })
     if (!fix) return { ...agentSkipped('Fix'), branch: impl.branch }

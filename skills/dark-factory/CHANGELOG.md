@@ -30,7 +30,27 @@ defect the fix loop should have made in-run.
 - **`ac` is now attribution, not a gate.** It no longer decides whether a finding blocks; it still names
   which AC is unmet in the halt message and tells the fix round that "fixed" means the AC holds as
   worded. `describeBlocking()` reads it defensively and stays legible when it is absent or malformed.
-- **Regression cover:** `tests/review-gate.test.mjs` 68 → 83 assertions. Four pre-existing assertions
+- **A doc-shaped AC is exempt from RED, never from PROOF.** KTP-1003's AC-L2 delivered a contract page
+  asserting every census response carries `Cache-Control`, under a `[VERIFIED against ...@bb1b3a6]`
+  stamp. It took a blanket `not_applicable()` RED exemption, nothing ever executed the claim, and the
+  claim was false on the `GRAIN_UNAVAILABLE` branch. New third exemption form `doc_claims(<why>)` plus a
+  `doc_claims: [{claim, verified_by}]` array: list each claim the document makes and name the check
+  actually RUN against it. `tddViolations()` rejects an empty list or a missing `verified_by`. A stamp is
+  a claim about execution, so it must carry the execution. Cost is provably low — the reviewer wrote
+  exactly this check by hand, which is how the defect was found at all.
+- **Routing is by what the AC DELIVERS, not by the exemption word.** Caught by replaying KTP-1003
+  against the first cut of the rule above: AC-L2 *as actually filed* still returned zero violations,
+  because `doc_claims` only fired on an AC that self-selected into it — the identical self-selection
+  escape that cost 0.10.1 and 0.10.3. New `deliverable` field on each exempt entry; an exemption whose
+  deliverable is a document (`.md/.markdown/.rst/.adoc/.txt`) and which is NOT `doc_claims(...)` is a
+  violation. QA re-runs the listed checks rather than reading the list, and treats any `[VERIFIED]`-style
+  stamp as requiring the same treatment even when the implementor did not list it.
+- **The reviewer's demonstration test is adopted, not rewritten.** Review's worktree is discarded and it
+  never pushes, so KTP-1003's only proof died at `review/ReviewCacheHeaderTest.java.evidence` — outside
+  the suite and uncompilable where it sat. Contract 5 now writes demonstration tests as ordinary
+  compilable source to `<ticket_folder>/review/tests/`; the fix prompt instructs the fix round to move
+  the file into the real test tree and adopt it as its RED (it already fails for the right reason).
+- **Regression cover:** `tests/tdd-gate.test.mjs` 24 → 44 assertions; `tests/review-gate.test.mjs` 68 → 83. Four pre-existing assertions
   were INVERTED on purpose (`B4`, `A3`, `A5`/`A6`, `P2`) — they encoded the severity and `ac` carve-outs
   this release removes. New `D`-block pins the rule, new `E`-block pins the red flag. Verified against
   the real artifact: replaying KTP-1003's verbatim findings array returns `blocking: 1` (was 0), routing

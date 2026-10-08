@@ -42,6 +42,12 @@ independent check that the RED was real (the implementor's word alone is fabrica
 - **`'exempt'`** — the entry is `exempt` AND the exemption is legitimate: confirm it on the diff. For a
   `not_applicable(...)` claim, verify the AC's diff really has **no extractable pure logic** that could
   have carried a unit RED — if you find an untested pure function, the exemption is bogus → `false`.
+  For a `doc_claims(...)` claim (0.10.4), **re-run the checks, do not read the list**: for each entry in
+  `doc_claims`, run what `verified_by` names and confirm it passes against the claim as the document
+  WORDS it. A claim whose check you cannot run, or which fails, makes the exemption bogus → `false`.
+  Treat a `[VERIFIED]`-style stamp in a delivered document as a claim requiring this treatment even if
+  the implementor did not list it: a stamp asserts that something was executed. KTP-1003 shipped a
+  stamped sentence nobody had ever run, and it was false on one branch of the code it described.
 - **`false`** — the RED commit is not test-only, the test does not fail at that commit, the ledger/artifact
   is missing, or an exemption is bogus.
 

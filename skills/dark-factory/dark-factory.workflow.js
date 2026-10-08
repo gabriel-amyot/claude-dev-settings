@@ -1121,7 +1121,7 @@ the branch. Return execution_verified honestly and pushed=true.
 A finding is listed below for ONE of two reasons: it is CRITICAL, or the reviewer DEMONSTRATED it with a
 failing test (at ANY severity — 0.10.4). Both are proven defects: do not argue the severity label, fix
 the defect. A LOW the reviewer proved is still a defect the build does not survive. Where a finding
-names an `ac`, "fixed" means that AC now holds as WORDED, not that the gap was narrowed.
+names an 'ac', "fixed" means that AC now holds as WORDED, not that the gap was narrowed.
 ADOPT THE REVIEWER'S TEST (0.10.4). A finding's test_ref may cite a demonstration test the reviewer left
 in <ticket_folder>/review/tests/. Move that test into the repo's real test tree and commit it — do not
 rewrite it from scratch, and do not leave it outside the suite. It already fails for the right reason,

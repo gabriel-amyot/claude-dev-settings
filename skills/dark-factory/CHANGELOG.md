@@ -2,6 +2,40 @@
 
 Every SKILL.md / workflow.js / contract change bumps the version and adds an entry.
 
+## 0.10.4 (2026-10-07)
+
+**Driven by run-2026-10-07-KTP-1003** (`HALT_PRESHIP`, task 78 / fitness 80). A good build — 817 tests
+green, PMD clean, genuine RED commits on both testable ACs — lost at the pre-ship gate to a one-line
+defect the fix loop should have made in-run.
+
+- **A DEMONSTRATED finding now blocks at ANY severity, named AC or not.** This escape has now been
+  closed four times, each time through the field one level down: 0.10.0 took the gate off the
+  self-reported `criticals_open` integer; 0.10.1 made demonstrated-HIGH block, and KTP-1275 graded the
+  next one MEDIUM; 0.10.3 made a demonstrated finding naming an `ac` block, and KTP-1003 filed its
+  finding LOW with no `ac`. The reviewer wrote a test proving a `[VERIFIED]`-stamped sentence in the
+  delivered contract page was false, watched it fail, graded it LOW, and `blocking` stayed 0. QA found
+  the identical fact, returned PARTIAL, and the run halted. Two phases disagreed on one test-backed
+  fact. The carve-out for an "ordinary demonstrated edge case" is gone, because it was never coherent:
+  contract 5 defines `demonstrated: true` as "I wrote a test, ran it, and watched it fail", so filtering
+  that by severity filters against evidence the reviewer already produced. **Facts gate, opinions
+  describe.** There is no field left below this one to drop. An undemonstrated hunch still never blocks,
+  at any severity, so recording doubt honestly still costs the reviewer nothing.
+- **`test_ref` survives into telemetry, as a red flag and never as a gate.** Contract 5 has asked for
+  the test citation in its `findings.json` shape since 0.9.3, but `REVIEW_SCHEMA` dropped the field on
+  the way back, so the proof never reached the run record — KTP-1003's demonstrated finding cites no
+  test anywhere in its telemetry. Now schema-carried, and `missingTestRef()` records a review that
+  claims `demonstrated: true` while naming no test. Deliberately **not** a blocking condition: gating on
+  `test_ref` would rebuild the identical hole one field lower (omit the citation, escape the gate),
+  which is precisely how 0.10.3 failed.
+- **`ac` is now attribution, not a gate.** It no longer decides whether a finding blocks; it still names
+  which AC is unmet in the halt message and tells the fix round that "fixed" means the AC holds as
+  worded. `describeBlocking()` reads it defensively and stays legible when it is absent or malformed.
+- **Regression cover:** `tests/review-gate.test.mjs` 68 → 83 assertions. Four pre-existing assertions
+  were INVERTED on purpose (`B4`, `A3`, `A5`/`A6`, `P2`) — they encoded the severity and `ac` carve-outs
+  this release removes. New `D`-block pins the rule, new `E`-block pins the red flag. Verified against
+  the real artifact: replaying KTP-1003's verbatim findings array returns `blocking: 1` (was 0), routing
+  it into the bounded fix loop, while its two undemonstrated hunches still do not block.
+
 ## 0.10.3 (2026-10-06)
 
 **Driven by the first two full GitHub-issue runs (GH-230, GH-231), which Gab ran overnight.** Both drove

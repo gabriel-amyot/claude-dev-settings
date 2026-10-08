@@ -1,6 +1,6 @@
 ---
 name: dark-factory
-version: "0.10.3"
+version: "0.10.4"
 description: "The ticket-to-dev factory for a SINGLE ticket, driven by a Jira ticket OR a wayfinder GitHub issue, orchestrated by the Workflow tool instead of prose. Gates are code (un-skippable), with a human concierge gate at the front. The concierge proposes a tool belt from the crib (java, scripting, frontend, terraform-dac-infra, or python-service); the build + tester sockets are equipped from that belt, so the same line handles multiple work-types without duplication. Review + bounded fix loop + QA. The workflow does code work and pushes the branch (terminal state READY_TO_SHIP); the main loop creates the MR + Jira comment and runs post-merge validate. For multi-ticket / epic DAGs use Sprint Factory (/sprint-factory). Triggers on: '/dark-factory', 'dark factory', 'ticket to dev', 'run this ticket'. Klever."
 user_invocable: true
 nav:
@@ -225,6 +225,14 @@ updates are noise (Gab directive 2026-06-16, `feedback_no_external_status_update
 `READY_TO_SHIP` and a successful `NEEDS_VISUAL_VERIFY` render (screenshots = proof) post as usual.
 
 ## Status
+
+`0.10.4` — **a DEMONSTRATED finding blocks at any severity, named `ac` or not.** KTP-1003 was the fourth
+run lost to this escape, each closure having left one field lower to drop: the reviewer proved a stamped
+contract claim false with a failing test, filed it LOW with no `ac`, and the fix loop never ran — QA then
+halted the run on the identical fact. `demonstrated: true` already means a test was written, run, and
+watched to fail, so a severity filter on top of it filtered against evidence. No field remains below it.
+`test_ref` now survives into telemetry as a recorded evidence gap, deliberately NOT as a gate (gating on
+it would rebuild the same hole one field lower). Guard: 83 cases.
 
 `0.10.3` — **hardened by the first two full GitHub-issue runs.** A demonstrated finding that NAMES an
 `ac` now blocks at any severity (two runs shipped past a proven unmet AC by grading it MEDIUM and LOW).

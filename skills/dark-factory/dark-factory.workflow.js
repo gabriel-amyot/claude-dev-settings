@@ -250,10 +250,15 @@ const REVIEW_SCHEMA = {
         properties: {
           severity: { type: 'string', enum: ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] },
           title: { type: 'string' }, file: { type: 'string' }, demonstrated: { type: 'boolean' },
-          // 0.10.3: name the AC a demonstrated finding falsifies. Set it and the finding BLOCKS at any
-          // severity — "AC-N does not hold" is a fact, not an impact opinion. Two runs shipped past a
-          // proven unmet AC by grading it MEDIUM (KTP-1275) and LOW (GH-231).
+          // Name the AC a demonstrated finding falsifies. As of 0.10.4 this no longer decides whether
+          // the finding blocks (`demonstrated: true` alone does that) — omitting it was the KTP-1003
+          // escape. It is still how the halt message tells a human WHICH AC is not met, so set it.
           ac: { type: 'string' },
+          // 0.10.4: the test that proves the finding — name + command + observed failure. Contract 5
+          // has asked for this in its findings.json shape since 0.9.3, but the schema dropped it on the
+          // way back, so the proof never survived into telemetry. Required in spirit whenever
+          // `demonstrated: true`; enforced as a recorded red flag (missingTestRef), never as a gate.
+          test_ref: { type: 'string' },
         },
       },
     },
@@ -456,20 +461,26 @@ function blockingFindings(review) {
     if (!f) return false
     const sev = String(f.severity || '').toUpperCase()
     if (sev === 'CRITICAL') return true
-    if (f.demonstrated !== true) return false
-    if (sev === 'HIGH') return true
-    // 0.10.3 — a demonstrated finding that NAMES AN AC blocks at any severity.
+    // 0.10.4 — a DEMONSTRATED finding blocks at ANY severity, named AC or not.
     //
-    // 0.10.1 closed the demonstrated-HIGH escape. Two runs then slipped through the next hole down:
-    // KTP-1275 (2026-10-02) held "a demonstrated logic gap the fix loop never picked up because it is
-    // graded MEDIUM", and GH-231 (2026-10-06) shipped AC-5 "reported proven while being, at the cap,
-    // not what the AC says — the mismatch was found by review, graded LOW."
+    // This escape has now been closed four times, each time one field lower:
+    //   0.10.0  gate read the self-reported `criticals_open` -> derive from the findings array
+    //   0.10.1  demonstrated + HIGH blocks                   -> reviewer grades it MEDIUM (KTP-1275)
+    //   0.10.3  demonstrated + a named `ac` blocks           -> reviewer omits `ac`     (KTP-1003)
+    //   0.10.4  demonstrated blocks. There is no lower field left to drop.
     //
-    // Severity is the reviewer's opinion about how much the defect matters. "AC-N does not hold" is a
-    // fact about the deliverable. A run exists to satisfy its ACs, so a proven unmet AC is never a
-    // judgement call about impact — and the reviewer naming the AC is what distinguishes it from an
-    // ordinary demonstrated edge case, which still does not block.
-    return typeof f.ac === 'string' && f.ac.trim() !== ''
+    // KTP-1003 (2026-10-07): the reviewer held a FAILING TEST proving a `[VERIFIED]`-stamped sentence
+    // in the delivered contract page was false, filed it `LOW` with no `ac`, and blocking stayed 0. QA
+    // then found the identical fact, returned PARTIAL, and the run halted at pre-ship on a one-line fix
+    // the bounded fix loop would have made in-run.
+    //
+    // The carve-out for an "ordinary demonstrated edge case" is gone because it was never coherent:
+    // contract 5 defines `demonstrated: true` as "I wrote a test, ran it, and watched it fail". A
+    // severity filter on top of that is a filter against evidence the reviewer already produced.
+    // Severity is an opinion about impact; a red test is a fact about the code. Facts gate, opinions
+    // describe. An honest hunch stays `demonstrated: false` and still never blocks, so this costs the
+    // reviewer nothing for recording doubt.
+    return f.demonstrated === true
   })
 }
 
@@ -478,15 +489,35 @@ function blockingFindings(review) {
 function describeBlocking(blocking) {
   const crit = blocking.filter((f) => String(f.severity).toUpperCase() === 'CRITICAL')
   const demoHigh = blocking.filter((f) => String(f.severity).toUpperCase() === 'HIGH' && f.demonstrated === true && !crit.includes(f))
-  const acGap = blocking.filter((f) => !crit.includes(f) && !demoHigh.includes(f))
+  const rest = blocking.filter((f) => !crit.includes(f) && !demoHigh.includes(f))
   const parts = []
   if (crit.length) parts.push(`${crit.length} open CRITICAL finding(s)`)
   if (demoHigh.length) parts.push(`${demoHigh.length} DEMONSTRATED HIGH finding(s) (proven defect, severity label notwithstanding)`)
-  if (acGap.length) {
-    const acs = acGap.map((f) => f.ac).filter(Boolean).join(', ')
-    parts.push(`${acGap.length} DEMONSTRATED finding(s) proving an AC is not met (${acs}) — a proven unmet AC blocks at any severity`)
+  if (rest.length) {
+    // `ac` no longer gates (0.10.4) but it is still the most useful thing to say about a blocker, so
+    // name it when the reviewer supplied one. Guard the type: a non-string ac must not reach the text.
+    const acs = rest.map((f) => f.ac).filter((a) => typeof a === 'string' && a.trim() !== '').join(', ')
+    parts.push(acs
+      ? `${rest.length} DEMONSTRATED finding(s) proving an AC is not met (${acs}) — a proven defect blocks at any severity`
+      : `${rest.length} DEMONSTRATED finding(s) (proven with a failing test) — a proven defect blocks at any severity`)
   }
   return parts.join(' + ')
+}
+
+// 0.10.4 — a finding claiming `demonstrated: true` while citing no `test_ref`.
+//
+// Deliberately a RED FLAG and NOT a gating condition. Gating on `test_ref` would rebuild the hole one
+// field lower: omit the citation, escape the gate — which is precisely how 0.10.3's `ac` requirement
+// failed on KTP-1003. The defect blocks on `demonstrated` alone; this records a reviewer who claimed a
+// failing test and then did not name it, so Retro can see the drift instead of the gate rewarding it.
+function missingTestRef(review) {
+  if (!review || !Array.isArray(review.findings)) return null
+  const bad = review.findings.filter((f) => {
+    if (!f || f.demonstrated !== true) return false
+    return typeof f.test_ref !== 'string' || f.test_ref.trim() === ''
+  })
+  if (!bad.length) return null
+  return `${bad.length} finding(s) claim demonstrated:true but cite no test_ref — a demonstrated finding means a test was written, run, and watched to fail; name it`
 }
 
 // The self-reported count disagreeing with the findings array is itself worth surfacing: it means a
@@ -895,13 +926,16 @@ record is unverifiable).`
   {
     const mm = reviewCountMismatch(review)
     if (mm) log(`Review self-count mismatch — ${mm}. Trusting the findings array.`)
+    // 0.10.4: recorded, not gated. See missingTestRef for why citing a test is not a blocking condition.
+    const noTest = missingTestRef(review)
+    if (noTest) log(`Review evidence gap — ${noTest}.`)
   }
 
   // Bounded fix loop (0.6.0): on a blocking finding, bounce back to a targeted fix + re-review instead
   // of halting on the first pass. Harvested from v1's Quinn-attacks/Amelia-fixes loop and sprint-crawl's
   // review->implement revert. Bounded so a persistent defect still HALTs rather than looping forever.
-  // 0.10.0: keys on blockingFindings() (CRITICAL, or a DEMONSTRATED HIGH) instead of the self-reported
-  // criticals_open integer — see the comment on blockingFindings for the nine retros that asked for this.
+  // 0.10.0: keys on blockingFindings() instead of the self-reported criticals_open integer. 0.10.4: that
+  // set is now CRITICAL, or anything DEMONSTRATED — see blockingFindings for the four escapes behind it.
   const MAX_FIX_ROUNDS = 2
   let fixRounds = 0
   while (blockingFindings(review).length > 0 && fixRounds < MAX_FIX_ROUNDS) {
@@ -914,10 +948,10 @@ below — do NOT add scope, refactor unrelated code, or touch ACs that already p
 your own worktree: 'git fetch origin ${impl.branch}' then 'git checkout ${impl.branch}'. For each finding:
 write/keep a test that demonstrates the bug, fix the code minimally, re-run the affected tests, then PUSH
 the branch. Return execution_verified honestly and pushed=true.
-A finding is listed below for ONE of three reasons: it is CRITICAL; it is a HIGH the reviewer
-DEMONSTRATED with a failing test; or it is a DEMONSTRATED finding naming an AC it proves is not met
-(any severity). All three are proven defects — do not argue the severity label, fix the defect. For an
-AC-naming finding, "fixed" means that AC now holds as WORDED, not that the gap was narrowed.
+A finding is listed below for ONE of two reasons: it is CRITICAL, or the reviewer DEMONSTRATED it with a
+failing test (at ANY severity — 0.10.4). Both are proven defects: do not argue the severity label, fix
+the defect. A LOW the reviewer proved is still a defect the build does not survive. Where a finding
+names an `ac`, "fixed" means that AC now holds as WORDED, not that the gap was narrowed.
 BLOCKING FINDINGS: ${JSON.stringify(criticals)}`,
       { schema: IMPLEMENT_SCHEMA, label: `fix-round-${fixRounds}`, phase: 'Fix', isolation: 'worktree' })
     if (!fix) return { ...agentSkipped('Fix'), branch: impl.branch }

@@ -65,9 +65,10 @@ audit can be reconstructed without re-deriving from a raw diff. Shape:
 - `findings_artifact`: the ABSOLUTE path of the `review/findings.json` you wrote above. This field is
   **schema-required** (0.9.3): a return without it is rejected. Write the file first, then return its
   path — never return a path you did not write. (QA spot-checks the file exists on disk.)
-- `findings`: array of `{ severity, title, file, demonstrated }`. Set **`demonstrated: true` if and
-  only if** you wrote a test, ran it, and it FAILED (proving the bug). Set `demonstrated: false` for
-  hunches you could not demonstrate.
+- `findings`: array of `{ severity, title, file, demonstrated, ac, test_ref }`. Set **`demonstrated:
+  true` if and only if** you wrote a test, ran it, and it FAILED (proving the bug). Set `demonstrated:
+  false` for hunches you could not demonstrate. When `demonstrated: true`, also set `test_ref` (the test
+  + command + observed failure) and `ac` if the finding proves a named AC does not hold.
 - `summary`: 1-3 sentences.
 
 ## What actually blocks (0.10.0 — read this before you pick a severity)
@@ -77,30 +78,46 @@ The orchestrator does **not** read `criticals_open` to decide. It derives the bl
 
 > **blocking =**
 > - **`severity: CRITICAL`**, OR
-> - **`severity: HIGH` with `demonstrated: true`**, OR
-> - **`demonstrated: true` with an `ac` naming the AC it proves is not met — at ANY severity.**
+> - **`demonstrated: true` — at ANY severity.**
 
-A HIGH you proved with a failing test blocks exactly like a CRITICAL. **Evidence outranks the label.**
-Nine retros between 2026-06-22 and 2026-10-02 reported the old behaviour: a reviewer filed a real,
-test-proven defect as a demonstrated HIGH, `criticals_open` stayed 0, the fix loop never ran, and the
-bug shipped. You cannot route a proven defect past the gate by choosing a gentler word for it.
+**Evidence outranks the label.** A defect you proved with a failing test blocks exactly like a
+CRITICAL, whether you graded it HIGH, MEDIUM, or LOW. There is no severity you can choose that routes a
+proven defect past the gate.
 
-**Set `ac` whenever you prove an AC does not hold.** This is the field that matters most, and it is the
-one two runs were lost for want of. KTP-1275 graded a proven logic gap MEDIUM; GH-231 graded AC-5
-"reported proven while being, at the cap, not what the AC says" as LOW. Both shipped past the gate.
-Severity is your opinion about how much a defect matters. **"AC-5 does not hold as worded" is a fact
-about the deliverable**, and the run exists to satisfy its ACs — so it blocks regardless of how small
-the gap looks. Naming the AC is what separates this from an ordinary demonstrated edge case, which
-still does not block.
+This rule got simpler because the old, more forgiving versions failed four times, each time through the
+field one level down:
 
-A near-miss counts. If the AC says "all ZIPs" and the code caps at 500, the AC does not hold: set
-`ac: "AC-5"`, `demonstrated: true`, and whatever severity you honestly think. Do not round it up to
-"substantially met".
+| Version | Rule | How the next run escaped it |
+|---|---|---|
+| 0.10.0 | gate read `criticals_open` | the integer disagreed with the findings array |
+| 0.10.1 | `demonstrated` + HIGH blocks | graded MEDIUM (KTP-1275) |
+| 0.10.3 | `demonstrated` + a named `ac` blocks | graded LOW, `ac` left unset (KTP-1003) |
+| 0.10.4 | `demonstrated` blocks | *no field left to drop* |
+
+KTP-1003 is worth knowing in detail, because it is the run that cost the carve-out its benefit of the
+doubt. The reviewer wrote a test proving a `[VERIFIED]`-stamped sentence in the delivered contract page
+was false, watched it fail, filed it `LOW` with no `ac`, and the fix loop never ran. QA found the
+identical fact, returned PARTIAL, and the run halted at pre-ship — on a one-line fix.
+
+So there is no longer an "ordinary demonstrated edge case" that does not block. That category was never
+coherent: `demonstrated: true` means *you wrote a test, ran it, and watched it fail*. Filtering that by
+severity filters against evidence you already produced.
+
+**Still set `ac` whenever you prove an AC does not hold.** It no longer decides whether the finding
+blocks, but it is how the halt message tells a human WHICH AC is unmet, and it tells the fix round that
+"fixed" means the AC holds as WORDED rather than narrowed. A near-miss counts: if the AC says "all ZIPs"
+and the code caps at 500, set `ac: "AC-5"`. Do not round it up to "substantially met".
+
+**Cite your proof in `test_ref`.** Whenever you set `demonstrated: true`, name the test, the command,
+and the failure you observed. This is not a gating condition — omitting it will not keep your finding
+out of the fix loop, and that is deliberate, because a gate keyed on a field you can omit is the exact
+hole KTP-1003 fell through. A demonstrated finding with no `test_ref` is recorded as an evidence gap
+against the review.
 
 Two further consequences for how you work:
 
-- **Do not agonise over CRITICAL vs HIGH on something you demonstrated.** Both block. Spend the effort
-  on the test that proves it instead.
+- **Do not agonise over severity on something you demonstrated.** Every severity blocks once
+  `demonstrated: true`. Spend the effort on the test that proves it instead.
 - **`demonstrated: true` is a factual claim, not emphasis.** Set it if and only if you wrote a test,
   ran it, and watched it fail. An undemonstrated hunch is `demonstrated: false` at any severity, and it
   does not block — so you are free to record it honestly rather than suppress it.

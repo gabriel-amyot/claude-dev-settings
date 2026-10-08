@@ -21,13 +21,14 @@ function extractConst(name) {
   return m[0]
 }
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
-const { blockingFindings, reviewCountMismatch, preShipBlockers, handoffUncertainty, describeBlocking, remoteOutageRisk, looksLikeRemoteOutage, visualReadiness } = await new AsyncFunction(
+const { blockingFindings, reviewCountMismatch, missingTestRef, preShipBlockers, handoffUncertainty, describeBlocking, remoteOutageRisk, looksLikeRemoteOutage, visualReadiness } = await new AsyncFunction(
   extractConst('LOW_CONFIDENCE') + '\n' + extractConst('OUTAGE_UTC_START') + '\n' +
   extractConst('OUTAGE_UTC_END') + '\n' + extractConst('REMOTE_OUTAGE_RX') + '\n' +
   extract('handoffUncertainty') + '\n' + extract('describeBlocking') + '\n' +
   extract('visualReadiness') + '\n' + extract('remoteOutageRisk') + '\n' + extract('looksLikeRemoteOutage') + '\n' + extract('blockingFindings') + '\n' + extract('reviewCountMismatch') + '\n' +
+  extract('missingTestRef') + '\n' +
   extract('executionOk') + '\n' + extract('preShipBlockers') +
-  '\nreturn { blockingFindings, reviewCountMismatch, preShipBlockers, handoffUncertainty, describeBlocking, remoteOutageRisk, looksLikeRemoteOutage, visualReadiness };'
+  '\nreturn { blockingFindings, reviewCountMismatch, missingTestRef, preShipBlockers, handoffUncertainty, describeBlocking, remoteOutageRisk, looksLikeRemoteOutage, visualReadiness };'
 )()
 
 let pass = 0, fail = 0
@@ -43,10 +44,12 @@ ok('B2 undemonstrated HIGH does NOT block',
 ok('B3 CRITICAL blocks whether demonstrated or not',
   blockingFindings(rev([F('CRITICAL', false)], 0)).length === 1 &&
   blockingFindings(rev([F('CRITICAL', true)], 1)).length === 1)
-ok('B4 MEDIUM/LOW never block even when demonstrated',
-  blockingFindings(rev([F('MEDIUM', true), F('LOW', true)], 0)).length === 0)
+// B4 INVERTED at 0.10.4 (was: 'MEDIUM/LOW never block even when demonstrated'). KTP-1003 halted at
+// pre-ship on a demonstrated LOW. See the D-block below for why the severity carve-out is gone.
+ok('B4 demonstrated MEDIUM/LOW now block (0.10.4)',
+  blockingFindings(rev([F('MEDIUM', true), F('LOW', true)], 0)).length === 2)
 ok('B5 mixed set returns only the blocking ones',
-  blockingFindings(rev([F('CRITICAL', false), F('HIGH', true), F('HIGH', false), F('LOW', true)], 1)).length === 2)
+  blockingFindings(rev([F('CRITICAL', false), F('HIGH', true), F('HIGH', false), F('LOW', true)], 1)).length === 3)
 
 // --- the array is the truth, not the integer ---
 ok('B6 criticals_open:0 with a CRITICAL in findings still blocks',
@@ -77,8 +80,9 @@ const goodImpl = { execution_verified: 'true', pushed: true }
 ok('P1 demonstrated HIGH blocks pre-ship',
   preShipBlockers(goodImpl, rev([F('HIGH', true)], 0), 'ALL_PASS', 'all_pass')
     .some((b) => b.includes('DEMONSTRATED HIGH')))
+// P2 at 0.10.4: a demonstrated LOW is no longer "clean" (see D9). An UNdemonstrated LOW still ships.
 ok('P2 clean review ships',
-  preShipBlockers(goodImpl, rev([F('LOW', true)], 0), 'ALL_PASS', 'all_pass').length === 0)
+  preShipBlockers(goodImpl, rev([F('LOW', false)], 0), 'ALL_PASS', 'all_pass').length === 0)
 ok('P3 CRITICAL wording preserved',
   preShipBlockers(goodImpl, rev([F('CRITICAL', true)], 1), 'ALL_PASS', 'all_pass')
     .some((b) => b.includes('CRITICAL')))
@@ -129,15 +133,19 @@ ok('A1 demonstrated MEDIUM naming an AC blocks (KTP-1275)',
   blockingFindings(rev([FA('MEDIUM', true, 'AC-1b')], 0)).length === 1)
 ok('A2 demonstrated LOW naming an AC blocks (GH-231)',
   blockingFindings(rev([FA('LOW', true, 'AC-5')], 0)).length === 1)
-ok('A3 demonstrated MEDIUM with NO ac does not block (ordinary edge case)',
-  blockingFindings(rev([FA('MEDIUM', true, undefined)], 0)).length === 0)
+// A3 INVERTED at 0.10.4. This case IS KTP-1003: demonstrated, no ac named, so it did not block.
+ok('A3 demonstrated MEDIUM with NO ac now blocks (0.10.4, KTP-1003)',
+  blockingFindings(rev([FA('MEDIUM', true, undefined)], 0)).length === 1)
 ok('A4 UNdemonstrated finding naming an AC does not block (hunch)',
   blockingFindings(rev([FA('MEDIUM', false, 'AC-2')], 0)).length === 0)
-ok('A5 empty/whitespace ac string does not count as naming an AC',
-  blockingFindings(rev([FA('LOW', true, '')], 0)).length === 0 &&
-  blockingFindings(rev([FA('LOW', true, '   ')], 0)).length === 0)
-ok('A6 non-string ac does not count',
-  blockingFindings(rev([FA('LOW', true, 7)], 0)).length === 0)
+// A5/A6 at 0.10.4: `ac` no longer GATES (demonstrated alone does), so a malformed ac cannot suppress a
+// proven defect. It is still parsed for ATTRIBUTION — a bad value must not crash describeBlocking.
+ok('A5 empty/whitespace ac does not suppress a demonstrated finding',
+  blockingFindings(rev([FA('LOW', true, '')], 0)).length === 1 &&
+  blockingFindings(rev([FA('LOW', true, '   ')], 0)).length === 1)
+ok('A6 non-string ac does not suppress, and attribution does not throw',
+  blockingFindings(rev([FA('LOW', true, 7)], 0)).length === 1 &&
+  typeof describeBlocking(blockingFindings(rev([FA('LOW', true, 7)], 0))) === 'string')
 ok('A7 preShip names the AC in the blocker text',
   preShipBlockers(goodImpl, rev([FA('LOW', true, 'AC-5')], 0), 'ALL_PASS', 'all_pass')
     .some((b) => b.includes('AC-5') && b.includes('any severity')))
@@ -146,6 +154,61 @@ ok('A8 describeBlocking attributes all three rules separately',
     const d = describeBlocking(blockingFindings(rev([F('CRITICAL', false), F('HIGH', true), FA('LOW', true, 'AC-9')], 1)))
     return d.includes('CRITICAL') && d.includes('DEMONSTRATED HIGH') && d.includes('AC-9')
   })())
+
+// --- 0.10.4: a DEMONSTRATED finding blocks at ANY severity, named AC or not ---
+// KTP-1003 (2026-10-07) is the fourth run lost to the same escape, each time one field lower:
+//   0.10.0  criticals_open integer      -> derive from the findings array
+//   0.10.1  demonstrated + HIGH blocks  -> reviewer grades it MEDIUM
+//   0.10.3  demonstrated + named ac     -> reviewer omits `ac`
+//   0.10.4  demonstrated blocks, full stop. There is no lower field to drop.
+// The reviewer held a FAILING TEST proving a stamped contract claim false, filed it LOW with no `ac`,
+// so blocking stayed 0. QA found the identical fact, returned PARTIAL, and the run halted at pre-ship.
+// Per contract 5, `demonstrated: true` already means "I wrote a test, ran it, and watched it fail" —
+// so a carve-out by severity was always a carve-out against evidence.
+const FT = (severity, demonstrated, test_ref, ac) => ({ severity, demonstrated, test_ref, ac, title: 't' })
+ok('D1 demonstrated LOW with no ac blocks (KTP-1003, the run this rule is named for)',
+  blockingFindings(rev([FT('LOW', true, 'ReviewCacheHeaderTest#grainUnavailableHasNoCacheControl')], 0)).length === 1)
+ok('D2 demonstrated MEDIUM with no ac blocks',
+  blockingFindings(rev([FT('MEDIUM', true, 'SomeTest#x')], 0)).length === 1)
+ok('D3 an UNdemonstrated hunch still never blocks, at any severity',
+  blockingFindings(rev([FT('LOW', false, undefined), FT('MEDIUM', false, undefined), FT('HIGH', false, undefined)], 0)).length === 0)
+ok('D4 demonstrated must still be exactly true, not truthy',
+  blockingFindings(rev([FT('LOW', 'yes', 'T#x')], 0)).length === 0)
+ok('D5 a demonstrated finding blocks whether or not it cites a test_ref',
+  blockingFindings(rev([FT('LOW', true, undefined)], 0)).length === 1)
+ok('D6 describeBlocking attributes the demonstrated rule and names the AC when present',
+  (() => {
+    const d = describeBlocking(blockingFindings(rev([FT('LOW', true, 'T#x', 'AC-L2')], 0)))
+    return d.includes('DEMONSTRATED') && d.includes('AC-L2')
+  })())
+ok('D7 describeBlocking is readable when no AC is named',
+  (() => {
+    const d = describeBlocking(blockingFindings(rev([FT('LOW', true, 'T#x')], 0)))
+    return d.includes('DEMONSTRATED') && !d.includes('undefined')
+  })())
+ok('D8 preShip surfaces a demonstrated LOW as a blocker',
+  preShipBlockers(goodImpl, rev([FT('LOW', true, 'T#x')], 0), 'ALL_PASS', 'all_pass')
+    .some((b) => b.includes('DEMONSTRATED')))
+// P2 inverted: 'clean review ships' used to pass a demonstrated LOW through. It no longer does.
+ok('D9 a review whose only finding is a demonstrated LOW no longer ships',
+  preShipBlockers(goodImpl, rev([F('LOW', true)], 0), 'ALL_PASS', 'all_pass').length === 1)
+
+// --- 0.10.4: demonstrated without a cited test is a RED FLAG, never an escape ---
+// Deliberately NOT a gating condition. Gating on test_ref would rebuild the hole one field lower:
+// omit test_ref, escape the gate. The defect blocks on `demonstrated`; the missing citation is recorded
+// so Retro sees a reviewer who claimed a failing test and did not name it.
+ok('E1 demonstrated with no test_ref is reported',
+  typeof missingTestRef(rev([F('HIGH', true)], 0)) === 'string')
+ok('E2 demonstrated WITH a test_ref is clean',
+  missingTestRef(rev([FT('HIGH', true, 'T#x')], 0)) === null)
+ok('E3 an undemonstrated finding is not expected to cite a test',
+  missingTestRef(rev([F('LOW', false)], 0)) === null)
+ok('E4 blank/whitespace test_ref counts as missing',
+  typeof missingTestRef(rev([FT('HIGH', true, '   ')], 0)) === 'string')
+ok('E5 the report names how many findings are affected',
+  missingTestRef(rev([F('HIGH', true), F('LOW', true), FT('MEDIUM', true, 'T#x')], 0)).includes('2'))
+ok('E6 malformed review is safe',
+  missingTestRef(null) === null && missingTestRef({ criticals_open: 1 }) === null)
 
 // --- 0.10.3: known nightly remote-outage window ---
 ok('O1 inside the window is flagged', remoteOutageRisk('2026-10-06T04:30:00Z').inWindow === true)

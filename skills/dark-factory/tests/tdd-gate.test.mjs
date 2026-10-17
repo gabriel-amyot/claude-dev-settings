@@ -14,16 +14,32 @@ function extract(name) {
 }
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
 const mod = new AsyncFunction(
-  extract('tddViolations') + '\n' + extract('tddVerifiedCap') +
+  extract('tddViolations') + '\n' + extract('tddVerifiedCap') + '\n' + extract('applyAcceptedBaseline') +
   '\nconst log = () => {};' +
-  '\nreturn { tddViolations, tddVerifiedCap };'
+  '\nreturn { tddViolations, tddVerifiedCap, applyAcceptedBaseline };'
 )
-const { tddViolations, tddVerifiedCap } = await mod()
+const { tddViolations, tddVerifiedCap, applyAcceptedBaseline } = await mod()
 
 let pass = 0, fail = 0
 const ok = (name, cond) => { if (cond) { pass++ } else { fail++; console.error('FAIL: ' + name) } }
 const has = (arr, sub) => arr.some((v) => v.includes(sub))
 const validAc = (ac) => ({ ac, kind: 'new', red: { failed: true, right_reason: true, artifact: '/t/' + ac + '.md' }, green: { passed: true } })
+
+// --- applyAcceptedBaseline (0.10.5: caller-accepted baseline guard, GH-342 AC-8) ---
+{
+  const base = { ac: 'AC-8', kind: 'baseline_plus_new', red: { failed: false, right_reason: false, artifact: '/t/AC-8.md' }, green: { passed: true } }
+  const gate = (acTdd) => tddViolations({ ac_progress: { 'AC-8': 'done' }, ac_tdd: acTdd }, true)
+  ok('B1 baseline with no acceptance -> still a RED violation', has(gate(applyAcceptedBaseline([base], null)), 'no valid RED'))
+  ok('B2 baseline accepted with evidence -> no violation', gate(applyAcceptedBaseline([base], { 'AC-8': 'reports/review/codex-ac8-verdict.md' })).length === 0)
+  ok('B3 acceptance on a kind=new AC -> ignored, still violates',
+    has(gate(applyAcceptedBaseline([{ ...base, kind: 'new' }], { 'AC-8': 'x' })), 'no valid RED'))
+  ok('B4 accepted baseline with GREEN not passed -> still violates',
+    gate(applyAcceptedBaseline([{ ...base, green: { passed: false } }], { 'AC-8': 'x' })).length > 0)
+  ok('B5 blank evidence string -> ignored', has(gate(applyAcceptedBaseline([base], { 'AC-8': '  ' })), 'no valid RED'))
+  ok('B6 acceptance for another AC -> ignored', has(gate(applyAcceptedBaseline([base], { 'AC-9': 'x' })), 'no valid RED'))
+  ok('B7 accepted exempt names the evidence', /review: reports\/review\/codex-ac8-verdict\.md\)$/.test(applyAcceptedBaseline([base], { 'AC-8': 'reports/review/codex-ac8-verdict.md' })[0].exempt))
+  ok('B8 an existing exempt is never overwritten', applyAcceptedBaseline([{ ...base, exempt: 'infra_blocked(y)' }], { 'AC-8': 'x' })[0].exempt === 'infra_blocked(y)')
+}
 
 // --- tddViolations (layer 1: structural RED proof) ---
 ok('T1 valid AC -> no violations',

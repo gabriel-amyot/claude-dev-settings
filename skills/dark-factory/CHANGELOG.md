@@ -2,6 +2,19 @@
 
 Every SKILL.md / workflow.js / contract change bumps the version and adds an entry.
 
+## 0.10.5 (2026-10-17)
+
+**Driven by run-2026-10-16-GH-342** (`HALT_TDD_GATE` on AC-8). AC-8 guarded a rule that held before the
+branch, so no failing-first test could exist. The implementor ledgered it honestly as
+`baseline_plus_new` with a killed mutant, and the gate halted with the code pushed and no review or QA.
+
+- **A caller can accept a baseline guard AC.** New `args.accepted_baseline = { "<AC>": "<review evidence>" }`.
+  `applyAcceptedBaseline()` turns a named `baseline_plus_new` entry with a confirmed GREEN into a
+  `not_applicable(baseline guard accepted by review: <evidence>)` exemption before the TDD gate. The
+  implement agent cannot set it, so the self-selection escape closed in 0.10.1-0.10.4 stays closed.
+  Any other kind, a missing GREEN, a blank evidence string or an existing exempt is left untouched.
+- Guard: 8 new cases in `tests/tdd-gate.test.mjs` (B1-B8). All gate suites pass (201 cases).
+
 ## 0.10.4 (2026-10-07)
 
 **Driven by run-2026-10-07-KTP-1003** (`HALT_PRESHIP`, task 78 / fitness 80). A good build — 817 tests

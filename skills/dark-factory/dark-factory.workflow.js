@@ -103,6 +103,8 @@ const decisionFileArg = (args && args.decision_file) || null
 // Current time, ISO-8601 UTC, supplied by the CALLER (the spine cannot read a clock — Date.now()
 // throws inside a Workflow script). Used only to warn about the known nightly remote outage.
 const nowIso = (args && args.now) || null
+// 0.10.5 — { "<AC>": "<review evidence path>" }; see applyAcceptedBaseline().
+const acceptedBaseline = (args && args.accepted_baseline && typeof args.accepted_baseline === 'object') ? args.accepted_baseline : null
 
 // ---- Schemas (handoffs are validated objects, not parsed text) ----
 
@@ -724,6 +726,25 @@ function isShapeOnlyTdd(violations) {
   return violations.length > 0 && violations.every((v) => / marked done but has no ac_tdd ledger entry$/.test(String(v)))
 }
 
+// 0.10.5 — a baseline guard AC can be accepted, but only by a caller who names it.
+//
+// GH-342 AC-8 ("an old Request with a blank Decision still reads as waiting") held before the branch, so
+// no failing-first test could exist. The implementor ledgered it honestly as baseline_plus_new with a
+// killed mutant, and the gate halted with the code pushed and no review or QA. A self-chosen exemption
+// would reopen the self-selection escape 0.10.1-0.10.4 closed, so this acceptance never comes from the
+// implement agent: the caller passes args.accepted_baseline = { "<AC>": "<review evidence path>" } after
+// a reviewer judged the guard. It applies only to kind baseline_plus_new with a confirmed GREEN; any other
+// entry is returned untouched and still gated.
+function applyAcceptedBaseline(acTdd, accepted) {
+  const acc = (accepted && typeof accepted === 'object') ? accepted : {}
+  return (acTdd || []).map((e) => {
+    const evidence = acc[e && e.ac]
+    if (!e || e.exempt || e.kind !== 'baseline_plus_new' || typeof evidence !== 'string' || evidence.trim() === '') return e
+    if (!e.green || e.green.passed !== true) return e
+    return { ...e, exempt: `not_applicable(baseline guard accepted by review: ${evidence.trim()})` }
+  })
+}
+
 // LAYER 2 cap: a PASS AC whose RED was not independently re-verified by QA on the branch is not trustworthy
 // (the implement agent's ac_tdd alone could be fabricated). Cap such a run to PARTIAL. 'exempt' passes.
 function tddVerifiedCap(qa, overall) {
@@ -1032,6 +1053,10 @@ as diff_artifact and set pushed=true. ${decisionsNote}${handoffUncertainty(grill
     { schema: IMPLEMENT_SCHEMA, label: 'implement', phase: 'Implement', isolation: 'worktree' })
   if (!impl) return agentSkipped('Implement')
   rec('implement', impl)
+  if (acceptedBaseline) {
+    impl.ac_tdd = applyAcceptedBaseline(impl.ac_tdd, acceptedBaseline)
+    log(`TDD gate: caller-accepted baseline ACs ${JSON.stringify(acceptedBaseline)}`)
+  }
   if (impl.status === 'stuck') return { status: 'HALT_IMPLEMENT_STUCK', ticket, branch: impl.branch, impl }
   // Park BEFORE Review when the push died on the remote (0.10.3). Review and QA each fetch the pushed
   // branch, so an unpushed branch makes every downstream phase meaningless — GH-230/231 burned the rest

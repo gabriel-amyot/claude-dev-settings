@@ -7,6 +7,27 @@ Why it matters: every run trailer records the `spec_version` it ran under. If th
 changes without a bump, runs are attributed to a spec that no longer exists and the
 evidence for the next improvement is quietly wrong.
 
+## 0.4.0 (2026-10-17)
+
+**Interim reflection, run on RECURRING friction across maps #1, #22 and #38** (24 friction notes,
+spec 0.3.0). Two clusters had three hits each and no rule in the spec.
+
+- **Ticket shape is checked at creation.** The `wayfinder:<type>` label is mandatory, with a one-line
+  check after `gh issue create`. #35 and #127 were created without it, and the tools refused them. The
+  parent is always the map. A ticket split into parts gets sibling children of the map, linked by
+  `Split from #<n>`. #342 and #343 hung off the task #341, so neither the frontier query nor `report`
+  could find a map.
+- **A ticket is checked before it is claimed.** Work-mode step 3 now confirms the entry condition and
+  looks for work already done by another vehicle. #35 was dispatched with its condition unmet. #28 and
+  #29 were done a week before a session was sent to do them.
+
+**Considered and not changed.** A home for a parked human question (#137): the spec already closes a
+ticket into Horizon with `--outcome horizon`, and a question that blocks the current destination is
+not Horizon work, so a new rule would mislead. Held for Gabriel's decision. Multi-map selection and a
+frontier overview in work mode (map-1 #2, map-38 #44): dropped. Gabriel reads work mode outside one map
+as a misuse of wayfinder's intent, not as a gap in it. Codex timeouts and the disabled model invocation
+are tooling problems outside this spec and go to `/gab-operationalize`.
+
 ## 0.3.0 (2026-09-12)
 
 **A finding from outside the route had no typed way onto the map.** The loop was outbound: a route

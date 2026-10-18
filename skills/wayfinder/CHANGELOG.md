@@ -21,9 +21,11 @@ spec 0.3.0). Two clusters had three hits each and no rule in the spec.
   looks for work already done by another vehicle. #35 was dispatched with its condition unmet. #28 and
   #29 were done a week before a session was sent to do them.
 
-**Considered and not changed.** A home for a parked human question (#137): the spec already closes a
-ticket into Horizon with `--outcome horizon`, and a question that blocks the current destination is
-not Horizon work, so a new rule would mislead. Held for Gabriel's decision. Multi-map selection and a
+- **A question waiting on a human stays open when the destination needs it.** It is assigned to that
+  human, not closed into Horizon. The frontier query already skips assigned tickets, so no session
+  proposes it again (#137 kept being re-proposed). Horizon stays for work past the destination.
+
+**Considered and not changed.** Multi-map selection and a
 frontier overview in work mode (map-1 #2, map-38 #44): dropped. Gabriel reads work mode outside one map
 as a misuse of wayfinder's intent, not as a gap in it. Codex timeouts and the disabled model invocation
 are tooling problems outside this spec and go to `/gab-operationalize`.

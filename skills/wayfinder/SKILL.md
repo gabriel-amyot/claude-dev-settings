@@ -145,6 +145,8 @@ Each boundary is one question. Against the fog, ask: *could I write the ticket t
 
 **When the map closes, the Horizon is the seed of the next map.** Do not delete it and do not fold it into Decisions so far, which records only the route actually walked. Carry each line into the next charting session, where it is the loose idea that session grills into a destination. A map that closes with a populated Horizon has produced two things: a cleared route, and the starting material for the map that follows.
 
+**A question waiting on a human is not horizon work when the destination needs its answer.** Do not close it. Assign it to the human who answers it: the frontier query skips assigned tickets, so no session proposes it again, and it stays visibly open on the route (#137 on map #22).
+
 **A live ticket can turn out to be horizon work**, the same way one can turn out to be out of scope. Close it, because a closed ticket is unambiguously off the frontier, and move one line into **Horizon**: the gist, why it waits, and a link to the closed ticket. Record the run with `--outcome horizon`, not `out_of_scope`, so the telemetry keeps the two apart.
 
 ## Out of scope

@@ -9,16 +9,31 @@ from pathlib import Path
 
 CONFIG_FILE = os.path.expanduser("~/.claude-shared-config/skills/gitlab/gitlab_config.json")
 KEYCHAIN_SERVICE = "claude-gitlab"
+DEFAULT_OP_FIELD = "password"
+
+KNOWN_ORGS = {
+    "klever": {
+        "gitlab_url": "https://cicd.prod.datasophia.com",
+        "local_path": os.path.expanduser("~/Developer/grp-beklever-com"),
+        "gitlab_group": "grp-cst/grp-beklever-com",
+    },
+}
+
+
+def empty_config():
+    return {"default_org": None, "organizations": {}}
 
 
 def load_config():
-    """Load configuration from JSON file"""
+    """Load configuration from JSON file, creating an empty one if it is missing"""
     try:
         with open(CONFIG_FILE, "r") as f:
             return json.load(f)
     except FileNotFoundError:
-        print(f"Error: Config file not found at {CONFIG_FILE}")
-        sys.exit(1)
+        config = empty_config()
+        save_config(config)
+        print(f"✓ Created empty config at {CONFIG_FILE}")
+        return config
     except json.JSONDecodeError:
         print(f"Error: Invalid JSON in {CONFIG_FILE}")
         sys.exit(1)
@@ -102,13 +117,47 @@ def list_orgs():
         print(f"  Token: {token_status}\n")
 
 
-def configure_org(org_name):
+def ensure_known_org(config, org_name):
+    """Add a built-in org entry to the config when it is missing"""
+    orgs = config.setdefault("organizations", {})
+    if org_name in orgs or org_name not in KNOWN_ORGS:
+        return config
+    orgs[org_name] = dict(KNOWN_ORGS[org_name])
+    if not config.get("default_org"):
+        config["default_org"] = org_name
+    save_config(config)
+    print(f"✓ Added built-in configuration for '{org_name}'")
+    return config
+
+
+def read_token_from_1password(item, field):
+    """Read a token from 1Password with the op CLI. The value is never printed."""
+    try:
+        result = subprocess.run(
+            ["op", "item", "get", item, "--fields", f"label={field}", "--reveal"],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+    except FileNotFoundError:
+        print("Error: 1Password CLI 'op' not found. Install it with: brew install 1password-cli")
+        sys.exit(1)
+
+    if result.returncode != 0:
+        print(f"Error reading 1Password item '{item}' field '{field}': {result.stderr.strip()}")
+        sys.exit(1)
+
+    return result.stdout.strip()
+
+
+def configure_org(org_name, op_item=None, op_field=DEFAULT_OP_FIELD):
     """Configure credentials for an organization"""
-    config = load_config()
+    config = ensure_known_org(load_config(), org_name)
 
     if org_name not in config.get("organizations", {}):
         print(f"Error: Organization '{org_name}' not found in configuration")
         print(f"Available orgs: {', '.join(config.get('organizations', {}).keys())}")
+        print(f"Add it first: gitlab_config_setup.py add {org_name} URL PATH GROUP")
         sys.exit(1)
 
     org_config = config["organizations"][org_name]
@@ -118,8 +167,11 @@ def configure_org(org_name):
     print(f"Local Path: {org_config.get('local_path')}")
     print(f"GitLab Group: {org_config.get('gitlab_group')}\n")
 
-    # Get token from user
-    token = getpass.getpass(f"Enter GitLab Personal Access Token for {org_name}: ")
+    if op_item:
+        print(f"Reading token from 1Password item '{op_item}' (field '{op_field}')")
+        token = read_token_from_1password(op_item, op_field)
+    else:
+        token = getpass.getpass(f"Enter GitLab Personal Access Token for {org_name}: ")
 
     if not token:
         print("Error: Token cannot be empty")
@@ -176,7 +228,9 @@ GitLab Configuration Setup
 
 Usage:
   gitlab_config_setup.py list                          - List all organizations
-  gitlab_config_setup.py configure ORG_NAME            - Configure token for an org
+  gitlab_config_setup.py configure ORG_NAME            - Configure token for an org (hidden prompt)
+  gitlab_config_setup.py configure ORG_NAME --op-item ITEM [--op-field FIELD]
+                                                       - Read the token from 1Password (default field: password)
   gitlab_config_setup.py add ORG_NAME URL PATH GROUP   - Add new organization
   gitlab_config_setup.py default ORG_NAME              - Set default organization
   gitlab_config_setup.py get-token ORG_NAME            - Get token for org (for debugging)
@@ -203,7 +257,10 @@ try:
         if len(sys.argv) < 3:
             print("Error: configure requires organization name")
             sys.exit(1)
-        configure_org(sys.argv[2])
+        options = sys.argv[3:]
+        op_item = options[options.index("--op-item") + 1] if "--op-item" in options else None
+        op_field = options[options.index("--op-field") + 1] if "--op-field" in options else DEFAULT_OP_FIELD
+        configure_org(sys.argv[2], op_item=op_item, op_field=op_field)
 
     elif command == "add":
         if len(sys.argv) < 6:

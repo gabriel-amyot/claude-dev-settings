@@ -1,0 +1,80 @@
+{"id": 0, "verdict": "NOISE", "why": "Prompt is a session-check command; Canada map facts irrelevant"}
+{"id": 1, "verdict": "RELEVANT", "why": "Prompt is about a wayfinder/GitHub issue handoff structure directly"}
+{"id": 2, "verdict": "NOISE", "why": "Prompt is about feature flags location, not MR description tooling"}
+{"id": 3, "verdict": "TANGENTIAL", "why": "Both MR-safety reviews but not about docstring-only MCP changes"}
+{"id": 4, "verdict": "RELEVANT", "why": "Checking an MR discussion after merge/push matches the note exactly"}
+{"id": 5, "verdict": "NOISE", "why": "Prompt about removing unused vars unrelated to TTD advertiser mapping"}
+{"id": 6, "verdict": "RELEVANT", "why": "Resuming a plan file matches crit plan snapshot/orphan behavior"}
+{"id": 7, "verdict": "NOISE", "why": "Generic 'what's next' question, unrelated to AC narrowing"}
+{"id": 8, "verdict": "NOISE", "why": "Org people context unrelated to macOS timeout coreutils gotcha"}
+{"id": 9, "verdict": "NOISE", "why": "Uncommenting TODO tracing code, not a dead-code deletion ticket"}
+{"id": 10, "verdict": "NOISE", "why": "Testing speech-to-speech unrelated to DESIGNED-RED marker drift"}
+{"id": 11, "verdict": "NOISE", "why": "Census contract handoff message unrelated to LLM tool design safety"}
+{"id": 12, "verdict": "NOISE", "why": "Skipping datasophia sync unrelated to regenerated artifact authority"}
+{"id": 13, "verdict": "NOISE", "why": "Jira/datasophia aside doesn't need ticket lifecycle/ADR promotion doc"}
+{"id": 14, "verdict": "NOISE", "why": "Prompt 'don' is too thin to justify pipeline trace cap note"}
+{"id": 15, "verdict": "RELEVANT", "why": "Building a tool for Gemini to read files is exactly about tool descriptions"}
+{"id": 16, "verdict": "NOISE", "why": "KTP-1215 high-level ticket discussion unrelated to local stack script"}
+{"id": 17, "verdict": "NOISE", "why": "Morning check-in continuation unrelated to bibliotheque location"}
+{"id": 18, "verdict": "RELEVANT", "why": "Legacy vs new front portal infra question matches klever1.ai host note exactly"}
+{"id": 19, "verdict": "NOISE", "why": "Garbled TTT campaign transcript unrelated to credential expiry nuance"}
+{"id": 20, "verdict": "TANGENTIAL", "why": "Census contract consolidation loosely touches modeling decisions"}
+{"id": 21, "verdict": "NOISE", "why": "Reviewing gh issue completeness isn't about guards passing on absence"}
+{"id": 22, "verdict": "RELEVANT", "why": "Building overnight workflow after failed handoffs matches blocked-setup caching"}
+{"id": 23, "verdict": "NOISE", "why": "Generic 'did I merge right' unrelated to tileset key-space dispatch"}
+{"id": 24, "verdict": "NOISE", "why": "Correcting name to MA, not about Rajan alias resolution"}
+{"id": 25, "verdict": "RELEVANT", "why": "SSH retry/host-check caution matches herdr's SSH-survival limits directly"}
+{"id": 26, "verdict": "TANGENTIAL", "why": "Feature-not-working-in-prod could stem from stale checkout but unconfirmed"}
+{"id": 27, "verdict": "NOISE", "why": "Media plan var investigation unrelated to Overture GERS id turnover"}
+{"id": 28, "verdict": "NOISE", "why": "Audience panel spec research unrelated to MR description-file bug"}
+{"id": 29, "verdict": "TANGENTIAL", "why": "DAC merged-not-applied question only loosely touches composite naming"}
+{"id": 30, "verdict": "RELEVANT", "why": "Closing via /gab-operationalize matches the skip-escape-hatch note directly"}
+{"id": 31, "verdict": "NOISE", "why": "Name correction (MA) unrelated to David's proximity-explorer repo status"}
+{"id": 32, "verdict": "NOISE", "why": "Token regeneration in 1Password unrelated to Salesforce ID schema"}
+{"id": 33, "verdict": "TANGENTIAL", "why": "Commit/merge mystery on a DAC repo loosely touches GitLab instance mapping"}
+{"id": 34, "verdict": "NOISE", "why": "Directory-move proposal unrelated to build-tooling silent side effects"}
+{"id": 35, "verdict": "NOISE", "why": "Blind-judge task instructions unrelated to dashboard premise audit"}
+{"id": 36, "verdict": "NOISE", "why": "Feature flags/IAC question unrelated to Agent tool worktree isolation"}
+{"id": 37, "verdict": "TANGENTIAL", "why": "Upstream data standardization is the same theme but not a clear match"}
+{"id": 38, "verdict": "NOISE", "why": "Buyer agent MVP meeting prep unrelated to cold-drop handover test"}
+{"id": 39, "verdict": "NOISE", "why": "Security exposure question unrelated to hedging-language style note"}
+{"id": 40, "verdict": "NOISE", "why": "Content-screen explanation request unrelated to manifest completeness"}
+{"id": 41, "verdict": "RELEVANT", "why": "Insisting on correct clone location matches repo manifest note directly"}
+{"id": 42, "verdict": "RELEVANT", "why": "Ticket status trustworthiness question matches board-status-not-empty exactly"}
+{"id": 43, "verdict": "NOISE", "why": "Fixing MR 15 unrelated to row-category gate being disarmed"}
+{"id": 44, "verdict": "NOISE", "why": "Answering Raj's responses generically, not the specific TTD write surface"}
+{"id": 45, "verdict": "RELEVANT", "why": "Adversarial review of 'no-one is using that' claim needs positive-control check"}
+{"id": 46, "verdict": "NOISE", "why": "NumPy/firewall install question unrelated to gcloud IAM test command"}
+{"id": 47, "verdict": "NOISE", "why": "Mirroring another machine's setup doesn't clearly involve disk cleanup"}
+{"id": 48, "verdict": "NOISE", "why": "Content-screen/1Password question unrelated to action-list write note"}
+{"id": 49, "verdict": "RELEVANT", "why": "Adversarial-review-then-merge matches the three-pass ticket gate note"}
+{"id": 50, "verdict": "TANGENTIAL", "why": "Already confirms posted; note about verifying before resend less needed"}
+{"id": 51, "verdict": "TANGENTIAL", "why": "Harness judge task loosely touches transcript-scanning validity concerns"}
+{"id": 52, "verdict": "NOISE", "why": "MR status check unrelated to docstring-only MR runtime-change note"}
+{"id": 53, "verdict": "RELEVANT", "why": "Insisting on proper repo structure matches fresh-clone IAP workaround"}
+{"id": 54, "verdict": "NOISE", "why": "Checking Raj's MR review reply unrelated to servlet context-path 404s"}
+{"id": 55, "verdict": "NOISE", "why": "Token regeneration unrelated to worktree force-delete env file loss"}
+{"id": 56, "verdict": "NOISE", "why": "Overnight workflow handoff cleanup unrelated to MR title retitling"}
+{"id": 57, "verdict": "RELEVANT", "why": "Census bucket population question matches the native-grain census note exactly"}
+{"id": 58, "verdict": "RELEVANT", "why": "Insisting on dev branch checkout matches branch-protection preset directly"}
+{"id": 59, "verdict": "NOISE", "why": "MR review check unrelated to zsh glob silent-negative grep issue"}
+{"id": 60, "verdict": "NOISE", "why": "Can't review plan before sleep unrelated to ticket AC quality standards"}
+{"id": 61, "verdict": "NOISE", "why": "Ticket status clarity question unrelated to 'normalized' table naming trap"}
+{"id": 62, "verdict": "NOISE", "why": "Answering Raj's responses unrelated to User Management service details"}
+{"id": 63, "verdict": "TANGENTIAL", "why": "Harness judge packet loosely touches dashboard-freshness premise audit"}
+{"id": 64, "verdict": "NOISE", "why": "Token regeneration task unrelated to KTT backlog board structure"}
+{"id": 65, "verdict": "TANGENTIAL", "why": "Front portal infra confusion loosely matches correction/adjacent-surface pattern"}
+{"id": 66, "verdict": "NOISE", "why": "Answering Raj's responses unrelated to worktree-removal build artifact loss"}
+{"id": 67, "verdict": "TANGENTIAL", "why": "Struggling with Raj's tickets loosely touches ticket recycling pattern"}
+{"id": 68, "verdict": "NOISE", "why": "Backend-extraction ownership decision doesn't need lifecycle/ADR doc"}
+{"id": 69, "verdict": "NOISE", "why": "Feature flags/IAC question unrelated to Salesforce Requests__c status usage"}
+{"id": 70, "verdict": "RELEVANT", "why": "Diagnosing pipecat span-export timeout matches probe/symptom discipline note"}
+{"id": 71, "verdict": "NOISE", "why": "Salesforce/QA-agent people context unrelated to guard severity overstatement"}
+{"id": 72, "verdict": "RELEVANT", "why": "Main vs dev pipeline difference and DAC MR merge matches scheduler-pause note"}
+{"id": 73, "verdict": "TANGENTIAL", "why": "Reviewing monitoring MR loosely touches harness self-management themes"}
+{"id": 74, "verdict": "NOISE", "why": "Token regeneration task unrelated to AC-narrowing verdict distinction"}
+{"id": 75, "verdict": "NOISE", "why": "OAuth/Auth0 permission question unrelated to blame-forensics process note"}
+{"id": 76, "verdict": "NOISE", "why": "Census var investigation unrelated to Placer extraction gap specifics"}
+{"id": 77, "verdict": "RELEVANT", "why": "Adversarial-review-then-post matches crit CLI comment-posting trap directly"}
+{"id": 78, "verdict": "NOISE", "why": "ADR about dropping Slack/Airbyte/DLT unrelated to parallel-session file sweep"}
+{"id": 79, "verdict": "NOISE", "why": "Posted-waiting-for-approval aside unrelated to generated vocabulary staleness"}

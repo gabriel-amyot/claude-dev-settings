@@ -1,0 +1,343 @@
+{
+  "window_days": 45,
+  "transcripts": 43,
+  "real_prompts": 210,
+  "prompts_with_injection": 134,
+  "injection_rate": 0.638,
+  "pointers_injected": 782,
+  "avg_pointers_when_fired": 5.84,
+  "pointers_opened_same_turn": 20,
+  "pointer_consumption_rate": 0.026,
+  "machine_prompts": 157,
+  "machine_prompts_with_injection": 94,
+  "machine_pointers_injected": 513,
+  "turns_that_opened_any_library_page": 54,
+  "of_those_with_no_pointer_injected": 11,
+  "top_injected_aliases": [
+    [
+      "worktree-env-local-force-delete",
+      17
+    ],
+    [
+      "claude-code-cli-harness-gotchas",
+      10
+    ],
+    [
+      "working-with-this-system",
+      9
+    ],
+    [
+      "cold-drop-test",
+      7
+    ],
+    [
+      "harness-state-dashboard-premise-audit",
+      6
+    ],
+    [
+      "llm-tool-design-safety-patterns",
+      6
+    ],
+    [
+      "worktree-fleet-ops",
+      6
+    ],
+    [
+      "ac-narrowing",
+      6
+    ],
+    [
+      "windows-only-path-needs-source-guard",
+      6
+    ],
+    [
+      "timeout-not-on-macos",
+      6
+    ],
+    [
+      "schema-field-stronger-than-free-text",
+      6
+    ],
+    [
+      "proxi",
+      5
+    ],
+    [
+      "mr-review-request-format",
+      5
+    ],
+    [
+      "generated-vocabulary-outlives-source-data",
+      5
+    ],
+    [
+      "piped-pytest-exit-status",
+      5
+    ],
+    [
+      "shared-python-libraries",
+      5
+    ],
+    [
+      "pending-folder-retired",
+      5
+    ],
+    [
+      "build-tooling-silent-side-effects",
+      5
+    ],
+    [
+      "slug-collision-ledger-check",
+      5
+    ],
+    [
+      "canada-map-architecture",
+      5
+    ]
+  ],
+  "top_injected_pages_never_opened": [
+    [
+      "documentation/bibliotheque/~/.claude/library/context/build-tooling-silent-side-effects.md",
+      24
+    ],
+    [
+      "documentation/bibliotheque/stack/ci-cd/gitlab-ci-patterns.md",
+      16
+    ],
+    [
+      "documentation/bibliotheque/stack/gitlab-iap-devtools.md",
+      16
+    ],
+    [
+      "documentation/bibliotheque/sops/autonomous-workflows/agent-design-verification-patterns.md",
+      12
+    ],
+    [
+      "documentation/bibliotheque/sops/qa-review/guard-test-validity-and-falsification.md",
+      11
+    ],
+    [
+      "documentation/bibliotheque/stack/local-dev/claude-code-cli-harness-gotchas.md",
+      10
+    ],
+    [
+      "documentation/bibliotheque/sops/qa-review/diagnostic-probe-validity-and-symptom-discipline.md",
+      10
+    ],
+    [
+      "documentation/bibliotheque/stack/local-dev/localhost-debugging-gotchas.md",
+      10
+    ],
+    [
+      "documentation/bibliotheque/sops/autonomous-workflows/dark-factory-verification-patterns.md",
+      10
+    ],
+    [
+      "documentation/bibliotheque/stack/frontend-map-gotchas.md",
+      10
+    ],
+    [
+      "documentation/bibliotheque/sops/external-message-workflow.md",
+      9
+    ],
+    [
+      "documentation/bibliotheque/sops/klever-faas-service-creation.md",
+      9
+    ],
+    [
+      "documentation/bibliotheque/sops/autonomous-workflows/single-terminal-sprint-orchestration-patterns.md",
+      9
+    ],
+    [
+      "~/Developer/grp-beklever-com/project-management/documentation/process/working-with-this-system.md",
+      9
+    ],
+    [
+      "documentation/bibliotheque/sops/qa-review/rerun-the-probe-before-accepting-unknown.md",
+      9
+    ],
+    [
+      "documentation/bibliotheque/sops/autonomous-workflows/inbox-is-github-issues-not-pending-files.md",
+      8
+    ],
+    [
+      ".claude/library/context/build-tooling-silent-side-effects.md",
+      8
+    ],
+    [
+      ".claude/library/context/llm-tool-design-safety-patterns.md",
+      7
+    ],
+    [
+      "documentation/bibliotheque/sops/qa-review/reviewing-external-artifacts-and-handover-discipline.md",
+      7
+    ],
+    [
+      "documentation/bibliotheque/sops/sprint-management-dispatcher.md",
+      7
+    ]
+  ],
+  "top_pages_opened_without_pointer": [
+    [
+      "documentation/bibliotheque/INDEX.md",
+      10
+    ],
+    [
+      "documentation/bibliotheque/stack/proxi-gcp-home-architecture.md",
+      10
+    ],
+    [
+      "documentation/bibliotheque/operations/proxi-operator-runbook.md",
+      9
+    ],
+    [
+      "documentation/bibliotheque/ALIASES.md",
+      9
+    ],
+    [
+      "documentation/bibliotheque/operations/klever-repository-map.md",
+      4
+    ],
+    [
+      "documentation/bibliotheque/inbox/INDEX.md",
+      4
+    ],
+    [
+      "documentation/bibliotheque/stack/bigquery/salesforce-mirror-analysis-traps.md",
+      3
+    ],
+    [
+      "documentation/bibliotheque/sops/gabriel-voice-issue-and-review-posts.md",
+      3
+    ],
+    [
+      "documentation/bibliotheque/stack/proxi-read-list-contract.md",
+      3
+    ],
+    [
+      ".claude/library/context/jira-skill-gotchas.md",
+      2
+    ],
+    [
+      "documentation/bibliotheque/agent-hub/media-planning-agent-reference.md",
+      2
+    ],
+    [
+      "documentation/bibliotheque/sops/superwhisper-multilingual-transcription.md",
+      2
+    ],
+    [
+      "documentation/bibliotheque/inbox/2026-10-27-proxi-gmail-restore-and-0-2-12-release.md",
+      2
+    ],
+    [
+      "documentation/bibliotheque/stack/proxi-hermes-slack-integration-gotchas.md",
+      2
+    ],
+    [
+      "documentation/bibliotheque/sops/autonomous-workflows/codex-cli-adversarial-review-patterns.md",
+      2
+    ],
+    [
+      "documentation/bibliotheque/inbox/2026-10-22-proxi-gmail-oauth-discovery.md",
+      2
+    ],
+    [
+      "documentation/bibliotheque/stack/proxi-hermes-agent-platform-gotchas.md",
+      2
+    ],
+    [
+      "documentation/bibliotheque/sops/autonomous-workflows/wayfinder-map-lifecycle-close-and-persist.md",
+      2
+    ],
+    [
+      "documentation/bibliotheque/development/github-cli-issues-reference.md",
+      2
+    ],
+    [
+      "documentation/bibliotheque/people/profiles/sisi-yao.md",
+      1
+    ]
+  ],
+  "auto_memory_writes": 10,
+  "library_writes": 35,
+  "auto_memory_write_samples": [
+    {
+      "file": "d7e78040-7d03-4745-92f7-d43665e796cf.jsonl",
+      "ts": "2026-10-26T18:51:42.778Z",
+      "path": "~/.claude/projects/-Users-gamyot-Developer-grp-beklever-com-project-management/memory/handoff-anchored-to-github-issue-tree.md"
+    },
+    {
+      "file": "f1670a45-51df-418b-86ba-421ce15a6aaa.jsonl",
+      "ts": "2026-10-27T14:53:37.419Z",
+      "path": "~/.claude/projects/-Users-gamyot-Developer-grp-beklever-com-project-management/memory/no-change-before-investigation-resolves.md"
+    },
+    {
+      "file": "6797c86a-fcd5-4c8b-82f6-a9ce698b48f6.jsonl",
+      "ts": "2026-10-22T18:46:54.145Z",
+      "path": "~/.claude/projects/-Users-gamyot-Developer-grp-beklever-com-project-management/memory/buying-agent-business-vs-tech-split.md"
+    },
+    {
+      "file": "6797c86a-fcd5-4c8b-82f6-a9ce698b48f6.jsonl",
+      "ts": "2026-10-23T02:12:58.203Z",
+      "path": "~/.claude/projects/-Users-gamyot-Developer-grp-beklever-com-project-management/memory/buying-agent-business-vs-tech-split.md"
+    },
+    {
+      "file": "6797c86a-fcd5-4c8b-82f6-a9ce698b48f6.jsonl",
+      "ts": "2026-10-27T03:35:59.505Z",
+      "path": "~/.claude/projects/-Users-gamyot-Developer-grp-beklever-com-project-management/memory/zshrc-cd-eza-hang.md"
+    },
+    {
+      "file": "1667b943-2d1b-43ae-bf8d-4949d372987b.jsonl",
+      "ts": "2026-09-23T16:08:20.458Z",
+      "path": "~/.claude/projects/-Users-gamyot-Developer-grp-beklever-com-project-management/memory/plugins-deliberately-disabled.md"
+    },
+    {
+      "file": "d8a8e06b-52bb-4273-9015-0ba7c75857a5.jsonl",
+      "ts": "2026-10-27T14:59:28.666Z",
+      "path": "~/.claude/projects/-Users-gamyot-Developer-grp-beklever-com-project-management/memory/q1-catalog-every-channel-idea.md"
+    },
+    {
+      "file": "6a4861c5-38f6-497d-baaa-5dec45f67682.jsonl",
+      "ts": "2026-10-27T15:23:52.180Z",
+      "path": "~/.claude/projects/-Users-gamyot-Developer-grp-beklever-com-project-management/memory/clone-to-workspace-map-path.md"
+    },
+    {
+      "file": "6a4861c5-38f6-497d-baaa-5dec45f67682.jsonl",
+      "ts": "2026-10-27T15:25:07.571Z",
+      "path": "~/.claude/projects/-Users-gamyot-Developer-grp-beklever-com-project-management/memory/clone-to-workspace-map-path.md"
+    },
+    {
+      "file": "6a4861c5-38f6-497d-baaa-5dec45f67682.jsonl",
+      "ts": "2026-10-27T16:06:55.656Z",
+      "path": "~/.claude/projects/-Users-gamyot-Developer-grp-beklever-com-project-management/memory/clone-to-workspace-map-path.md"
+    }
+  ],
+  "aliases_klever": {
+    "alias_rows": 1651,
+    "rows_with_keyword_column": 9,
+    "distinct_pages_aliased": 362,
+    "pages_on_disk": 514,
+    "pages_with_no_alias_row": 189,
+    "max_rows_for_one_page": [
+      "stack/ci-cd/gitlab-ci-patterns.md",
+      41
+    ],
+    "aliases_md_bytes": 301929
+  },
+  "aliases_global": {
+    "alias_rows": 64,
+    "rows_with_keyword_column": 56,
+    "distinct_pages_aliased": 56,
+    "pages_on_disk": 140,
+    "pages_with_no_alias_row": 87,
+    "max_rows_for_one_page": [
+      "context/llm-tool-design-safety-patterns.md",
+      5
+    ],
+    "aliases_md_bytes": 20538
+  },
+  "memory_dirs": {
+    "memory": 8
+  }
+}

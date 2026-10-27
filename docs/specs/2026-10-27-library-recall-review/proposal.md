@@ -3,6 +3,25 @@
 Date: 2026-10-27. Scope: the `bibliotheque-recall.sh` hook, both ALIASES tables, and routing knowledge writes to the library instead of auto-memory.
 Sources: `claude-review.md` (written first, blind), `codex-review.md` (Codex, high effort, blind to the Claude review, verdict REDESIGN), `recall-report.md`, `judge-results.jsonl`.
 
+## Status after Codex round 2: BLOCKED until the measurement is repaired
+
+`codex-review-r2.md` blocks Phase 0. Claude verified each must-fix with `verify_r2_claims.py`:
+- `measure_recall.py` ignores user prompts with list content (53 prompts, text or image). It credits their hook output to an earlier prompt: **126 pointers misattributed**. All counts below (782, 513, 5.84, 63.8%) must be rebuilt.
+- The 45-day window filters files by modification time. The corpus reaches back to 2026-09-01.
+- The 2.6% open rate counts path mentions in tool arguments, not successful reads. It misses subagent and delayed reads. Treat it as a proxy only.
+- The judge sample has 59 distinct prompts, and 34 were cut at 300 characters. One model, no adjudication. "22% relevant" is provisional.
+
+Still valid, because live replays prove them independently of the transcript metrics: the stem double-count (#2), machine prompts triggering the hook (#3, reproduced twice in this session), the broken `~` and annotated rows (#5), and the scope bugs (#8, #9).
+
+**Correction to #5:** the annotations encode the real location (rows 805-809 name the global library). Stripping them leaves a path that does not exist. Each row must be repaired to its real destination.
+
+**New order:**
+1. Measurement v2: handle list-content prompts, filter by event timestamp, scan subagent transcripts, count only successful Reads. Freeze the corpus and the hook version as the baseline.
+2. Relabel: full prompt and page context, 200 calibration pairs plus 200 held-out pairs across at least 50 sessions, and a second rater on a subset.
+3. Phase 0, one switchable change at a time, with shadow logging and a rollback.
+4. Before any Phase 1 deny: trigger IDs, owners, exclusions (test fixtures, other orgs, scratch clones the user asked for), a per-trigger kill switch, and shadow mode first. An advisory "inform" cannot stop a command that is already chosen, so the `cd` case needs a deny or nothing.
+5. Phase 3: Codex now recommends option B with a legacy-read router. Disabling auto-memory stops the automatic load, but the files stay readable. Gabriel decides.
+
 ## Verdict
 
 Keep the library. Redesign the retrieval around it. The prompt-keyword hook now delivers mostly noise:

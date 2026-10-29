@@ -36,7 +36,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-NX_SOURCE = Path.home() / ".claude/skills/notion/nx.py"
+NX_SOURCE = Path(__file__).resolve().parents[1] / "nx.py"
 
 PAGE_A = "3b6c75c6-1606-818d-89b5-c32a793f38e9"
 PAGE_B = "316c75c6-1606-8115-681e-8c85339c5f03"
@@ -143,6 +143,60 @@ def case(fn):
 
 
 # ------------------------------------------------- context-blowout guarding
+
+
+@case
+def test_fetch_preflight_never_creates_phantom_checkout(co: Checkout) -> None:
+    script = NX_SOURCE.parent / "fetch-shard.sh"
+    missing = co.root / "absent"
+    result = subprocess.run(["bash", str(script), str(missing), "run", "one", PAGE_A],
+                            capture_output=True, text=True)
+    check("fetch missing root", result.returncode == 2 and not missing.exists(), result.stderr)
+    result = subprocess.run(["bash", str(script), str(co.root), "run", "one", PAGE_A],
+                            capture_output=True, text=True)
+    check("fetch missing config", result.returncode == 2 and "config missing" in result.stderr,
+          result.stderr)
+    (co.root / ".mcp.json").write_text('{"mcpServers":{"other":{"url":"secret-canary"}}}')
+    result = subprocess.run(["bash", str(script), str(co.root), "run", "one", PAGE_A],
+                            capture_output=True, text=True)
+    check("fetch refuses nonisolated config", result.returncode == 2 and
+          "secret-canary" not in result.stderr and not (co.root / "runs/run").exists(), result.stderr)
+
+
+@case
+def test_missing_checkout_is_not_empty_or_absent_page(co: Checkout) -> None:
+    shutil.rmtree(co.root)
+    # cwd must exist so subprocess can exercise nx's missing-root diagnostic.
+    for command in (("status",), ("search", "SOP"), ("card", PAGE_A),
+                    ("get", PAGE_A), ("doctor",)):
+        result = subprocess.run(
+            [sys.executable, str(NX_SOURCE), *command], capture_output=True, text=True,
+            env=dict(os.environ, NOTION_CHECKOUT=str(co.root)),
+        )
+        check("missing root: " + command[0], result.returncode == 2 and
+              "checkout missing" in result.stderr.lower() and
+              str(co.root) in result.stderr, result.stdout + result.stderr)
+    check("missing root not created", not co.root.exists())
+
+
+@case
+def test_uninitialized_empty_and_missing_page_differ(co: Checkout) -> None:
+    result = co.nx("status")
+    check("uninitialized checkout", result.returncode == 2 and
+          "catalog missing" in result.stderr.lower(), result.stdout + result.stderr)
+    co.write_catalog([])
+    result = co.nx("status")
+    check("existing empty catalog", result.returncode == 0 and
+          "empty" in result.stdout.lower(), result.stdout + result.stderr)
+    result = co.nx("card", PAGE_A)
+    check("empty catalog distinct from missing page", result.returncode == 1 and
+          "catalog empty" in result.stdout.lower(), result.stdout + result.stderr)
+    co.stage("seed", [record(PAGE_B, BODY_A)])
+    co.nx("ingest", "seed")
+    result = co.nx("card", PAGE_A)
+    check("page absent in populated catalog", result.returncode == 1 and
+          "no page matched" in result.stdout.lower(), result.stdout + result.stderr)
+    check("local reads require no MCP config", co.nx("card", PAGE_B).returncode == 0)
 
 
 @case

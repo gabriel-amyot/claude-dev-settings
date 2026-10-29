@@ -53,7 +53,7 @@ DEFAULT_ROOT = Path.home() / "Developer/grp-beklever-com/notion-checkout"
 
 # The mirror root. Override with NOTION_CHECKOUT to point at another checkout — which is
 # what the eval suite does, and what makes this tool testable against a scripted world.
-ROOT = Path(os.environ.get("NOTION_CHECKOUT") or DEFAULT_ROOT)
+ROOT = Path(os.environ.get("NOTION_CHECKOUT") or DEFAULT_ROOT).expanduser().resolve()
 PAGES = ROOT / "pages"
 INDEX = ROOT / "index"
 RUNS = ROOT / "runs"
@@ -714,6 +714,19 @@ def main() -> int:
     sub.add_parser("doctor").set_defaults(func=cmd_doctor)
 
     args = parser.parse_args()
+    if not ROOT.is_dir():
+        print(f"checkout missing or not a directory: {ROOT}\n"
+              "Restore the existing mirror from its source machine/backup, or set "
+              "NOTION_CHECKOUT to its actual directory. See notion recovery.md.", file=sys.stderr)
+        return 2
+    if args.cmd != "ingest" and not CATALOG.is_file():
+        print(f"catalog missing: {CATALOG}\n"
+              "This directory is not an initialized mirror. Restore its index, or "
+              "ingest a verified staged fetch. See notion recovery.md.", file=sys.stderr)
+        return 2
+    if args.cmd in ("card", "get", "mark") and not read_catalog():
+        print("catalog empty — no pages have been mirrored. Run a verified fetch/sync first.")
+        return 1
     return args.func(args)
 
 

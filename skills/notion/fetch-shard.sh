@@ -9,9 +9,41 @@
 # with pages per shard.
 set -euo pipefail
 
+if [ "$#" -lt 4 ]; then
+  echo "Usage: fetch-shard.sh <checkout_root> <run_id> <label> <page_id> [page_id ...]" >&2
+  exit 2
+fi
 MODEL="${NX_FETCH_MODEL:-sonnet}"
 CO="$1"; RUN="$2"; LABEL="$3"; shift 3
 IDS="$*"
+# Fail before mkdir: a typo must never create a phantom checkout.
+if [ ! -d "$CO" ]; then
+  echo "checkout missing: $CO; restore it or use the actual mirror root" >&2
+  exit 2
+fi
+CO="$(cd "$CO" && pwd -P)"
+if [ ! -f "$CO/.mcp.json" ]; then
+  echo "isolated fetch config missing: $CO/.mcp.json; see notion recovery.md" >&2
+  exit 2
+fi
+python3 - "$CO/.mcp.json" <<'PYCONFIG'
+import json, sys
+try:
+    config = json.load(open(sys.argv[1]))
+    if set(config.get("mcpServers", {})) != {"notion"}:
+        raise ValueError("expected only the notion server")
+except (OSError, ValueError, TypeError, AttributeError):
+    print("Invalid isolated MCP config: require only mcpServers.notion; values withheld", file=sys.stderr)
+    sys.exit(2)
+PYCONFIG
+if ! command -v claude >/dev/null 2>&1; then
+  echo "fetch executor unavailable: claude; local nx reads remain usable" >&2
+  exit 2
+fi
+if [[ ! "$RUN" =~ ^[A-Za-z0-9_-]+$ || ! "$LABEL" =~ ^[A-Za-z0-9_-]+$ ]]; then
+  echo "run_id and label must contain only letters, digits, underscores or hyphens" >&2
+  exit 2
+fi
 STAGING="$CO/runs/$RUN/staging"
 SHARDS="$CO/runs/$RUN/shards"
 mkdir -p "$STAGING" "$SHARDS"

@@ -1,0 +1,42 @@
+{
+  "review_date": "2026-10-31",
+  "method": "Fresh reviewer saw user queries and candidate pages, without expected labels or model outputs.",
+  "scope": "Authored diagnostic cases only. Not an independent population holdout.",
+  "path_prefix": "context/",
+  "path_suffix": ".md",
+  "grades": {
+    "diag-01": {"context-engineering":3,"long-running-process-pattern":0,"autopilot-session-state":0,"schema-validation-gate":0,"hermes-agent-platform-mechanics":1,"jira-skill-gotchas":0},
+    "diag-02": {"llm-tool-design-safety-patterns":0,"python-http-client-egress-gotchas":0,"build-tooling-silent-side-effects":0,"gemini-cli-reference":0,"harness-architecture-textbook":1},
+    "diag-03": {"harness-architecture-textbook":0,"llm-tool-design-safety-patterns":0,"long-running-process-pattern":3,"build-tooling-silent-side-effects":2,"codex-hook-enforcement-unverified":0},
+    "diag-04": {"python-http-client-egress-gotchas":3,"klever-infra-access":0,"shipping-workflow":0,"harness-architecture-textbook":0,"browser-automation-sops":0},
+    "diag-05": {"python-http-client-egress-gotchas":3,"llm-tool-design-safety-patterns":0,"protected-module-change-isolation":0,"harness-architecture-textbook":0,"build-tooling-silent-side-effects":0},
+    "diag-06": {"cloud-run-iam-diagnosis":3,"mcp-server-scoping-and-isolation":0,"llm-tool-design-safety-patterns":0,"build-tooling-silent-side-effects":1,"harness-architecture-textbook":0},
+    "diag-07": {"deploy-identity-gate":3,"harness-architecture-textbook":3,"mechanical-backstops":2,"llm-tool-design-safety-patterns":0,"klever-infra-access":0,"nextjs-cloudflare-static-export":2},
+    "diag-08": {"harness-architecture-textbook":3,"cloud-run-iam-diagnosis":0,"build-tooling-silent-side-effects":2,"llm-tool-design-safety-patterns":0,"data-mutation-safety":0},
+    "diag-09": {"data-mutation-safety":0,"klever-infra-access":0,"git-history-verification":3,"protected-module-change-isolation":0,"llm-tool-design-safety-patterns":0},
+    "diag-10": {"worktree-fleet-ops":3,"harness-self-management":0,"mcp-server-scoping-and-isolation":0,"build-tooling-silent-side-effects":1,"claude-code-session-crash-forensics":0},
+    "diag-11": {"worktree-fleet-ops":3,"llm-tool-design-safety-patterns":0,"build-tooling-silent-side-effects":0,"git-history-verification":0,"security-audit-claude-code-config":0,"ticket-quality-standards":0,"tools-catalog":0,"mcp-server-scoping-and-isolation":0},
+    "diag-12": {"build-tooling-silent-side-effects":3,"react-force-graph-gotchas":0,"claude-config-filesystem-topology":0,"worktree-fleet-ops":1,"llm-tool-design-safety-patterns":0},
+    "diag-13": {"codex-hook-enforcement-unverified":3,"shared-skills-harness-observatory":3,"claude-config-filesystem-topology":1,"mechanical-backstops":2,"jira-skill-gotchas":0,"llm-tool-design-safety-patterns":0},
+    "diag-14": {"codex-hook-enforcement-unverified":3,"llm-tool-design-safety-patterns":2,"build-tooling-silent-side-effects":2,"worktree-fleet-ops":0,"data-mutation-safety":0},
+    "diag-15": {"codex-hook-enforcement-unverified":1,"build-tooling-silent-side-effects":0,"klever-api-credentials":0,"protected-module-change-isolation":0,"mechanical-backstops":0,"claude-config-filesystem-topology":3},
+    "diag-16": {"schema-validation-gate":3,"tools-catalog":0,"mcp-server-scoping-and-isolation":0,"llm-tool-design-safety-patterns":0,"eqs-graphql-reference":0,"klever-api-credentials":1},
+    "diag-17": {"vendor-api-contract-validation":3,"stakeholder-response-pattern":1,"llm-tool-design-safety-patterns":0,"schema-validation-gate":2,"klever-api-credentials":1},
+    "diag-18": {"security-audit-claude-code-config":3,"llm-tool-design-safety-patterns":1,"pr-panic-protocol":2,"build-tooling-silent-side-effects":1,"cloud-run-iam-diagnosis":0},
+    "diag-19": {"session-lifecycle-skills":3,"claude-code-session-crash-forensics":1,"llm-tool-design-safety-patterns":1,"build-tooling-silent-side-effects":0,"autopilot-session-state":0},
+    "diag-20": {"claude-code-session-crash-forensics":1,"worktree-fleet-ops":0,"harness-self-management":3,"llm-tool-design-safety-patterns":0,"harness-architecture-textbook":1},
+    "diag-21": {"autopilot-session-state":0,"harness-architecture-textbook":1,"harness-self-management":1,"context-engineering":3,"llm-tool-design-safety-patterns":0},
+    "diag-22": {"harness-self-management":0,"build-tooling-silent-side-effects":0,"llm-tool-design-safety-patterns":0,"harness-architecture-textbook":0,"protected-module-change-isolation":0},
+    "diag-23": {"klever-infra-access":0,"worktree-fleet-ops":0,"klever-api-credentials":0,"mechanical-backstops":0,"browser-automation-sops":0},
+    "diag-24": {"mechanical-backstops":0,"harness-self-management":0,"build-tooling-silent-side-effects":0,"llm-tool-design-safety-patterns":0}
+  },
+  "caveats": [
+    "The diag-02 top-five candidate set misses the recovery protocol in context-engineering.md.",
+    "The egress page covers proxies and localhost resolution, not redirects or a complete containment guarantee.",
+    "Deploy-identity material describes false VERIFIED labels from cached ancestry. A probe label alone does not establish the exact running version.",
+    "Hook enforcement and security audit evidence is dated. Treat these pages as historical evidence unless current execution confirms their claims.",
+    "Session-plugin cache guidance has an October exception that qualifies older two-copy rules.",
+    "Transcript mining is described as parked. A method description does not establish that automation currently runs.",
+    "No supplied candidate supports diagnostic domain requests 22 through 24. This does not prove absence across every corpus."
+  ]
+}

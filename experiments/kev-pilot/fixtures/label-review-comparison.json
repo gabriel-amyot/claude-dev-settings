@@ -1,0 +1,26 @@
+{
+  "reviewed_queries": 24,
+  "reviewed_pairs": 127,
+  "overlapping_label_pairs": 28,
+  "disagreements": [
+    {
+      "query_id": "diag-11",
+      "document": "context/build-tooling-silent-side-effects.md",
+      "authored_grade": 1,
+      "blind_review_grade": 0
+    },
+    {
+      "query_id": "diag-13",
+      "document": "context/claude-config-filesystem-topology.md",
+      "authored_grade": 2,
+      "blind_review_grade": 1
+    },
+    {
+      "query_id": "diag-17",
+      "document": "context/schema-validation-gate.md",
+      "authored_grade": 1,
+      "blind_review_grade": 2
+    }
+  ],
+  "interpretation": "Diagnostic label review only. These are unadjudicated grades, not independent generalization evidence. Original registered inference fixture remains unchanged."
+}

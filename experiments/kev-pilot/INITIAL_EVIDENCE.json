@@ -1,0 +1,144 @@
+{
+  "corpus_manifest_sha256": "20d33ffff553012ef68e7a17b0d7660267373a2fa51b63464ba6dc7ef34cf971",
+  "documents": 57,
+  "files": 60,
+  "alias_rows": 55,
+  "baseline_deviations": [
+    "Global context Markdown only; org libraries and other alias targets excluded.",
+    "No session deduplication, matching a fresh recall state on each query.",
+    "No hook execution, pointer injection, or dedup marker writes.",
+    "Prompt-length and library/librarian/bibliotheque suppression preserved."
+  ],
+  "observations": [
+    {
+      "kind": "out_of_scope_alias",
+      "path": "context/workspace-map.yaml",
+      "alias": "workspace-map"
+    },
+    {
+      "kind": "out_of_scope_alias",
+      "path": "architecture/vision/agent-harness-north-star-industry-patterns-gap-analysis.md",
+      "alias": "north-star"
+    },
+    {
+      "kind": "out_of_scope_alias",
+      "path": "architecture/vision/agent-harness-phased-roadmap-ralph-loop-to-cloud.md",
+      "alias": "roadmap"
+    },
+    {
+      "kind": "out_of_scope_alias",
+      "path": "architecture/vision/agent-harness-known-failure-catalog.yaml",
+      "alias": "failure-catalog"
+    },
+    {
+      "kind": "out_of_scope_alias",
+      "path": "architecture/decisions/memory-management-disable-auto-consolidate-context.md",
+      "alias": "memory-adr"
+    },
+    {
+      "kind": "out_of_scope_alias",
+      "path": "research/memory-systems/ai-agent-memory-architectures-patterns-survey.md",
+      "alias": "memory-survey"
+    },
+    {
+      "kind": "out_of_scope_alias",
+      "path": "practices/workflows/tdd-workflow-test-first-quality-gates.md",
+      "alias": "tdd-workflow"
+    },
+    {
+      "kind": "out_of_scope_alias",
+      "path": "practices/quality/code-review-priority-checklist.md",
+      "alias": "code-review"
+    },
+    {
+      "kind": "out_of_scope_alias",
+      "path": "practices/standards/commit-message-conventional-format.md",
+      "alias": "commit-format"
+    }
+  ],
+  "source_repo_head": "1f1f4b8dce155cf104885ac37bba4d0308b788d1",
+  "source_repo_dirty": true,
+  "initial_offline_tests": {
+    "count": 40,
+    "status": "passed",
+    "log_sha256": "db7c3d068f2ff115edd326ce81ee2362257330c52ad0386352b36be500a99679"
+  },
+  "quality_decision": "INSUFFICIENT_EVIDENCE",
+  "production_enabled": false,
+  "files_sha256": {
+    "ALIASES.md": "b201d1520ef6a10ffb3b5086b59064692ae5be09475cb6d61dbdb3defe6b6c19",
+    "CATALOG.md": "e2a8af11f521489abd461262631f078703a202bbd2d84a30d735472d9d7e0a3b",
+    "INDEX.md": "c82ab4351488aa061464e454ccde8f9c9599f598625cf8bb45a357d2114df7c8",
+    "context/INDEX.md": "1f963ec979173f77d53479e2ce258d8fe75accfe2dda6ccf88f74859c9d2916f",
+    "context/apollo-gateway-architecture.md": "c2d0eaf1d6ea12d465ac643f711b5a62db119a29085791d3bd49ad68a4671cc1",
+    "context/autonomous-crawl-rules.md": "07934a8a2a9aff82ec271af6bf199a3a215edcb6d2762fd4e05040ff044fd2e0",
+    "context/autopilot-session-state.md": "a3dd230b957d2b615cebecb5f7eb63897f07f7b0cd18fd85ca081616db6e7dad",
+    "context/browser-automation-sops.md": "7520a5f93dc1d6803dd0f25f440f7ae40c8b8be65dd659876858a992de70c823",
+    "context/build-tooling-silent-side-effects.md": "ecfe0a58c5a0e50c2f4e1ee85b5de2cd98898278c409ae45875f66cd3cdc9535",
+    "context/claude-code-session-crash-forensics.md": "d63495fb9f161ecdab56c34b763cd8a3f6ab9e9eb1fcb8dece5f2d1d03c12cf8",
+    "context/claude-config-filesystem-topology.md": "09f1cdfadff7bcdf9984c10ac3f9ce8f19f3203d704540110711b603f18a1517",
+    "context/claude-md-authoring-legacy.md": "6f4d8d5b4947e238c822736bad31aa45638792232c9d69b1a4388902e81cfbfb",
+    "context/claude-md-authoring.md": "880ba1002be5093d5644011bae19d35c7e3efd8d74a580a55e38ced653369282",
+    "context/cloud-run-iam-diagnosis.md": "ce50ff6ef305f430ee45adb9c1bbfbbe7b9e7de954d416038787e5a99c858120",
+    "context/codex-hook-enforcement-unverified.md": "ff6f5a60d896da01c6545b3e5703510cdea4c402726dd370e1f1715ac2464db0",
+    "context/context-engineering-legacy.md": "c83a1acee4999a057b42b26a91610a4b5791a082220fdb06b3f5646b548ced3c",
+    "context/context-engineering.md": "feabbfe40bf676e2865900c21733546655772d7e89cc318223685917b3104b99",
+    "context/data-mutation-safety.md": "a773a3d42a3128d22bcb4842cdf469836c16ce18acce6eaa2c29b98d96123d0d",
+    "context/deploy-identity-gate.md": "aa4d7bb90280550156bce3621ec730109eecbbbf4c31b27ee5cab24e0bc886d4",
+    "context/documentation-standards-quick-ref.md": "43efd4f38b21ed1923137363d8b8f9b490eeb08775dfd500c34c6c82f8051c54",
+    "context/eqs-graphql-reference.md": "2569f56c41a52f3bfaee82a63a2c2274deb3310c628c7d0ad3d75564d7bba202",
+    "context/gemini-cli-reference.md": "6c8ddeb95d547435777cd2bdcdac02bef3af97b49b42517c9027f8eebbdf2ec9",
+    "context/git-history-verification.md": "4a19672e9546cafc6dfd9a5df0fda1154c4c3c7af5ef7ac0efebae5060dcb40d",
+    "context/harness-architecture-textbook.md": "74f3b70c69530e2790aaac70b208d46add62ac68d8f270a3a64c9a4ec6ee39e9",
+    "context/harness-self-management.md": "1ab02af3b127cec9f04035212e803d6cb7df2bb3458f6ddea71c9fb4e361be6c",
+    "context/hermes-agent-platform-mechanics.md": "489588fceda2c3b3e9d95734c66274ba19b350791065011367b7e4f5ef8b7db0",
+    "context/java-standards-legacy.md": "4ad971f6fc45b0dd48b5a91b328f8a79ba4100a7362f277f71835da1d593ea0d",
+    "context/java-standards.md": "d703da7c22ba267c3e5b01691a817360a20d1c5c4ccad0cca0c13ccb91d4a1f1",
+    "context/jira-skill-gotchas.md": "0a03e38732e582a74c55500e0efe612a08b4596837d9fc05790c41226a2e8765",
+    "context/klever-api-credentials.md": "c85e3974f1737a1ab22a94acda59646f3607365b622e046849bffdfa61a67334",
+    "context/klever-infra-access.md": "edb24ec5512e79b4afe4c8d42458236fc9e4be313c95bea8e57e6484363f8829",
+    "context/llm-tool-design-safety-patterns.md": "2cf89ba509a3111a1a5a191390b9e71ec52c8bc3ba5c544b73344a3ccfe46286",
+    "context/long-running-process-pattern.md": "e8d9734c281628a7a04ddd4aa6434f60d73e8e9d09ae7b607022dc0eab374dd0",
+    "context/macos-disk-reclaim-measurement-traps.md": "93db223cfdf6dbb1a11083b467e222f87c7d8148e45995899f0ee9964c40c1c4",
+    "context/macos-terminal-automation-gotchas.md": "b8c0693940841cb45047e472a3c4592f54117d432cabd23990d34b0fc5f148b0",
+    "context/mcp-server-scoping-and-isolation.md": "b1f4f2e3420455826ddb6854911498c820bdde41298054b72920d4001d3a6fe5",
+    "context/mechanical-backstops.md": "a203a3918c4c82b8d025855b7f05631ca860839b355d472ebffbbd75d3614863",
+    "context/nextjs-cloudflare-static-export.md": "bc44b9832e0d2e931b878d61911d5a7cf96adbe8a1c98f7961ac43452841c7e8",
+    "context/pr-panic-protocol.md": "8e3c7006a6b417cefa313f57289f822df92a1ac35f563c323b91a313b408afcb",
+    "context/protected-module-change-isolation.md": "9dd80bb2ee9c438d894c3b5924c18256fec42c09841dc00b512931c4cd8f281c",
+    "context/python-http-client-egress-gotchas.md": "391c5fcd8dbd8a867e658b745c467977abb936276a3e3a3d1394220ab56d2422",
+    "context/react-force-graph-gotchas.md": "ba6431f2b4673449eb8eb17b912ed6670e9b1d0f9f5e044f7d3cdc1c0247b55d",
+    "context/retell-api-v2-reference.md": "85ede1cb789fab270f2101a3b702c2641f5d4acfd62792c5ce41a80c92019de0",
+    "context/schema-validation-gate.md": "ec0675d6d8e94daaabb656a002edf8c4e995fd3d97956f215533ff8b3ca81741",
+    "context/security-audit-claude-code-config.md": "192566fbedf252527b6435391189c28078785cbaab9cc5f0f2a7b26532b2091c",
+    "context/session-lifecycle-skills.md": "23da54ad3355c0d9a39a2ef125ec32827600d9539573dad74cb2867d583db211",
+    "context/shared-skills-harness-observatory.md": "783292bf13da8de8cf0c9d731aed616adbe69501f288bcffe7f9e8ddf1a03157",
+    "context/shipping-workflow-legacy.md": "32c94151b5222c4f9b052e088f5018a3944ebe42442e2aeeb6ac6ff31fa81082",
+    "context/shipping-workflow.md": "a1dcdffaabed7cb523633adcf0cbd558af538f5ef3cbd0b17bf88a051a04ae7a",
+    "context/stakeholder-response-pattern.md": "91dcfb8a222b1525917dd84082b853e6c6a32ef3dcf8c6ed4f98129acce995ab",
+    "context/swarm-diagnostics-legacy.md": "ef803cebda5875b2eed2f045af2ddec89d9bac5aa1f3bffed5d8892c9b1d13cb",
+    "context/swarm-diagnostics.md": "8cc31192827d45814598652cbb50154d40c016f038ab52e9a8cba543d6db52a9",
+    "context/ticket-initialization.md": "82ecb18806584738fc63b4e0031e7d964df5c7086d3cfd5f83afb8117a6fd032",
+    "context/ticket-quality-standards-legacy.md": "5dbe160329dc5e43aafcfce91041c0ea2ac870cdbd6361a0e27bb4ee103f6f6b",
+    "context/ticket-quality-standards.md": "330a37e3ff656e8f69ed3757e28f3b742f00bf0dce81eaa681eb9f6b4bce9006",
+    "context/tools-catalog-legacy.md": "085ea4e1e9507ac08939b706d5f77776624743aea18323544f7997933b1e8268",
+    "context/tools-catalog.md": "0429646638bbb7145c6cf3e90007ee1fbdeb8e0f6247bf004f6cfb49d835e046",
+    "context/vendor-api-contract-validation.md": "17da37d11425efe3efb7d027e26a50f1a19949a170b927b84cdc86256ff9aa39",
+    "context/worktree-fleet-ops.md": "d43118f4d31965194c08d5efd20f2c4a504560a5d67a521774ed9e80036c788c",
+    "context/zsh-dotfiles-double-sourcing-gotcha.md": "8f2d7bf54ddd1962cdac7292d62c4da361df05eef1308be8552e2ab34e62111b"
+  },
+  "hook_sha256": "2508849c5a6bf4c586273eacbb11405483afc574171b299e825028dafb89f586",
+  "kind": "pre-inference apparatus evidence",
+  "prelaunch_offline_tests": {
+    "count": 53,
+    "status": "passed",
+    "log_sha256": "e20b6997b2de5fcbe5f9cc03c575f1d43db09c04f2b96748b802c52b1c29b2bd"
+  },
+  "actual_tokenizer_packet_check": {
+    "documents": 57,
+    "maximum_state_tokens": 7584,
+    "limit": 7600,
+    "base_revision": "1001bb4d826a52d1f399e183466143f4da7b741b",
+    "scope": "one shared query across frozen documents; no native inference"
+  }
+}

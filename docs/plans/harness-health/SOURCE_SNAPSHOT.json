@@ -1,0 +1,19 @@
+{
+  "observed_at": "2026-10-31T15:57:13.003082+00:00",
+  "scope": "source inspection only; no fresh suite pass or operational deployment claimed",
+  "canonical_repository_head": "1f1f4b8dce155cf104885ac37bba4d0308b788d1",
+  "canonical_checkout_dirty": true,
+  "source_sha256": {
+    "evals/manifest.yaml": "79eb197cafb843a72c8fb1391c7dab14980630beb86178884dc0b89e1bf664ce",
+    "skills/skill-evals/SKILL.md": "aa53d945246310b0c9d71036fd2ced8428e7182b352f45de09373ca23036dbce",
+    "skills/skill-evals/scripts/run_sweep.py": "0f49d1e46d23421451c54d94d01566655187fb395f9cf9f173ba20c5f05581ed",
+    "evals/monthly-sweep/run_monthly_sweep.sh": "dabc4eb8cec808387c35b3890a2073c1a2d76441de366a553bd37af3bc56616e",
+    "hooks/evals/run_hook_evals.py": "233fc845df26c36625d1acb6bedf208186fe3d7591a924691c03be49cbdbe02a",
+    "harness/CONTRACT.md": "11e66b85a7f450054cb6305837f5583443bfbedbebde4ab1c6ec04e526accb8a",
+    "harness/BRIDGES.md": "c53b6ced56686af0865c8a1768ffa7be119bbe38f947eaaf55ec9bfbbded7eee",
+    "harness/schema/001.sql": "b7c7e1160e2e0bf4829ec7fc117047ded006274c19ee0d7045b763d4c351b183",
+    "harness/producer.py": "e0fa71e6036c54d02d262301419d0f9056cc50e78abff68ece955d355df252a5",
+    "docs/harness-skill-selection.md": "8703d4454b075b9390584a77d84e4e1962051711013145809ea3121708883134",
+    "docs/skill-host-compatibility.md": "e40d644753fa856283ed92359c6ce3974c88a98dd54cf6e31b4e47a74274d32c"
+  }
+}

@@ -187,6 +187,53 @@ class TestClient(unittest.TestCase):
 
 
 class TestRuntime(unittest.TestCase):
+    BIRTH = "Sat Oct 31 11:20:34 2026"
+    ARGS = "-m kev.serve --run " + lc.PINNED_RUN + " --host 127.0.0.1 --port 8019 --device mps"
+    VENV_IDENTITY = BIRTH + " /Users/gamyot/Library/Caches/kev-pilot/source/.venv/bin/python " + ARGS
+    FRAMEWORK_IDENTITY = BIRTH + " /opt/homebrew/Cellar/python@3.13/3.13.9/Frameworks/Python.framework/Versions/3.13/Resources/Python.app/Contents/MacOS/Python " + ARGS
+
+    def test_macos_launcher_exec_preserves_owned_instance(self):
+        state = {"pid": 80317, "identity": self.VENV_IDENTITY}
+        with mock.patch.object(runtime, "identity", return_value=self.FRAMEWORK_IDENTITY):
+            self.assertTrue(runtime.owned(state))
+
+    def test_canonical_and_legacy_raw_identities_compare_equally(self):
+        canonical = self.BIRTH + " " + self.ARGS
+        self.assertEqual(runtime.canonical_identity(canonical), runtime.canonical_identity(self.VENV_IDENTITY))
+        self.assertEqual(runtime.canonical_identity(canonical), runtime.canonical_identity(self.FRAMEWORK_IDENTITY))
+        with mock.patch.object(runtime, "identity", return_value=self.FRAMEWORK_IDENTITY):
+            self.assertTrue(runtime.owned({"pid": 80317, "identity": canonical}))
+
+    def test_birth_time_arguments_and_pid_changes_still_prevent_stop(self):
+        with tempfile.TemporaryDirectory() as folder:
+            data = Path(folder)
+            state = {"pid": 80317, "identity": self.VENV_IDENTITY}
+            runtime.write_private(data / "server.json", state)
+            args = SimpleNamespace(expected_pid=80317, expected_identity=self.VENV_IDENTITY)
+            for observed in (self.FRAMEWORK_IDENTITY.replace("11:20:34", "11:20:35"), self.FRAMEWORK_IDENTITY.replace("--port 8019", "--port 8020"), self.FRAMEWORK_IDENTITY.replace("kev.serve", "another.module")):
+                with self.subTest(observed=observed), mock.patch.object(runtime, "identity", return_value=observed), mock.patch.object(runtime.os, "kill") as kill:
+                    with self.assertRaises(lc.ClientError):
+                        runtime.stop(args, data)
+                    kill.assert_not_called()
+            state["pid"] = 80318
+            runtime.write_private(data / "server.json", state)
+            with mock.patch.object(runtime.os, "kill") as kill:
+                with self.assertRaises(lc.ClientError):
+                    runtime.stop(args, data)
+                kill.assert_not_called()
+
+    def test_legacy_raw_expected_identity_allows_exec_changed_instance(self):
+        with tempfile.TemporaryDirectory() as folder:
+            data = Path(folder)
+            state = {"pid": 80317, "identity": self.VENV_IDENTITY}
+            runtime.write_private(data / "server.json", state)
+            before = (data / "server.json").read_bytes()
+            args = SimpleNamespace(expected_pid=80317, expected_identity=self.VENV_IDENTITY)
+            with mock.patch.object(runtime, "identity", return_value=self.FRAMEWORK_IDENTITY), mock.patch.object(runtime.os, "kill") as kill:
+                runtime.stop(args, data)
+                kill.assert_called_once_with(80317, runtime.signal.SIGTERM)
+            self.assertEqual((data / "server.json").read_bytes(), before)
+
     def test_replaced_receipt_does_not_stop_another_owned_instance(self):
         with tempfile.TemporaryDirectory() as folder:
             data = Path(folder)
@@ -210,9 +257,9 @@ class TestRuntime(unittest.TestCase):
     def test_exact_expected_identity_allows_only_that_signal(self):
         with tempfile.TemporaryDirectory() as folder:
             data = Path(folder)
-            runtime.write_private(data / "server.json", {"pid": 11111, "identity": "original process"})
-            args = SimpleNamespace(expected_pid=11111, expected_identity="original process")
-            with mock.patch.object(runtime, "identity", return_value="original process"), mock.patch.object(runtime.os, "kill") as kill:
+            runtime.write_private(data / "server.json", {"pid": 11111, "identity": self.VENV_IDENTITY})
+            args = SimpleNamespace(expected_pid=11111, expected_identity=self.VENV_IDENTITY)
+            with mock.patch.object(runtime, "identity", return_value=self.VENV_IDENTITY), mock.patch.object(runtime.os, "kill") as kill:
                 runtime.stop(args, data)
                 kill.assert_called_once_with(11111, runtime.signal.SIGTERM)
 

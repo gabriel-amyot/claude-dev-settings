@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import secrets
+import shlex
 import signal
 import socket
 import subprocess
@@ -25,6 +26,34 @@ def identity(pid):
         return None
     query = subprocess.run(["ps", "-p", str(pid), "-o", "lstart=", "-o", "command="], capture_output=True, text=True)
     return query.stdout.strip() if query.returncode == 0 else None
+
+
+def canonical_identity(value):
+    """Compare process birth and Kev arguments across macOS Python launcher exec.
+
+    Raw receipts stay unchanged. An already canonical command omits argv[0].
+    PID is separately selected by identity(pid) and the expected-instance guard.
+    """
+    if not isinstance(value, str):
+        return None
+    pieces = value.split(None, 5)
+    if len(pieces) != 6:
+        return None
+    birth = " ".join(pieces[:5])
+    try:
+        datetime.datetime.strptime(birth, "%a %b %d %H:%M:%S %Y")
+        arguments = shlex.split(pieces[5])
+    except ValueError:
+        return None
+    if not arguments:
+        return None
+    if arguments[0] != "-m":
+        executable = Path(arguments.pop(0)).name.lower()
+        if not executable.startswith("python"):
+            return None
+    if arguments[:2] != ["-m", "kev.serve"]:
+        return None
+    return birth, tuple(arguments)
 
 
 def write_private(path, record):
@@ -47,7 +76,10 @@ def load_state(data):
 
 
 def owned(state):
-    return bool(state and state.get("identity") and identity(state.get("pid")) == state["identity"])
+    if not state:
+        return False
+    expected = canonical_identity(state.get("identity"))
+    return bool(expected and canonical_identity(identity(state.get("pid"))) == expected)
 
 
 def start(args, data):

@@ -41,7 +41,7 @@ Date: 2026-10-31. Two independent reviewers inspected Kev source `2074cc44256200
 
 ## Existing evidence limitation
 
-The [October 27 recall proposal](../../docs/specs/2026-10-27-library-recall-review/proposal.md) is blocked on measurement repair. Its prompt attribution, read counts, and relevance estimates must not be reused as valid baseline measurements. This pilot records a fresh frozen snapshot and does not claim to repair that historical study.
+The October 27 recall proposal in the canonical checkout is blocked on measurement repair. Its prompt attribution, read counts, and relevance estimates must not be reused as valid baseline measurements. It belongs to pre-existing local commits and is not included in this pilot branch. This pilot records a fresh frozen snapshot and does not claim to repair that historical study.
 
 ## Independent review disposition
 

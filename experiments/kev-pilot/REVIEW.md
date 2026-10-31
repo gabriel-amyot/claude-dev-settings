@@ -65,3 +65,11 @@ Independent reviews reproduced these defects before native inference:
 The unrelated-run regression was observed failing before its fix and passing afterward. The retained local logs distinguish the calibrated RED from an earlier non-discriminative test attempt. The prelaunch suite passes 53 offline tests. These tests validate apparatus behavior, not recall effectiveness.
 
 Rule for this prototype: derive status from executed receipts, preserve failures, and bind every aggregate and cleanup action to explicit ownership.
+
+## Blind diagnostic label review
+
+A fresh reviewer inspected query-page support without expected labels or model outputs. Its 127 grades cover 24 authored requests. Three of 28 shared grades differ from the original author. The differences remain unadjudicated and do not change the registered inference fixture.
+
+The review exposed a candidate gap: the recovery-protocol page is absent from all eight metadata candidates for one vocabulary-mismatch case. Reranking cannot recover it. Several relevant pages also describe dated evidence or parked automation. Relevance does not establish currency or successful execution. See [the fixture review](fixtures/INDEX.md).
+
+This extra rater does not convert authored diagnostics into an independent population holdout. A later study must evaluate candidate discovery, full-text lexical controls, and current operational truth separately.

@@ -15,5 +15,6 @@
 - [fixtures/INDEX.md](fixtures/INDEX.md): Authored diagnostic dataset and its limitations.
 - [tests/INDEX.md](tests/INDEX.md): Offline regression and boundary tests.
 - [tracking/INDEX.md](tracking/INDEX.md): GitHub issue drafts and publication audit.
+- [results/INDEX.md](results/INDEX.md): Timestamped native evidence with explicit completion status.
 
 Raw evidence stays in ignored `.local/` storage. Sanitized results are indexed here after measured execution.

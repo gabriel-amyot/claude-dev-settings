@@ -33,6 +33,15 @@ Branch: `GH-1-kev-readonly-pilot`
 - Publication worktree: `/Users/gamyot/.claude-shared-config-worktrees/kev-pilot-review`, branch `GH-1-kev-pilot-review`.
 - Publication contains only pilot changes on `origin/main`. Three pre-existing local commits remain on the original branches and are not pushed as part of this pilot.
 
+## Native deployment observed
+
+- The pinned adapter and base download completed with file hashes.
+- Actual metadata: MLX, mps, bfloat16, temperature 2.406050072164233, truncation disabled.
+- Native authentication: missing and wrong keys return 401. The valid key returns 200.
+- Fifteen authored probe requests completed. Seventeen expected semantic outcomes matched. Choice probabilities varied by up to 0.0981 across six option orders. These are diagnostic observations, not calibration or security guarantees.
+- The benchmark is still running. `results/provisional-native-evidence.json` is timestamped partial evidence, not a final report.
+- Native deployment exposed a macOS launcher identity change. The corrected ownership comparison preserves PID, birth time, exact Kev arguments, and raw legacy receipts. The live process was not restarted. Fifty-seven offline tests pass after the fix.
+
 ## Boundaries
 
 Source corpus is the canonical shared global library, including its recorded dirty state. The clean worktree does not reproduce uncommitted observatory or library changes. Raw data belongs under the ignored pilot `.local/` directory. Authored fixtures do not establish recall quality. Production remains disabled.

@@ -39,6 +39,13 @@
       "draft": "pull-request.md",
       "sha256": "bb33e13367d4416710db4a1ac58c9327275695dd6115a3d04dcfbf9f88051678",
       "at": "2026-10-31T15:06:18.872421+00:00"
+    },
+    {
+      "action": "update-draft-pull-request",
+      "url": "https://github.com/gabriel-amyot/claude-dev-settings/pull/5",
+      "draft": "pull-request.md",
+      "sha256": "ec165ca324697f48609097ab34d9a674d2a140cd9879fc0c96dce8c61512f5e7",
+      "at": "2026-10-31T15:28:19.030120+00:00"
     }
   ]
 }

@@ -1,0 +1,428 @@
+{
+  "captured_at": "2026-10-31T15:26:34.316708+00:00",
+  "status": "provisional-incomplete-study",
+  "model": {
+    "run": "jaredpalmer/kev-4b@139fdd94f1b6a6ad80cc15e08fcb99cac885a101",
+    "base": "Qwen/Qwen3.5-4B-Base",
+    "device": "mps",
+    "backend": "mlx",
+    "dtype": "bfloat16",
+    "temperature": 2.406050072164233,
+    "truncate_states": false
+  },
+  "source_integrity_at_capture": "unchanged",
+  "offline_tests_passed": 57,
+  "native_auth": {
+    "kind": "native-auth-check",
+    "requests": [
+      {
+        "authorization_case": "missing",
+        "status": 401,
+        "expected": 401,
+        "passed": true,
+        "wall_ms": 2.6226249999999967
+      },
+      {
+        "authorization_case": "wrong",
+        "status": 401,
+        "expected": 401,
+        "passed": true,
+        "wall_ms": 0.5277079999999947
+      },
+      {
+        "authorization_case": "valid",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "wall_ms": 0.7658749999999992
+      }
+    ],
+    "passed": true,
+    "scope": "local endpoint authentication only, no recall or security generalization"
+  },
+  "probes": {
+    "dataset_type": "authored_diagnostic",
+    "planned_requests": 15,
+    "completed_requests": 15,
+    "semantic_mismatches": 0,
+    "semantic_uncertain_ties": 0,
+    "semantic_questions_scored": 17,
+    "semantic_outcomes": [
+      {
+        "case_id": "permutation-1",
+        "question": "code",
+        "expected": "spruce",
+        "outcome": "matched"
+      },
+      {
+        "case_id": "permutation-2",
+        "question": "code",
+        "expected": "spruce",
+        "outcome": "matched"
+      },
+      {
+        "case_id": "permutation-3",
+        "question": "code",
+        "expected": "spruce",
+        "outcome": "matched"
+      },
+      {
+        "case_id": "permutation-4",
+        "question": "code",
+        "expected": "spruce",
+        "outcome": "matched"
+      },
+      {
+        "case_id": "permutation-5",
+        "question": "code",
+        "expected": "spruce",
+        "outcome": "matched"
+      },
+      {
+        "case_id": "permutation-6",
+        "question": "code",
+        "expected": "spruce",
+        "outcome": "matched"
+      },
+      {
+        "case_id": "fact-true",
+        "question": "owner",
+        "expected": "true",
+        "outcome": "matched"
+      },
+      {
+        "case_id": "fact-false",
+        "question": "owner",
+        "expected": "false",
+        "outcome": "matched"
+      },
+      {
+        "case_id": "isolation-code",
+        "question": "code",
+        "expected": "spruce",
+        "outcome": "matched"
+      },
+      {
+        "case_id": "isolation-owner",
+        "question": "owner",
+        "expected": "true",
+        "outcome": "matched"
+      },
+      {
+        "case_id": "isolation-retries",
+        "question": "retries",
+        "expected": "2",
+        "outcome": "matched"
+      },
+      {
+        "case_id": "isolation-packed",
+        "question": "code",
+        "expected": "spruce",
+        "outcome": "matched"
+      },
+      {
+        "case_id": "isolation-packed",
+        "question": "owner",
+        "expected": "true",
+        "outcome": "matched"
+      },
+      {
+        "case_id": "isolation-packed",
+        "question": "retries",
+        "expected": "2",
+        "outcome": "matched"
+      },
+      {
+        "case_id": "untrusted-1",
+        "question": "code",
+        "expected": "spruce",
+        "outcome": "matched"
+      },
+      {
+        "case_id": "untrusted-2",
+        "question": "code",
+        "expected": "spruce",
+        "outcome": "matched"
+      },
+      {
+        "case_id": "untrusted-3",
+        "question": "code",
+        "expected": "spruce",
+        "outcome": "matched"
+      }
+    ],
+    "choice_order_comparison_count": 6,
+    "choice_order_probability_spread": {
+      "spruce": 0.09810000000000008,
+      "birch": 0.0614,
+      "maple": 0.0537
+    },
+    "isolation_probability_comparisons": [
+      {
+        "question": "code",
+        "max_absolute_probability_drift": 0.0,
+        "above_registered_tolerance": false
+      },
+      {
+        "question": "owner",
+        "max_absolute_probability_drift": 0.0,
+        "above_registered_tolerance": false
+      },
+      {
+        "question": "retries",
+        "max_absolute_probability_drift": 0.0,
+        "above_registered_tolerance": false
+      }
+    ],
+    "numeric_drift_tolerance": 0.02,
+    "isolation_comparisons_missing": 0,
+    "interpretation": "Authored fact checks and numeric comparisons only. No jailbreak, security, calibration or generalization claim.",
+    "quality_decision": "INSUFFICIENT_EVIDENCE",
+    "production_enabled": false,
+    "run_status": "completed",
+    "failed_requests": 0,
+    "not_run_requests": 0,
+    "unfinished_requests": 0
+  },
+  "runs": [
+    {
+      "kind": "probes",
+      "run_id": "20261031T152052.463649Z-probes",
+      "run_status": "completed",
+      "planned_requests": 15,
+      "attempted_requests": 15,
+      "completed_requests": 15,
+      "failed_requests": 0,
+      "unfinished_requests": 0,
+      "not_run_requests": 0,
+      "priming_attempts": 0,
+      "query_count": 0,
+      "query_latency": {},
+      "strata": {
+        "choice-order": {
+          "attempted": 6,
+          "n": 6,
+          "failed": 0,
+          "unfinished": 0,
+          "p50_ms": 97.1925831399858,
+          "p95_ms": 2387.5277396291494,
+          "failure_p50_ms": null,
+          "failure_p95_ms": null
+        },
+        "noul-fact": {
+          "attempted": 2,
+          "n": 2,
+          "failed": 0,
+          "unfinished": 0,
+          "p50_ms": 94.39349919557571,
+          "p95_ms": 94.76088723167777,
+          "failure_p50_ms": null,
+          "failure_p95_ms": null
+        },
+        "question-isolation": {
+          "attempted": 4,
+          "n": 4,
+          "failed": 0,
+          "unfinished": 0,
+          "p50_ms": 97.32999978587031,
+          "p95_ms": 155.06874830462036,
+          "failure_p50_ms": null,
+          "failure_p95_ms": null
+        },
+        "untrusted-instructions": {
+          "attempted": 3,
+          "n": 3,
+          "failed": 0,
+          "unfinished": 0,
+          "p50_ms": 195.2867079526186,
+          "p95_ms": 195.54324531927705,
+          "failure_p50_ms": null,
+          "failure_p95_ms": null
+        }
+      },
+      "corpus_manifest_sha256": "20d33ffff553012ef68e7a17b0d7660267373a2fa51b63464ba6dc7ef34cf971",
+      "protocol_sha256": "9632b23f4250f43add8afcaf0278adc888667c821dd9d1c0e4ee3896b754edf1"
+    },
+    {
+      "kind": "benchmark",
+      "run_id": "20261031T152100.574287Z-benchmark",
+      "run_status": "incomplete",
+      "planned_requests": 310,
+      "attempted_requests": 126,
+      "completed_requests": 126,
+      "failed_requests": 0,
+      "unfinished_requests": 0,
+      "not_run_requests": 184,
+      "priming_attempts": 60,
+      "query_count": 0,
+      "query_latency": {},
+      "strata": {
+        "tokens=2048;questions=1;new-state": {
+          "attempted": 8,
+          "n": 8,
+          "failed": 0,
+          "unfinished": 0,
+          "p50_ms": 1468.850416596979,
+          "p95_ms": 1540.9864605404437,
+          "failure_p50_ms": null,
+          "failure_p95_ms": null
+        },
+        "tokens=2048;questions=1;repeated-state": {
+          "attempted": 9,
+          "n": 9,
+          "failed": 0,
+          "unfinished": 0,
+          "p50_ms": 77.41066720336676,
+          "p95_ms": 110.25024224072693,
+          "failure_p50_ms": null,
+          "failure_p95_ms": null
+        },
+        "tokens=2048;questions=3;new-state": {
+          "attempted": 8,
+          "n": 8,
+          "failed": 0,
+          "unfinished": 0,
+          "p50_ms": 1517.3281030729413,
+          "p95_ms": 1688.5406876448542,
+          "failure_p50_ms": null,
+          "failure_p95_ms": null
+        },
+        "tokens=2048;questions=3;repeated-state": {
+          "attempted": 9,
+          "n": 9,
+          "failed": 0,
+          "unfinished": 0,
+          "p50_ms": 126.61474943161011,
+          "p95_ms": 136.08262445777655,
+          "failure_p50_ms": null,
+          "failure_p95_ms": null
+        },
+        "tokens=256;questions=1;new-state": {
+          "attempted": 6,
+          "n": 6,
+          "failed": 0,
+          "unfinished": 0,
+          "p50_ms": 321.10777124762535,
+          "p95_ms": 343.9707295037806,
+          "failure_p50_ms": null,
+          "failure_p95_ms": null
+        },
+        "tokens=256;questions=1;repeated-state": {
+          "attempted": 5,
+          "n": 5,
+          "failed": 0,
+          "unfinished": 0,
+          "p50_ms": 70.4337079077959,
+          "p95_ms": 71.34791631251574,
+          "failure_p50_ms": null,
+          "failure_p95_ms": null
+        },
+        "tokens=256;questions=3;new-state": {
+          "attempted": 9,
+          "n": 9,
+          "failed": 0,
+          "unfinished": 0,
+          "p50_ms": 342.2322077676654,
+          "p95_ms": 376.0582506656647,
+          "failure_p50_ms": null,
+          "failure_p95_ms": null
+        },
+        "tokens=256;questions=3;repeated-state": {
+          "attempted": 7,
+          "n": 7,
+          "failed": 0,
+          "unfinished": 0,
+          "p50_ms": 106.59083258360624,
+          "p95_ms": 117.05904994159935,
+          "failure_p50_ms": null,
+          "failure_p95_ms": null
+        },
+        "tokens=4096;questions=1;new-state": {
+          "attempted": 10,
+          "n": 10,
+          "failed": 0,
+          "unfinished": 0,
+          "p50_ms": 2869.1890626214445,
+          "p95_ms": 3014.695546356961,
+          "failure_p50_ms": null,
+          "failure_p95_ms": null
+        },
+        "tokens=4096;questions=1;repeated-state": {
+          "attempted": 7,
+          "n": 7,
+          "failed": 0,
+          "unfinished": 0,
+          "p50_ms": 83.63566640764475,
+          "p95_ms": 88.35872504860163,
+          "failure_p50_ms": null,
+          "failure_p95_ms": null
+        },
+        "tokens=4096;questions=3;new-state": {
+          "attempted": 9,
+          "n": 9,
+          "failed": 0,
+          "unfinished": 0,
+          "p50_ms": 2941.053125075996,
+          "p95_ms": 3058.6890414357185,
+          "failure_p50_ms": null,
+          "failure_p95_ms": null
+        },
+        "tokens=4096;questions=3;repeated-state": {
+          "attempted": 9,
+          "n": 9,
+          "failed": 0,
+          "unfinished": 0,
+          "p50_ms": 151.29245817661285,
+          "p95_ms": 175.19904114305973,
+          "failure_p50_ms": null,
+          "failure_p95_ms": null
+        },
+        "tokens=7168;questions=1;new-state": {
+          "attempted": 7,
+          "n": 7,
+          "failed": 0,
+          "unfinished": 0,
+          "p50_ms": 5234.810708090663,
+          "p95_ms": 5694.852583948523,
+          "failure_p50_ms": null,
+          "failure_p95_ms": null
+        },
+        "tokens=7168;questions=1;repeated-state": {
+          "attempted": 8,
+          "n": 8,
+          "failed": 0,
+          "unfinished": 0,
+          "p50_ms": 95.24333337321877,
+          "p95_ms": 103.94857665523887,
+          "failure_p50_ms": null,
+          "failure_p95_ms": null
+        },
+        "tokens=7168;questions=3;new-state": {
+          "attempted": 9,
+          "n": 9,
+          "failed": 0,
+          "unfinished": 0,
+          "p50_ms": 5185.18575001508,
+          "p95_ms": 5402.839116752148,
+          "failure_p50_ms": null,
+          "failure_p95_ms": null
+        },
+        "tokens=7168;questions=3;repeated-state": {
+          "attempted": 6,
+          "n": 6,
+          "failed": 0,
+          "unfinished": 0,
+          "p50_ms": 240.55412504822016,
+          "p95_ms": 259.1837497893721,
+          "failure_p50_ms": null,
+          "failure_p95_ms": null
+        }
+      },
+      "corpus_manifest_sha256": "20d33ffff553012ef68e7a17b0d7660267373a2fa51b63464ba6dc7ef34cf971",
+      "protocol_sha256": "9632b23f4250f43add8afcaf0278adc888667c821dd9d1c0e4ee3896b754edf1"
+    }
+  ],
+  "quality_decision": "INSUFFICIENT_EVIDENCE",
+  "production_enabled": false,
+  "interpretation": "Incomplete exploratory data. Authored probes do not establish generalization. Final library effectiveness and full-query conclusions remain pending."
+}

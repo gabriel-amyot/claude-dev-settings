@@ -73,3 +73,7 @@ A fresh reviewer inspected query-page support without expected labels or model o
 The review exposed a candidate gap: the recovery-protocol page is absent from all eight metadata candidates for one vocabulary-mismatch case. Reranking cannot recover it. Several relevant pages also describe dated evidence or parked automation. Relevance does not establish currency or successful execution. See [the fixture review](fixtures/INDEX.md).
 
 This extra rater does not convert authored diagnostics into an independent population holdout. A later study must evaluate candidate discovery, full-text lexical controls, and current operational truth separately.
+
+## Native lifecycle correction
+
+Verified against execution commit `0eea40c` and the corrected runtime: macOS replaces the virtualenv Python launcher path after spawn while retaining the same PID, birth time, and Kev arguments. The original ownership comparison returned false for that live process. The corrected comparison returned true without changing the server state or restarting inference. A regression preserves wrong-process rejection and legacy raw receipt compatibility. The retained local reproduction records both results and the corrected code hash.

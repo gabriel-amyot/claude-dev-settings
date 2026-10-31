@@ -2,7 +2,7 @@
   "protocol_version": "2026-10-31-v1",
   "mode": "offline-read-only-feasibility",
   "source_commit": "2074cc44256200bb37540103fa4572901faa10f3",
-  "model": "jaredpalmer/kev-4b@139fdd94",
+  "model": "jaredpalmer/kev-4b@139fdd94f1b6a6ad80cc15e08fcb99cac885a101",
   "backend": "mlx",
   "port": 8019,
   "max_state_tokens": 7600,

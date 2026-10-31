@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-31",
+  "authorization": "User explicitly requested GitHub issues for this pilot.",
+  "repository": "gabriel-amyot/claude-dev-settings",
+  "repository_change": "Enabled previously disabled issue tracking to fulfill the request.",
+  "entries": [
+    {
+      "action": "create",
+      "url": "https://github.com/gabriel-amyot/claude-dev-settings/issues/1",
+      "title": "Kev-4B: run a read-only local recall pilot",
+      "draft": "parent.md",
+      "sha256": "036495b917b96354aa0b216b20bcad2d0fd46e6414576fd10a25db1c166d8b4b"
+    },
+    {
+      "action": "create",
+      "url": "https://github.com/gabriel-amyot/claude-dev-settings/issues/2",
+      "title": "Kev-4B: measure local API latency and failure behavior",
+      "draft": "local-feasibility.md",
+      "sha256": "71070e37f3cf6d9f9ba702c1be30827b0d945255fec87458a2ab38e6035b586a"
+    },
+    {
+      "action": "create",
+      "url": "https://github.com/gabriel-amyot/claude-dev-settings/issues/3",
+      "title": "Kev-4B: replay the frozen library with retrieval baselines",
+      "draft": "library-replay.md",
+      "sha256": "fe8953be42cb39bc32a8d06cb3b085264fcd966200da2748002a8d8149a096c0"
+    },
+    {
+      "action": "create",
+      "url": "https://github.com/gabriel-amyot/claude-dev-settings/issues/4",
+      "title": "Kev-4B: collect independent evidence before a recall decision",
+      "draft": "independent-evidence.md",
+      "sha256": "a1bc87c4e92a0c326b8fe02f7e67ac47365ebba377801771c987c745c3d5005e"
+    }
+  ]
+}

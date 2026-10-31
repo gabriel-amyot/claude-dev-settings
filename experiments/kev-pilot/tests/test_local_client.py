@@ -8,6 +8,7 @@ import sys
 import tempfile
 import threading
 import time
+from types import SimpleNamespace
 import unittest
 from unittest import mock
 
@@ -82,7 +83,7 @@ class TestClient(unittest.TestCase):
         self.port_patch = mock.patch.object(lc, "DEFAULT_PORT", self.server.server_port)
         self.port_patch.start()
         self.addCleanup(self.port_patch.stop)
-        self.models = {"models": [{"name": "kev-latest", "run": lc.PINNED_RUN, "backend": "mlx", "truncate_states": False, "temperature": 2.41}]}
+        self.setUpModel()
         self.response = copy.deepcopy(RESPONSE)
         self.delay, self.status, self.redirect, self.calls = 0, 200, False, 0
 
@@ -112,14 +113,18 @@ class TestClient(unittest.TestCase):
             lc.Client(other)
 
     def test_identity_backend_and_truncation_checks(self):
-        for field, value in (("run", "different"), ("backend", "torch"), ("truncate_states", True), ("temperature", float("nan"))):
+        for field, value in (("run", "different"), ("backend", "torch"), ("truncate_states", True), ("temperature", float("nan")), ("temperature", 99), ("base", "wrong/base"), ("device", "cpu"), ("dtype", "float32")):
             self.models["models"][0][field] = value
             with self.subTest(field=field), self.assertRaises(lc.ClientError):
                 self.client().get_models()
             self.setUpModel()
 
     def setUpModel(self):
-        self.models = {"models": [{"run": lc.PINNED_RUN, "backend": "mlx", "truncate_states": False, "temperature": 2.41}]}
+        self.models = {"models": [{"name": "kev-latest", "run": lc.PINNED_RUN, "backend": "mlx", "truncate_states": False, "temperature": 2.41, "base": lc.EXPECTED_BASE, "device": "mps", "dtype": "bfloat16"}]}
+
+    def test_extreme_integer_is_sanitized(self):
+        with self.assertRaisesRegex(lc.ClientError, "invalid temperature"):
+            lc._number(10 ** 400, "temperature")
 
     def test_redirects_are_not_followed(self):
         self.redirect = True
@@ -182,6 +187,35 @@ class TestClient(unittest.TestCase):
 
 
 class TestRuntime(unittest.TestCase):
+    def test_replaced_receipt_does_not_stop_another_owned_instance(self):
+        with tempfile.TemporaryDirectory() as folder:
+            data = Path(folder)
+            runtime.write_private(data / "server.json", {"pid": 22222, "identity": "new process"})
+            args = SimpleNamespace(expected_pid=11111, expected_identity="original process")
+            with mock.patch.object(runtime, "identity", return_value="new process"), mock.patch.object(runtime.os, "kill") as kill:
+                with self.assertRaisesRegex(lc.ClientError, "differs from the expected"):
+                    runtime.stop(args, data)
+                kill.assert_not_called()
+
+    def test_partial_expected_identity_does_not_signal(self):
+        with tempfile.TemporaryDirectory() as folder:
+            data = Path(folder)
+            runtime.write_private(data / "server.json", {"pid": 11111, "identity": "original process"})
+            for args in (SimpleNamespace(expected_pid=11111, expected_identity=None), SimpleNamespace(expected_pid=None, expected_identity="original process")):
+                with mock.patch.object(runtime.os, "kill") as kill:
+                    with self.assertRaisesRegex(lc.ClientError, "supplied together"):
+                        runtime.stop(args, data)
+                    kill.assert_not_called()
+
+    def test_exact_expected_identity_allows_only_that_signal(self):
+        with tempfile.TemporaryDirectory() as folder:
+            data = Path(folder)
+            runtime.write_private(data / "server.json", {"pid": 11111, "identity": "original process"})
+            args = SimpleNamespace(expected_pid=11111, expected_identity="original process")
+            with mock.patch.object(runtime, "identity", return_value="original process"), mock.patch.object(runtime.os, "kill") as kill:
+                runtime.stop(args, data)
+                kill.assert_called_once_with(11111, runtime.signal.SIGTERM)
+
     def test_process_identity_mismatch_never_signals_process(self):
         with tempfile.TemporaryDirectory() as folder:
             data = Path(folder)

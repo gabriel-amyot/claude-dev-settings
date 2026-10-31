@@ -23,6 +23,12 @@
     "interpretation": "Exploratory p50/p95 only. No population tail-latency claim from ten observations per cell."
   },
   "diagnostic_dataset": "authored-diagnostic-not-independent-holdout",
+  "probes": {
+    "enabled": true,
+    "numeric_drift_tolerance": 0.02,
+    "planned_requests": 15,
+    "interpretation": "Authored API, option-order, isolation and untrusted-text diagnostics. No security or generalization claim."
+  },
   "quality_promotion": {
     "enabled": false,
     "minimum_independent_queries": 100,

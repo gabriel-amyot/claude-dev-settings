@@ -114,6 +114,12 @@ def status(args, data):
 
 def stop(args, data):
     state = load_state(data)
+    expected_pid = getattr(args, "expected_pid", None)
+    expected_identity = getattr(args, "expected_identity", None)
+    if (expected_pid is None) != (expected_identity is None):
+        raise ClientError("expected PID and identity must be supplied together")
+    if expected_pid is not None and (not state or state.get("pid") != expected_pid or state.get("identity") != expected_identity):
+        raise ClientError("recorded server differs from the expected owned instance; nothing was stopped")
     if not owned(state):
         raise ClientError("no matching owned server process; nothing was stopped")
     os.kill(state["pid"], signal.SIGTERM)
@@ -128,6 +134,8 @@ def main():
     parser.add_argument("--data", type=Path, default=Path(__file__).parent / ".local")
     parser.add_argument("--run", default=PINNED_RUN)
     parser.add_argument("--offline", action="store_true")
+    parser.add_argument("--expected-pid", type=int, help="stop only this exact owned instance")
+    parser.add_argument("--expected-identity", help="expected process identity paired with expected PID")
     args = parser.parse_args()
     data = args.data.absolute()
     if data.is_symlink():

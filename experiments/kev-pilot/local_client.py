@@ -13,6 +13,8 @@ from pathlib import Path
 DEFAULT_PORT = 8019
 PINNED_SOURCE = "2074cc44256200bb37540103fa4572901faa10f3"
 PINNED_RUN = "jaredpalmer/kev-4b@139fdd94f1b6a6ad80cc15e08fcb99cac885a101"
+EXPECTED_BASE = "Qwen/Qwen3.5-4B-Base"
+EXPECTED_TEMPERATURE = 2.41
 MAX_STATE_BYTES = 65536  # A byte bound, not an estimate of tokenizer length.
 MAX_RESPONSE_BYTES = 8 * 1024 * 1024
 
@@ -22,7 +24,11 @@ class ClientError(ValueError):
 
 
 def _number(value, name, low=0, high=None):
-    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+    try:
+        finite = not isinstance(value, bool) and isinstance(value, (int, float)) and math.isfinite(value)
+    except (OverflowError, ValueError, TypeError):
+        finite = False
+    if not finite:
         raise ClientError(f"invalid {name}")
     if value < low or (high is not None and value > high):
         raise ClientError(f"invalid {name}")
@@ -99,7 +105,11 @@ class Client:
                 raise ClientError("loaded checkpoint mismatch")
             if card.get("backend") != "mlx" or card.get("truncate_states") is not False:
                 raise ClientError("unexpected backend or truncation setting")
-            _number(card.get("temperature"), "temperature", 0.000001)
+            if card.get("base") != EXPECTED_BASE or card.get("device") != "mps" or card.get("dtype") != "bfloat16":
+                raise ClientError("unexpected base, device or precision")
+            temperature = _number(card.get("temperature"), "temperature", 0.000001)
+            if abs(temperature - EXPECTED_TEMPERATURE) > 0.01:
+                raise ClientError("unexpected calibration temperature")
         self.models = result
         return result
 

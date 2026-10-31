@@ -27,7 +27,9 @@ def main():
                "status": "started", "steps": [], "log": str(log_path)}
 
     def save():
-        receipt_path.write_text(json.dumps(receipt, indent=2) + "\n")
+        temporary = receipt_path.with_suffix(".new")
+        temporary.write_text(json.dumps(receipt, indent=2) + "\n")
+        temporary.replace(receipt_path)
 
     def run(command, cwd=None):
         step = {"command": command, "status": "started"}

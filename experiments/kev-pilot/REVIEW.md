@@ -46,3 +46,22 @@ The [October 27 recall proposal](../../docs/specs/2026-10-27-library-recall-revi
 ## Independent review disposition
 
 Before the first inference batch: both reviewers approved this bounded feasibility design with the constraints above. Before any live rollout: require a separate review of measured results, independently labelled held-out queries, and uncertainty intervals. An interactive `/crit:crit` review is recommended for the plan and later implementation diff. It is not a prerequisite for the authorized local prototype.
+
+## Implementation review and fixes
+
+Independent reviews reproduced these defects before native inference:
+
+- Model metadata admitted the wrong base, device, precision, and temperature. The client now checks the registered configuration.
+- Extreme JSON integers escaped the numeric validator. They now produce a controlled validation failure.
+- A batch with only failed requests could return a completed status. Status and CLI success now derive from measured receipts.
+- A torn receipt prevented report recovery. Reports now preserve corrupted bytes and expose incomplete evidence.
+- An empty candidate pool counted as model success. It now records `no_candidates` without a model completion.
+- Latency failures claimed an executed lexical fallback. Request records now state policy only. Query records state actual fallback.
+- Cleanup could stop a replacement runtime. Cleanup now requires the exact instance's recorded PID and identity.
+- A terminal study could run again. The study lock and state gate reject repeat execution.
+- Concurrent bootstrap receipt writes could interrupt polling. Receipt writes are atomic and polling tolerates bounded transient fragments.
+- Timestamp-only aggregation could import unrelated manual runs. Study summaries now use explicit run paths from their stage logs.
+
+The unrelated-run regression was observed failing before its fix and passing afterward. The retained local logs distinguish the calibrated RED from an earlier non-discriminative test attempt. The prelaunch suite passes 53 offline tests. These tests validate apparatus behavior, not recall effectiveness.
+
+Rule for this prototype: derive status from executed receipts, preserve failures, and bind every aggregate and cleanup action to explicit ownership.

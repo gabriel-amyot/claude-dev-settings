@@ -31,6 +31,14 @@
       "title": "Kev-4B: collect independent evidence before a recall decision",
       "draft": "independent-evidence.md",
       "sha256": "a1bc87c4e92a0c326b8fe02f7e67ac47365ebba377801771c987c745c3d5005e"
+    },
+    {
+      "action": "create-draft-pull-request",
+      "url": "https://github.com/gabriel-amyot/claude-dev-settings/pull/5",
+      "title": "GH-1: Add a read-only local Kev-4B pilot",
+      "draft": "pull-request.md",
+      "sha256": "bb33e13367d4416710db4a1ac58c9327275695dd6115a3d04dcfbf9f88051678",
+      "at": "2026-10-31T15:06:18.872421+00:00"
     }
   ]
 }

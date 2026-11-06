@@ -89,6 +89,7 @@ Loaded by trigger from `~/.claude/CLAUDE.md`. Never bulk-load; read only when th
 | [apollo-gateway-architecture.md](context/apollo-gateway-architecture.md) | Apollo Router managed federation | Subgraph URLs, DNS TXT env vars |
 | [cloud-run-iam-diagnosis.md](context/cloud-run-iam-diagnosis.md) | Cloud Run 403/401 diagnosis | IAM vs app auth, audit logs, smoke tests |
 | [retell-api-v2-reference.md](context/retell-api-v2-reference.md) | Calling Retell AI API | Pagination, broken filters, response format |
+| [foursquare-targeting-docs-map-targets-deployments.md](context/foursquare-targeting-docs-map-targets-deployments.md) | Foursquare Targeting API work | Doc map, targetId = infrastructure GUID, no partner field, "activated" semantics |
 
 ---
 

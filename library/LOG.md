@@ -39,3 +39,7 @@ Klever inbox and were routed here instead, because none of them carry Klever-dom
 - **CATALOG** — 1 Topic Cross-Reference line added ("False-green failures").
 - **Open decision:** whether "an exit code is not proof of work" becomes a global CLAUDE.md rule.
   Filed as [issue #282](https://github.com/gabriel-amyot/klever-project-management/issues/282).
+
+## 2026-11-06 — Foursquare Targeting doc map
+
+- Added `context/foursquare-targeting-docs-map-targets-deployments.md`: generic map of the live Foursquare Targeting docs (checked 2026-11-06, no login wall), targetId semantics, no public partner field, "activated" meaning. Klever-specific evidence stays in the Klever bibliothèque. Rows added to ALIASES, context/INDEX, INDEX, CATALOG.

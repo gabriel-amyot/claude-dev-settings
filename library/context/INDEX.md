@@ -20,7 +20,6 @@ Generated from `../ALIASES.md`. Every file has a row.
 | `deploy-identity-gate.md` | Any claim about DEPLOYED code, which branch deploys, code-owner pushback, **writing an RCA / diagnosis / verdict doc** |
 | `documentation-standards-quick-ref.md` | Writing/reviewing ADRs, placing docs, migrating agent-os/, doc standards |
 | `eqs-graphql-reference.md` | Querying EQS GraphQL (field names, filter syntax, comparators) |
-| `foursquare-targeting-docs-map-targets-deployments.md` | Foursquare Targeting / Geopulse API docs, targetId, deployment target, DSP partner or seat, "activated" meaning |
 | `git-history-verification.md` | Writing PR bodies, asserting code history ("X was deleted", "X never existed"), reviewing agent-written PR descriptions |
 | `harness-architecture-textbook.md` | how the harness is wired, harness subsystems, onboarding to the harness design |
 | `harness-self-management.md` | Improving the harness, transcript mining, auto cost monitoring, batch API for crawls |

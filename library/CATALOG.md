@@ -28,6 +28,7 @@ Entry point: [INDEX.md](INDEX.md)
 | pr-panic-protocol.md | 3-lookup rule, invariant flagging | User expresses alarm about PR contamination/security/data loss |
 | jira-skill-gotchas.md | Org slugs, subcommands, ADF format, header rule | Running `jira_skill.py` |
 | retell-api-v2-reference.md | Pagination, broken filters, response format | Calling Retell AI API |
+| foursquare-targeting-docs-map-targets-deployments.md | Doc map, targets, deploy lifecycle, no partner field | Foursquare Targeting / Geopulse API work |
 | eqs-graphql-reference.md | Field names, filter syntax, comparators | Querying EQS GraphQL |
 | cloud-run-iam-diagnosis.md | IAM vs app auth, audit logs, smoke tests | Cloud Run 403/401 diagnosis |
 | apollo-gateway-architecture.md | Subgraph URLs, DNS TXT env vars | Apollo Router managed federation |
@@ -66,6 +67,7 @@ Entry point: [INDEX.md](INDEX.md)
 - **Jira workflows:** `jira-skill-gotchas.md` (skill usage), project-level memory entries (sprint moves, closing comments, transitions, deadline mode)
 - **Harness cost + self-management:** `harness-self-management.md` (ideas A/B/C), skill proposals in `~/.claude/skill-proposals/`
 - **Vendor API contract integrity:** `vendor-api-contract-validation.md` (5-gate defense), Klever incident detail at `~/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-559/KTP-669/reports/architecture/winston-harness-recommendations-2026-05-19.md`
+- **Foursquare Targeting (cross-org vendor docs):** `foursquare-targeting-docs-map-targets-deployments.md` (doc map, targets, lifecycle). Klever evidence: Klever Bibliothèque → `vendors/foursquare/`
 - **Dark Factory pipeline:** Klever Bibliothèque → `development/dark-factory/` (lessons, ADRs, specs). Skill: `~/.claude/skills/dark-factory/SKILL.md`
 - **Klever domain:** Klever Bibliothèque → ad-tech, DSPs, BQ schemas, products, people
 - **Supervisr domain:** Supervisr Bibliothèque → lead lifecycle, EQS, compliance, dreampipe

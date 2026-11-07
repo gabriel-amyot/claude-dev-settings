@@ -557,6 +557,11 @@ suites:
     runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/klever-terraform-infra/evals/run_snapshot_evals.py
     owner_skill: klever-terraform-infra
 
+  - target: batch-skill-pipeline/triage
+    layer: A
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/batch-skill-pipeline/evals/run_triage_evals.py
+    owner_skill: batch-skill-pipeline
+
 exclusions:
   - target: superpowers:brainstorming
     reason: Plugin skill; trigger-only coverage would require writing into the plugin tree.

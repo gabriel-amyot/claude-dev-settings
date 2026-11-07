@@ -1,0 +1,14 @@
+[
+ {"file": "2026-03-01-gamma-sweep.md", "name": "gamma-sweep", "date": "2026-03-01",
+  "one_line": "Sweep gamma items.", "verdict": "ARCHIVE", "adversarial_case": "Looks like a one-off.",
+  "overlap": ["sweeper"], "evidence": {"sessions_before": 0, "sessions_after": 1, "keywords": ["gamma"], "examples": []},
+  "harness_impact": {"slot": "new", "collisions": [], "summary": "New slot."},
+  "eval_ease": 2, "eval_idea": "Assert the sweep output.", "invocation": "manual", "invocation_why": "Rare.",
+  "score": 20, "rationale": "Thin evidence."},
+ {"file": "2026-02-01-beta-check.md", "name": "beta-check", "date": "2026-02-01",
+  "one_line": "Check beta once.", "verdict": "UPDATE:checker", "adversarial_case": "Checker already does it.",
+  "overlap": ["checker"], "evidence": {"sessions_before": 1, "sessions_after": 0, "keywords": ["beta"], "examples": [{"file": "s1.md", "quote": "beta failed"}]},
+  "harness_impact": {"slot": "update", "collisions": ["checker"], "summary": "Grows checker."},
+  "eval_ease": 1, "eval_idea": "Assert the check flags beta.", "invocation": "auto", "invocation_why": "Crisp trigger.",
+  "score": 50, "rationale": "One instance."}
+]

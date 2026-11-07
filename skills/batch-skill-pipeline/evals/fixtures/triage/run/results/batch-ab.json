@@ -1,0 +1,8 @@
+[
+ {"file": "2026-01-01-alpha-tool.md", "name": "alpha-tool", "date": "2026-01-01",
+  "one_line": "Run alpha.", "verdict": "BUILD", "adversarial_case": "None strong.",
+  "overlap": [], "evidence": {"sessions_before": 3, "sessions_after": 2, "keywords": ["alpha"], "examples": []},
+  "harness_impact": {"slot": "new", "collisions": [], "summary": "New slot."},
+  "eval_ease": 3, "eval_idea": "Assert alpha runs.", "invocation": "manual", "invocation_why": "Expensive.",
+  "score": 40, "rationale": "Recurs."}
+]

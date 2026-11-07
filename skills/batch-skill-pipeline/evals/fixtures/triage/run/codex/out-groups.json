@@ -1,0 +1,3 @@
+{"misattributions": [{"proposal": "gamma-sweep", "from": "Checks and sweeps", "to": "Sweeps", "why": "It sweeps, it does not check."}],
+ "new_clusters": [], "coverage": [{"proposal": "beta-check", "covered_by": "checker", "label": "CONFIRMED"}],
+ "merge_designs": [], "summary": "One misattribution."}

@@ -1,5 +1,14 @@
-#!/usr/bin/env python3
-"""GitLab CLI for Claude Code - minimal, token-efficient interface"""
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["requests"]
+# ///
+"""GitLab CLI for Claude Code - minimal, token-efficient interface.
+
+Run with `uv run <path>/gitlab_skill.py ...`. The inline metadata above lets uv
+supply `requests`. Plain `python3` fails on hosts whose default interpreter has
+no `requests` installed (Homebrew python3 upgrades drop site-packages).
+"""
 import fcntl
 import glob
 import os
@@ -8,8 +17,19 @@ import json
 import subprocess
 from pathlib import Path
 import re
+import shutil
 import time
-import requests
+
+try:
+    import requests
+except ModuleNotFoundError:
+    # Legacy callers still run `python3 gitlab_skill.py`. Re-run once under uv so
+    # the inline metadata supplies requests. The env flag stops a re-exec loop.
+    uv_bin = shutil.which("uv")
+    if __name__ == "__main__" and uv_bin and not os.environ.get("GITLAB_SKILL_UV_REEXEC"):
+        os.environ["GITLAB_SKILL_UV_REEXEC"] = "1"
+        os.execv(uv_bin, [uv_bin, "run", "--quiet", "--script", os.path.abspath(__file__), *sys.argv[1:]])
+    raise
 
 from trace_utils import strip_ansi, extract_plan_dict, extract_error_lines
 
@@ -489,6 +509,7 @@ def full_repo(project):
         "created_at": project.get("created_at"),
         "last_activity_at": project.get("last_activity_at"),
         "default_branch": project.get("default_branch"),
+        "empty_repo": project.get("empty_repo"),
         "star_count": project.get("star_count")
     }
 
@@ -575,6 +596,127 @@ def search_repos(query, max_results=20):
     return [compact_repo(p) for p in response]
 
 
+RECENT_MAX_PAGES = 5
+API_MAX_PAGES = 20
+
+
+def recent_project_row(project):
+    """One line of `recent` output. empty_repo answers 'is this clone empty on purpose'."""
+    return {
+        "created_at": project.get("created_at"),
+        "id": project.get("id"),
+        "default_branch": project.get("default_branch"),
+        "empty_repo": project.get("empty_repo"),
+        "path_with_namespace": project.get("path_with_namespace"),
+    }
+
+
+def recent_projects(limit=10, match=None):
+    """Newest projects first. --match keeps only paths that contain the substring."""
+    needle = match.lower() if match else None
+    rows = []
+    for page in range(1, RECENT_MAX_PAGES + 1):
+        response = api_request("/projects", params={
+            "order_by": "created_at", "sort": "desc",
+            "per_page": 100 if needle else limit, "page": page,
+            "simple": "false",
+        })
+        if isinstance(response, dict) and "error" in response:
+            return response
+        if not response:
+            break
+        for project in response:
+            path = (project.get("path_with_namespace") or "").lower()
+            if needle and needle not in path:
+                continue
+            rows.append(recent_project_row(project))
+            if len(rows) >= limit:
+                return rows
+        if not needle:
+            break
+    return rows
+
+
+def normalize_api_endpoint(endpoint):
+    """Turn 'projects/1', '/projects/1' or '/api/v4/projects/1' into '/projects/1'.
+
+    Full URLs are refused: the token must only go to the configured GitLab host.
+    """
+    if not endpoint or not endpoint.strip():
+        raise ValueError("api requires an endpoint, for example: projects/577")
+    path = endpoint.strip()
+    if "://" in path:
+        raise ValueError("api takes a path relative to /api/v4, not a full URL")
+    if not path.startswith("/"):
+        path = "/" + path
+    if path.startswith("/api/v4/"):
+        path = path[len("/api/v4"):]
+    return path
+
+
+def parse_api_params(pairs):
+    """Turn ['state=opened', 'per_page=5'] into a dict. Refuses items without '='."""
+    params = {}
+    for pair in pairs or []:
+        if "=" not in pair:
+            raise ValueError(f"--param needs KEY=VALUE, got '{pair}'")
+        key, value = pair.split("=", 1)
+        params[key] = value
+    return params
+
+
+def api_get(endpoint, params=None, all_pages=False, max_pages=API_MAX_PAGES):
+    """Read-only passthrough to any GitLab API v4 endpoint. GET is the only verb."""
+    path = normalize_api_endpoint(endpoint)
+    params = dict(params or {})
+    if not all_pages:
+        return api_request(path, method="GET", params=params)
+    params.setdefault("per_page", "100")
+    collected = []
+    for page in range(1, max_pages + 1):
+        params["page"] = str(page)
+        response = api_request(path, method="GET", params=params)
+        if isinstance(response, dict) and "error" in response:
+            return response
+        if not isinstance(response, list):
+            return response
+        if not response:
+            break
+        collected.extend(response)
+        if len(response) < int(params["per_page"]):
+            break
+    return collected
+
+
+def is_dac_project_path(path_with_namespace):
+    return "grp-dac" in (path_with_namespace or "").lower()
+
+
+DAC_PROTECTED_TARGETS = {"main", "uat"}
+
+
+def dac_promotion_block(project_id, mr_iid):
+    """Return an error dict when the MR merges into main/uat on a grp-dac project.
+
+    Reads the real MR target and project path from the API, so a wrong or absent
+    --target flag cannot bypass it. Fails closed when either read fails.
+    """
+    mr = api_request(f"/projects/{project_id}/merge_requests/{mr_iid}")
+    if isinstance(mr, dict) and "error" in mr:
+        return {"error": f"DAC merge guard could not read MR !{mr_iid}: {mr['error']}"}
+    project = api_request(f"/projects/{project_id}")
+    if isinstance(project, dict) and "error" in project:
+        return {"error": f"DAC merge guard could not read project {project_id}: {project['error']}"}
+    target = (mr.get("target_branch") or "").lower()
+    path = project.get("path_with_namespace") if isinstance(project, dict) else ""
+    if is_dac_project_path(path) and target in DAC_PROTECTED_TARGETS:
+        return {"error": f"Blocked: MR !{mr_iid} on {path} targets '{target}'. "
+                         "DAC promotion to main/uat is human-initiated. "
+                         "A human may re-run with --allow-dac-promotion.",
+                "blocked": True}
+    return None
+
+
 def clone_repos(group_id, repo_list=None, output_dir=None):
     """Clone repositories with organized structure"""
 
@@ -655,8 +797,14 @@ def clone_repos(group_id, repo_list=None, output_dir=None):
     }
 
 
-def manage_merge_request(project_id, action, title=None, source=None, target=None, mr_iid=None, description=None):
+def manage_merge_request(project_id, action, title=None, source=None, target=None, mr_iid=None, description=None,
+                         allow_dac_promotion=False):
     """Manage merge requests"""
+
+    if action in ("merge", "auto-merge") and mr_iid and not allow_dac_promotion:
+        blocked = dac_promotion_block(project_id, mr_iid)
+        if blocked:
+            return blocked
 
     if action == "create":
         if not title or not source or not target:
@@ -1340,10 +1488,24 @@ def _build_parser():
     p.add_argument("--repos", dest="repo_list")
     p.add_argument("--output", dest="output_dir")
 
+    # recent: newest projects first
+    p = sub.add_parser("recent", help="Newest projects first (created_at desc), with empty_repo and default_branch")
+    p.add_argument("--limit", type=int, default=10)
+    p.add_argument("--match", help="Keep only paths that contain this substring (e.g. grp-dac, app-)")
+
+    # api: read-only passthrough
+    p = sub.add_parser("api", help="Read-only GET passthrough to any GitLab API v4 endpoint")
+    p.add_argument("endpoint", help="Path under /api/v4, e.g. projects/577/merge_requests/12")
+    p.add_argument("--param", action="append", default=[], metavar="KEY=VALUE")
+    p.add_argument("--all-pages", action="store_true",
+                   help=f"Follow pages for list endpoints (max {API_MAX_PAGES} pages)")
+
     # mr (now resolves project names)
-    p = sub.add_parser("mr")
+    p = sub.add_parser("mr", help="MR writes and list: create | list | approve | merge | auto-merge | update")
     p.add_argument("--project", required=True)
     p.add_argument("--action", required=True, choices=["create", "list", "approve", "merge", "auto-merge", "update"])
+    p.add_argument("--allow-dac-promotion", action="store_true",
+                   help="Human-only override: merge into main/uat on a grp-dac project")
     p.add_argument("--title")
     p.add_argument("--source")
     p.add_argument("--target")
@@ -1465,7 +1627,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if not args.command:
-        print(json.dumps({"error": "No command specified"}))
+        parser.print_help(sys.stderr)
+        print(json.dumps({"error": "No command specified. See the command list on stderr, or run --help."}))
         sys.exit(1)
 
     _init(args.org)
@@ -1486,6 +1649,22 @@ if __name__ == "__main__":
 
         elif cmd == "search":
             result = search_repos(args.query, max_results=args.max_results)
+
+        elif cmd == "recent":
+            result = recent_projects(limit=args.limit, match=args.match)
+            if isinstance(result, dict) and "error" in result:
+                print(json.dumps(result, indent=2))
+                sys.exit(1)
+
+        elif cmd == "api":
+            try:
+                result = api_get(args.endpoint, params=parse_api_params(args.param),
+                                 all_pages=args.all_pages)
+            except ValueError as e:
+                result = {"error": str(e)}
+            if isinstance(result, dict) and "error" in result:
+                print(json.dumps(result, indent=2))
+                sys.exit(1)
 
         elif cmd == "clone":
             result = clone_repos(args.group_id, repo_list=args.repo_list, output_dir=args.output_dir)
@@ -1509,7 +1688,8 @@ if __name__ == "__main__":
                 result = manage_merge_request(pid, args.action,
                                              title=args.title, source=args.source,
                                              target=args.target, mr_iid=args.mr_iid,
-                                             description=description)
+                                             description=description,
+                                             allow_dac_promotion=args.allow_dac_promotion)
 
         elif cmd == "mr-diff":
             result = get_mr_review(args.project, args.mr_iid)

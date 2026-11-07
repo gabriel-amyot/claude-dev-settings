@@ -1,11 +1,31 @@
-#!/usr/bin/env python3
-"""Jira CLI for Claude Code - minimal, token-efficient interface"""
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["jira"]
+# ///
+"""Jira CLI for Claude Code - minimal, token-efficient interface.
+
+Prefer `uv run <path>/jira_skill.py ...`. A plain `python3` call whose interpreter
+lacks the `jira` package re-runs itself once under uv (inline metadata above).
+"""
 import os
+import shutil
 import sys
 import json
 import subprocess
 from pathlib import Path
-from jira import JIRA
+
+try:
+    from jira import JIRA
+except ModuleNotFoundError:
+    _uv = shutil.which("uv")
+    if __name__ == "__main__" and _uv and not os.environ.get("JIRA_SKILL_UV_REEXEC"):
+        os.environ["JIRA_SKILL_UV_REEXEC"] = "1"
+        os.execv(_uv, [_uv, "run", "--quiet", "--script", os.path.abspath(__file__), *sys.argv[1:]])
+    raise
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import jira_history  # noqa: E402  pure helpers: field history, epic walk, retype UI fallback
 
 # Configuration
 CONFIG_FILE = os.path.expanduser("~/.claude-shared-config/skills/jira/jira_config.json")
@@ -208,7 +228,7 @@ def compact_issue(issue):
 
 def full_issue(issue):
     """Full issue details"""
-    sprint_value = safe_get(issue.fields.customfield_10020)
+    sprint_value = safe_get(issue.fields, "customfield_10020")
     sprint_str = str(sprint_value) if sprint_value else None
 
     return {
@@ -222,9 +242,9 @@ def full_issue(issue):
         "reporter": get_assignee_name(safe_get(issue.fields.reporter)),
         "created": str(safe_get(issue.fields.created)) or "",
         "updated": str(safe_get(issue.fields.updated)) or "",
-        "estimate": safe_get(issue.fields.customfield_10028) or safe_get(issue.fields.customfield_10016),
+        "estimate": safe_get(issue.fields, "customfield_10028") or safe_get(issue.fields, "customfield_10016"),
         "sprint": sprint_str,
-        "epic_key": safe_get(issue.fields.customfield_10014),
+        "epic_key": safe_get(issue.fields, "customfield_10014"),
         "url": f"{url}/browse/{issue.key}"
     }
 
@@ -261,15 +281,30 @@ def get_subtasks(key):
         return {"error": str(e)}
 
 
-def get_epic(key):
-    """Get parent epic"""
+def _hierarchy_node(key):
+    """Minimal node for jira_history.resolve_epic. None when the issue cannot be read."""
     try:
         issue = jira.issue(key)
-        epic_key = safe_get(issue.fields.customfield_10014)
-        if not epic_key:
+    except Exception:
+        return None
+    return {
+        "key": issue.key,
+        "type": safe_get(issue.fields.issuetype, "name"),
+        "parent": safe_get(issue.fields, "parent", "key"),
+        "epic_link": safe_get(issue.fields, "customfield_10014"),
+    }
+
+
+def get_epic(key):
+    """Get the true epic of an issue by walking parent / epic link upward.
+    A Sub-task's own epic link is empty even when its Story is under an Epic."""
+    try:
+        walk = jira_history.resolve_epic(_hierarchy_node, key)
+        if not walk["epic"]:
             return None
-        epic = jira.issue(epic_key)
-        return compact_issue(epic)
+        epic = compact_issue(jira.issue(walk["epic"]))
+        epic["via"] = walk["path"]
+        return epic
     except Exception as e:
         return {"error": str(e)}
 
@@ -301,6 +336,81 @@ def get_raw_description(key):
             "key": issue.key,
             "description": issue.fields.description or ""
         }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def _fetch_changelog(key, max_pages=20):
+    """All changelog histories for an issue (paginated REST /issue/{key}/changelog)."""
+    histories, start = [], 0
+    for _ in range(max_pages):
+        page = jira._get_json(f"issue/{key}/changelog", params={"startAt": start, "maxResults": 100})
+        values = page.get("values", [])
+        histories.extend(values)
+        start += len(values)
+        if page.get("isLast", True) or not values:
+            break
+    return histories
+
+
+def get_field_history(key, field="description", back=None):
+    """Read-only: edits of one field, newest first. --back N adds the text before the N-th newest edit."""
+    try:
+        issue = jira.issue(key)
+        current = getattr(issue.fields, field, None)
+        report = jira_history.history_report(key, _fetch_changelog(key), field=field,
+                                             back=back, current=current)
+        report["reporter"] = get_assignee_name(safe_get(issue.fields.reporter))
+        return report
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def restore_description(key, back=1, confirm=False, backup_dir=None, force=False):
+    """Write back an earlier description verbatim. Explicit only.
+
+    Without --confirm it is a dry run that shows what would be written.
+    With --confirm it needs --backup-dir, saves the current text there first,
+    honors the ownership gate (reporter != you needs --force), writes the
+    recovered wiki text without markdown conversion, and re-reads to verify.
+    """
+    try:
+        issue = jira.issue(key)
+        current = issue.fields.description or ""
+        report = jira_history.history_report(key, _fetch_changelog(key), back=back, current=current)
+        recovered = report["recovered_text"] or ""
+        preview = {
+            "key": key,
+            "back": back,
+            "reporter": get_assignee_name(safe_get(issue.fields.reporter)),
+            "current_chars": len(current),
+            "recovered_chars": len(recovered),
+            "chain_complete": report["chain_complete"],
+            "warning": report.get("warning"),
+            "recovered_text": recovered,
+        }
+        if not confirm:
+            preview["dry_run"] = True
+            preview["next"] = ("Show this text to the user. Only after explicit approval re-run with "
+                               "--confirm --backup-dir tickets/<PREFIX>/<EPIC>/<KEY>/data/backups")
+            return preview
+        ownership_error = _check_ownership(issue, force=force)
+        if ownership_error:
+            return ownership_error
+        if not backup_dir:
+            return {"error": "restore-description --confirm requires --backup-dir DIR (current text is saved first)"}
+        import datetime
+        os.makedirs(backup_dir, exist_ok=True)
+        stamp = datetime.datetime.now().strftime("%Y%m%dT%H%M%S")
+        backup_path = os.path.join(backup_dir, f"{key}-description-{stamp}.txt")
+        with open(backup_path, "w", encoding="utf-8") as f:
+            f.write(current)
+        issue.update(fields={"description": recovered})
+        after = jira.issue(key).fields.description or ""
+        return {"restored": True, "key": key, "back": back, "backup": backup_path,
+                "verified": after == recovered, "url": f"{url}/browse/{key}"}
+    except ValueError as e:
+        return {"error": str(e)}
     except Exception as e:
         return {"error": str(e)}
 
@@ -428,11 +538,11 @@ def get_all_metadata(key):
             "components": [c.name for c in issue.fields.components] if issue.fields.components else [],
             "fix_versions": [v.name for v in issue.fields.fixVersions] if issue.fields.fixVersions else [],
             "affects_versions": [v.name for v in issue.fields.versions] if issue.fields.versions else [],
-            "estimate": safe_get(issue.fields.customfield_10028) or safe_get(issue.fields.customfield_10016),
+            "estimate": safe_get(issue.fields, "customfield_10028") or safe_get(issue.fields, "customfield_10016"),
             "time_spent": safe_get(issue.fields.timespent),
             "time_estimate": safe_get(issue.fields.timeestimate),
-            "sprint": _sprint_name(safe_get(issue.fields.customfield_10020)),
-            "epic_key": safe_get(issue.fields.customfield_10014),
+            "sprint": _sprint_name(safe_get(issue.fields, "customfield_10020")),
+            "epic_key": safe_get(issue.fields, "customfield_10014"),
             "epic_name": getattr(issue.fields, 'customfield_10011', None),
             "parent_key": safe_get(issue.fields.parent, "key") if hasattr(issue.fields, 'parent') and issue.fields.parent else None,
             "subtasks_count": len(issue.fields.subtasks) if issue.fields.subtasks else 0,
@@ -804,7 +914,10 @@ def list_link_types():
 
 
 def retype_issue(key, new_type):
-    """Change an issue's type (e.g., Epic to Story)."""
+    """Change an issue's type (e.g., Epic to Story).
+    A Sub-task <-> Story conversion may be refused by the REST edit. Then the
+    result carries `ui_steps`, the exact manual fallback."""
+    old_type = None
     try:
         issue = jira.issue(key)
         old_type = safe_get(issue.fields.issuetype, "name") or "Unknown"
@@ -824,6 +937,10 @@ def retype_issue(key, new_type):
         }
     except Exception as e:
         error_str = str(e)
+        if jira_history.is_subtask_boundary(old_type, new_type):
+            return {"error": f"Jira refused to convert {key} across the Sub-task boundary through the API. "
+                             f"Use the UI steps below. Original error: {error_str}",
+                    "ui_steps": jira_history.retype_ui_steps(key, old_type, new_type, url)}
         # Provide a helpful message for common failures
         if "valid issue type" in error_str.lower() or "issuetype" in error_str.lower():
             return {"error": f"Cannot retype {key} to '{new_type}'. The type may not exist or the transition is not allowed. "
@@ -1394,6 +1511,31 @@ try:
         else:
             key = sys.argv[2]
             result = get_raw_description(key)
+
+    elif command in ("history", "restore-description"):
+        if len(sys.argv) < 3:
+            result = {"error": f"{command} requires issue key"}
+        else:
+            key = sys.argv[2]
+
+            def _opt(flag):
+                if flag in sys.argv:
+                    idx = sys.argv.index(flag)
+                    if idx + 1 < len(sys.argv):
+                        return sys.argv[idx + 1]
+                return None
+
+            back_raw = _opt("--back")
+            try:
+                back = int(back_raw) if back_raw else None
+            except ValueError:
+                back = None
+                result = {"error": f"--back needs a number, got '{back_raw}'"}
+            if result is None and command == "history":
+                result = get_field_history(key, field=_opt("--field") or "description", back=back)
+            elif result is None:
+                result = restore_description(key, back=back or 1, confirm="--confirm" in sys.argv,
+                                             backup_dir=_opt("--backup-dir"), force="--force" in sys.argv)
 
     elif command == "metadata":
         if len(sys.argv) < 3:

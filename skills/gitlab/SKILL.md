@@ -39,16 +39,21 @@ Run `--org klever index` once to build the full Klever index for name resolution
 ## Commands
 
 ```
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org <ORG> <COMMAND> [args]
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org <ORG> <COMMAND> [args]
 ```
+
+Always use `uv run`, never plain `python3`. The script declares `requests` inline (PEP 723), and the default `python3` can lack it (`ModuleNotFoundError: No module named 'requests'`). Do not `import gitlab_skill` in a one-liner. Use `api` instead. `--help` (also `mr --help`) prints the real command list.
 
 **Available commands**:
 - `list-groups [--full]` — List all groups
 - `list-repos [--group GROUP_ID] [--all] [--full]` — List projects in a group
-- `get-repo ID_OR_PATH [--full]` — Get single repository details
+- `get-repo ID_OR_PATH [--full]` — Get single repository details (`--full` includes `default_branch` and `empty_repo`; check `empty_repo` before you treat a no-files clone as a failure)
 - `clone [--group GROUP_ID] [--repos REPO1,REPO2] [--output DIR]` — Clone repositories
-- `mr [--project PROJECT_ID] [--action create|list|approve] [--title TITLE] [--source SOURCE] [--target TARGET] [--mr-iid IID]` — Manage merge requests
-- `search QUERY [--max N]` — Search repositories
+- `mr --project P --action create|list|approve|merge|auto-merge|update [--title T] [--source S] [--target T] [--mr-iid IID] [--description D | --description-file F]` — Manage merge requests. For a Klever MR, create through `/klever-mr`. `merge`/`auto-merge` into `main`/`uat` on a `grp-dac` project is blocked (human-only `--allow-dac-promotion`).
+- `mr-diff`, `mr-note`, `mr-note-edit`, `mr-note-reply`, `mr-note-delete` — MR review reads and comments (comments go through `/post-comment`)
+- `search QUERY [--max N]` — Search repositories by name or alias (e.g. `biag`, `proexp`)
+- `recent [--limit N] [--match SUBSTR]` — Newest projects first, with `created_at`, `default_branch`, `empty_repo`
+- `api ENDPOINT [--param K=V ...] [--all-pages]` — Read-only GET to any `/api/v4` path (e.g. `api projects/577/merge_requests/12`). No write verb exists. Exits 1 on error.
 - `pipelines PROJECT [--ref BRANCH] [--status STATUS] [--count N]` — List recent pipelines
 - `jobs PROJECT --pipeline ID [--logs]` — Get jobs for a pipeline
 - `trace PROJECT --job ID [--filter KEYWORD] [--full] [--tail N]` — Get raw job trace
@@ -71,19 +76,19 @@ python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org <ORG> <COMMA
 
 1. **Download** full job trace:
 ```bash
-python3 ~/.claude-shared-config/skills/gitlab/pipeline_trace_download.py <dac-name> --job <job-id> [--env dev]
+uv run ~/.claude-shared-config/skills/gitlab/pipeline_trace_download.py <dac-name> --job <job-id> [--env dev]
 ```
 Output: `{dac_repo}/gitlab-ci/{env}/execution_{image_tag}_{job_id}.log`
 
 2. **Summarize**:
 ```bash
-python3 ~/.claude-shared-config/skills/gitlab/pipeline_trace_summarize.py <log-file-path>
+uv run ~/.claude-shared-config/skills/gitlab/pipeline_trace_summarize.py <log-file-path>
 ```
 Output: `_summary.yaml` next to the log. Read this first (~30 lines).
 
 **Chained usage:**
 ```bash
-python3 ~/.claude-shared-config/skills/gitlab/pipeline_trace_download.py lead-lifecycle --job 56102 | xargs python3 ~/.claude-shared-config/skills/gitlab/pipeline_trace_summarize.py
+uv run ~/.claude-shared-config/skills/gitlab/pipeline_trace_download.py lead-lifecycle --job 56102 | xargs uv run ~/.claude-shared-config/skills/gitlab/pipeline_trace_summarize.py
 ```
 
 **Known Error Patterns:**
@@ -112,14 +117,14 @@ The skill maintains `dac_index.json` — a per-org cache of project names → ID
 
 ```bash
 # List recent pipelines for EQS DAC
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py pipelines eqs
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py pipelines eqs
 
 # Watch a deployment
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py deploy-watch lead-lifecycle --pipeline 21872
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py deploy-watch lead-lifecycle --pipeline 21872
 
 # Update image tag and trigger deploy
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py vars "lead-lifecycle" --action set --key TF_VAR_image_tag --value 0.0.4-dev --scope dev
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py pipeline "lead-lifecycle" --ref dev
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py vars "lead-lifecycle" --action set --key TF_VAR_image_tag --value 0.0.4-dev --scope dev
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py pipeline "lead-lifecycle" --ref dev
 ```
 
 > **Safety:** Pipelines on `main`, `master`, `prod`, `production`, `uat` are blocked.
@@ -133,19 +138,19 @@ python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py pipeline "lead-lif
 
 ```bash
 # List repos in backend microservices group
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever list-repos --group 154
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever list-repos --group 154
 
 # List recent pipelines for proximity-report
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever pipelines 577
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever pipelines 577
 
 # List open MRs on proximity-report
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever mr --project 577 --action list
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever mr --project 577 --action list
 
 # Create MR
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever mr --project 577 --action create --title "KTP-XXX: description" --source feature-branch --target dev
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever mr --project 577 --action create --title "KTP-XXX: description" --source feature-branch --target dev
 
 # Build name index (run once, then use natural names)
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever index
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever index
 ```
 
 ---

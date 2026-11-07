@@ -74,7 +74,7 @@ Use this skill to interact with Jira issues through simple CLI commands. All com
 - `list [--status STATUS] [--project KEY] [--max N] [--full]` - List issues
 - `get KEY [--full]` - Get single issue details
 - `subtasks KEY` - List subtasks of an issue
-- `epic KEY` - Get parent epic of an issue
+- `epic KEY` - Get the epic of an issue (walks parent and epic link upward, so Sub-tasks resolve)
 - `comments KEY` - Get all comments for an issue
 - `description KEY` - Get raw description (verbatim)
 - `metadata KEY` - Get all metadata (assignee, reporter, labels, links, etc.)
@@ -87,12 +87,16 @@ Use this skill to interact with Jira issues through simple CLI commands. All com
 - `delete-comment KEY --comment-id ID` - Delete a comment from an issue
 - `transition KEY STATUS` - Transition issue to a new status
 - `transitions KEY` - List available transitions for an issue
-- `update KEY [--description DESC] [--summary SUMMARY] [--assignee USER] [--labels LABEL1,LABEL2] [--parent KEY] [--estimate N] [--sprint SPRINT_ID] [--force]` - Update issue fields (hierarchy-validated)
+- `update KEY [--description DESC] [--summary SUMMARY] [--assignee USER] [--labels LABEL1,LABEL2] [--parent KEY] [--epic KEY] [--estimate N] [--sprint SPRINT_ID] [--force]` - Update issue fields (hierarchy-validated)
 - `sprints --project PROJECT [--state active,future]` - List sprints for a project (returns ID, name, state, dates)
 - `sprint-board (--project KEY | --board ID) [--max N]` - Active-sprint issues with key, summary, status, **assignee**, story points, epic in ONE call (Agile board API; avoids the broken openSprints JQL). `--project KTP` auto-discovers the board (Klever = board 248). Default max 100.
 - `link KEY1 KEY2 [--type "Relates"]` - Create a link between two issues (default: Relates)
 - `link-types` - List all available issue link types
-- `retype KEY --type "Story"` - Change an issue's type (e.g., Epic to Story)
+- `retype KEY --type "Story"` - Change an issue's type (e.g., Epic to Story). Returns `ui_steps` when Jira refuses a Sub-task conversion
+- `history KEY [--field description] [--back N]` - Read-only field history, newest first; `--back N` recovers earlier text
+- `restore-description KEY [--back N] [--confirm --backup-dir DIR] [--force]` - Explicit request only. Dry run without `--confirm`
+
+History, restore and structure writes (`--parent`, `--epic`, `retype`, `epic` ancestor walk): [references/history-and-structure.md](references/history-and-structure.md). Run with `uv run` when `python3` lacks the `jira` package (the script also re-runs itself under uv).
 
 ## fetch — Materialize a Ticket to Disk
 

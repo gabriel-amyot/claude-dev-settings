@@ -85,6 +85,10 @@ No force push, `filter-branch`, `reset --hard` to a pushed ref, or `--amend` on 
 commit. This holds even if Gabriel approves it. If he insists, hand him the exact command
 with branch, remote and paths, and let him run it.
 
+To back out a merged app-repo change and re-open it as a Draft MR (manual, on explicit
+request only), follow `references/revert-and-isolate.md`. Its check script,
+`scripts/revert_check.py`, proves the revert touched only the reverted change.
+
 ## Who enforces what
 
 | Rule | Enforced by | Tested |
@@ -106,6 +110,8 @@ covers four rules, not the whole policy.
 ```bash
 python3 ~/.claude-shared-config/skills/git/evals/run_git_evals.py
 ```
+
+`run_revert_evals.py` (6 fixture repos) covers `revert_check.py`.
 
 23 Layer A fixtures, registered as `git/lint`. Every rule family is mutation-tested, so a
 rule that stops firing fails the suite instead of quietly becoming prose.

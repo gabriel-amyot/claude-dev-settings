@@ -12,168 +12,65 @@ nav:
 
 Create merge requests on Klever GitLab repos with enforced quality gates. App repos get version bump and changelog enforcement. Infra/DAC repos skip those gates. Every MR gets a WHY, a WHAT, and a sync check.
 
-## Why This Exists
+It prevents two failures: a tag collision on app repos (CI tags images from the version in code, so two merges with the same version fail the second pipeline), and empty MR descriptions. Rationale, repo-type table, Python and FaaS zip detail: `references/repo-types-and-versioning.md`.
 
-Two problems this skill prevents:
+## Hard rules
 
-1. **Tag collision on app repos.** CI tags Docker images from the version in code. Two branches merging with the same version = second pipeline fails. Forgetting the version bump or changelog has happened repeatedly.
-2. **Empty MR descriptions on any repo.** MR descriptions without WHY and WHAT are useless for reviewers. The skill synthesizes both from commit history so every MR ships with context.
-
-## Repo Types
-
-Klever has four repo types. The skill detects which one it's in and adjusts gate behavior accordingly.
-
-| Type | Detection | Version gate | Changelog gate |
-|------|-----------|-------------|----------------|
-| **Java backend** | `pom.xml` at repo root | Required | Required |
-| **Node frontend** | `package.json` at repo root | Required | Required |
-| **Python app** | `pyproject.toml` at repo root (no `pom.xml`/`package.json`) | Required | Required-if-exists |
-| **Infra/DAC/terraform** | none of the above | Skipped | Skipped |
-
-**Python app repos matter:** Klever Python agent repos (e.g. `app-media-plan`, `app-agent-hub`) build a versioned Docker image and the CI's `bc-release-version` step runs `git tag $(poetry version --short)`. If the `[project] version` in `pyproject.toml` is not bumped between merges, the tag already exists and the pipeline fails on collision. So a `pyproject.toml` repo is an **app repo**, NOT infra — do not skip the version gate for it. (Learned from KTP-735: `app-media-plan` was misclassified as infra, the version gate was skipped, and the release step later failed.)
-
-Infra repos (paths containing `grp-dac`, `grp-cfg`, or repos with `.tf` files) have no versioned artifacts. Their pipelines run terraform, not Docker builds. Version bump and changelog gates do not apply.
-
-**FaaS zip-artifact app repos** (`.gitlab-ci.yml` includes `datasophia-glb-incl-zip-artifact`) are app repos with a second version location: `DATASOPHIA_INCL_ZIP_ARTIFACT_TAG_VERSION` names the uploaded zip. Every `dev` merge needs a bump in both places. Only `dev` builds (`BUILD_UPLOAD`); `main` re-points to a zip a dev pipeline already uploaded.
+- **Never push to `main` or `uat` on a DAC repo.** Target `dev`. The skill never pushes to dev/main directly. It opens an MR.
+- **App repos (Java, Node, Python) always get the version bump gate.** Java and Node also need a CHANGELOG entry. Python needs one only if `CHANGELOG.md` exists. Only Infra/DAC skips both.
+- **Exit codes:** 0 GREEN/pass, 1 RED/needs a human, 3 **CANT_VERIFY**. CANT_VERIFY is never a pass and never a RED. Report "Gate N not run" with the cause, fix the cause if you can, and never report it as a missing artifact or defect.
+- **`--merge-on-pass` is explicit only.** Use it only when the human pre-authorized it for this MR in this session.
+- **Agents never trigger the DAC apply job.** Human-only, whatever the plan says.
+- **GitLab calls use `uv run`.** Plain `python3` lacks `requests` on this Mac. Every `gitlab` skill script runs as `uv run --quiet ~/.claude-shared-config/skills/gitlab/<script>.py`. If the Klever config is missing, run `gitlab_config_setup.py configure klever --op-item <1Password item>` the same way.
 
 ## Pre-Flight Gates
 
-Run these gates in order. Gates are **check-and-fix**, not blockers.
+Run the gates in order. Gates are **check-and-fix**, not blockers.
 
-**Self-resolving failures** (behind dev, uncommitted changes, missing version bump, missing changelog entry): fix them automatically, report what you did, continue. Never ask "should I fix this?" The answer is always yes.
+**Self-resolving failures** (behind dev, uncommitted changes, missing version bump, missing changelog entry): fix automatically, report what you did, continue. Never ask "should I fix this?" The answer is always yes. Commit fixes as `{TICKET-ID}: pre-MR housekeeping (version bump, changelog)` before pushing.
 
-**Structural failures** (wrong branch type, no repo detected): report and stop. These indicate work started wrong.
+**Structural failures** (wrong branch type, no repo detected, stale branch already merged): report and stop. For a stale branch, create a fresh branch from dev.
 
-### PROD-PROMOTION gate (MR targets `main`) — the version-bump-on-main trap
+### PROD-PROMOTION gate (MR targets `main`)
 
-`main` pipelines on Klever app repos do **NOT build** — they only re-deploy an artifact (Docker image or GCS zip) that a `dev` pipeline already published. An MR that puts a version on `main` that no `dev` pipeline ever built (cherry-pick + version bump is the classic path) will deploy a nonexistent artifact → **prod 502** (2026-07-29 outage). Before creating or advising a `main`-targeted MR, run:
+`main` pipelines on Klever app repos do **NOT build**. They re-deploy an artifact (Docker image or GCS zip) that a `dev` pipeline already published. A version on `main` that no `dev` pipeline built (cherry-pick + version bump) deploys a nonexistent artifact: **prod 502** (2026-07-29 outage). Before you create or advise a `main`-targeted MR, run:
 
 ```bash
 bash ~/.claude/skills/klever-mr/scripts/promotion-image-preflight.sh --repo <repo> --ref <promotion-branch-or-HEAD>
 ```
 
-The script detects image vs zip from the promoted revision's CI file. The exit code is the verdict: **0 GREEN**, **1 RED** (artifact absent) → STOP. Two valid paths only: (1) promote a **dev** version whose artifact dev already built (full dev→main), or (2) for images, build a **snapshot** from a feature branch (`KLEVER_DEPLOY_SNAPSHOT=prod`). Never invent a new version number on `main`. **3 CANT_VERIFY** (ambiguous type, auth expiry, wrong name) is not a RED: fix the cause and re-run. Never report it as a missing artifact.
+The script detects image vs zip from the promoted revision's CI file. **0 GREEN**. **1 RED** (artifact absent): STOP. Two valid paths only: (1) promote a **dev** version whose artifact dev already built (full dev→main), or (2) for images, build a **snapshot** from a feature branch (`KLEVER_DEPLOY_SNAPSHOT=prod`). Never invent a new version number on `main`. **3 CANT_VERIFY** (ambiguous type, auth expiry, wrong name) is not a RED: fix the cause and re-run.
 
-### Gate 1: Repo Detection and Type Classification
+### Gate 1: Repo detection and type
 
-```bash
-git rev-parse --show-toplevel
-```
+`git rev-parse --show-toplevel` must be a repo under `~/Developer/grp-beklever-com/`. Classify: `pom.xml` → **Java backend**, `package.json` → **Node frontend**, `pyproject.toml` (no `pom.xml`/`package.json`) → **Python app**, none → **Infra/DAC**. Java, Node and Python are app repos. Never classify a `pyproject.toml` repo as infra (KTP-735).
 
-Must be a git repo under `~/Developer/grp-beklever-com/`.
+### Gate 2: Branch check
 
-Classify the repo type by checking for version files:
-- `pom.xml` exists → **Java backend**
-- `package.json` exists → **Node frontend**
-- `pyproject.toml` exists (and no `pom.xml`/`package.json`) → **Python app**
-- none of the above → **Infra/DAC**
-
-Store the repo type. Gates 4 and 5 use it to decide whether to run or skip. **Java backend, Node frontend, and Python app are all "app repos" (version + changelog gates apply). Only Infra/DAC skips them.**
-
-### Gate 2: Branch Check
-
-```bash
-git branch --show-current
-```
-
-Must be on a feature branch (not `dev`, `main`, or `master`). Extract ticket ID from branch name (pattern: `KTP-XXX-*`, `KTT-XXX-*` or `INS-XXX-*`).
-
-If on dev/main/master, FAIL: "You're on a protected branch. Create a feature branch first."
+`git branch --show-current` must be a feature branch, not `dev`, `main` or `master`. Otherwise FAIL: "You're on a protected branch. Create a feature branch first." Extract the ticket ID (`KTP-XXX-*`, `KTT-XXX-*` or `INS-XXX-*`). No ticket ID: use the branch name and warn that external posts need a Jira key.
 
 ### Gate 3: Sync with origin/dev
 
-```bash
-git fetch origin
-git log HEAD..origin/dev --oneline
-```
+`git fetch origin`, then `git log HEAD..origin/dev --oneline`. Commits behind: run `git merge origin/dev` and report "Merged N commits from origin/dev." Conflicts: STOP, the user resolves. `git status --porcelain` dirty: commit as `{TICKET-ID}: uncommitted work before MR` and report. If the dirty files look unrelated to the ticket, STOP and ask.
 
-If there are commits on origin/dev not in the local branch:
-- **Auto-resolve:** Run `git merge origin/dev`. Report: "Merged N commits from origin/dev."
-- If merge conflicts arise, STOP and let the user resolve them.
+### Gate 4: Version bump (app repos only)
 
-Also check for uncommitted changes:
-```bash
-git status --porcelain
-```
-If dirty:
-- **Auto-resolve:** Stage and commit with message `{TICKET-ID}: uncommitted work before MR`. Report what was committed.
-- Exception: if dirty files look unrelated to the ticket, STOP and ask.
-
-### Gate 4: Version Bump (app repos only)
-
-**Skip condition:** If repo type is **Infra/DAC**, skip this gate entirely. Report: "Gate skipped: version bump (infra/terraform repo, no versioned artifact)."
-
-For app repos, list every release version location on the branch and on origin/dev. The script parses the version file (`pom.xml` project version, `package.json`, `pyproject.toml` `[project]` via TOML) and the CI release variables (`DATASOPHIA_INCL_*_TAG_VERSION`). Other semver CI variables (`UV_VERSION`) are listed as ignored and never edited.
+Infra/DAC: skip and report it. App repos:
 
 ```bash
 python3 ~/.claude/skills/klever-mr/scripts/version-locations.py --repo . --ref origin/dev
 python3 ~/.claude/skills/klever-mr/scripts/version-locations.py --repo .
 ```
 
-Local version MUST be strictly greater than origin/dev's version (patch increment minimum). After any bump of the version file, run the second command with `--sync` so every CI release variable matches, then run it again without `--sync`. It must exit 0. Report each location the sync changed by name.
-
-Also check for tag collision:
-```bash
-git tag --list "v*" | grep -F "<local-version>"
-git tag --list | grep -F "<local-version>"
-```
-
-If versions are equal:
-- **Auto-resolve:** Increment patch (X.Y.Z → X.Y.Z+1). For package.json, also run `npm install --package-lock-only`. For `pyproject.toml`, edit the `[project] version` line and, if a `uv.lock` is present at repo root, run `uv lock` (or note it needs regen) so the lockfile's project version tracks. Report: "Bumped version X.Y.Z → X.Y.Z+1."
-
-If tag already exists:
-- **Auto-resolve:** Find next available patch version, bump to that. Report: "Tag X.Y.Z exists, bumped to X.Y.N."
+Pass: local version strictly greater than origin/dev and no existing tag for it. Fail auto-resolves: bump patch (or next free patch), then `--sync` the CI release variables and re-run without `--sync` until exit 0. Lockfiles, tag check, multi-file and zip 403 cases: `references/repo-types-and-versioning.md`.
 
 ### Gate 5: CHANGELOG.md (app repos only)
 
-
-**Skip condition:** If repo type is **Infra/DAC**, skip this gate entirely. Report: "Gate skipped: CHANGELOG (infra/terraform repo)."
-
-For app repos, read `CHANGELOG.md` at repo root. Verify it contains an entry matching the local version:
-
-```
-## [X.Y.Z] - YYYY-MM-DD
-```
-
-The date should be today or recent (within 7 days). The entry must have content (at least one bullet under a category like Added/Changed/Fixed).
-
-If no CHANGELOG.md exists:
-- **Java backend / Node frontend:** STOP: "No CHANGELOG.md found at repo root."
-- **Python app** (`pyproject.toml`): the changelog is required-if-exists, not a hard blocker (these agent repos often ship without one). Report: "No CHANGELOG.md in this Python repo — skipping the changelog gate (the version bump above is the gate that prevents the tag collision). Consider adding one." Do NOT stop.
-
-If no entry for current version:
-- **Auto-resolve:** Add a `## [X.Y.Z] - YYYY-MM-DD` section with entries from `git log --reverse --format="- %s" origin/dev..HEAD`. Report: "Added CHANGELOG entry for X.Y.Z."
-
-If entry is empty:
-- **Auto-resolve:** Populate from commit subjects. Report what was added.
+Infra/DAC: skip and report it. Pass: a `## [X.Y.Z] - YYYY-MM-DD` entry for the local version, dated within 7 days, with at least one bullet. Missing or empty entry: add it from commit subjects. No file: STOP for Java/Node, report and continue for Python. Detail: `references/repo-types-and-versioning.md`.
 
 ### Gate 6: Docs lint (only when the MR changes markdown)
 
-**Skip condition:** if `git diff --name-only origin/dev..HEAD` contains no `.md` files, skip and report "Gate skipped: docs lint (no markdown changed)."
-
-Markdown defects do not fail CI, so they land in `main` and are found by a reader weeks later. Two classes are invisible in a local preview and appear only in GitLab's web view:
-
-- **Mermaid** — GitLab renders **9.1.1**. Any newer diagram syntax (`timeline`, `mindmap`, `block-beta`, `quadrantChart`, `sankey`, `xychart-beta`, `@{shape:}`, frontmatter `config:`) parses fine locally and on GitHub, then shows **"Syntax error in graph"** on GitLab.
-- **Navigation** — GitLab renders a folder's `README.md` under its file listing and **ignores `INDEX.md`**. A folder with no README shows bare filenames. Repo-escaping `../../` links resolve on one developer's disk and never in a web view.
-
-Run the linter against a clean export, not the working tree:
-
-```bash
-git -C <repo> archive HEAD | tar -x -C /tmp/docs-lint-$$ \
-  && python3 ~/Developer/grp-beklever-com/project-management/tools/docs-repo-lint.py /tmp/docs-lint-$$
-```
-
-Triage the output:
-
-| Finding | Action |
-|---|---|
-| MERMAID too new | **Blocking.** Rewrite the diagram in 9.1.1 syntax (`flowchart`/`graph`, `sequenceDiagram`, `classDiagram`, `stateDiagram-v2`, `erDiagram`, `gantt`, `pie` are all safe). |
-| BROKEN relative links | **Blocking.** A dead link in merged docs is a defect. |
-| REPO-ESCAPING links | **Blocking.** These can never resolve in the web view. |
-| FOLDERS with no README | Report and offer to add one. Not blocking on its own. |
-| MISSING frontmatter, ORPHANS | Informational. Report the count only. |
-
-Report findings against the files **this MR touches** first. Pre-existing defects elsewhere in the repo are not this MR's job — list them separately and do not block on them.
+No `.md` in `git diff --name-only origin/dev..HEAD`: skip and report. Otherwise run `tools/docs-repo-lint.py` on a clean `git archive` export. Blocking: Mermaid newer than GitLab's 9.1.1, broken relative links, repo-escaping links, in files this MR touches. Missing README is advisory. Commands and triage table: `references/docs-lint-gate.md`.
 
 ### Gates 7 and 8: conditional (read `references/conditional-gates.md` when triggered)
 
@@ -186,220 +83,28 @@ Exit 3 is CANT_VERIFY: report "Gate N not run" and why, then continue.
 
 ## Modes
 
-`/klever-mr` supports three modes:
-
 | Invocation | Mode | Behavior |
 |---|---|---|
 | `/klever-mr` | **Automatic** (default) | Creates MR via GitLab API, posts description. No merge action. Pass `--auto-merge` to enable merge-when-pipeline-succeeds. |
 | `/klever-mr manual` | **Manual** (legacy) | Generates URL + description file for copy-paste into the GitLab web UI |
 | `/klever-mr --merge-on-pass` | **External merge gate** (explicit only) | Codex review loop, merge to `dev` on PASS. Only when the human pre-authorized it. Read `references/external-merge-gate.md` first. |
+| `/klever-mr consolidate` | **Pre-MR consolidation** | Several finished branches become one branch with one version bump, then the normal flow. Read `references/consolidation-mode.md`. |
 
 All modes run identical pre-flight gates and generate the same MR description. They differ only in Steps 3 and 5 and in the merge step.
 
-**GitLab calls use `uv run`.** Plain `python3` lacks `requests` on this Mac. Every `gitlab` skill script below runs as `uv run --quiet ~/.claude-shared-config/skills/gitlab/<script>.py`. If the Klever config is missing, run `gitlab_config_setup.py configure klever --op-item <1Password item>` the same way.
-
-## Multi-Branch Consolidation (pre-MR mode)
-
-Invoke with `/klever-mr consolidate` when several finished feature branches need to ship as one MR. Common cause: multiple branches each bumped the version independently, so merging them sequentially causes tag collisions. Consolidating onto one branch with a single version bump avoids that.
-
-This mode runs BEFORE the normal MR flow. It produces one consolidated branch, then falls through to the standard gates and MR creation.
-
-1. **Identify branches** to consolidate. Verify the feature files are disjoint (no two branches touch the same file). Map any overlaps.
-2. **Create the consolidated branch** from `origin/dev`: `git checkout origin/dev -b {TICKET-ID}-consolidated` (or a descriptive name covering the set).
-3. **Pull each branch's feature files** with `git checkout origin/{branch} -- {files}`. For directory renames, `git rm` the old path and check out the new one.
-4. **Single version bump + CHANGELOG** covering all consolidated work. Find the next available tag (see Gate 4) — bump once, not once per branch.
-5. **Build + type-check** to verify the combined set compiles.
-6. **Commit**, then fall through to the standard MR Creation flow below.
-
-**Disjoint-files only.** The `git checkout origin/{branch} -- {files}` method works only when feature files don't overlap. If files overlap, fall back to sequential `git cherry-pick` with conflict resolution. This mode differs from the GitHub-oriented `/batch-pr-consolidation`; this is for GitLab feature branches pre-MR.
-
 ## MR Creation
 
-All applicable gates passed. Now generate the MR.
+Templates, commands and summary formats for Steps 2 to 5: `references/mr-description-and-summary.md`.
 
-### Step 1: Push the branch
+1. **Push.** `git push -u origin HEAD`. If the push fails, report and stop.
+2. **Extract five mandatory components:** ticket ID, WHY (the problem, 1-2 sentences, from `git log --reverse --format="%B" origin/dev..HEAD`), WHAT (the outcome, not a file list), commits block, test plan (ask if unsure).
+3. **Title** `{TICKET-ID}: {short imperative what}`. Target is `dev` unless the user says otherwise. Automatic mode resolves the project ID with `gitlab_skill.py search`. Manual mode builds the `merge_requests/new` URL.
+4. **Description** sections in this order: **Why**, **What**, **Tickets**, **Commits**, **Test plan**. Use `.gitlab/merge_request_templates/Default.md` as the skeleton if it exists.
+5. **Create.** Write `.mr-description.md` at repo root (not committed, add to `.gitignore` if missing). Run `python3 ~/.claude-shared-config/tools/ste_lint.py .mr-description.md`, show the score, revise obvious hits (advisory, no block). Automatic mode: `uv run --quiet ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever mr --action create ... --target dev`. MR already exists: update its description, never create a duplicate. API creation fails: fall back to manual mode and report the reason. `--auto-merge` only: arm auto-merge, a failure there does not block. Without `--auto-merge`, take no merge action. Print the summary block. A manual-mode URL is bare on its own line.
 
-```bash
-git push -u origin HEAD
-```
+## Deploy to Dev (`--auto-merge`, automatic mode, app repos only)
 
-If push fails, report the error and stop.
-
-### Step 2: Extract MR components
-
-This step produces five components. All five are mandatory regardless of repo type.
-
-**Ticket ID**: from branch name (e.g., `KTP-499` from `KTP-499-atomic-permissions`)
-
-**WHY**: Read the commit messages to extract the problem/motivation:
-```bash
-git log --reverse --format="%B" origin/dev..HEAD
-```
-Synthesize a 1-2 sentence WHY from the commit bodies. The WHY answers: what problem existed, or what was asked for. If commit bodies are empty (subject-only commits), synthesize the WHY from the subjects and the changed files. Describe the problem, not the solution.
-
-**WHAT**: Synthesize a 1-2 sentence summary of the outcome. Describe the user/system impact, not a file list.
-
-**Commits block**: Generate the formatted commit log:
-```bash
-git log --reverse --format="### %s%n%n%b" origin/dev..HEAD
-```
-
-**Test plan**: Infer from commits and changed files (e.g., "unit tests pass", "terraform plan reviewed", "manual testing via Postman"). If unsure, ask the user.
-
-### Step 3: Resolve project and construct MR title
-
-Extract repo name from git remote:
-```bash
-git remote get-url origin
-```
-Parse the repo name (last path segment before `.git`).
-
-Construct the MR title: `{TICKET-ID}: {short what — imperative}` (from the first commit subject, or synthesized).
-
-**Automatic mode only:** Resolve the GitLab project ID:
-```bash
-uv run --quiet ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever search "{repo-name}"
-```
-Extract the numeric `id` from the result. If search returns multiple results, pick the one whose `path` matches exactly.
-
-**Manual mode only:** Construct the MR URL:
-```
-https://cicd.prod.datasophia.com/{group}/{project}/-/merge_requests/new?merge_request[source_branch]={branch}&merge_request[target_branch]=dev
-```
-
-Target branch is always `dev` unless the user says otherwise.
-
-### Step 4: Render the MR description
-
-The MR description always contains these five sections in this order: **Why**, **What**, **Tickets**, **Commits**, **Test plan**. This is true whether the repo has a template or not.
-
-**If the repo has `.gitlab/merge_request_templates/Default.md`:** Read it, use its structure as the skeleton. Fill in each section with the extracted components. Strip HTML comments (`<!-- ... -->`), replace with actual content.
-
-**If the repo has no template**, use this structure:
-
-```
-## Why
-
-{synthesized WHY — 1-2 sentences: what problem existed, what was asked}
-
-## What
-
-{synthesized WHAT — 1-2 sentences: outcome for user/system}
-
-## Tickets
-
-- [TICKET-ID](https://beklever.atlassian.net/browse/TICKET-ID)
-
-## Commits
-
-{git log --reverse --format="### %s%n%n%b" output}
-
-## Test plan
-
-- [ ] {verification items}
-```
-
-### Step 5: Create MR and present summary
-
-Write the full MR description to `.mr-description.md` in the repo root. This file is ephemeral, not committed. If `.gitignore` doesn't already contain `.mr-description.md`, add it.
-
-**STE anti-slop lint (advisory).** Run `python3 ~/.claude-shared-config/tools/ste_lint.py .mr-description.md` before creating the MR. Show the score (violations per 100 words) and revise obvious hits in the Why/What prose: hedges, marketing adjectives, phrasal verbs, run-ons, nominalizations. Advisory for now (no block) while the threshold is calibrated. See `docs/specs/2026-07-30-ste-anti-slop-design.md`.
-
-#### Automatic mode (default)
-
-Create the MR via the GitLab API:
-```bash
-uv run --quiet ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever mr \
-  --project {project_id} \
-  --action create \
-  --title "{MR title}" \
-  --source {branch} \
-  --target dev \
-  --description-file {repo_root}/.mr-description.md
-```
-
-If creation fails (e.g., MR already exists), try updating the existing MR's description instead:
-1. List open MRs: `--action list`, find the one matching the source branch
-2. Update it: `--action update --mr-iid {iid} --description-file .mr-description.md`
-
-**Auto-merge (opt-in, requires `--auto-merge` flag):**
-
-Only if `/klever-mr --auto-merge` was invoked:
-1. Enable merge-when-pipeline-succeeds:
-   ```bash
-   uv run --quiet ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever mr \
-     --project {project_id} \
-     --action auto-merge \
-     --mr-iid {iid}
-   ```
-   If auto-merge fails (e.g., pipeline not yet started, approvals required), report but do not block. The MR is still created.
-
-2. **Direct merge fallback:** If auto-merge is not available (feature disabled, no approvals configured, or user requests immediate merge), merge the MR directly:
-   ```bash
-   uv run --quiet ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever mr \
-     --project {project_id} --action merge --mr-iid {iid}
-   ```
-   Report the merge state from the JSON output (`merged`, `state` fields).
-
-**Default behavior (no `--auto-merge`):**
-MR is created and reported. No merge action taken. Human reviews and merges via GitLab UI.
-
-Present this summary:
-
-```
----
-KLEVER MR CREATED
-
-MR: !{iid}
-{bare web_url on its own line}
-
-{For app repos only:}
-Version: {old} -> {new}
-
-{For infra repos only:}
-Gates skipped: Version bump (N/A, infra repo), CHANGELOG (N/A, infra repo)
-
-Why: {one-line preview}
-What: {one-line preview}
-Auto-merge: {enabled | not set (reason)}
-
-Description posted. Nothing to copy-paste.
-```
-
-#### Manual mode (legacy fallback)
-
-Present this summary:
-
-```
----
-KLEVER MR READY (manual)
-
-URL:
-{bare URL on its own line — no markdown, no brackets, no backticks}
-
-{For app repos only:}
-Version: {old} -> {new}
-
-{For infra repos only:}
-Gates skipped: Version bump (N/A, infra repo), CHANGELOG (N/A, infra repo)
-
-Why: {one-line preview}
-What: {one-line preview}
-
-MR description written to: {absolute path to .mr-description.md}
-
-Open the URL above, then copy-paste the file contents into the MR description field.
-```
-
-The URL MUST be a bare string on its own line so the terminal auto-links it. Never wrap it in backticks, markdown link syntax, angle brackets, or code blocks.
-
-## Deploy to Dev (automatic mode with `--auto-merge` only, app repos only)
-
-This section only runs when `--auto-merge` was passed. Without it, the MR is created but not merged, so deploy steps are skipped.
-
-After setting auto-merge, the skill continues with deployment to dev. This is **dev only**, never demo.dev, uat, or prod. Infra/DAC repos and manual mode skip this section entirely.
-
-### DAC Routing Table
+Dev only, never demo.dev, uat or prod. Infra/DAC repos and manual mode skip it. Commands, poll limits and the report template: `references/deploy-to-dev.md`.
 
 | App repo | DAC repo | Version variable | DAC scope |
 |---|---|---|---|
@@ -408,142 +113,23 @@ After setting auto-merge, the skill continues with deployment to dev. This is **
 | `app-user-management` | `dac-gcp-back-usermg` | `cpe_cos_version` | `dev` |
 | `app-proximity-explorer` | `dac-gcp-back-proexp` | `cpe_cos_version` | `dev` |
 
-If the app repo is not in this table, skip deploy. Report: "No DAC mapping for this repo. Deploy manually."
+Repo not in the table: skip deploy, report "No DAC mapping for this repo. Deploy manually."
 
-### Step 6: Wait for MR to merge
+- **Step 6: Wait for merge** (max 10 min). Then run the post-merge cleanup below.
+- **Step 7: Dev app pipeline** (max 15 min). `success` or `manual` (bridge `bd-configure-dac` waiting) = build complete. `failed` = STOP.
+- **Step 8: Bridge.** List with `gitlab_skill.py bridges`. Find `deploy-in-dev` or `bd-configure-dac`: `manual` → `play-job`, `success`/`running` → read `downstream_pipeline`, `failed` → STOP. No DAC pipeline 5 min after the app pipeline: report and STOP.
+- **Step 9: DAC gates.** Agents MAY play the **plan** job, then summarize the trace (create/modify/destroy counts). Agents MUST NEVER trigger the **apply** job. A failed plan: report, never retry.
+- **Step 10: Report** the plan. Any destroy gets a TERRAFORM DESTROY DETECTED block that lists each resource. Hand off to the human. After 20:00 EDT, note the nightly dev shutdown.
 
-Poll the MR status until merged (max 10 minutes, 30s interval):
-```bash
-uv run --quiet ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever mr \
-  --project {app_project_id} --action list
-```
-Check if the MR iid is no longer in the open list (means merged or closed). If the MR has auto-merge enabled, it will merge when the source branch pipeline succeeds. If no auto-merge, merge directly (see "Direct merge fallback" in Step 5).
+## Post-merge cleanup (any repo, any mode)
 
-**Post-merge cleanup (any repo, any mode).** Run this when the MR is merged: after this poll, on a later `/klever-mr status`, or when the user says "it's merged". Run `git fetch origin` first.
+Run it when the MR is merged: after Step 6, on a later `/klever-mr status`, or when the user says "it's merged". Run `git fetch origin` first.
 
 ```bash
 python3 ~/.claude/skills/klever-mr/scripts/post-merge-cleanup.py --repo <repo> --branch <branch> --ticket <TICKET-ID>
 ```
 
 Exit 0 (merge proven, nothing to preserve): re-run with `--apply`. Exit 1 (not proven) or 2 (files to preserve): remove nothing and report the script output. The script never uses `--force` and never deletes the remote branch or `/tmp` clones. It only lists them.
-
-### Step 7: Wait for dev branch app pipeline
-
-Poll the dev branch pipeline until it reaches a terminal state (max 15 minutes, 30s interval):
-```bash
-uv run --quiet ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever pipelines \
-  {app_project_id} --ref dev --count 1
-```
-
-Terminal states for app pipelines:
-- **`"success"`**: all jobs completed. Proceed.
-- **`"manual"`**: all automatic jobs completed, but the pipeline has a downstream bridge job (`bd-configure-dac`) awaiting manual trigger or already triggered. **Treat as build complete.** The `bd-configure-dac` bridge job auto-triggers the DAC pipeline. Proceed to Step 8.
-- **`"failed"`**: STOP and report the failure. Do not proceed to DAC.
-
-Report: "App pipeline {status} ({pipeline_url})"
-
-### Step 8: Find and trigger the deploy-in-dev bridge job
-
-The app pipeline contains bridge/trigger jobs that are invisible in the regular `/jobs` endpoint. Use the `bridges` command to find them:
-```bash
-uv run --quiet ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever bridges \
-  {app_project_id} --pipeline {app_pipeline_id}
-```
-
-Parse the JSON output. Look for a bridge named `deploy-in-dev` or `bd-configure-dac`. Check its status:
-- **`"manual"`**: the bridge needs to be triggered. Use `play-job`:
-  ```bash
-  uv run --quiet ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever play-job \
-    {app_project_id} --job {bridge_job_id}
-  ```
-- **`"success"`** or **`"running"`**: the bridge already fired. Read the `downstream_pipeline` field from the bridge output to get the DAC pipeline ID directly.
-- **`"failed"`**: STOP and report the bridge failure.
-
-If the bridge output includes a `downstream_pipeline` ID, use it directly instead of searching DAC pipelines by timestamp. If not available, fall back to checking the DAC project's recent pipelines:
-```bash
-uv run --quiet ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever pipelines \
-  {dac_project_name} --ref dev --count 3
-```
-Look for a pipeline with source `"pipeline"` (bridge-triggered) created within the last few minutes.
-
-If no DAC pipeline appears within 5 minutes after the app pipeline completes, report: "No DAC pipeline auto-triggered. Check bridge job status in the app pipeline." and STOP.
-
-### Step 9: Monitor DAC pipeline manual gates
-
-DAC pipelines have **two manual gate jobs**: a **plan** job and an **apply** job.
-
-Poll the DAC pipeline jobs:
-```bash
-uv run --quiet ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever jobs \
-  {dac_project_name} --pipeline {dac_pipeline_id}
-```
-
-**Plan job (agents MAY trigger):** Find the plan job (usually named `deploy-in-dev` or similar with stage `deploy`). If it is in `"manual"` status, trigger it:
-```bash
-uv run --quiet ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever play-job \
-  {dac_project_name} --job {plan_job_id}
-```
-
-Wait for the plan job to complete (max 10 minutes). Once it finishes, download and summarize the trace:
-```bash
-uv run --quiet ~/.claude-shared-config/skills/gitlab/pipeline_trace_download.py {dac_project_name} \
-  --job {plan_job_id} --env dev
-```
-Then summarize:
-```bash
-uv run --quiet ~/.claude-shared-config/skills/gitlab/pipeline_trace_summarize.py {log_file_path}
-```
-
-Read the summary YAML. Parse the terraform plan output looking for:
-- **Resources to create** (count)
-- **Resources to modify/update** (count)
-- **Resources to destroy** (count)
-
-**Apply job (agents MUST NEVER trigger):** The apply job is human-only. Agents must never trigger it, regardless of the plan contents. Present the plan summary and let the human decide.
-
-### Step 10: Report and hand off to human
-
-Present the terraform plan report:
-
-```
----
-DEPLOY TO DEV
-
-App pipeline: {status} ({app_pipeline_url})
-DAC pipeline: {dac_pipeline_url} (auto-triggered by bd-configure-dac)
-
-Terraform Plan:
-  + {N} to create
-  ~ {M} to modify
-  - {D} to destroy
-
-{If D == 0:}
-No destroys. Safe to apply.
-
-{If D > 0:}
-TERRAFORM DESTROY DETECTED
-{D} resource(s) will be DESTROYED. Review the plan carefully before applying.
-Resources to be destroyed:
-{list each destroyed resource name from the plan}
-
-Apply job: {apply_job_id} (HUMAN ONLY — agent must not trigger)
-To apply: run manually in GitLab or confirm and Gabriel will trigger it.
-```
-
-**Agents never trigger the apply job.** Report the plan summary and stop. The human reviews the plan and triggers apply manually in GitLab.
-
-## Edge Cases
-
-- **Multiple version files**: If both pom.xml and package.json exist, bump both. Verify both match.
-- **Frontend package-lock.json**: After bumping package.json, run `npm install --package-lock-only` and include the lockfile change in the commit.
-- **Auto-resolved fixes need committing**: If any gate auto-resolved, commit fixes with `{TICKET-ID}: pre-MR housekeeping (version bump, changelog)` before pushing.
-- **Branch has no ticket ID**: Use the branch name as-is. Warn the user that external posts should reference a Jira key.
-- **Stale branch (already merged)**: STOP. Create a fresh branch from dev.
-- **API MR creation fails**: Fall back to manual mode automatically. Report: "API creation failed ({reason}), falling back to manual mode."
-- **MR already exists for branch**: Find the existing MR by listing open MRs, update its description via `--action update`. Do not create a duplicate.
-- **Dev pipeline 403 `storage.objects.delete` on a zip upload**: a stale version, not a permission gap. The zip name still uses the old `DATASOPHIA_INCL_ZIP_ARTIFACT_TAG_VERSION`. Bump it (Gate 4 `--sync`). Never request `objectAdmin`: the bucket refuses overwrites on purpose.
-- **DAC pipeline fails on plan**: Report the error from the trace summary. Do not retry automatically (could be a state lock or registry outage).
-- **Nightly shutdown (after 20:00 EDT)**: Dev environment goes down nightly. If deploy happens during this window, the deploy will succeed but the service won't serve traffic until morning. Note this in the report if the current time is after 20:00 EDT.
 
 ## What This Skill Does NOT Do
 

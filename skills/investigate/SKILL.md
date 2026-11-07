@@ -12,6 +12,16 @@ nav:
 
 # Investigation-First Workflow
 
+## Host compatibility
+
+Read [the shared host mapping](../../docs/skill-host-compatibility.md) before execution. Use native tools and the existing shared agent instructions. Required executors and companion skills remain real dependencies.
+
+
+## Shared maintenance note (2026-10-26)
+
+Keep and prioritize the investigation workflow with the factory/feedback ecosystem. See [the shared selection record](../../docs/harness-skill-selection.md).
+
+
 **Trigger:** Something isn't working as expected, whether during development or after deploy. Does NOT require a formal bug ticket.
 
 **Usage:** `/investigate [description]` or `/investigate KTP-XXX`
@@ -33,7 +43,7 @@ If uncertain, default to the full workflow. KTP-628 happened because "I know the
 
 Quinn owns investigation. Before anyone touches code:
 
-0. **Library first (KTP-939 F19).** Check the org bibliothèque (`documentation/bibliotheque/INDEX.md` + `ALIASES.md`, or `bibliotheque-librarian` query mode) for the failing system's documented behavior, topology, and known gotchas. Carry what it establishes into the investigation; never re-derive documented mechanisms. Any probe dispatched from here carries a `Library:` line (citations or "silent").
+0. **Library first (KTP-939 F19).** Check the org bibliothèque (`documentation/bibliotheque/INDEX.md` + `ALIASES.md`, or `bibliotheque-librarian` query mode) for the failing system's documented behavior, topology, and known gotchas. Follow current-runtime and supersession pointers from the system's front-loader; an old architecture page is not enough. Search the reported error and concrete artifact names in the current operator/runtime notes before escalating or creating temporary infrastructure. Carry what it establishes into the investigation; never re-derive documented mechanisms. Any probe dispatched from here carries a `Library:` line (citations or "silent").
 1. **Invoke `superpowers:systematic-debugging`** — complete its Phase 1 (Root Cause Investigation) and Phase 2 (Pattern Analysis)
 2. Identify the **specific** file, layer, component, or endpoint causing the issue
 3. If frontend/visual: capture screenshot evidence of the current broken state

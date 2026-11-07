@@ -9,6 +9,11 @@ nav:
 
 # Epic Reorganization Skill
 
+## Shared maintenance note (2026-10-26)
+
+Keep the ticket/specification group. Gabriel wants these available, with a short purpose explanation when choosing one. Repair stale paths or evidence assumptions before activation. See [the shared selection record](../../docs/harness-skill-selection.md).
+
+
 Automates splitting or reorganizing Jira epics: creates new epics, re-parents tickets in Jira, restructures local `tickets/` folders, and updates index files. Covers any org (SPV, KTP, etc.).
 
 **Usage:** `/epic-reorganization <EPIC-ID> [--ac <ticket-list>] [--dry-run]`

@@ -77,6 +77,11 @@ for j in blocklist.json install-counts-cache.json installed_plugins.json known_m
   [ -f "$CLAUDE/plugins/$j" ] || cp "$SHARED/plugins/$j" "$CLAUDE/plugins/$j"
 done
 
+if [ -f "$SHARED/bmad/setup.py" ]; then
+  echo "==> Restoring shared BMAD entry points"
+  python3 "$SHARED/bmad/setup.py"
+fi
+
 echo "==> Linking the ledger helper onto PATH"
 mkdir -p "$CLAUDE/bin"
 ledger_src="$CLAUDE/plugins/local-marketplace/session/bin/ledger.py"

@@ -4750,6 +4750,48 @@ entries:
     '
   runs:
   - run-2026-10-02-KTP-1275
+- key: qa-verdict-must-derive-from-per-ac-rows
+  theme: tdd-ledger
+  status: open
+  times_proposed: 1
+  first_proposed: '2026-11-01'
+  last_proposed: '2026-11-01'
+  titles:
+  - QA ALL_PASS must be derived from complete per-AC rows reconciled with the concierge AC list
+  detail: evidenceCappedOverall() trusts qa.raw_overall=ALL_PASS even when a per_ac row is FAIL/PARTIAL,
+    and classifyQaGap() returns all_pass immediately. Empty per_ac/ac_progress/ac_tdd also pass despite
+    concierge ac_count>0. Found by Codex launch review 2026-11-02 (finding 5), confirmed by reading lines
+    ~408 and ~638.
+  runs:
+  - launch-review-2026-11-02-GH-557
+- key: fix-loop-evidence-must-replace-impl-evidence
+  theme: review-severity-gate
+  status: open
+  times_proposed: 1
+  first_proposed: '2026-11-01'
+  last_proposed: '2026-11-01'
+  titles:
+  - Final pre-ship gate must use the latest fix round's execution_verified and merged TDD ledger
+  detail: After the fix loop, preShipBlockers() and the QA RED ledger still read the original impl. A
+    fix returning execution_verified=false can reach READY_TO_SHIP if the original was true; a good fix
+    stays blocked by an original false. Codex launch review 2026-11-02 finding 6, confirmed at lines ~1158-1203.
+  runs:
+  - launch-review-2026-11-02-GH-557
+- key: dac-belt-pre-merge-verify-mode
+  theme: unthemed
+  status: open
+  times_proposed: 1
+  first_proposed: '2026-11-01'
+  last_proposed: '2026-11-01'
+  titles:
+  - terraform-dac-infra belt needs a pre-merge verify path; run constraints must reach worker prompts
+  detail: 'Belt execute-verify says push to dev (auto-apply) before review; reporting infra_blocked instead
+    always HALT_PRESHIPs (executionOk accepts only true/not_applicable). DAC MR pipelines run init-validate-plan
+    only (verified MR pipeline 33058). Also: a caller''s run restrictions (no creds, no dev push) are
+    not propagated into worker prompts; add an args.run_constraints that every agent prompt includes.
+    Blocked GH-558/559 on 2026-11-02.'
+  runs:
+  - launch-review-2026-11-02-GH-557
 - key: consume-the-per-phase-confidence-numbers
   theme: confidence-is-inert
   status: landed

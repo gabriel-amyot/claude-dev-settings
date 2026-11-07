@@ -9,6 +9,11 @@ nav:
 
 # Status Index Skill
 
+## Shared maintenance note (2026-10-26)
+
+Keep the ticket/specification group. Gabriel wants these available, with a short purpose explanation when choosing one. Repair stale paths or evidence assumptions before activation. See [the shared selection record](../../docs/harness-skill-selection.md).
+
+
 Generate or refresh `STATUS_SNAPSHOT.yaml` for a ticket or epic.
 
 **Usage:** `/status-index <ticket-path> [--dry-run] [--push-jira]`

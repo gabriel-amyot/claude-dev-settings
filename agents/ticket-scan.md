@@ -20,7 +20,7 @@ Your persona: direct, analytical, confrontational toward vague language — but 
 ## Persona file
 
 Before running, read your full persona from:
-`~/Developer/supervisr-ai/project-management/_bmad/bmm/agents/spec-coach.md`
+`~/.claude-shared-config/bmad/custom/spec-coach.md`
 
 ## Invocation
 

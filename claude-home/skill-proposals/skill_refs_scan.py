@@ -4,7 +4,7 @@
 A skill with zero invocations is not necessarily dead. It may be a sub-step
 another skill, agent, hook, or CLAUDE.md rule depends on. This separates:
 
-  ORPHAN     - zero invocations, nothing references it        -> retire
+  ORPHAN     - no observed invocations, no references found -> review
   REFERENCED - zero invocations, but other config points at it -> investigate
                (either the caller is also dead, or the rule is not being followed)
 
@@ -63,12 +63,15 @@ def refs_for(name):
         rf'|(use\s+(the\s+)?{q}{n}{q})'
     )
     try:
-        out = subprocess.run(
+        result = subprocess.run(
             ["rg", "-l", "--no-messages", "-i", pattern, *roots],
             capture_output=True, text=True, timeout=60,
-        ).stdout
+        )
+        if result.returncode not in (0, 1):
+            return None, []
+        out = result.stdout
     except (subprocess.TimeoutExpired, FileNotFoundError):
-        return 0, []
+        return None, []
     own = f"/.claude/skills/{name}/"
     hits = [ln for ln in out.splitlines() if ln and own not in ln]
     return len(hits), hits
@@ -80,6 +83,23 @@ def parse_never(path):
     return re.findall(r"^- ([a-zA-Z0-9:_-]+)$", section, re.M)
 
 
+
+def publish_harness(kind, source_path, records=None):
+    """Bridge metadata without changing the producer's result."""
+    try:
+        import importlib.util
+        import os
+        import sys
+        from pathlib import Path
+        shared = Path(os.environ.get("HARNESS_ROOT", str(Path.home() / ".claude-shared-config")))
+        spec = importlib.util.spec_from_file_location("harness_producer", shared / "harness/producer.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        module.publish(kind, source_path, records)
+    except Exception as error:
+        import sys
+        print(f"WARN harness bridge unavailable: {error}", file=sys.stderr)
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--names-from",
@@ -89,21 +109,24 @@ def main():
     args = ap.parse_args()
 
     names = parse_never(args.names_from)
-    orphans, referenced = [], []
+    orphans, referenced, unavailable = [], [], []
     for n in names:
         count, hits = refs_for(n)
-        (orphans if count == 0 else referenced).append((n, count, hits))
+        if count is None:
+            unavailable.append(n)
+        else:
+            (orphans if count == 0 else referenced).append((n, count, hits))
 
     lines = [
         "# Retirement Candidates",
         "",
-        "Derived from USAGE-SCAN.md. Every skill here had ZERO invocations in the",
-        "scan window. This pass adds the second question: does any other skill,",
+        "Derived from USAGE-SCAN.md. Every skill here had no observed invocation signal in the",
+        "available Claude scan window. This does not establish non-use. This pass asks whether another skill,",
         "agent, hook, or CLAUDE.md still point at it?",
         "",
         f"## ORPHAN ({len(orphans)}) — zero invocations, zero references",
         "",
-        "Nothing calls these and nothing points at them. Safest to archive.",
+        "No references were found in the scanned instructions. Review manually; do not auto-retire.",
         "",
     ]
     lines += [f"- {n}" for n, _, _ in orphans] or ["- (none)"]
@@ -119,7 +142,10 @@ def main():
     for n, c, hits in sorted(referenced, key=lambda x: -x[1]):
         short = [h.replace(str(HOME), "~") for h in hits[:3]]
         lines.append(f"- **{n}** ({c} refs) — {', '.join(short)}")
+    if unavailable:
+        lines += ["", "## Reference scan unavailable", "", *["- " + name for name in unavailable]]
     Path(args.out).write_text("\n".join(lines) + "\n")
+    publish_harness("reference-scan", args.out)
     print(f"orphans: {len(orphans)} | referenced: {len(referenced)}")
     print(f"report: {args.out}")
 

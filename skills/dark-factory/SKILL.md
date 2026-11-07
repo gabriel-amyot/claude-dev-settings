@@ -13,6 +13,11 @@ nav:
 
 # Dark Factory
 
+## Shared maintenance note (2026-10-26)
+
+Strategic priority and bread and butter. Gabriel intends substantial continued investment. A Codex port must preserve deterministic gates and the proven executor behavior; do not substitute prose for a working factory. See [the shared selection record](../../docs/harness-skill-selection.md).
+
+
 The **single-ticket** ticket-to-dev factory, built on the **Workflow tool**. Orchestration is a
 deterministic script; the phase gates are JavaScript, not prose, so no step can be skipped or
 self-certified past. A human concierge gate at the front stops for the engineer on spec/context/prereq/infra

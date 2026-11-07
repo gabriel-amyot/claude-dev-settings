@@ -5,6 +5,16 @@ description: Triage issues through a state machine driven by triage roles. Use w
 
 # Triage
 
+## Host compatibility
+
+Read [the shared host mapping](../../docs/skill-host-compatibility.md) before execution. Use native tools and the existing shared agent instructions. Required executors and companion skills remain real dependencies.
+
+
+## Shared maintenance note (2026-10-26)
+
+Keep the ticket/specification group. Gabriel wants these available, with a short purpose explanation when choosing one. Repair stale paths or evidence assumptions before activation. See [the shared selection record](../../docs/harness-skill-selection.md).
+
+
 Move issues on the project issue tracker through a small state machine of triage roles.
 
 Every comment or issue posted to the issue tracker during triage **must** start with this disclaimer:

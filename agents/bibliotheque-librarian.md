@@ -235,11 +235,7 @@ Run these checks (severity in parentheses):
 
 **Memory dir resolution** (reuses the `--wiki` flag; the wiki root stays loaded too — you grep it for duplicate detection):
 
-| Wiki ID | Auto-memory dir |
-|---------|-----------------|
-| klever | `~/.claude/projects/-Users-gabrielamyot-Developer-grp-beklever-com-project-management/memory/` |
-| supervisr | `~/.claude/projects/-Users-gabrielamyot-Developer-supervisr-ai-project-management/memory/` |
-| personal | probe `~/.claude/projects/-Users-gabrielamyot-Developer-gabriel-amyot-project-management/memory/`; INFO-skip if absent |
+Resolve the selected org's actual project-management absolute path first. Locate its matching encoded directory under ~/.claude/projects and verify that memory/ exists. Do not hardcode a former username into an encoded slug. If several candidates match, require an explicit choice before mutation. If absent, report INFO-skip. This mode maintains Claude private auto-memory, not a shared or Codex memory store. Durable cross-host knowledge remains in the bibliothèque/library.
 
 **Preflight (HARD STOP):** the memory dir must be a git repository with at least one commit (`git -C {mem-dir} rev-parse HEAD`). If not, STOP and report "no restore path — run preflight (tar + git init + baseline commit) first." Never proceed without version history.
 

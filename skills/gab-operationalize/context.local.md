@@ -22,24 +22,24 @@ Resolve from cwd path:
 | Type | Path |
 |------|------|
 | Tribal knowledge inbox | project-management/documentation/bibliotheque/inbox/ |
-| Ticket context | project-management/tickets/{ID}/reports/ |
+| Ticket context | project-management/tickets/{PREFIX}/{EPIC-or-no-epic}/{ID}/reports/ |
 | Meeting decisions | project-management/general/meetings/DECISIONS_LOG.md |
-| ADR drafts | project-management/tickets/{ID}/architecture/adr/ |
-| Promoted ADRs | project-management/documentation/architecture/adr/ |
+| ADR drafts | project-management/tickets/{PREFIX}/{EPIC-or-no-epic}/{ID}/architecture/adr/ |
+| Promoted ADRs | Affected repo's agent-os/ for repo-specific decisions; project-management/documentation/architecture/ for cross-cutting decisions only |
 
 ### Supervisr
 | Type | Path |
 |------|------|
 | Tribal knowledge inbox | project-management/documentation/bibliotheque/inbox/ |
-| Ticket context | project-management/tickets/{ID}/reports/ |
-| ADR drafts | project-management/tickets/{ID}/architecture/adr/ |
-| Promoted ADRs | project-management/documentation/architecture/adr/ |
+| Ticket context | Resolve the org's current ticket-folder schema before writing |
+| ADR drafts | The resolved ticket folder's architecture/adr/ |
+| Promoted ADRs | Affected repo's architecture truth source; PM documentation only for cross-cutting decisions |
 
 ### Global (any org)
 | Type | Path |
 |------|------|
 | User preference, cross-project | ~/.claude/library/context/ |
-| Working memory | ~/.claude/projects/*/memory/MEMORY.md |
+| Working memory | This conversation's tracked session state and knowledge manifest; durable knowledge goes to the shared library |
 
 ## Conventions
 

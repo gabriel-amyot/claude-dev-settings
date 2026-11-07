@@ -9,6 +9,11 @@ nav:
 
 # Technical Documentation Review Flow
 
+## Shared maintenance note (2026-10-26)
+
+Keep. Gabriel uses or wants this documentation/review workflow available in both agents. See [the shared selection record](../../docs/harness-skill-selection.md).
+
+
 Three sequential passes over a repo's doc tree. Each pass loops editor → mechanical gates → adversarial verifier, max 5 rounds, exiting when zero Major/Critical findings remain. Everything is a file; every restart resumes from cache. Origin: the KTP-1182 Powers MCP run (worked example baked into the templates).
 
 ## The shape

@@ -8,7 +8,13 @@ nav:
   personas: [dexter, quinn, winston]
 ---
 
+
 # Adversarial Review Cascade
+
+## Shared maintenance note (2026-10-26)
+
+Review before promotion. Gabriel reports not using this in either Claude or Codex. Assess usefulness and overlap before linking or recommending it. This is not a deletion or retirement decision. See [the shared selection record](../../docs/harness-skill-selection.md).
+
 
 6 BMAD personas review a work product in parallel. Each persona has a distinct domain. The orchestrator synthesizes findings into a severity table and fixes CRITICAL/HIGH issues immediately.
 
@@ -33,12 +39,12 @@ Each persona is dispatched as a parallel background agent. Each reads their full
 
 | # | Persona | Domain | Persona File | Report Name |
 |---|---------|--------|-------------|-------------|
-| 1 | **Dexter** | Process forensics, data safety, agent orchestration | `~/Developer/supervisr-ai/project-management/_bmad/bmm/agents/debugger.md` | `dexter-process-forensic-{date}.md` |
-| 2 | **Winston** | Architecture artifacts, agent-os quality, cross-references | `~/Developer/gabriel-amyot/projects/ai-software-development/dark-software-factory/_bmad/bmm/agents/architect.md` | `winston-architecture-review-{date}.md` |
-| 3 | **Quinn** | Code review, test coverage, edge cases, security | `~/Developer/gabriel-amyot/projects/ai-software-development/dark-software-factory/_bmad/bmm/agents/qa.md` | `quinn-code-review-{date}.md` |
+| 1 | **Dexter** | Process forensics, data safety, agent orchestration | `~/.claude-shared-config/bmad/custom/debugger.md` | `dexter-process-forensic-{date}.md` |
+| 2 | **Winston** | Architecture artifacts, agent-os quality, cross-references | `~/.claude-shared-config/bmad/runtime/bmm/agents/architect.md` | `winston-architecture-review-{date}.md` |
+| 3 | **Quinn** | Code review, test coverage, edge cases, security | `~/.claude-shared-config/bmad/runtime/bmm/agents/qa.md` | `quinn-code-review-{date}.md` |
 | 4 | **Adversarial General** | Claims vs reality, data integrity, honest assessment | Built-in cynical reviewer (no persona file) | `adversarial-{scope}-{date}.md` |
 | 5 | **PM** | Timeline, stakeholder gaps, delivery confidence, risk | Built-in PM perspective | `pm-project-assessment-{date}.md` |
-| 6 | **PO + Leo** | Feature completeness, AC coverage, user journey | Leo: `~/Developer/supervisr-ai/project-management/_bmad/bmm/agents/spec-coach.md` | `po-leo-feature-review-{date}.md` |
+| 6 | **PO + Leo** | Feature completeness, AC coverage, user journey | Leo: `~/.claude-shared-config/bmad/custom/spec-coach.md` | `po-leo-feature-review-{date}.md` |
 
 ## Execution Steps
 

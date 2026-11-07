@@ -17,6 +17,8 @@ Usage: python3 run_sweep.py [--target NAME] [--source manual|monthly]
 Exit 0 if all suites green, 1 otherwise.
 """
 import argparse
+import hashlib
+import uuid
 import datetime
 import json
 import os
@@ -126,6 +128,23 @@ def write_inbox_item(failures, report_path, today):
     return path
 
 
+
+def publish_harness(kind, source_path, records=None):
+    """Bridge metadata without changing the producer's result."""
+    try:
+        import importlib.util
+        import os
+        import sys
+        from pathlib import Path
+        shared = Path(os.environ.get("HARNESS_ROOT", str(Path.home() / ".claude-shared-config")))
+        spec = importlib.util.spec_from_file_location("harness_producer", shared / "harness/producer.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        module.publish(kind, source_path, records)
+    except Exception as error:
+        import sys
+        print(f"WARN harness bridge unavailable: {error}", file=sys.stderr)
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--target", help="run a single suite by target name")
@@ -144,6 +163,8 @@ def main():
                   file=sys.stderr)
             return 1
 
+    occurred_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    run_id = uuid.uuid4().hex
     today = datetime.date.today().isoformat()
     results = []
     for suite in suites:
@@ -163,13 +184,41 @@ def main():
         now = datetime.datetime.now().strftime("%H:%M")
         fh.write(f"\n# Layer A sweep — {today} {now} ({args.source})\n\n")
         fh.write(f"{len(results) - len(failures)}/{len(results)} suites green.\n\n")
-        for target, ok, code, output in results:
+        for result_index, (target, ok, code, output) in enumerate(results):
             fh.write(f"## {'PASS' if ok else 'FAIL'} — {target} (exit {code})\n\n")
+            fh.write(f"<!-- harness-eval-run:{run_id}:{result_index} -->\n\n")
             if not ok:
                 fh.write("```\n" + output.strip()[-3000:] + "\n```\n\n")
             else:
                 tail = output.strip().splitlines()[-1] if output.strip() else ""
                 fh.write(f"{tail}\n\n")
+
+    # The run marker identifies exact assertions even when multiple sweeps append
+    # to the same daily report. It is provenance, not a second result artifact.
+    with open(report_path, encoding="utf-8") as report_stream:
+        report_lines = report_stream.read().splitlines()
+    assertion_refs = {}
+    for line_index, line in enumerate(report_lines):
+        marker = re.fullmatch(r"<!-- harness-eval-run:" + re.escape(run_id) + r":(\d+) -->", line)
+        if marker:
+            previous = line_index - 1
+            while previous >= 0 and not report_lines[previous].strip():
+                previous -= 1
+            heading = report_lines[previous]
+            assertion_refs[int(marker.group(1))] = f"line:{previous + 1}; assertion_sha256:" + hashlib.sha256(heading.encode()).hexdigest()
+
+    # Publish the measured outcome; never infer a tested revision from last_green.
+    suite_by_name = {suite["target"]: suite for suite in suites}
+    publish_harness("eval-sweep", report_path, [
+        {"suite_id": target,
+         "owner_skill": suite_by_name[target].get("owner_skill", "unknown"),
+         "occurred_at": occurred_at,
+         "outcome": "pass" if ok else ("error" if code == "timeout" else "fail"),
+         "source_ref": assertion_refs[result_index],
+         "layer": "A", "revision": None,
+         "summary": (("SIMULATED failure (reporting exercise, not measured product failure). " if code == "simulated" else "") + f"exit {code}; source={args.source}")}
+        for result_index, (target, ok, code, output) in enumerate(results)
+    ])
 
     if green and not args.target:
         stamp_last_green(MANIFEST, green, today)

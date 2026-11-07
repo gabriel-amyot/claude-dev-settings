@@ -50,3 +50,5 @@ Generated from `../ALIASES.md`. Every file has a row.
 | `worktree-fleet-ops.md` | Creating a worktree from a project-management cwd, `could not lock config file ~/.gitconfig` in parallel fleets |
 | `zsh-dotfiles-double-sourcing-gotcha.md` | shell startup errors, zshenv sourcing zshrc, dotfiles run twice, intermittent terminal error |
 | `mechanical-backstops.md` | which hook enforces which rule, hook coverage and gaps |
+
+| `shared-skills-harness-observatory.md` | Sharing Claude/Codex skills, observatory usage/eval evidence, runtime cache parity and recovery |

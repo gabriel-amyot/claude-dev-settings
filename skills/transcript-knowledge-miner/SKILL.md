@@ -1,6 +1,6 @@
 ---
 name: transcript-knowledge-miner
-description: Mine historical Claude Code session transcripts for reusable knowledge (procedures, gotchas, rules, decisions). Triggers: "mine transcripts", "extract from transcripts", "transcript mining", "knowledge from sessions", "review old sessions". Writes findings to bibliotheque inbox.
+description: "Mine historical Claude Code session transcripts for reusable knowledge (procedures, gotchas, rules, decisions). Triggers: \"mine transcripts\", \"extract from transcripts\", \"transcript mining\", \"knowledge from sessions\", \"review old sessions\". Writes findings to bibliotheque inbox."
 nav:
   bay: know
   when: "Mine session transcripts for reusable knowledge: procedures, gotchas, rules, decisions."
@@ -8,6 +8,18 @@ nav:
 ---
 
 # Transcript Knowledge Miner
+
+## Host compatibility
+
+Read [the shared host mapping](../../docs/skill-host-compatibility.md) before execution. Use native tools and the existing shared agent instructions. Required executors and companion skills remain real dependencies.
+
+
+This skill mines historical Claude Code JSONL transcripts, including when invoked from Codex. It does not parse Codex conversation history. Resolve the current org first and restrict transcript discovery to that org's project directories. --all means all candidates within that org unless the user explicitly requests cross-org mining.
+
+## Shared maintenance note (2026-10-26)
+
+Highest priority: shared knowledge, durable memory and continuity. Preserve one library for Claude and Codex. Compatibility or maintenance issues are work to assess, not a reason to demote this area. See [the shared selection record](../../docs/harness-skill-selection.md).
+
 
 Batch-harvest reusable knowledge from historical Claude Code session transcripts and route findings to the correct bibliotheque inbox. Designed for monthly scheduled runs or on-demand catch-up.
 

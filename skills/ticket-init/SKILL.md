@@ -9,6 +9,16 @@ nav:
 
 # Ticket Init
 
+## Host compatibility
+
+Read [the shared host mapping](../../docs/skill-host-compatibility.md) before execution. Use native tools and the existing shared agent instructions. Required executors and companion skills remain real dependencies.
+
+
+## Shared maintenance note (2026-10-26)
+
+Keep the ticket/specification group. Gabriel wants these available, with a short purpose explanation when choosing one. Repair stale paths or evidence assumptions before activation. See [the shared selection record](../../docs/harness-skill-selection.md).
+
+
 Scaffolds a new ticket folder following the project-management conventions.
 
 **Usage:** `/ticket-init <TICKET-ID> [--epic <EPIC-ID>] [--jira]`
@@ -72,10 +82,12 @@ Ensure the `tickets/{PRODUCT}/` and `tickets/{PRODUCT}/no-epic/` directories exi
 
 ### 3. Populate INDEX.md
 
+Resolve the Jira base from current org configuration. Klever uses https://beklever.atlassian.net. Do not hardcode another org's domain.
+
 ```markdown
 # {TICKET-ID}: {Title from Jira or placeholder}
 
-**Status:** not_started | **Epic:** {EPIC-ID if provided} | [Jira](https://supervisr.atlassian.net/browse/{TICKET-ID})
+**Status:** not_started | **Epic:** {EPIC-ID if provided} | [Jira]({resolved-jira-base}/browse/{TICKET-ID})
 
 ## Navigation
 | Section | Path | Notes |

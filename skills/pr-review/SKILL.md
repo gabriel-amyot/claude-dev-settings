@@ -10,6 +10,16 @@ nav:
 
 # PR Review
 
+## Host compatibility
+
+Read [the shared host mapping](../../docs/skill-host-compatibility.md) before execution. Use native tools and the existing shared agent instructions. Required executors and companion skills remain real dependencies.
+
+
+## Shared maintenance note (2026-10-26)
+
+Keep. Gabriel uses or wants this documentation/review workflow available in both agents. See [the shared selection record](../../docs/harness-skill-selection.md).
+
+
 Comprehensive PR review with isolation, Jira AC cross-reference, OWASP security scan, and multi-agent analysis.
 
 **Usage:** `/pr-review <PR-URL> [JIRA-TICKET]`
@@ -29,6 +39,8 @@ Comprehensive PR review with isolation, Jira AC cross-reference, OWASP security 
 ---
 
 ## Step 1: Parse Input
+
+Choose the forge before running Steps 2 and 3. The gh commands below are GitHub examples. For GitLab, load the shared gitlab skill, fetch the real head/base refs and existing discussions, and use Git for the isolated clone. Do not send a GitLab URL to gh.
 
 Extract from the provided argument:
 - PR URL or PR number
@@ -102,7 +114,13 @@ Record any findings as Critical or Warning for the final report.
 
 ---
 
-## Step 6: Delegate to pr-review-toolkit
+## Step 6: Delegate the Review
+
+When Claude's pr-review-toolkit is available, use it as below. Otherwise use native independent reviewers for correctness, test validity, silent failures, type/contracts, comments and unnecessary complexity. Pass the pinned head/base, changed files, actual acceptance source (AC-LOCAL.md when present), org and isolated clone path. Require evidence for findings. Do not claim the toolkit ran when using native reviewers.
+
+Read existing MR/PR comments before preparing external feedback. Do not repeat an issue already covered. Refine an existing thread when clarification is needed. Gabriel prefers collaborative, guiding, encouraging comments that explain the issue and its impact, with implementation detail only where needed to understand the issue.
+
+For a GitLab MR, use the shared gitlab skill and the forge's real head/base refs for metadata, existing discussions and diff. Clone/fetch those refs with Git rather than running the GitHub-only examples. Empty API diff metadata is not proof of no changes. Pin the reviewed commit and report any evidence limitations.
 
 Tell the user to run the multi-agent toolkit review from the cloned directory:
 

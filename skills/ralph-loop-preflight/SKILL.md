@@ -9,6 +9,11 @@ nav:
 
 # /ralph-loop-preflight
 
+## Shared maintenance note (2026-10-26)
+
+Dormant. Gabriel has not used this for a long time. Review during harness cleanup; do not prioritize a port. No deletion decision was made. See [the shared selection record](../../docs/harness-skill-selection.md).
+
+
 Validates everything is in place before launching a ralph-loop. Catches missing state files, unreachable completion promises, absent test scenarios, and dirty repos before you waste iterations.
 
 ## Usage

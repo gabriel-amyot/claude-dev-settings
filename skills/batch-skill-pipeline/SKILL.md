@@ -1,6 +1,6 @@
 ---
 name: batch-skill-pipeline
-description: Batch-create skills from approved proposals in ~/.claude/skill-proposals/. Trigger: "build all skills", "batch create skills", "create the skills", "build proposals", "skill pipeline", "build the Tier N skills", "build approved skills".
+description: "Batch-create skills from approved proposals in ~/.claude/skill-proposals/. Trigger: \"build all skills\", \"batch create skills\", \"create the skills\", \"build proposals\", \"skill pipeline\", \"build the Tier N skills\", \"build approved skills\"."
 nav:
   bay: ops
   when: "Batch-create skills from approved proposals in skill-proposals/."

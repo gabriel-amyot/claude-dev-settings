@@ -9,6 +9,16 @@ nav:
 
 # Index Folder
 
+## Host compatibility
+
+Read [the shared host mapping](../../docs/skill-host-compatibility.md) before execution. Use native tools and the existing shared agent instructions. Required executors and companion skills remain real dependencies.
+
+
+## Shared maintenance note (2026-10-26)
+
+Keep. Gabriel uses or wants this documentation/review workflow available in both agents. See [the shared selection record](../../docs/harness-skill-selection.md).
+
+
 Recursively walks a folder tree and creates/updates INDEX.md files for progressive disclosure.
 
 **Usage:** `/index-context <PATH> [--dry-run] [--depth <N>] [--scope <architecture|specs>]`

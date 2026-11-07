@@ -90,10 +90,10 @@ When stuck on a blocker, escalate through these levels. Track escalation_level p
 | 5 | Party cannot solve | Run /bmad-adversarial-general on all work done so far. Address findings. If still stuck, escalate to user with full diagnosis + expert opinions + adversarial findings. | Adversarial: opus |
 
 **BMAD persona files (read before spawning):**
-- Winston (architect): ~/Developer/gabriel-amyot/projects/ai-software-development/dark-software-factory/_bmad/bmm/agents/architect.md
-- Amelia (dev): ~/Developer/gabriel-amyot/projects/ai-software-development/dark-software-factory/_bmad/bmm/agents/dev.md
-- Atlas (data engineer): ~/Developer/supervisr-ai/project-management/_bmad/bmm/agents/data-engineer.md
-- Quinn (qa): ~/Developer/gabriel-amyot/projects/ai-software-development/dark-software-factory/_bmad/bmm/agents/qa.md
+- Winston (architect): ~/.claude-shared-config/bmad/runtime/bmm/agents/architect.md
+- Amelia (dev): ~/.claude-shared-config/bmad/runtime/bmm/agents/dev.md
+- Atlas (data engineer): ~/.claude-shared-config/bmad/custom/data-engineer.md
+- Quinn (qa): ~/.claude-shared-config/bmad/runtime/bmm/agents/qa.md
 
 **Party composition for Level 4:** All four personas loaded into a TeamCreate session. Winston owns infrastructure diagnosis, Amelia owns code fixes, Atlas owns data layer (PubSub, Datastore, materialized views, event delivery), Quinn challenges every proposed fix with failure scenarios.
 

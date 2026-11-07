@@ -1,6 +1,6 @@
 ---
 name: klever-mr
-description: Create Klever GitLab merge requests with mandatory pre-flight gates. Handles all Klever repo types: Java backend (pom.xml), Node frontend (package.json), Python app (pyproject.toml), and infrastructure/terraform/DAC repos (no version file). Enforces version bump + CHANGELOG for app repos (Java, Node, Python), skips those gates for infra repos. Always produces WHY + WHAT sections in the MR description. Use this skill whenever the user wants to create an MR, merge request, or PR on any Klever repo. Also use when the user says "push to dev", "ready to merge", "create MR", "open merge request", "ship this branch", "merge this to dev", or finishes a feature branch. Klever repos only (GitLab behind IAP).
+description: "Create Klever GitLab merge requests with mandatory pre-flight gates. Handles all Klever repo types: Java backend (pom.xml), Node frontend (package.json), Python app (pyproject.toml), and infrastructure/terraform/DAC repos (no version file). Enforces version bump + CHANGELOG for app repos (Java, Node, Python), skips those gates for infra repos. Always produces WHY + WHAT sections in the MR description. Use this skill whenever the user wants to create an MR, merge request, or PR on any Klever repo. Also use when the user says \"push to dev\", \"ready to merge\", \"create MR\", \"open merge request\", \"ship this branch\", \"merge this to dev\", or finishes a feature branch. Klever repos only (GitLab behind IAP)."
 nav:
   bay: ship
   when: "Create Klever GitLab MRs. Enforces version bump, changelog, dev sync."

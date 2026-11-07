@@ -10,6 +10,16 @@ nav:
 
 # Vendor API Ingest
 
+## Host compatibility
+
+Read [the shared host mapping](../../docs/skill-host-compatibility.md) before execution. Use native tools and the existing shared agent instructions. Required executors and companion skills remain real dependencies.
+
+
+## Shared maintenance note (2026-10-26)
+
+Highest priority: shared knowledge, durable memory and continuity. Preserve one library for Claude and Codex. Compatibility or maintenance issues are work to assess, not a reason to demote this area. See [the shared selection record](../../docs/harness-skill-selection.md).
+
+
 Fetches vendor API documentation from URLs, stores locally, and creates an indexed reference in the bibliotheque.
 
 ## Steps
@@ -35,7 +45,7 @@ documentation/bibliotheque/vendors/{vendor}/
 
 ### 3. Fetch Documentation
 
-Use WebFetch for each URL. Run in parallel grouped by category.
+Use the host's available web retrieval tool for each URL. Run independent fetches in parallel grouped by category.
 
 For each fetched page:
 - Extract the meaningful content (strip nav, footer, boilerplate)
@@ -58,6 +68,8 @@ If a page fails to fetch (JS-heavy, requires login):
 ### 5. Create Vendor CLAUDE.md
 
 Usage guide for future sessions:
+
+Link this guide from the vendor INDEX.md so both Claude and Codex can find and read the same file. Do not assume Codex automatically loads a vendor CLAUDE.md.
 - How to authenticate
 - Which endpoint to use for common tasks
 - Known constraints (rate limits, async polling, pagination)

@@ -8,11 +8,11 @@ Always load the actual persona file before adopting a role. Never improvise from
 
 | Persona | Role | File Path |
 |---------|------|-----------|
-| Mary | Business Analyst | `~/Developer/gabriel-amyot/projects/ai-software-development/dark-software-factory/_bmad/bmm/agents/analyst.md` |
-| Leo | Spec Coach | `~/Developer/supervisr-ai/project-management/_bmad/bmm/agents/spec-coach.md` |
-| Winston | Architect | `~/Developer/gabriel-amyot/projects/ai-software-development/dark-software-factory/_bmad/bmm/agents/architect.md` |
-| Amelia | Developer | `~/Developer/gabriel-amyot/projects/ai-software-development/dark-software-factory/_bmad/bmm/agents/dev.md` |
-| Quinn | QA Engineer | `~/Developer/gabriel-amyot/projects/ai-software-development/dark-software-factory/_bmad/bmm/agents/qa.md` |
+| Mary | Business Analyst | `~/.claude-shared-config/bmad/runtime/bmm/agents/analyst.md` |
+| Leo | Spec Coach | `~/.claude-shared-config/bmad/custom/spec-coach.md` |
+| Winston | Architect | `~/.claude-shared-config/bmad/runtime/bmm/agents/architect.md` |
+| Amelia | Developer | `~/.claude-shared-config/bmad/runtime/bmm/agents/dev.md` |
+| Quinn | QA Engineer | `~/.claude-shared-config/bmad/runtime/bmm/agents/qa.md` |
 
 ## Delegation Matrix
 

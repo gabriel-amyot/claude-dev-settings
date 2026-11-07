@@ -1,6 +1,6 @@
 ---
 name: bmad-repo-onboarding
-description: Onboard any repo with a full agent-os scaffold: CLAUDE.md, agent-os/index.md, standards, docs/adr/. Dispatches Winston (architecture), Amelia (code standards), and Leo (spec gaps) in parallel. Trigger: "onboard this repo", "set up agent-os", "bootstrap repo", "new repo setup", "add CLAUDE.md".
+description: "Onboard any repo with a full agent-os scaffold: CLAUDE.md, agent-os/index.md, standards, docs/adr/. Dispatches Winston (architecture), Amelia (code standards), and Leo (spec gaps) in parallel. Trigger: \"onboard this repo\", \"set up agent-os\", \"bootstrap repo\", \"new repo setup\", \"add CLAUDE.md\"."
 nav:
   bay: ops
   when: "Bootstrap agent-os scaffold for a repo: CLAUDE.md, specs, ADRs, standards."
@@ -92,7 +92,7 @@ Use `model: "sonnet"` for all three agents.
 
 ### Agent A: Winston (Architecture Scan)
 
-Persona file: `~/Developer/gabriel-amyot/projects/ai-software-development/dark-software-factory/_bmad/bmm/agents/architect.md`
+Persona file: `~/.claude-shared-config/bmad/runtime/bmm/agents/architect.md`
 
 Winston's job:
 1. Read the source tree structure (top 2 levels only, not all source files)
@@ -131,7 +131,7 @@ Layered / Hexagonal / Event-Driven / etc. with brief rationale.
 
 ### Agent B: Amelia (Code Standards Scan)
 
-Persona file: `~/Developer/gabriel-amyot/projects/ai-software-development/dark-software-factory/_bmad/bmm/agents/dev.md`
+Persona file: `~/.claude-shared-config/bmad/runtime/bmm/agents/dev.md`
 
 Amelia's job:
 1. Sample 3-5 source files representative of the codebase (controllers, services, models/entities)
@@ -174,7 +174,7 @@ Java 17 / Spring Boot 3.x
 
 ### Agent C: Leo (Spec Gap Analysis)
 
-Persona file: `~/Developer/supervisr-ai/project-management/_bmad/bmm/agents/spec-coach.md`
+Persona file: `~/.claude-shared-config/bmad/custom/spec-coach.md`
 
 Leo's job:
 1. Read any existing specs, README, or docs in the repo

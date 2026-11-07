@@ -24,6 +24,11 @@ nav:
 
 # Sprint Factory (multi-ticket conductor)
 
+## Shared maintenance note (2026-10-26)
+
+Important factory ecosystem workflow. Preserve and prioritize portability with dark-factory rather than treating it as optional harness clutter. See [the shared selection record](../../docs/harness-skill-selection.md).
+
+
 Full autonomous pipeline: Jira ticket through deployed and verified on dev. 8 phases per ticket, tiered parallelism for multi-ticket runs, YAML dependency graphs, gate verification between tiers.
 
 **Klever-first.** Supervisr repos (GitHub via `gh pr create`) are stubbed but not battle-tested. Will refine when used for Supervisr.
@@ -461,7 +466,7 @@ The orchestrator dispatches two sub-agents as a pair:
 1. **Questioner agent** runs `/grill-with-docs` against `design/impl-plan.vN.md`. Reads the plan, challenges it against the existing domain model and documentation (CONTEXT.md, ADRs, contracts), and generates the interrogation questions.
 2. **Winston answerer agent** (pragmatic architect persona) receives each question and answers it by researching the codebase: reading relevant code, checking ADRs, scanning test files, reviewing the analyst assumptions. Winston's role is to provide grounded, evidence-backed answers. Not theoretical. Not aspirational. What the code actually does today and what the plan proposes to change.
 
-Load Winston persona from: `~/Developer/gabriel-amyot/projects/ai-software-development/dark-software-factory/_bmad/bmm/agents/architect.md`
+Load Winston persona from: `~/.claude-shared-config/bmad/runtime/bmm/agents/architect.md`
 
 Winston answers pragmatically: if the code already handles a case, he says so with a file reference. If a decision is arbitrary (two approaches are equivalent), he picks one and moves on. If a question exposes a real gap (no code handles this, no spec covers it), he flags it as unresolved.
 
@@ -672,7 +677,7 @@ REPO CONVENTIONS:
 
 **Post-review processing (Amelia):**
 
-Load Amelia persona from: `~/Developer/gabriel-amyot/projects/ai-software-development/dark-software-factory/_bmad/bmm/agents/dev.md`
+Load Amelia persona from: `~/.claude-shared-config/bmad/runtime/bmm/agents/dev.md`
 
 Amelia receives the external agent's findings and processes them:
 1. Fix CRITICAL and HIGH findings (minimal, targeted)

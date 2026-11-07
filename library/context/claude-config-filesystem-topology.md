@@ -1,3 +1,30 @@
+---
+title: Claude config filesystem topology
+type: sop
+created: '2026-08-27'
+updated: '2026-10-26'
+tags:
+- harness
+- filesystem
+- plugins
+related:
+- '[[shared-skills-harness-observatory]]'
+- '[[harness-self-management]]'
+- '[[session-lifecycle-skills]]'
+provenance:
+  epistemic: mixed
+  confidence: medium
+  primary_sources:
+  - ref: steady-otter
+    kind: run
+    path: /Users/gamyot/Developer/grp-beklever-com/project-management/documentation/bibliotheque/inbox/archive/2026/2026-10-26-shared-skills-harness-observatory.md
+    captured: '2026-10-26'
+  raw_pages:
+  - curate:steady-otter:n3
+  verified_against: null
+  status: active
+---
+
 # Claude Config Filesystem Topology — Symlinks and Tracking
 
 On-demand context: load before editing any file under `~/.claude/`, or when a harness change spans
@@ -42,3 +69,13 @@ by assuming one commit covers "the harness."
 ---
 
 **Source:** harness-proposals triage session gotchas, bold-jackal handoff N1 pickup, 2026-08-27.
+
+The session plugin exception is recorded below. Related context: [[harness-self-management]] and [[session-lifecycle-skills]].
+
+## Session plugin exception — October 26, 2026
+
+The earlier statement that every marketplace plugin lacks a shared-source copy no longer applies to the session plugin. The steady-otter session reports that `~/.claude/plugins/local-marketplace/session` and the registered cache path `~/.claude/plugins/cache/local/session/2.0.0` now link to `~/.claude-shared-config/plugins/session`. This is a scoped change; it says nothing about other plugin directories. [INFERRED ← steady-otter@2026-10-26 · page:curate:steady-otter:n3]
+
+The prior cache remains at `2.0.0.before-shared-link-2026-10-26`. Registry metadata was unchanged. Filesystem identity was checked, but fresh Claude behavior was not tested. See [[shared-skills-harness-observatory]] and its raw source for the installation record. [INFERRED ← steady-otter@2026-10-26 · page:curate:steady-otter:n3]
+
+**How to apply:** Resolve both the marketplace path and the registry's runtime path before changing plugin instructions. Editing one does not prove the other consumer uses it.

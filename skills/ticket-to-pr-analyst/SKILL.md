@@ -9,6 +9,16 @@ nav:
 
 # Ticket-to-PR Analyst (Stage 1)
 
+## Host compatibility
+
+Read [the shared host mapping](../../docs/skill-host-compatibility.md) before execution. Use native tools and the existing shared agent instructions. Required executors and companion skills remain real dependencies.
+
+
+## Shared maintenance note (2026-10-26)
+
+Keep the ticket/specification group. Gabriel wants these available, with a short purpose explanation when choosing one. Repair stale paths or evidence assumptions before activation. See [the shared selection record](../../docs/harness-skill-selection.md).
+
+
 **POC v1.1.** Self-improving via run journal. After each run, the user reads `analyst/run-journal.vN.md`, improves this skill, and bumps the version if the change is non-trivial.
 
 ## Invocation
@@ -35,11 +45,11 @@ Unknown prefix: read `~/.claude/library/context/workspace-map.yaml` and ask the 
 
 ### Step 1: Materialize Ticket
 
-**Ticket folder:** `<PM_ROOT>/tickets/<PREFIX>/<TICKET-KEY>/`
+**Ticket folder:** `<PM_ROOT>/tickets/<PREFIX>/<EPIC-or-no-epic>/<TICKET-KEY>/`
 
 If the folder has no `jira/` subfolder, fetch it:
 ```bash
-cd ~/.claude/skills/jira && python3 jira_skill.py fetch <TICKET-KEY> --output-dir <PM_ROOT>/tickets/<PREFIX>/ --org <ORG>
+cd ~/.claude/skills/jira && python3 jira_skill.py fetch <TICKET-KEY> --output-dir <PM_ROOT>/tickets/<PREFIX>/<EPIC-or-no-epic>/ --org <ORG>
 ```
 
 Then read the materialized data:

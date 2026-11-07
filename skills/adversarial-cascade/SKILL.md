@@ -11,6 +11,11 @@ nav:
 
 # Adversarial Review Cascade
 
+## Shared maintenance note (2026-10-26)
+
+Review before promotion. Gabriel reports not using this in either Claude or Codex. Assess usefulness and overlap before linking or recommending it. This is not a deletion or retirement decision. See [the shared selection record](../../docs/harness-skill-selection.md).
+
+
 Two-phase adversarial review that catches different bug classes by adopting different adversarial stances. Phase 1 (Quinn) hunts logic errors and missed edge cases. Phase 2 (Codex framing) hunts security issues and unnecessary complexity. Each phase auto-fixes findings and re-verifies.
 
 **Why two phases?** A single reviewer develops blind spots. Quinn reasons from the spec inward ("does this satisfy the contract?"). The Codex-framed review reasons from skepticism outward ("what would I flag if I didn't trust this code?"). Together they catch more than either alone.
@@ -58,7 +63,7 @@ Read the relevant ADR, spec, or plan file if one exists for the ticket (check ti
 
 ## Phase 1: Quinn Adversarial Review (max 3 rounds)
 
-Load the Quinn persona from: `~/Developer/gabriel-amyot/projects/ai-software-development/dark-software-factory/_bmad/bmm/agents/qa.md`
+Load the Quinn persona from: `~/.claude-shared-config/bmad/runtime/bmm/agents/qa.md`
 
 Dispatch Quinn as a subagent (Sonnet) with this prompt:
 

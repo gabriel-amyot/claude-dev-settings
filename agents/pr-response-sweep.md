@@ -222,8 +222,8 @@ To post complex drafts: /post-comment tickets/{TICKET}/reports/ship/posts/
 - Address reviewer by first name.
 - "Proposals, not actions." Never "I'm going to do X." Always "I'm proposing" or "pending Gab's approval."
 - Read persona files before adopting a role:
-  - Winston: `~/Developer/gabriel-amyot/projects/ai-software-development/dark-software-factory/_bmad/bmm/agents/architect.md`
-  - Amelia: `~/Developer/gabriel-amyot/projects/ai-software-development/dark-software-factory/_bmad/bmm/agents/dev.md`
+  - Winston: `~/.claude-shared-config/bmad/runtime/bmm/agents/architect.md`
+  - Amelia: `~/.claude-shared-config/bmad/runtime/bmm/agents/dev.md`
 
 ## What This Agent Does NOT Do
 

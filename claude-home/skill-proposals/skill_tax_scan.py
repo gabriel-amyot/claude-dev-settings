@@ -59,21 +59,39 @@ def breadth(desc):
     return round(100 * sum(w in GENERIC for w in words) / len(words), 1)
 
 
+
+def publish_harness(kind, source_path, records=None):
+    """Bridge metadata without changing the producer's result."""
+    try:
+        import importlib.util
+        import os
+        import sys
+        from pathlib import Path
+        shared = Path(os.environ.get("HARNESS_ROOT", str(Path.home() / ".claude-shared-config")))
+        spec = importlib.util.spec_from_file_location("harness_producer", shared / "harness/producer.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        module.publish(kind, source_path, records)
+    except Exception as error:
+        import sys
+        print(f"WARN harness bridge unavailable: {error}", file=sys.stderr)
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=str(Path.home() / ".claude" / "skill-proposals" / "TAX-REPORT.md"))
     args = ap.parse_args()
 
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from skill_usage_scan import installed_skill_paths
+
     rows = []
-    for d in sorted(SKILLS.iterdir()):
-        sk = d / "SKILL.md"
-        if not sk.exists():
-            continue
+    for display_name, sk in sorted(installed_skill_paths().items()):
         name, desc = parse_frontmatter(sk)
         if not desc:
-            rows.append((d.name, 0, 0.0, "NO DESCRIPTION"))
+            rows.append((display_name, 0, 0.0, "NO DESCRIPTION"))
             continue
-        rows.append((d.name, len(desc), breadth(desc), ""))
+        rows.append((display_name, len(desc), breadth(desc), ""))
 
     total = sum(r[1] for r in rows)
     by_size = sorted(rows, key=lambda r: -r[1])
@@ -85,14 +103,13 @@ def main():
         "# Skill Tax Report",
         "",
         f"Skills measured: {len(rows)}.",
-        f"Total description characters loaded every session: **{total:,}** "
+        f"Installed description characters (inventory estimate): **{total:,}** "
         f"(~{total // 4:,} tokens).",
         f"Mean per skill: {total // max(len(rows), 1):,} chars.",
         "",
-        "This is the standing cost of the skill set. Bodies are not counted —",
-        "they load only on invocation. A narrow skill that never fires costs",
-        "only its description line, which is why a raw skill count is a poor",
-        "proxy for bloat.",
+        "This measures discovered description text, not observed prompt loading or exact tokens.",
+        "Bodies and host-specific selection/truncation are outside this estimate.",
+        "Treat this as a maintenance signal, not billing or usage telemetry.",
         "",
         "## The 20 most expensive descriptions",
         "",
@@ -119,6 +136,7 @@ def main():
         lines += ["", "## Missing a description (never routes correctly)", ""]
         lines += [f"- {n}" for n, _, _, _ in missing]
     Path(args.out).write_text("\n".join(lines) + "\n")
+    publish_harness("tax-scan", args.out)
     print(f"skills: {len(rows)} | total desc chars: {total:,} (~{total//4:,} tokens)")
     print(f"broad+expensive: {len(risky)} | missing description: {len(missing)}")
     print(f"report: {args.out}")

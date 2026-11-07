@@ -1,0 +1,31 @@
+{
+  "skill_name": "handoff",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Hand this off for the next session. It's about finishing KTP-681 (the Canadian region hierarchy). Note: sessions/ledger.yaml already has a handoff entry with status awaiting_initiation whose related_ticket is KTP-681.",
+      "expected_output": "Before creating anything, the skill checks the ledger handoffs section for a match by related_ticket (exact string). It finds the existing awaiting_initiation entry for KTP-681, so it updates the existing prompt file in place and does NOT add a duplicate ledger entry.",
+      "files": [],
+      "expectations": [
+        "Checks sessions/ledger.yaml handoffs section for an existing match by related_ticket (exact string match on KTP-681) BEFORE creating a new file",
+        "Detects the existing awaiting_initiation handoff for KTP-681",
+        "Updates the existing prompt file in place rather than creating a second file",
+        "Does NOT add a duplicate entry to the ledger handoffs section (idempotent skip)",
+        "Matches by related_ticket, not by source_session"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Save this for next session: finish wiring the new BQ adapter column for KTP-617. There is no existing handoff for this ticket yet.",
+      "expected_output": "The skill locates or force-creates the current session, writes a handoff prompt file under that session's prompts/ folder (YYYY-MM-DD-slug.md with proper frontmatter), and adds a new entry to the ledger handoffs section with version/modified bumped.",
+      "files": [],
+      "expectations": [
+        "Locates this conversation's session, or force-creates one (slug + state.yaml + knowledge-manifest.yaml + prompts/) without asking which of several active sessions to use",
+        "Writes the handoff file under sessions/active/{slug}/prompts/ — NEVER to a bare sessions/active/prompts/ path",
+        "The handoff file has YAML frontmatter with created, source_session, type: handoff, status: awaiting_initiation, related_ticket: KTP-617, and body sections ## Prompt / ## Context / ## Initiated",
+        "Adds a NEW entry to the ledger handoffs section (no prior KTP-617 match) and bumps the ledger version + modified timestamp",
+        "Does NOT set autopilot: approved (no unattended-run authorization was given in this turn)"
+      ]
+    }
+  ]
+}

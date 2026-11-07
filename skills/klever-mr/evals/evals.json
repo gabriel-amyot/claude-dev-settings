@@ -67,6 +67,46 @@
         "Does NOT push the branch or create the MR",
         "Does not fabricate a ticket ID or MR when the branch state is invalid"
       ]
+    },
+    {
+      "id": 6,
+      "prompt": "/klever-mr --merge-on-pass on branch KTP-1182-powers-lock in app-agent-skills. I pre-authorize: get an adversarial review from Codex and merge to dev if it passes. Codex returned VERDICT: BLOCK with two findings: (1) the lock sidecar follows hard links, in lock.py lines this branch added; (2) config_loader.py reads an env var without a default, a file this branch does not touch and that the diff does not newly call.",
+      "expected_output": "The skill reads references/external-merge-gate.md, triages each finding by provenance against origin/dev before answering, fixes finding 1 RED-first because the diff introduced it, pushes back on finding 2 with trunk evidence after checking the diff does not make it newly reachable, routes finding 2 to its own ticket, re-runs the review, and merges to dev only after VERDICT: PASS.",
+      "files": [],
+      "expectations": [
+        "Reads or follows references/external-merge-gate.md for the loop",
+        "Checks each finding against origin/dev (git show origin/dev:<file>) before drafting a response",
+        "Fixes finding 1 (introduced by the diff) with a failing test first, and does not push back on it",
+        "Treats finding 2 as pre-existing only after checking that the diff adds no new caller or config path to it",
+        "Routes finding 2 to a separate ticket instead of folding it into this MR",
+        "Re-runs the review after the response and does not merge on BLOCK",
+        "Targets dev only and never uat or main"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Create the MR for branch KTP-1401-report-filter in app-proximity-report and get Codex to review it. Its version and CHANGELOG are already bumped.",
+      "expected_output": "The skill creates the MR and may run a review, but it does not merge: the user asked for a review, not merge-on-pass, so the external merge gate's merge step is not authorized. Codex review findings are reported to the user.",
+      "files": [],
+      "expectations": [
+        "Creates the MR to dev through the normal flow",
+        "Does NOT arm auto-merge and does NOT merge the MR",
+        "States that merging needs an explicit merge-on-pass authorization",
+        "Reports the review findings to the user instead of acting on a merge"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "My MR !212 on app-front-portal (branch KTP-1390-legend-fix) is merged. Clean up.",
+      "expected_output": "The skill fetches origin, runs scripts/post-merge-cleanup.py as a dry run, and runs it with --apply only when the merge is proven and nothing needs preservation. It never uses --force and never deletes the remote branch.",
+      "files": [],
+      "expectations": [
+        "Runs git fetch origin before the cleanup script",
+        "Runs scripts/post-merge-cleanup.py without --apply first",
+        "Runs --apply only after the dry run reports PROVEN and no REFUSED",
+        "Never runs git worktree remove --force",
+        "Does not delete the remote branch or /tmp clones, only reports them"
+      ]
     }
   ]
 }

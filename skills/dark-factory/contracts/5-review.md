@@ -8,8 +8,9 @@ Adapted from the old skill's Phase 5 (REVIEW).
 
 ## Get the code (your worktree)
 
-The Workflow runtime gave you your own worktree. Fetch and check out the pushed feature branch (its
-name is in your prompt):
+Your prompt says whether the Workflow runtime gave you a worktree. If it did not, create your own in
+the target code repo as the prompt says (never in project-management). Then fetch and check out the
+pushed feature branch (its name is in your prompt):
 ```
 git fetch origin <branch> && git checkout <branch>
 ```
@@ -78,6 +79,12 @@ audit can be reconstructed without re-deriving from a raw diff. Shape:
   true` if and only if** you wrote a test, ran it, and it FAILED (proving the bug). Set `demonstrated:
   false` for hunches you could not demonstrate. When `demonstrated: true`, also set `test_ref` (the test
   + command + observed failure) and `ac` if the finding proves a named AC does not hold.
+- **Redundancy claims (0.10.6).** If a finding argues that an item the ACs enumerate is redundant,
+  unnecessary, or could be dropped, set `scope_cut: true` and put the consumer code path that proves
+  the item unused in `redundancy_trace`. A redundancy claim is not a defect, so `demonstrated: true` does
+  not apply to it. Without a trace the orchestrator marks it needs-proof. With a trace it goes to a
+  human as a proposal. The factory never cuts AC-listed scope on a review finding (KTP-779: an
+  undemonstrated "boundary tileset is redundant" claim shipped half the ticket).
 - `summary`: 1-3 sentences.
 
 ## What actually blocks (0.10.0 — read this before you pick a severity)

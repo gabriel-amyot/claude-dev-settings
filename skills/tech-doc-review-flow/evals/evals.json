@@ -1,0 +1,36 @@
+{
+  "skill_name": "tech-doc-review-flow",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "/tech-doc-review-flow certify this one runbook before I hand it to a new teammate: evals/files/runbook-orders-refresh.md. It describes the daily_orders table and the refresh steps.",
+      "expected_output": "Routes to the single-document certification mode, not the three-pass agent-os tree flow. Dispatches a fresh adversarial agent with only the doc and source access, which checks every factual claim against the live source and runs a newcomer scenario. Applies and re-verifies the fixes. Dispatches a second fresh agent that ends with a single CERTIFICATION line. Hands over a certified doc, not a raw draft plus a findings list.",
+      "files": [
+        "evals/files/runbook-orders-refresh.md"
+      ],
+      "expectations": [
+        "The agent reads references/single-doc-certify.md and uses the single-document mode, not the three-pass workflow template",
+        "The adversarial agent is dispatched with only the doc and source access, without the session's build context or transcript",
+        "Each factual claim in the doc is labelled CONFIRMED, CONTRADICTED or UNVERIFIABLE against a named source command",
+        "The adversarial pass includes a concrete newcomer scenario and lists where a newcomer would stop",
+        "Findings are written to disk with BLOCKER/MAJOR/MINOR severity, evidence and a fix",
+        "Every applied fix is re-verified against the source by the main agent, not accepted on the reviewer's word",
+        "A second fresh agent certifies the fixed doc and ends with exactly one CERTIFICATION: SHIP | SHIP WITH FIXES | NO line",
+        "The final handover is the certified doc with open UNVERIFIABLE items named, not a raw draft plus a findings list"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "fix the typo in the second heading of evals/files/runbook-orders-refresh.md",
+      "expected_output": "A quick single edit. The agent edits the heading directly and does NOT start the certification mode or dispatch review agents.",
+      "files": [
+        "evals/files/runbook-orders-refresh.md"
+      ],
+      "expectations": [
+        "The agent edits the heading directly",
+        "The agent does not dispatch an adversarial or certification agent",
+        "The agent does not start the three-pass workflow"
+      ]
+    }
+  ]
+}

@@ -15,8 +15,10 @@ means). Use ITS commands. Do NOT assume Java/Maven (or any stack) — the belt i
 
 ## Worktree
 
-The Workflow runtime gave you your own isolated git worktree. **Do NOT run `git worktree add`** — work
-in your current directory. Create the feature branch: `git checkout -b <TICKET>-short-desc origin/dev`
+Your prompt says whether the Workflow runtime isolated you (0.10.6). If it did, **do NOT run
+`git worktree add`**; work in your current directory. If it did not, create your own worktree in the
+TARGET code repo exactly as the prompt says, never in project-management, and remove it after the
+branch is pushed. Create the feature branch: `git checkout -b <TICKET>-short-desc origin/dev`
 (fetch origin first if needed).
 
 ## TDD per AC (sequential) — RED FIRST, PROVEN

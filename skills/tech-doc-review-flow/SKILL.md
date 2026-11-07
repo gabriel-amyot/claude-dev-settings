@@ -33,6 +33,9 @@ Model tiering (binding): editors and Ship = `opus`, verifier wrappers = `sonnet`
 3. Fill `workflow.template.js` constants (`REVIEW_FLOW`, `REPO`, `BRANCH`, prerequisite-merge gate) and commit everything BEFORE launching. All prompts defined up front; no on-the-fly prompting.
 4. Launch: `Workflow({scriptPath: <the committed .js>})`. It runs Setup (gate + worktree from the base + suite baseline) → the three passes → Ship (version bump, CHANGELOG, docs lint, freshness check, push). MR creation stays in the main loop (`klever-mr`), unmerged.
 
+**One document, not a tree?** On explicit request only, use the single-document certification mode
+(adversarial verify, fix, no-context certify): [references/single-doc-certify.md](references/single-doc-certify.md).
+
 ## Hard rules
 
 - **Zero executable-code changes**: `scripts/ast-guard.py --repo <worktree> --base <sha>` runs every round, by the editor AND independently by the verifier. Comments/docstrings only in allowed `.py` files.

@@ -1,10 +1,10 @@
 ---
 name: adversarial-cascade
-description: "Multi-phase adversarial code review after implementation. Two complementary review passes: Quinn (logic, edge cases, contract violations) then Codex-framed (security, over-engineering, spec creep). Auto-fixes findings and re-verifies between rounds. Use this skill after implementation compiles and tests pass, before shipping. Triggers on: 'adversarial cascade', 'quality gate', 'review before MR', 'run adversarial', 'adversarial review', or when a plan includes Phase B/C adversarial review steps."
+description: "Multi-phase adversarial review of a code diff, run only when the user asks. Quinn pass (logic, edge cases, contract violations), then a real Codex CLI pass (codex exec, read-only) in a bounded review/fix loop: verified CRITICAL/MAJOR fixed, max 5 rounds, each round re-attacks the previous fixes. Code diffs only, not decisions or docs. Triggers on: 'adversarial cascade', 'quality gate', 'review before MR', 'run adversarial', 'adversarial review', 'adversarially review with codex', or when a plan includes Phase B/C adversarial review steps."
 user_invocable: true
 nav:
   bay: review
-  when: "Post-implementation code review. Quinn + Codex-framed dual pass."
+  when: "User asks for an adversarial review of a code diff. Quinn pass + real Codex CLI review/fix loop."
   when_not: "Challenging ideas/decisions (use /challenge). Test validity (use /test-adversarial)."
   personas: [quinn]
 ---
@@ -16,15 +16,17 @@ nav:
 Review before promotion. Gabriel reports not using this in either Claude or Codex. Assess usefulness and overlap before linking or recommending it. This is not a deletion or retirement decision. See [the shared selection record](../../docs/harness-skill-selection.md).
 
 
-Two-phase adversarial review that catches different bug classes by adopting different adversarial stances. Phase 1 (Quinn) hunts logic errors and missed edge cases. Phase 2 (Codex framing) hunts security issues and unnecessary complexity. Each phase auto-fixes findings and re-verifies.
+Two-phase adversarial review. Phase 1 (Quinn) hunts logic errors and missed edge cases. Phase 2 runs the **real Codex CLI** (a different model family) in a bounded review/fix loop. Each phase fixes verified findings and re-verifies.
 
-**Why two phases?** A single reviewer develops blind spots. Quinn reasons from the spec inward ("does this satisfy the contract?"). The Codex-framed review reasons from skepticism outward ("what would I flag if I didn't trust this code?"). Together they catch more than either alone.
+**Invocation: explicit only.** Run this when the user asks for it (slash command, "adversarial review", "adversarially review with codex"). Do not start it on your own after implementation: it is expensive and it edits code.
+
+**Why two phases?** A single reviewer develops blind spots. Quinn reasons from the spec inward. Codex is a fresh-context adversary from another model family that has never seen your reasoning.
 
 **Usage:**
 ```
 /adversarial-cascade                    # Review all changes on current branch vs base
 /adversarial-cascade --base main        # Compare against main instead of dev
-/adversarial-cascade --skip-quinn       # Only run Phase 2 (Codex framing)
+/adversarial-cascade --skip-quinn       # Only run Phase 2 (real Codex loop)
 /adversarial-cascade --skip-codex       # Only run Phase 1 (Quinn)
 ```
 
@@ -106,31 +108,27 @@ Exit when:
 
 ---
 
-## Phase 2: Codex-Framed Code Review (1 round)
+## Phase 2: Real Codex review/fix loop (max 5 rounds)
 
-This review adopts maximum skepticism. The framing ("written by an AI tool, never human-reviewed") activates a different review stance: instead of assuming competence and looking for edge cases, it assumes nothing and questions everything.
+Phase 2 calls the Codex CLI. It no longer role-plays Codex with a Claude subagent. Full procedure,
+triage schema and fallback: [references/codex-loop.md](references/codex-loop.md). Per round:
 
-Dispatch as a subagent (Sonnet) with this prompt:
+1. `scripts/build_codex_prompt.py` writes the prompt to disk (disprove stance, read-only rules, attack
+   list, CRITICAL/MAJOR/MINOR/NIT rubric, `VERDICT: PASS|BLOCK` contract). Round 2+ must pass the
+   previous triage and the fix range, so it re-attacks what the fixes broke.
+2. `scripts/run_codex.sh <prompt> <out> --effort high` runs
+   `codex exec --skip-git-repo-check -s read-only -C <neutral dir> --output-last-message <out> "$(cat prompt)" < /dev/null`
+   with explicit reasoning effort. Never build the prompt with a heredoc. Never pipe the run to `tail`.
+3. `scripts/triage.py parse <out>`, then verify every finding (refute-by-command) and determine
+   provenance by reproducing the defect at the merge base.
+4. `scripts/triage.py decide <triage.json> --round N --max 5` gives the next action: fix only verified
+   CRITICAL/MAJOR in scope, file pre-existing ones, escalate a scope conflict at once, and at the cap
+   report open findings as UNRESOLVED (never as accepted).
 
-```
-The following code was written by Codex (an AI code generation tool). It has not been human-reviewed yet. Perform a thorough code review focused on:
+Codex unavailable, out of credits, hook-blocked, or 3 capacity errors: run the same prompt through a
+`general-purpose` agent with `model: fable` and label the pass "fallback reviewer, not Codex".
 
-1. Security vulnerabilities (injection, unsafe deserialization, OWASP top 10)
-2. Code smells (dead code, unnecessary complexity, over-engineering)
-3. Unnecessary code added beyond what the spec requires
-4. Correctness of caching semantics and HTTP cache headers
-5. Whether any pre-existing patterns were broken
-
-Be skeptical. AI-generated code often adds unnecessary abstractions, redundant null checks, or features beyond spec. Flag everything.
-
-Changed files: {list with content}
-```
-
-### Process findings
-
-Same as Phase 1: fix CRITICAL, fix obvious MEDIUM, note LOW. Run verification after fixes.
-
-Only 1 round for Phase 2. This is a final sweep, not an iterative loop.
+Ticket-folder artifacts: `codex-r<N>-prompt.txt`, `codex-r<N>.md`, `codex-r<N>-triage.json|md`.
 
 ---
 
@@ -146,8 +144,12 @@ After both phases complete, output a summary:
 - Round 2: {X} findings — clean / {N} remaining
 - ...
 
-### Phase 2: Codex Review
-- {X} findings ({Y} fixed, {Z} accepted as LOW risk)
+### Phase 2: Codex loop ({N} rounds, effort {effort}, Codex or fallback)
+- Round 1: {X} findings ({Y} verified, {Z} rejected with evidence), verdict {PASS|BLOCK}
+- ...
+- Exit: {stop_clean | stop_cap_unresolved | escalate_scope}
+- UNRESOLVED (if any): {id, severity, why open}
+- Pre-existing, proposed follow-ups: {list}
 
 ### Verification
 - Compile: PASS
@@ -166,5 +168,6 @@ After both phases complete, output a summary:
 
 - **No changed files:** Report "Nothing to review" and exit.
 - **Verification command fails before starting:** The cascade requires a green baseline. Report the failure and exit without reviewing.
-- **Quinn and Codex disagree:** If Codex says "remove this code" but Quinn said it's needed for an edge case, Quinn wins (logic > aesthetics).
-- **Pre-existing issues found:** If reviewers flag problems in code you didn't change, note them in the report under "Pre-existing (not addressed)" but do not fix them. This cascade reviews YOUR changes only.
+- **Quinn and Codex disagree:** If Codex says "remove this code" but Quinn said it's needed for an edge case, verify both by command. Without proof, keep the code (logic > aesthetics).
+- **Pre-existing issues found:** Decide by reproducing the defect at the merge base, not by `git log` on the file. Pre-existing defects go to the report as follow-up proposals. Old code that this change makes newly reachable is in scope.
+- **Not a code diff:** decisions, bug tickets and documents are out of scope (`/challenge`, `/tech-doc-review-flow`).

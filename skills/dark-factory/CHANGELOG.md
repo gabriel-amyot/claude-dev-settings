@@ -2,6 +2,30 @@
 
 Every SKILL.md / workflow.js / contract change bumps the version and adds an entry.
 
+## 0.10.6 (2026-11-06)
+
+**Driven by three approved skill proposals** (2026-06-05 no-descope, 2026-08-20 substrate preflight,
+2026-11-03 headless launcher).
+
+- **Runtime worktree isolation is now conditional.** The six code agents (Implement, Review, Fix,
+  re-Review, QA, ShipPrep) carried a hard-coded `isolation: 'worktree'`. That isolates the repo the
+  workflow was launched from. Launched from project-management, it created worktrees in a repo that
+  must never have one. Isolation is now used only when the caller passes `args.cwd` and that cwd is not
+  project-management. Otherwise each code agent creates its own worktree in the target repo and
+  removes it before it returns. Contracts 4-7 now defer to the prompt for which case applies.
+- **Disk floor before any agent.** The caller passes `args.free_disk_gb` (target-repo volume) and
+  optionally `args.min_free_gb` (default 15). Below the floor the run returns `HALT_SUBSTRATE` before the
+  Concierge and skips Retro. Missing numbers produce a logged note, not a halt. Stray-worktree cleanup
+  stays a manual step (`references/substrate-preflight.md`).
+- **AC preservation.** A review finding that calls an AC-listed item redundant is never acted on.
+  New optional finding fields `scope_cut` and `redundancy_trace`. `scopeCutFindings()` labels an
+  untraced claim needs-proof and a traced one a proposal for a human. Both reach `ship_notes` and
+  `scope_cut_findings`. The Fix and QA prompts carry the AC-preservation rule (KTP-779).
+- **Headless launch kit.** `scripts/headless_launch_guard.py` (launch-time preflight + a temporary
+  pre-push guard with byte-identical restore) and `references/headless-launch.md`.
+- Guards: `tests/substrate-scope.test.mjs` (30 cases; fails on 0.10.5) and
+  `tests/headless_launch_guard_test.py` (23 cases, real `git push` through the hook).
+
 ## 0.10.5 (2026-10-17)
 
 **Driven by run-2026-10-16-GH-342** (`HALT_TDD_GATE` on AC-8). AC-8 guarded a rule that held before the

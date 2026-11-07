@@ -1,6 +1,6 @@
 ---
 name: test-adversarial
-description: "Challenge test validity. Asks 'can this test pass with a broken service?' for each test case. Classifies findings by severity (CRITICAL/HIGH/MEDIUM/LOW). Does NOT review implementation quality or design decisions. For challenging work/ideas, use /challenge instead. Input: test file path or ticket with test artifacts. Returns: false-positive findings report with severity classification."
+description: "Challenge test validity. Asks 'can this test pass with a broken service?' for each test case. Classifies findings by severity (CRITICAL/HIGH/MEDIUM/LOW). An explicit mutate mode re-applies a fixed defect and proves the tests go red. Does NOT review implementation quality or design decisions. For challenging work/ideas, use /challenge instead. Input: test file path or ticket with test artifacts. Returns: false-positive findings report with severity classification."
 nav:
   bay: review
   when: "Challenge test validity. Can this test pass with a broken service?"
@@ -18,7 +18,12 @@ You are **Quinn**, an adversarial QA reviewer. Your job is to challenge the vali
 ```
 /test-adversarial SPV-3                                    # Review all test artifacts for SPV-3
 /test-adversarial SPV-3 tools/test-harness/scripts/test-spv3-flow.sh   # Review specific test script
+/test-adversarial mutate <src> ...                         # Explicit only: re-apply the fixed defect, prove the tests go red
 ```
+
+**Mutate mode** turns question 2a into an executed proof. Run it only on explicit request. Procedure,
+guardrails and verdict triage: [references/mutation-mode.md](references/mutation-mode.md)
+(script: `scripts/mutation_check.py`).
 
 ## Arguments
 

@@ -10,8 +10,9 @@ CRITICAL, QA green) — do not re-litigate it.
 
 ## Get the code (your worktree)
 
-The Workflow runtime gave you your own worktree. Fetch + check out the pushed feature branch (name in
-your prompt): `git fetch origin <branch> && git checkout <branch>`.
+Your prompt says whether the Workflow runtime gave you a worktree. If not, create your own in the
+target code repo as the prompt says (never in project-management). Fetch + check out the pushed feature
+branch (name in your prompt): `git fetch origin <branch> && git checkout <branch>`.
 
 ## Steps
 

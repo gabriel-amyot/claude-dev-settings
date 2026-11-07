@@ -1,7 +1,7 @@
 ---
 name: wayfinder
 description: Plan a huge chunk of work (more than one agent session can hold) as a shared map of decision tickets on GitHub Issues (gabriel-amyot/klever-project-management, never Jira), and resolve them one at a time until the way to the destination is clear.
-version: "0.4.0"
+version: "0.4.1"
 disable-model-invocation: true
 ---
 
@@ -255,6 +255,8 @@ User invokes with a map (URL or number). A ticket is **optional**: without one, 
 7. If `resolve` printed **RECURRING**, the spec is costing you now: run `wayfinder_runs.py reflect --map <n> --interim` and resolve the reflection ticket rather than carrying the friction into the next ticket.
 
 The user may run unblocked tickets in parallel, so expect other sessions to be editing the same GitHub issues concurrently.
+
+To send one ticket to a subagent, use [references/dispatch-template.md](references/dispatch-template.md). For multi-night execution rounds on an explicit request, use [references/overnight-rounds.md](references/overnight-rounds.md).
 
 ## This skill's own Horizon
 

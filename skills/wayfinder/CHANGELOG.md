@@ -7,6 +7,18 @@ Why it matters: every run trailer records the `spec_version` it ran under. If th
 changes without a bump, runs are attributed to a spec that no longer exists and the
 evidence for the next improvement is quietly wrong.
 
+## 0.4.1 (2026-11-06)
+
+**Two references, one pointer line in work mode.** The route procedure itself does not change.
+
+- `references/dispatch-template.md`: a fill-in prompt to send one ticket to a subagent, plus the
+  orchestrator's check that the run trailer and the map gist both landed. The premise is corrected:
+  `disable-model-invocation` blocks the Skill tool, not a file read, so the subagent reads SKILL.md
+  itself instead of a relayed copy. Six hand-written relays drifted before this (proposal 2026-09-14).
+- `references/overnight-rounds.md`: the charter, round, gate and morning-brief contract for an explicit
+  multi-night execution request on a map. It reuses dark-factory and sprint-crawl for execution and
+  adds no executor (proposal 2026-10-25).
+
 ## 0.4.0 (2026-10-17)
 
 **Interim reflection, run on RECURRING friction across maps #1, #22 and #38** (24 friction notes,

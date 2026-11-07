@@ -1,0 +1,20 @@
+{
+  "skill_name": "vendor-question-escalation",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Nick from Placer answered our spike questions. His reply: '1) Yes, custom POIs can be created on the commercial tier, up to 50 per month. 2) We'll look into the visit-count latency and get back to you.' Our spike assumed (ASM1) custom POIs are available on our tier with no cap, and (ASM2) visit counts are available within 24 hours. Children KTP-610 and KTP-611 depend on these. Reconcile and update the tickets.",
+      "expected_output": "The agent follows references/response-reconciliation.md. It maps ASM1 to PARTIAL (available, but capped at 50 per month) and ASM2 to UNANSWERED, citing Nick's exact words for each. It drafts per-ticket comments in the ticket folders and routes them through /post-comment without posting. It lists proposed local state edits and waits for approval before applying them.",
+      "files": [],
+      "expectations": [
+        "Classifies ASM1 as PARTIAL (not CONFIRMED) because the reply adds a 50-per-month cap",
+        "Classifies ASM2 as UNANSWERED (not CONFIRMED) because the vendor deferred the answer",
+        "Cites the vendor's exact words for each verdict",
+        "Drafts comments for KTP-610 and KTP-611 on disk and routes them through /post-comment",
+        "Does not post any comment or send any message without explicit approval",
+        "Lists proposed STATUS_SNAPSHOT or decision-log edits and asks for approval before applying them",
+        "Proposes a follow-up vendor question for the unanswered latency point"
+      ]
+    }
+  ]
+}

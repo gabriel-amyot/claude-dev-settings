@@ -616,6 +616,145 @@ def test_calibration_stale_page_cannot_read_as_fresh(co: Checkout) -> None:
     check("CALIBRATION:undated reads unknown", "freshness: unknown" in out, out.strip())
 
 
+# ---------------------------------------------------------------- crawl
+#
+# nx crawl drives fetch-shard.sh. These cases swap in a fake executor through
+# NX_FETCH_SHARD, so they run offline. Failures they pin, from the 2026-08-12 crawl:
+#   lost resume      an interrupted crawl re-fetched everything, or nothing
+#   lying progress   shard output files counted as pages
+#   unsafe handoff   a staged credential reached ingest
+#   claimed coverage --full passed automatically
+
+CRAWL_IDS = [f"{n:032x}" for n in range(1, 8)]
+
+FAKE_SHARD = r"""#!/usr/bin/env bash
+CO="$1"; RUN="$2"; LABEL="$3"; shift 3
+mkdir -p "$CO/runs/$RUN/staging" "$CO/runs/$RUN/shards" "$CO/fake-calls"
+echo "$*" > "$CO/fake-calls/$LABEL.txt"
+: > "$CO/runs/$RUN/shards/$LABEL.err"
+python3 -c '
+import json, os, sys
+co, run, ids = sys.argv[1], sys.argv[2], sys.argv[3:]
+fail = set(filter(None, os.environ.get("FAKE_FAIL_IDS", "").split(",")))
+secret = os.environ.get("FAKE_SECRET_ID", "")
+for page_id in ids:
+    if page_id in fail:
+        continue
+    body = "# Page " + page_id
+    if page_id == secret:
+        body += "\nkey AKIA" + "ABCDEFGHIJKLMNOP"
+    record = {"id": page_id, "title": "Page", "url": "", "breadcrumb": "", "coverage": "complete",
+              "last_edited_time": "2026-08-09T18:00:00.000Z", "access_state": "accessible",
+              "markdown": body}
+    open(os.path.join(co, "runs", run, "staging", page_id + ".json"), "w").write(json.dumps(record))
+' "$CO" "$RUN" "$@"
+echo '{"total_cost_usd": 0.25}' > "$CO/runs/$RUN/shards/$LABEL.json"
+"""
+
+
+def crawl(co: Checkout, *args: str, **env: str) -> subprocess.CompletedProcess:
+    fake = co.root / "fake-shard.sh"
+    if not fake.exists():
+        fake.write_text(FAKE_SHARD, encoding="utf-8")
+    ids_file = co.root / "ids.txt"
+    if not ids_file.exists():
+        ids_file.write_text("# crawl fixture\n" + "\n".join(CRAWL_IDS) + "\n", encoding="utf-8")
+    full_env = dict(os.environ, NOTION_CHECKOUT=str(co.root), NX_FETCH_SHARD=str(fake), **env)
+    full_env.pop("NOTION_TOKEN", None) if "NOTION_TOKEN" not in env else None
+    return subprocess.run([sys.executable, str(NX_SOURCE), "crawl", *args],
+                          capture_output=True, text=True, cwd=co.root, env=full_env)
+
+
+def fake_calls(co: Checkout) -> list[str]:
+    calls = co.root / "fake-calls"
+    if not calls.is_dir():
+        return []
+    return sorted(i for f in calls.glob("*.txt") for i in f.read_text().split())
+
+
+@case
+def test_crawl_resumes_only_missing_ids(co: Checkout) -> None:
+    first = crawl(co, "--run", "c1", "--ids", str(co.root / "ids.txt"), "--shard-size", "3",
+                  FAKE_FAIL_IDS=f"{CRAWL_IDS[4]},{CRAWL_IDS[6]}")
+    check("crawl:interrupted run exits incomplete", first.returncode == 3, first.stdout + first.stderr)
+    check("crawl:progress counts staged records", "5/7 staged and valid" in first.stdout, first.stdout)
+    check("crawl:three shards of three", len(list((co.root / "fake-calls").glob("*.txt"))) == 3,
+          str(list((co.root / "fake-calls").glob("*.txt"))))
+    shutil.rmtree(co.root / "fake-calls")
+    second = crawl(co, "--run", "c1")
+    check("crawl:resume fetches only the missing ids", fake_calls(co) == sorted([CRAWL_IDS[4], CRAWL_IDS[6]]),
+          str(fake_calls(co)))
+    check("crawl:resumed run is ready", second.returncode == 0 and "7/7 staged and valid" in second.stdout,
+          second.stdout)
+    check("crawl:hands off to ingest", f"nx ingest c1" in second.stdout, second.stdout)
+    check("crawl:never passes --full", "nx ingest c1 --full" not in second.stdout, second.stdout)
+    check("crawl:does not ingest by itself", co.catalog() == [], str(co.catalog()))
+    check("crawl:cost summed from shard results", "cost_usd=1.0" in second.stdout, second.stdout)
+
+
+@case
+def test_crawl_ignores_empty_files_in_progress(co: Checkout) -> None:
+    staging = co.root / "runs" / "c2" / "staging"
+    crawl(co, "--run", "c2", "--ids", str(co.root / "ids.txt"), "--dry-run")
+    staging.mkdir(parents=True, exist_ok=True)
+    (staging / f"{CRAWL_IDS[0]}.json").write_text("")
+    status = co.nx("crawl-status", "c2")
+    check("progress:empty file is not a page", "0/7 staged and valid" in status.stdout, status.stdout)
+    result = crawl(co, "--run", "c2")
+    check("progress:empty file re-fetched", CRAWL_IDS[0] in fake_calls(co) and result.returncode == 0,
+          result.stdout)
+
+
+@case
+def test_crawl_refuses_handoff_on_credential(co: Checkout) -> None:
+    result = crawl(co, "--run", "c3", "--ids", str(co.root / "ids.txt"), FAKE_SECRET_ID=CRAWL_IDS[2])
+    check("secret:refuses handoff", result.returncode == 2 and "REFUSING HANDOFF" in result.stdout,
+          result.stdout)
+    check("secret:names the record", CRAWL_IDS[2] in result.stdout, result.stdout)
+    check("secret:withholds the value", "AKIAABCDEFGHIJKLMNOP" not in result.stdout + result.stderr)
+    check("secret:no ingest hint", "nx ingest" not in result.stdout, result.stdout)
+
+
+@case
+def test_crawl_refuses_filename_id_mismatch(co: Checkout) -> None:
+    crawl(co, "--run", "c4", "--ids", str(co.root / "ids.txt"))
+    staging = co.root / "runs" / "c4" / "staging"
+    record_a = json.loads((staging / f"{CRAWL_IDS[0]}.json").read_text())
+    record_a["id"] = CRAWL_IDS[1]
+    (staging / f"{CRAWL_IDS[0]}.json").write_text(json.dumps(record_a))
+    status = co.nx("crawl-status", "c4")
+    check("mismatch:refuses", status.returncode == 2 and "filename does not match" in status.stdout,
+          status.stdout)
+
+
+@case
+def test_crawl_skips_ids_current_in_catalog(co: Checkout) -> None:
+    co.stage("seed", [record(CRAWL_IDS[0], "# seeded")])
+    co.nx("ingest", "seed")
+    result = crawl(co, "--run", "c5", "--ids", str(co.root / "ids.txt"), "--dry-run")
+    check("current:skipped", "1 already current in catalog" in result.stdout and "6 to fetch" in result.stdout,
+          result.stdout)
+    refetch = crawl(co, "--run", "c6", "--ids", str(co.root / "ids.txt"), "--dry-run", "--refetch")
+    check("current:refetch overrides", "7 to fetch" in refetch.stdout, refetch.stdout)
+
+
+@case
+def test_crawl_input_and_executor_guards(co: Checkout) -> None:
+    bad = co.root / "bad-ids.txt"
+    bad.write_text("not-an-id\n")
+    result = crawl(co, "--run", "c7", "--ids", str(bad))
+    check("guard:malformed id refused", result.returncode == 2 and "malformed" in result.stdout, result.stdout)
+    result = crawl(co, "--run", "c8", "--ids", str(co.root / "ids.txt"), "--executor", "rest")
+    check("guard:rest needs a token", result.returncode == 2 and "NOTION_TOKEN" in result.stdout
+          and not (co.root / "runs" / "c8").exists(), result.stdout)
+    crawl(co, "--run", "c9", "--ids", str(co.root / "ids.txt"), "--dry-run")
+    other = co.root / "other-ids.txt"
+    other.write_text(CRAWL_IDS[0] + "\n")
+    result = crawl(co, "--run", "c9", "--ids", str(other))
+    check("guard:run id list is fixed", result.returncode == 2 and "different id list" in result.stdout,
+          result.stdout)
+
+
 # ---------------------------------------------------------------- entrypoint
 
 

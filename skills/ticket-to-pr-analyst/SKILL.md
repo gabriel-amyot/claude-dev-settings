@@ -62,6 +62,10 @@ Also fetch full details for richer analysis:
 cd ~/.claude/skills/jira && python3 jira_skill.py get <TICKET-KEY> --full --org <ORG>
 ```
 
+### Step 1.5: Retrieve Prior Work
+
+Search older local work by symptom and product terms, and by the key. Step 8 writes the findings to `analyst/prior_work.v<N>.md`. Read-only, never posts. Procedure: [references/prior-work-retrieval.md](references/prior-work-retrieval.md).
+
 ### Step 2: Check Existing Versions
 
 Look for `analyst/acceptance_criteria.v*.json` in the ticket folder.
@@ -183,6 +187,7 @@ Write three JSON files using the Write tool:
 - `analyst/acceptance_criteria.v<N>.json`
 - `analyst/affected_repos.v<N>.json`
 - `analyst/assumptions.v<N>.json`
+- `analyst/prior_work.v<N>.md` (format in the Step 1.5 reference)
 
 Schemas are defined in the Output Schemas section below.
 

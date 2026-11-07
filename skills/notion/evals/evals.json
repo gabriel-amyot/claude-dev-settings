@@ -1,0 +1,20 @@
+{
+  "skill_name": "notion",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Fact-check the Proxi operator Notion page against the code and tell me what needs updating. The page says: (1) alerts post to #proxi-alerts, (2) the VM snapshots its data disk before every change, (3) a self-serve onboarding form exists, (4) the service runs on Cloud Run. Do not publish anything yet.",
+      "expected_output": "The agent follows fact-check.md. It reads the page only through nx, reads the org library index and aliases first, and dispatches one read-only checker that runs deploy-identity before citing deployed code. It returns a per-claim verdict table that uses the five verdicts (DEPLOYED, IMPLEMENTED, PLANNED, CONTRADICTED, UNVERIFIABLE) with evidence. Unstamped verdicts go to Open Questions. It does not write to Notion.",
+      "files": [],
+      "expectations": [
+        "Reads the page through nx (card or get), never by reading files under pages/",
+        "Consults the org bibliothèque INDEX.md or ALIASES.md before dispatching the checker",
+        "Requires deploy-identity (or an equivalent deploy-branch check) before any DEPLOYED verdict",
+        "Gives each numbered claim exactly one verdict from DEPLOYED, IMPLEMENTED, PLANNED, CONTRADICTED, UNVERIFIABLE",
+        "Distinguishes a claim that is implemented but not verified as deployed from a claim that is deployed",
+        "Files claims without evidence under Open Questions, not as facts",
+        "Does not write to Notion or post any external content"
+      ]
+    }
+  ]
+}

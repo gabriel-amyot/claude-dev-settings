@@ -153,6 +153,10 @@ If the target is email, present the draft inline. The user copies it manually or
 
 **Never post externally without explicit user approval.** This is a hard rule.
 
+### Step 8: When the vendor answers (explicit request only)
+
+Map each answer to the assumptions it confirms or challenges, then draft ticket comments and proposed state edits for approval: [references/response-reconciliation.md](references/response-reconciliation.md).
+
 ---
 
 ## Anti-Patterns Cheat Sheet

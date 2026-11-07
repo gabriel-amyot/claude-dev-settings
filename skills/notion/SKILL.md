@@ -108,6 +108,7 @@ $NX plan-refresh --older-than 30 > /tmp/nx-plan.json   # what needs re-pulling
 
 Then dispatch the headless session with that plan, one page per staged file, and `ingest` the run.
 Add `--full` to `ingest` only when the run genuinely walked the whole workspace.
+For more than a few pages, use `nx crawl` (resumable, validated, never ingests): see [crawl.md](crawl.md).
 
 **Cheap global probe first.** Ask Notion for pages sorted by `last_edited_time` descending, limit
 ~20. Compare the newest against `workspace_watermark` in `LEDGER.yaml`. If nothing is newer, the
@@ -126,6 +127,8 @@ $NX apply-freshness /tmp/nx-probe-results.json
 
 Pages whose live edit time beats ours get flagged `content_stale`. Reads then carry that flag
 until the body is re-pulled.
+
+To check whether a page's claims are still true against code, use the manual fact-check mode: [fact-check.md](fact-check.md).
 
 ## Mode: status
 

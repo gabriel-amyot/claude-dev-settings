@@ -93,6 +93,8 @@ If not found: "File not found in ledger. Run `/pickup --list` to see available h
 
 ### Triage mode (`/pickup --triage`)
 
+**Large queue (more than 8 awaiting): follow [references/queue-triage.md](references/queue-triage.md).** It builds the worksheet on disk with `scripts/triage_worksheet.py`, joins Jira, runs the scope audit (a Done ticket is not proof the ask landed), and writes each approved row with a CAS `claim` plus an `archive_reason`. The steps below stay valid for a small queue.
+
 **Expiry sweep first (pre-triage).** Before presenting, compute each awaiting handoff's age from its ledger `created` timestamp and pre-classify, so triage leads with the items most likely to be dead weight:
 
 1. **Age flag:** mark any handoff `awaiting_initiation` for **> 14 days** as a staleness candidate.
@@ -120,12 +122,12 @@ For each handoff (sweep order above), present batch triage via `AskUserQuestion`
 ```
 
 Archive actions (all ledger writes via the **helper** — never hand-edit `ledger.yaml`; see `bin/LEDGER_WRITES.md`):
-- **Done**: `... update --section handoffs --key {file} --set status=completed --set archived={today}`, set the same in file frontmatter, move file to `sessions/archive/done/`.
-- **Abandon**: `... update --section handoffs --key {file} --set status=abandoned --set archived={today}`, set the same in file frontmatter, move file to `sessions/archive/abandoned/`.
-- **Autopilot**: `... update --section handoffs --key {file} --set autopilot=approved --set autopilot_approved={now} --set autopilot_attempts=0`. File stays in place, status stays `awaiting_initiation`.
+- **Done**: `... claim --key {file} --expect-status awaiting_initiation --set status=completed --set archived={today} --set archive_reason="{evidence}"`, set the same in file frontmatter, move file to `sessions/archive/done/`.
+- **Abandon**: same claim with `--set status=abandoned`, set the same in file frontmatter, move file to `sessions/archive/abandoned/`.
+- **Autopilot**: `... claim --key {file} --expect-status awaiting_initiation --set autopilot=approved --set autopilot_approved={now} --set autopilot_attempts=0`. File stays in place, status stays `awaiting_initiation`.
 - **Keep**: no change.
 
-Apply all triage entry-edits in ONE `batch` call so the header bumps once (see `bin/LEDGER_WRITES.md` → Batch). The helper bumps `version`+`modified` for you.
+Write each Done or Abandon move with a CAS claim, not a blind batch: `... claim --key {file} --expect-status awaiting_initiation --set status=completed --set archived={today} --set archive_reason="{evidence}"`. Other sessions write the same ledger. On a conflict exit, skip that row and report it. Every archived row gets an `archive_reason`. The helper bumps `version`+`modified` for you.
 
 **Report inflow, don't just prune harder.** At the end of a triage sweep, print a one-line summary: `Triaged: {kept} kept · {done} done · {abandoned} abandoned · {autopilot} autopilot → {N} still awaiting`. Handoff creation is expected inflow (the harness writes them every session); the sweep is garbage collection, not prevention. If the awaiting count stays high sweep-over-sweep, that signals upstream over-creation (`/session:handoff` firing too liberally) to fix at the source — not a reason to prune more aggressively.
 

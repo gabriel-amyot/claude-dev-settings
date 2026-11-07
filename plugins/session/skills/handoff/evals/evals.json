@@ -3,15 +3,15 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "Hand this off for the next session. It's about finishing KTP-681 (the Canadian region hierarchy). Note: sessions/ledger.yaml already has a handoff entry with status awaiting_initiation whose related_ticket is KTP-681.",
-      "expected_output": "Before creating anything, the skill checks the ledger handoffs section for a match by related_ticket (exact string). It finds the existing awaiting_initiation entry for KTP-681, so it updates the existing prompt file in place and does NOT add a duplicate ledger entry.",
+      "prompt": "Hand this off for the next session. It's about finishing KTP-681 (the Canadian region hierarchy). Note: sessions/ledger.yaml already has a handoff entry with status awaiting_initiation, ticket KTP-681 and theme canada-map, and its file is in this session's own prompts/ folder.",
+      "expected_output": "The skill derives the theme first (canada-map), then runs handoff_match.py. The script reports `update` because this session owns the awaiting KTP-681/canada-map handoff, so the skill updates that file in place and does NOT add a duplicate ledger entry.",
       "files": [],
       "expectations": [
-        "Checks sessions/ledger.yaml handoffs section for an existing match by related_ticket (exact string match on KTP-681) BEFORE creating a new file",
-        "Detects the existing awaiting_initiation handoff for KTP-681",
+        "Derives the theme BEFORE the idempotency check",
+        "Runs the handoff_match.py decision script (or applies its rule) with ticket KTP-681 and the derived theme",
         "Updates the existing prompt file in place rather than creating a second file",
         "Does NOT add a duplicate entry to the ledger handoffs section (idempotent skip)",
-        "Matches by related_ticket, not by source_session"
+        "Does not use source_session as a lookup key"
       ]
     },
     {
@@ -25,6 +25,18 @@
         "The handoff file has YAML frontmatter with created, source_session, type: handoff, status: awaiting_initiation, related_ticket: KTP-617, and body sections ## Prompt / ## Context / ## Initiated",
         "Adds a NEW entry to the ledger handoffs section (no prior KTP-617 match) and bumps the ledger version + modified timestamp",
         "Does NOT set autopilot: approved (no unattended-run authorization was given in this turn)"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Hand off the KTP-853 census cron follow-up. Note: the ledger already has two awaiting_initiation KTP-853 handoffs written by other sessions, one with theme langsmith and one with theme proxi.",
+      "expected_output": "The skill derives the theme first, runs handoff_match.py, gets `create`, writes a NEW handoff file and a NEW ledger entry, and lists both existing KTP-853 handoffs under ## Context. It does not modify either existing file or ledger entry.",
+      "files": [],
+      "expectations": [
+        "Derives the theme before checking for a match",
+        "Does NOT update either existing KTP-853 handoff in place (they belong to other sessions)",
+        "Creates a new handoff file and appends a new ledger entry through the ledger helper",
+        "Lists the two sibling KTP-853 handoffs in the new file's ## Context section"
       ]
     }
   ]

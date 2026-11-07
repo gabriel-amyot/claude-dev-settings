@@ -2,6 +2,12 @@
 
 All notable changes to the session plugin will be documented in this file.
 
+## [Unreleased] (2026-11-06)
+
+### Changed
+- **handoff:** idempotency key is now (ticket, theme), and the theme is derived first. An in-place update is allowed only for an awaiting handoff whose file is in the current session's `prompts/` folder. Another session's handoff is never overwritten. New read-only `skills/handoff/scripts/handoff_match.py`. Layer A suite: `skills/handoff/evals/run_handoff_match_evals.py` (fixture ledger).
+- **pickup:** `--triage` for a large queue follows `skills/pickup/references/queue-triage.md`. New read-only `skills/pickup/scripts/triage_worksheet.py` writes the worksheet to disk and applies the scope audit (BLOCKED marker, prod/uat in the ask, programme-shaped ask, ticket mismatch, missing file). Archive writes use CAS `claim` with `archive_reason`. Layer A suite: `skills/pickup/evals/run_triage_worksheet_evals.py`.
+
 ## [2.3.0] — 2026-07-30
 
 Deterministic ledger write path — hand-editing `sessions/ledger.yaml` is now blocked.

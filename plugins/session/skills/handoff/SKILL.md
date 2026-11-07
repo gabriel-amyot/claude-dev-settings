@@ -1,6 +1,6 @@
 ---
 name: handoff
-description: "Create a handoff document for cross-session continuity. Writes to the current session's prompts/ folder. Updates the session ledger. Idempotent by ledger ticket (exact match, skipped when 'none'). Use when: 'hand this off', 'save for next session', 'create a handoff'."
+description: "Create a handoff document for cross-session continuity. Writes to the current session's prompts/ folder. Updates the session ledger. Idempotent by ledger ticket plus theme, and only over this session's own handoffs (skipped when ticket is 'none'). Use when: 'hand this off', 'save for next session', 'create a handoff'."
 ---
 
 # Handoff
@@ -33,20 +33,9 @@ Write to `sessions/active/{session-slug}/prompts/{YYYY-MM-DD}-{slug}.md`. The se
 
 The file needs YAML frontmatter with: `created` (ISO), `source_session` (one-liner), `type: handoff`, `status: awaiting_initiation`, `related_ticket` (Jira key or "none"). Body sections: `## Prompt`, `## Context`, `## Initiated` (empty at creation).
 
-## Idempotency
+## Derive theme (FIRST, before the idempotency check)
 
-Before creating, check `sessions/ledger.yaml` handoffs section for a match by ledger `ticket` (exact string match). Skip matching when ticket is "none" since many handoffs have no ticket.
-
-- **Match found, status `awaiting_initiation`:** update the existing file in place. No new ledger entry.
-- **Match found, status `initiated`:** ask user before overwriting. The work may be in progress elsewhere.
-- **Match found, status `completed`:** only create new if scope differs. Ask user.
-- **No match:** create new file and new ledger entry.
-
-Do NOT match by `source_session`. It is a human-readable label, not a lookup key.
-
-## Derive theme
-
-Before writing the ledger entry, determine a short theme tag for grouped display in `/pickup --list`. The theme is a lowercase, hyphenated label (e.g., `harness`, `canada-map`, `session-mgmt`, `dark-factory`).
+The theme is part of the idempotency key, so derive it before you look for a match. The theme is a short tag for grouped display in `/pickup --list`: a lowercase, hyphenated label (e.g., `harness`, `canada-map`, `session-mgmt`, `dark-factory`).
 
 **Derivation rules (try in order, stop at first match):**
 
@@ -69,6 +58,22 @@ Before writing the ledger entry, determine a short theme tag for grouped display
 
 The theme is written to the ledger entry only (not the handoff file frontmatter). See ADR-003 for rationale.
 
+## Idempotency
+
+An umbrella ticket can hold many awaiting handoffs from different sessions. A match by ticket alone overwrites another session's handoff and drops its intents. Run the read-only decision script after the theme is set:
+
+```bash
+python3 ~/.claude/plugins/local-marketplace/session/skills/handoff/scripts/handoff_match.py --org <org> --ticket <KEY|none> --theme <tag> --session <current-slug>
+```
+
+The key is (`ticket`, `theme`). Ticket `none` never matches. Follow the `action` it prints:
+
+- **`update`:** a handoff with the same ticket and theme is still `awaiting_initiation` AND its file is in THIS session's `prompts/` folder. Update that file in place. No new ledger entry.
+- **`create`:** no own match. Create a new file and a new ledger entry. List every path in `siblings` (and any `completed_matches` this work continues) under `## Context` so the next agent sees the related handoffs.
+- **`ask`:** the same ticket and theme is `initiated` (work may be in progress elsewhere), or this session owns several matches. Ask the user before you write.
+
+**Never update in place a handoff that another session wrote.** Ownership comes from the file location on disk. Do NOT match by `source_session`: it is a human-readable label, not a lookup key, and the script never reads it.
+
 ## Update ledger
 
 **Never hand-edit `sessions/ledger.yaml`** — a PreToolUse hook blocks it. Use the helper (it locks, journals, validates, and bumps `version`+`modified`). Full command reference: `bin/LEDGER_WRITES.md`.
@@ -79,7 +84,7 @@ python3 ~/.claude/plugins/local-marketplace/session/bin/ledger.py --org <org> ap
 ```
 (`--org` from cwd: grp-beklever-com→klever · supervisr-ai→supervisr · gabriel-amyot→personal.)
 
-- **Updating in place** (idempotent match, `awaiting_initiation`): use `update --section handoffs --key {filename} --set modified={ISO}` instead of `append` (no new entry).
+- **Updating in place** (script printed `update`): use `update --section handoffs --key {filename} --set modified={ISO}` instead of `append` (no new entry).
 - **Branching intent:** also append this slug to the parent session's children:
   `... update --section sessions --key {parent-slug} --append-list children={slug}`.
 

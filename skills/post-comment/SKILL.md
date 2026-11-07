@@ -53,6 +53,8 @@ Drafts and posted content are saved to `tickets/{TICKET}/reports/ship/posts/`:
 - `{date}-{slug}.md` for drafts
 - `{date}-{slug}.posted` for rendered content that was actually posted
 
+**Unsent drafts own durable state.** If the human does not approve a previewed draft in the same turn, record it with `draft-state.py hold` and a hard expiry date before the turn ends. Before you resurface a held or untracked draft, reconcile the remote posting state first: a missing local log entry does not prove the draft is unsent. Procedure: [references/unsent-drafts.md](references/unsent-drafts.md).
+
 ## Templates
 
 Templates live in `~/.claude-shared-config/skills/templates/`. See `README.md` there for the full list and draft file format.

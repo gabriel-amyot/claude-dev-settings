@@ -78,6 +78,9 @@ Combine all three subagent outputs. Run these checks:
 | **Empty event types** | Hook events with 0 entries (leftover from cleanup) | LOW |
 | **Orphan agents** | Agents with no corresponding skill or CLAUDE.md reference | LOW |
 | **Missing nav:** | Skill exists but has no `nav:` frontmatter and no `harness-overrides.yaml` entry | LOW |
+| **Self-containment** (factory skills, on request) | `scripts/self_containment_check.py`: version↔CHANGELOG, carried spec, runs ledger, laws. See [references/self-containment.md](references/self-containment.md) | HIGH (version drift) / MEDIUM |
+
+**Retirement candidates:** before you recommend retiring any skill, agent or hook, apply [references/retirement-verdict.md](references/retirement-verdict.md). Report the evidence for each step and the usage coverage. A zero with partial coverage gives `INCONCLUSIVE`, not retirement.
 
 ### Gap Analysis (skip if `--quick`)
 

@@ -37,6 +37,7 @@ Loaded by trigger from `~/.claude/CLAUDE.md`. Never bulk-load; read only when th
 | [context-engineering.md](context/context-engineering.md) | Long-running agents, compaction, context limits | Compaction strategies, note-taking, subagent architecture |
 | [claude-md-authoring.md](context/claude-md-authoring.md) | Editing any CLAUDE.md file | DRY principle, satellite files, section ownership |
 | [harness-self-management.md](context/harness-self-management.md) | Improving the harness, transcript mining, cost monitoring | Self-management ideas, batch API, cost optimization |
+| [harness-machine-migration-checklist.md](context/harness-machine-migration-checklist.md) | New Mac, harness migration, moving credentials | Audit, plugins enabled vs installed, settings merge, credential bundle, repo manifest, verify |
 | [shared-skills-harness-observatory.md](context/shared-skills-harness-observatory.md) | Sharing Claude/Codex skills, catalog usage and eval evidence, session plugin cache parity | Canonical sources, explicit host limits, typed SQLite catalog, static view, partial coverage and recovery records |
 | [claude-config-filesystem-topology.md](context/claude-config-filesystem-topology.md) | Editing any file under `~/.claude/` | Resolve source and registered runtime paths before edits; library is shared; session plugin marketplace/cache links now have a scoped shared-source exception |
 | [long-running-process-pattern.md](context/long-running-process-pattern.md) | Running multi-hour jobs from Claude Code | Nohup launcher scripts, tool timeout limits |

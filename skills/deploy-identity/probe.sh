@@ -150,6 +150,8 @@ echo "  owner                                 : ${OWNER:-?}"
 [ "$SNAPSHOT" = "true" ] && echo "  ⚠ WP-13: deployed artifact is a SNAPSHOT / CI-unconfirmed — provenance not pinned to a CI build."
 echo "  STATUS = $STATUS    CONFIDENCE = $CONFIDENCE"
 echo "  citation stamp → $STAMP"
+echo "  identity scope = branch only. Image, route reach and rollout are NOT probed here."
+echo "    For a claim that rests on a file inside the image, run scripts/identity_contract.py."
 if [ "$STATUS" = "MISMATCH" ]; then
   echo
   echo "  ‼ You are on '$CURRENT_BRANCH' but '${DEPLOY_BRANCH}' is what deploys."
@@ -160,5 +162,5 @@ if [ "$STATUS" = "MISMATCH" ]; then
 fi
 
 # ---- machine-parseable line ----------------------------------------------------------
-emit_json "{\"status\":\"$STATUS\",\"confidence\":\"$CONFIDENCE\",\"repo\":\"$REPO_BASENAME\",\"current_branch\":\"$CURRENT_BRANCH\",\"deploy_branch\":\"$DEPLOY_BRANCH\",\"default_branch\":\"$DEFAULT_BRANCH\",\"deployed_sha\":\"${RESOLVED_SHA:-}\",\"deployed_tag\":\"${DEPLOYED_TAG:-}\",\"on_deploy_branch\":$ON_DEPLOY_BRANCH,\"snapshot\":$SNAPSHOT,\"owner\":\"${OWNER:-}\",\"stamp\":\"$STAMP\"}"
+emit_json "{\"status\":\"$STATUS\",\"confidence\":\"$CONFIDENCE\",\"repo\":\"$REPO_BASENAME\",\"current_branch\":\"$CURRENT_BRANCH\",\"deploy_branch\":\"$DEPLOY_BRANCH\",\"default_branch\":\"$DEFAULT_BRANCH\",\"deployed_sha\":\"${RESOLVED_SHA:-}\",\"deployed_tag\":\"${DEPLOYED_TAG:-}\",\"on_deploy_branch\":$ON_DEPLOY_BRANCH,\"snapshot\":$SNAPSHOT,\"owner\":\"${OWNER:-}\",\"stamp\":\"$STAMP\",\"identity_scope\":\"branch\"}"
 exit 0

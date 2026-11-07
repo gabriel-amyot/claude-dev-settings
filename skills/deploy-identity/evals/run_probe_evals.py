@@ -142,6 +142,16 @@ def case_listed_branch_missing_deployed_sha(tmp):
          "confidence": "HYPOTHESIS"}, None
 
 
+def case_verified_declares_branch_scope(tmp):
+    # 2026-09-14 image-truth miss: a correct branch stamp was read as proof of what
+    # the prod IMAGE contained. The probe must declare that its VERIFIED covers the
+    # branch only, so a consumer cannot mistake it for image or rollout identity.
+    # Fails on the pre-contract probe (no identity_scope field).
+    target, expected, stamp_sub = case_verified_on_deploy(tmp)
+    expected = dict(expected, identity_scope="branch")
+    return target, expected, stamp_sub
+
+
 CASES = {
     "01-verified-on-deploy-branch": case_verified_on_deploy,
     "02-mismatch-on-default-branch": case_mismatch_on_default,
@@ -151,6 +161,7 @@ CASES = {
     "06-verified-unresolved-sha-on-deploy": case_verified_unresolved_sha_on_deploy,
     "07-multi-deploy-branch-contained": case_multi_deploy_branch_contained,
     "08-listed-branch-missing-deployed-sha": case_listed_branch_missing_deployed_sha,
+    "09-verified-declares-branch-scope-only": case_verified_declares_branch_scope,
 }
 
 

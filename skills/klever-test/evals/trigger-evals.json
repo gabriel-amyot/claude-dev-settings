@@ -8,5 +8,7 @@
   {"query": "why isn't the spinner doing anything on dev", "should_trigger": false},
   {"query": "the button does nothing, inspect the live state", "should_trigger": false},
   {"query": "read the live React props and state for this component", "should_trigger": false},
-  {"query": "is the UI working right now on localhost", "should_trigger": false}
+  {"query": "is the UI working right now on localhost", "should_trigger": false},
+  {"query": "is dev up right now", "should_trigger": false},
+  {"query": "which image version is running in prod for media-api", "should_trigger": false}
 ]

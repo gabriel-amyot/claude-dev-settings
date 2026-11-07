@@ -73,6 +73,21 @@ cd ~/Developer/grp-beklever-com/grp-app/grp-frontend/app-front-portal
 A red preflight prints the exact fix command and skips that service; the rest of
 the stack still comes up. `status` shows green/red per service.
 
+## Verify the emulator data path (after `start` with proximity-report)
+
+`start` falls back to live dev BigQuery when the emulator cannot start, so a 200 with data does
+not prove the source. After any profile that starts proximity-report, run:
+
+```bash
+python3 ~/.claude/skills/klever-local-stack/scripts/verify_emulator_stack.py \
+  [--response locations=/tmp/loc.json:<fixture value>]
+```
+
+It checks port 9050, the `EMULATOR mode active` boot line in `/tmp/klever-local-report.log`, and
+BigQuery failures (crosswalk/insights warnings are graceful, the rest is RED). Saved endpoint
+responses are optional. Gate the frontend visual check on GREEN. Fixtures and the array shim:
+bibliothèque `stack/local-dev/bigquery-emulator-local-setup.md`.
+
 ## Does NOT
 
 - Touch `start-stop-portal-in-dev.sh` or `gcp-connect.sh` (separate, still used

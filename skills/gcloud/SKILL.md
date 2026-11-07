@@ -83,6 +83,22 @@ Files are saved to `/tmp/gcloud-logs/`:
 - `{project}_{timestamp}.json` (raw log entries)
 - `{project}_{timestamp}_summary.yaml` (structured summary with top errors, severity breakdown, stack trace heads)
 
+### Agent thread trace (read-only)
+
+To see what a deployed agent actually did in one conversation ("did the agent really check that"),
+use the trace script inside a log investigation. Do not run it after every demo by default.
+
+```bash
+python3 ~/.claude-shared-config/skills/gcloud/scripts/agent_trace.py --thread <thread_id> \
+  --project <project-id> [--freshness 6h] [--expect-tool <tool>]
+```
+
+It double-parses `jsonPayload.message` (a `jsonPayload.thread_id` filter matches zero rows), prints
+one line per turn with tools, results and flags, and keeps the raw dump in `/tmp/gcloud-logs/`. A
+tool-free turn is not proof of an unsupported claim: earlier tool results stay in context, and the
+script lists them. Only `NO_TOOL_EVIDENCE_IN_THREAD` means nothing logged backs the turn. Project
+IDs and the event vocabulary: org bibliothèque (Klever: `stack/media-plan-agent-service.md`).
+
 ## Config Management
 
 ```bash

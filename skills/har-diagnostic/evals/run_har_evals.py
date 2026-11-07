@@ -22,8 +22,11 @@ DEFAULT_SCRIPT = os.path.expanduser(
 
 
 def entry(method, url, status, time_ms, body="", content_type="application/json",
-          size=None, encoding=None, started="2026-07-07T12:00:00.000Z", redirect_url=None):
+          size=None, encoding=None, started="2026-07-07T12:00:00.000Z", redirect_url=None,
+          extra_headers=None):
     headers = [{"name": "Content-Type", "value": content_type}]
+    for name, value in (extra_headers or {}).items():
+        headers.append({"name": name, "value": value})
     if redirect_url:
         headers.append({"name": "Location", "value": redirect_url})
     content = {"mimeType": content_type, "text": body}
@@ -172,6 +175,40 @@ FIXTURES["08-invalid-json-file"] = (
     lambda out, rc: (
         rc == 1 and "ERROR: could not read HAR" in out,
         f"expected a clean exit-1 error for unparseable JSON, got rc={rc}; output:\n{out}",
+    ),
+)
+
+# 2026-11-06 (proposal sse-proxy-debugging): header signals make proxy buffering a
+# HYPOTHESIS only. The report must list the signals, label them as not proof, and
+# say timing evidence is missing. It must never state buffering as a finding.
+FIXTURES["09-sse-buffering-signals-are-hypotheses"] = (
+    ["--sse"], har([
+        entry("POST", "https://portal.dev.beklever.com/api/chatbot/stream", 200, 900,
+              body=SSE_BODY, content_type="text/event-stream",
+              extra_headers={"Content-Encoding": "gzip", "Content-Length": "162"}),
+    ]), True,
+    lambda out, rc: (
+        "Buffering hypotheses (header signals, NOT proof)" in out
+        and "Content-Encoding=gzip" in out and "Content-Length is set" in out
+        and "X-Accel-Buffering=no is absent" in out
+        and "Timing evidence missing" in out
+        and "buffering confirmed" not in out.lower() and "root cause" not in out.lower(),
+        f"expected labelled buffering hypotheses plus a missing-timing note; output:\n{out}",
+    ),
+)
+
+FIXTURES["10-sse-streaming-headers-no-hypotheses"] = (
+    ["--sse"], har([
+        entry("POST", "https://portal.dev.beklever.com/api/chatbot/stream", 200, 900,
+              body=SSE_BODY, content_type="text/event-stream",
+              extra_headers={"X-Accel-Buffering": "no", "Transfer-Encoding": "chunked",
+                             "Cache-Control": "no-cache, no-transform"}),
+    ]), True,
+    lambda out, rc: (
+        "Buffering hypotheses" not in out and "Timing evidence missing" in out
+        and "Events parsed: 2" in out,
+        f"clean streaming headers must raise no hypotheses but still note missing timing; "
+        f"output:\n{out}",
     ),
 )
 

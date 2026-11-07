@@ -33,10 +33,18 @@ The pipeline delegates to existing skills where they fit (`/create-tickets` for 
 ## Pipeline Overview
 
 ```
-Ingest → Scout → Extract → Synthesize → [User Gate] → Formalize → Verify
+[Privacy Route] → Ingest → Scout → Extract → Synthesize → [User Gate] → Formalize → Verify
 ```
 
 Each phase writes output to disk. The user can enter at any phase (skip earlier ones) and exit after any phase (run partial pipelines). The default is the full sequence.
+
+---
+
+## Phase 0: Privacy route (always first)
+
+Before you ingest a recording or a transcript, decide: project meeting or private conversation. Private means a one-on-one, interpersonal feedback about named people, a personal call, or a request for "just the transcript" / "no notes". If you are not sure, ask the user. Do not guess "project".
+
+A private input goes to **transcript-only mode**: follow `references/transcript-only.md` and stop. It never enters weekly notes, a notes vault, a meetings folder, the decisions log, the Bibliotheque, Jira or git. `scripts/check_private_dest.sh <dir>` must print `SAFE` before you write the transcript.
 
 ---
 
@@ -50,8 +58,8 @@ Each phase writes output to disk. The user can enter at any phase (skip earlier 
 |-------|---------------|
 | Markdown/text transcript | Read directly, split by topic shifts |
 | Multiple chunk files (folder) | Read all, concatenate in order, then split by topic |
-| Audio (.m4a, .mp3, .wav) | Write a Python script using `whisper` to transcribe, then process the text output. If whisper is not installed, tell the user and offer to write a script they can run manually. |
-| Video (.mov, .mp4) | Same as audio (extract audio track first with ffmpeg, then whisper) |
+| Audio (.m4a, .mp3, .wav) | Normalize and transcribe with `whisper-cli`, then check for repeat-loop hallucinations. Follow `references/recording-recovery.md`. If the tools are missing, tell the user and offer a script they can run. |
+| Video (.mov, .mp4, .mkv) | Same as audio (extract the audio track first). Key frames only on explicit request (same reference). |
 | Slack thread dump | Parse messages, attribute speakers, split by topic |
 | Pasted text in conversation | Save to disk first, then process |
 
@@ -61,7 +69,7 @@ Write ingested content to a meeting folder:
 
 ```
 general/meetings/{date}-{slug}/
-  raw/                    # Original input files (copy, don't move)
+  raw/                    # Original text inputs (copy, don't move). Audio/video: record the path only, never copy media here
   topics/
     01-{topic-slug}.md    # One file per topic, numbered by discussion order
     02-{topic-slug}.md
@@ -280,6 +288,7 @@ If yes, write an inbox entry to `documentation/bibliotheque/inbox/` following th
 Run specific phases with `--mode`:
 
 ```
+/meeting-to-action --mode transcript-only     # Private recording: transcript only, then stop (Phase 0)
 /meeting-to-action --mode ingest              # Just clean up and chunk the transcript
 /meeting-to-action --mode ingest,scout        # Ingest + context scout
 /meeting-to-action --mode extract             # Extract from already-ingested topics

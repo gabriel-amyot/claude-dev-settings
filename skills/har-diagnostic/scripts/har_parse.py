@@ -127,6 +127,25 @@ def parse_sse(body):
     return parsed
 
 
+def buffering_signals(hdr):
+    """Header signals that make proxy buffering of an SSE response plausible.
+
+    These are hypotheses, never proof: a HAR has no per-event arrival times, so it
+    cannot show whether events arrived incrementally or all at once.
+    """
+    signals = []
+    encoding = hdr.get("Content-Encoding", "").lower()
+    if encoding and encoding != "identity":
+        signals.append(f"Content-Encoding={encoding}: a compression layer on an event stream "
+                       "often holds bytes until its buffer fills")
+    if hdr.get("Content-Length"):
+        signals.append("Content-Length is set: the sender knew the full body size, which suggests "
+                       "a hop assembled the whole stream before sending it")
+    if hdr.get("X-Accel-Buffering", "").lower() != "no":
+        signals.append("X-Accel-Buffering=no is absent: an nginx-style proxy hop may buffer")
+    return signals
+
+
 def audit_json(obj, path="", findings=None, depth=0):
     """Lightweight data-quality audit on a parsed JSON body. Bounded depth."""
     if findings is None:
@@ -300,6 +319,14 @@ def print_report(args, har, total, filtered, kept, buckets, sse_records, records
             if chunked:
                 note += "Transfer-Encoding=chunked confirms a streamed transport."
             out.append(f"- Note: {note.strip()}")
+            signals = buffering_signals(hdr)
+            if signals:
+                out.append("- Buffering hypotheses (header signals, NOT proof):")
+                for sig in signals:
+                    out.append(f"  - {sig}")
+            out.append("- Timing evidence missing: confirm buffering with per-event arrival times "
+                       "(curl -N with timestamps, or the browser EventStream tab), hop by hop. "
+                       "See references/sse-proxy-checklist.md.")
             if not s["events"]:
                 out.append("- WARNING: 0 events parsed. Empty stream or the server "
                             "closed before emitting data (possible backend error or "

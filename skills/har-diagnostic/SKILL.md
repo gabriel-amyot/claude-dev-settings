@@ -56,6 +56,7 @@ Read the script's stdout. That IS the report. The script handles all parsing, fi
 - Reports streaming-relevant headers: Content-Type, Content-Encoding, Transfer-Encoding, X-Accel-Buffering, Content-Length, Cache-Control.
 - Flags the structural limitation: HAR captures the whole stream as one body blob, so per-event timing / incremental delivery is not observable. It notes when `X-Accel-Buffering=no` or `Transfer-Encoding=chunked` indicate streaming was intended.
 - Warns when an SSE response parsed 0 events (empty stream / server closed early / aborted request) — a common chatbot failure signature.
+- Lists buffering hypotheses from headers (compression, Content-Length, no `X-Accel-Buffering: no`) and states that timing evidence is missing. These are suspects, not a diagnosis. When the user reports events that "arrive all at once", follow `references/sse-proxy-checklist.md` to prove the buffering hop with per-hop timing.
 
 **Data quality audit** — for JSON success bodies, flags decimal-precision leaks (>6 places), empty strings where null is expected, and inconsistent array object shapes. Bounded depth so it stays fast and the output stays small.
 

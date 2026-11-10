@@ -13,6 +13,18 @@
 #   - A ≥1/month skill with NO suite must appear under `exclusions` with a rationale.
 
 suites:
+  - target: mission/layer-a
+    layer: A
+    runner: uv run --quiet --with pyyaml python3 ~/.claude-shared-config/skills/mission/evals/run_layer_a.py
+    owner_skill: mission
+    last_green: 2026-11-10
+
+  - target: mission/behavioral
+    layer: B
+    runner: skill-creator benchmark — evals at ~/.claude-shared-config/skills/mission/evals/evals.json (sandbox with a temp MISSION_PM_ROOT, --no-issue, no push)
+    owner_skill: mission
+    last_green: null
+
   - target: post-comment/verify-causal-claims
     layer: A
     runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/post-comment/evals/run_causal_evals.py

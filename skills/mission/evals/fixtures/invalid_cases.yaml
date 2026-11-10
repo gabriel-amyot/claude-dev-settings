@@ -1,0 +1,44 @@
+# Each case applies a patch to the valid fixture and expects the lint to fail with the given text.
+# patch: dotted path -> value. A list index is a number in the path. value null deletes the key.
+- name: ratified-without-link
+  patch: {decisions.1.state: ratified}
+  expect: "ratified needs ratified_by.who and ratified_by.link"
+- name: relitigate-on-proposed
+  patch: {decisions.1.statement: "Final, do not re-litigate: open writes."}
+  expect: "only allowed on a ratified decision"
+- name: supersedes-missing-decision
+  patch: {decisions.2.supersedes: DEC-9}
+  expect: "is not an existing decision id"
+- name: bare-link-no-title
+  patch: {needs_you.0.links.0.title: null}
+  expect: "link missing 'title'"
+- name: jira-member-without-url
+  patch: {members.1.url: null}
+  expect: "member needs a url"
+- name: needs-you-without-options
+  patch: {needs_you.1.free: null}
+  expect: "needs options, or free: true"
+- name: answered-ask-without-answer
+  patch: {asks.0.answer: null}
+  expect: "needs an answer"
+- name: duplicate-id
+  patch: {asks.1.id: A-1}
+  expect: "duplicate id"
+- name: wrong-prefix
+  patch: {parked.0.id: X-9}
+  expect: "must start with 'P-'"
+- name: journey-out-of-order
+  patch: {journey.0.start: "2026-11-12T00:00:00Z"}
+  expect: "time order"
+- name: bad-status
+  patch: {status: finished}
+  expect: "status 'finished'"
+- name: missing-destination
+  patch: {destination: null}
+  expect: "missing required field 'destination'"
+- name: journey-unknown-decision
+  patch: {journey.2.decisions: [DEC-7]}
+  expect: "decision 'DEC-7' does not exist"
+- name: superseded-but-still-ratified
+  patch: {decisions.0.state: ratified}
+  expect: "its state must be superseded or reversed"

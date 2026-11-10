@@ -1,0 +1,90 @@
+schema: mission/v1
+slug: fixture-ttd
+title: "TTD MCP: address OT feedback (fixture)"
+status: active
+created: 2026-11-08T14:00:00Z
+updated: 2026-11-10T22:00:00Z
+last_report_at: 2026-11-09T12:00:00Z
+root_issue: {number: 999, url: "https://github.com/gabriel-amyot/klever-project-management/issues/999"}
+parent_issue: {number: 594, url: "https://github.com/gabriel-amyot/klever-project-management/issues/594", title: "Component: TTD trading MCP"}
+destination: >
+  OT reads her live Powers book and writes bids from Claude Desktop on Windows, in production.
+why: >
+  OT feedback (KTP-1289) said reads were poor and writes did not work.
+scope_constraints:
+  - "Write stays closed until DEC-2 is ratified."
+verdict: "Reads verified on prod. Writes shipped, not verified live."
+next_milestone: {title: "Writes verified on prod by OT", done_when: "OT places one bid from Windows.", owner: Gabriel, deliverable: D-B}
+aliases: ["Powers MCP", "TTD trading MCP", "app-ttd-trading-mcp"]
+members:
+  - {kind: jira, ref: KTP-1289, url: "https://beklever.atlassian.net/browse/KTP-1289", title: "Address OT feedback on Powers MCP", role: done}
+  - {kind: jira, ref: KTP-1398, url: "https://beklever.atlassian.net/browse/KTP-1398", title: "Part 2 - Powers MCP: deploy read and write to prod", role: current}
+  - {kind: gh, ref: "#588", url: "https://github.com/gabriel-amyot/klever-project-management/issues/588", title: "KTP-1289 tracker", role: done}
+  - {kind: gh, ref: "#38", url: "https://github.com/gabriel-amyot/klever-project-management/issues/38", title: "Powers MCP in production (first run)", role: superseded}
+  - {kind: folder, ref: tickets/KTP/no-epic/KTP-1289, url: "file:///tmp/KTP-1289", title: "KTP-1289 ticket folder", role: done}
+deliverables:
+  - {id: D-A, title: "Story A: read path", members: [KTP-1289], status_line: "Done, verified by Gabriel 2026-11-09"}
+  - {id: D-B, title: "Story B: write path", members: [KTP-1398], status_line: "Shipped to prod, not verified live"}
+decisions:
+  - id: DEC-1
+    date: 2026-11-09
+    statement: "Seat-wide discovery replaces name guessing for OT's campaign list."
+    state: superseded
+    ratified_by: {who: Gabriel, link: {kind: session, url: "https://github.com/gabriel-amyot/klever-project-management/tree/main/sessions", title: "session turn 2026-11-09"}}
+    licenses: ["app-ttd-trading-mcp:src/discovery.py#list_campaigns"]
+  - id: DEC-2
+    date: 2026-11-10
+    statement: "Open the write path for OT's seat only."
+    state: proposed
+  - id: DEC-3
+    date: 2026-11-10
+    statement: "Discovery uses the seat list, not the advertiser list."
+    state: ratified
+    supersedes: DEC-1
+    ratified_by: {who: Gabriel, link: {kind: url, url: "https://example.org/turn", title: "terminal turn 2026-11-10"}}
+disproven:
+  - id: X-1
+    date: 2026-11-07
+    claim: "Prod today has none of the surface the MCP calls."
+    evidence: {kind: jira, ref: KTP-1398, url: "https://beklever.atlassian.net/browse/KTP-1398", title: "prod surface live since 2026-09-16"}
+    signature: "none of the surface the MCP calls"
+parked:
+  - {id: P-1, title: "Advertiser-level authorization", bucket: horizon, owner: Gabriel, since: 2026-11-09, reentry: "After writes are verified"}
+  - {id: P-2, title: "OT confirms Windows kit works", bucket: blocked_on_person, owner: OT, since: 2026-11-09}
+needs_you:
+  - id: N-1
+    since: 2026-11-09
+    question: "Send the 0.15.7 kit to OT?"
+    why: "She cannot test native Windows without it."
+    options:
+      - {label: "Send now", consequence: "OT tests tonight", source: drafted}
+      - {label: "Wait for writes fix", consequence: "One message instead of two", source: drafted}
+    recommendation: "Send now"
+    after_answer: "I mark M-1 sent and watch for her reply."
+    links: [{kind: jira, ref: KTP-1398, url: "https://beklever.atlassian.net/browse/KTP-1398", title: "Part 2 deploy"}]
+  - id: N-2
+    since: 2026-11-10
+    question: "Which source for the Powers advertiser list?"
+    free: true
+    blocking: false
+asks:
+  - {id: A-1, asker: Gabriel, date: 2026-11-10, text: "What is missing to close story A?", state: answered, answer: "Nothing: done 2026-11-09."}
+  - {id: A-2, asker: Gabriel, date: 2026-11-10, text: "Can OT write bids yet?", state: open}
+  - {id: A-3, asker: OT, date: 2026-11-08, text: "List my live campaigns without guessing names", state: done, answer: "Seat-wide discovery (DEC-1)."}
+journey:
+  - {id: J-1, kind: session, session: brave-otter, start: 2026-11-08T14:00:00Z, end: 2026-11-08T22:00:00Z, summary: "Investigated OT asks", findings: ["Name guessing fails for 4 campaigns"]}
+  - {id: J-2, kind: commit_only, start: 2026-11-08T23:00:00Z, end: 2026-11-09T06:00:00Z, summary: "Commits with no session record"}
+  - {id: J-3, kind: session, session: deft-lynx, start: 2026-11-09T14:00:00Z, end: 2026-11-09T23:00:00Z, summary: "Shipped 0.15.7, verified 5 of 9 asks", milestones: ["0.15.7 on prod"], blockers: ["Native Windows untested"], confusion: ["Which kit file was sent"], decisions: [DEC-1]}
+artifacts:
+  - {id: ART-1, title: "Windows test kit 0.15.7", path: "/Users/gamyot/Desktop/ttd-production-windows-test-kit-0.15.7-0a08771.zip", sha256: "dffc9275233844b0", date: 2026-11-09}
+messages:
+  - {id: M-1, to: OT, channel: slack-dm, state: draft, draft: "Salut Othalia! Voici la version 0.15.7.", date: 2026-11-09}
+graph:
+  nodes: [{id: mcp, label: "TTD trading MCP", kind: system}, {id: ot, label: "OT", kind: person}, {id: ttd, label: "The Trade Desk API", kind: system}, {id: seat, label: "seat", kind: concept}, {id: dec1, label: "DEC-1 seat-wide discovery", kind: decision}]
+  edges: [{from: ot, to: mcp, label: "uses"}, {from: mcp, to: ttd, label: "calls"}, {from: ttd, to: seat, label: "scoped by"}, {from: dec1, to: seat}]
+terms:
+  - {term: seat, meaning: "a TTD partner account", confirmed: true}
+changes:
+  - {id: C-1, at: 2026-11-08T14:00:00Z, session: brave-otter, summary: "Mission created."}
+  - {id: C-2, at: 2026-11-09T23:00:00Z, session: deft-lynx, summary: "0.15.7 shipped to prod.", refs: [{kind: jira, ref: KTP-1398, url: "https://beklever.atlassian.net/browse/KTP-1398", title: "Part 2 deploy"}]}
+  - {id: C-3, at: 2026-11-10T21:00:00Z, session: clear-wren, summary: "DEC-3 supersedes DEC-1."}

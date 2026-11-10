@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Dispatcher: mission <new|lint|fetch|render|sync|log> [args]. Runs scripts/mission_<cmd>.py with pyyaml.
+set -euo pipefail
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cmd="${1:?usage: mission <new|lint|fetch|render|sync|log> [args]}"; shift
+exec uv run --quiet --with pyyaml python3 "$here/mission_${cmd}.py" "$@"

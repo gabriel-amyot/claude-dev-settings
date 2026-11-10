@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mission report</title>
+<style>
+:root{--bg:#f4f3ef;--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--mute:#7a7974;--line:#e2e0d9;--line2:#ecebe6;
+--accent:#2a78d6;--accent-ink:#1d5fae;--chip:#efeee9;--good:#0ca30c;--warn:#fab219;--serious:#ec835a;--crit:#d03b3b;--neutral:#9a9890;
+--good-bg:rgba(12,163,12,.09);--warn-bg:rgba(250,178,25,.14);--serious-bg:rgba(236,131,90,.13);--crit-bg:rgba(208,59,59,.09);
+--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Helvetica,Arial,sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#121211;--surface:#1a1a19;--ink:#fff;--ink2:#c3c2b7;--mute:#8f8e86;--line:#2c2c2a;--line2:#242422;--accent:#3987e5;--accent-ink:#7fb0f0;--chip:#252523;--good-bg:rgba(12,163,12,.16);--warn-bg:rgba(250,178,25,.13);--serious-bg:rgba(236,131,90,.14);--crit-bg:rgba(208,59,59,.17)}}
+:root[data-theme=dark]{--bg:#121211;--surface:#1a1a19;--ink:#fff;--ink2:#c3c2b7;--mute:#8f8e86;--line:#2c2c2a;--line2:#242422;--accent:#3987e5;--accent-ink:#7fb0f0;--chip:#252523;--good-bg:rgba(12,163,12,.16);--warn-bg:rgba(250,178,25,.13);--serious-bg:rgba(236,131,90,.14);--crit-bg:rgba(208,59,59,.17)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14.5px/1.5 var(--sans)}
+a{color:var(--accent-ink);text-decoration:none}a:hover{text-decoration:underline}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px}.mono{font-family:var(--mono);font-size:12.5px}.muted{color:var(--mute)}.small{font-size:12.5px}
+header{background:var(--surface);border-bottom:1px solid var(--line)}
+.hrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:16px 0 10px}.hrow h1{font-size:19px;margin:0}
+.kicker{font:600 11px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin-bottom:5px}.grow{flex:1}
+.pill{font:600 12px var(--mono);padding:3px 9px;border-radius:99px;background:var(--good-bg)}.pill.amber{background:var(--warn-bg)}.pill.red{background:var(--crit-bg)}
+.btn{font:500 13px var(--sans);border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:7px;padding:6px 11px;cursor:pointer}.btn:hover{border-color:var(--accent)}.btn.xs{padding:2px 8px;font-size:12px}
+.alerts{display:flex;flex-direction:column;gap:4px;padding-bottom:10px}.alert{font-size:13px;padding:5px 10px;border-left:3px solid var(--crit);background:var(--crit-bg);border-radius:4px}.alert.warn{border-color:var(--warn);background:var(--warn-bg)}
+nav{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;gap:2px;align-items:center}[role=tab]{font:600 13.5px var(--sans);border:0;background:none;color:var(--ink2);padding:11px 14px;border-bottom:2px solid transparent;cursor:pointer}
+[role=tab][aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent)}.ct{font:600 11px var(--mono);background:var(--chip);border-radius:99px;padding:1px 6px;margin-left:4px}.ct.hot{background:var(--crit);color:#fff}
+main{padding:18px 0 40px}.verdict{font-size:17px;font-weight:600;margin:4px 0 14px}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}.tile{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;color:var(--ink)}
+.tile .v{font:700 24px var(--sans)}.tile .l{font-weight:600;font-size:13px}.tile .s{font-size:12px;color:var(--mute)}.tile.hot{border-left:4px solid var(--crit)}.tile.warm{border-left:4px solid var(--warn)}
+.sec{margin:18px 0}.sh{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}.sh h2{font-size:15px;margin:0}.sh .n{font:600 12px var(--mono);color:var(--mute)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.item{padding:12px 16px;border-bottom:1px solid var(--line2)}.item:last-child{border-bottom:0}
+.id{font:700 11.5px var(--mono);background:var(--chip);border-radius:4px;padding:1px 6px;margin-right:6px}
+.age{font:600 11px var(--mono);padding:1px 6px;border-radius:4px;background:var(--chip);margin-right:6px}.age.amber{background:var(--warn);color:#2b2000}.age.red{background:var(--crit);color:#fff}
+.opt{display:block;border:1px solid var(--line);border-radius:6px;padding:6px 10px;margin:5px 0}.opt.rec{border-color:var(--accent)}
+.tag{font:600 10.5px var(--mono);text-transform:uppercase;color:var(--mute);margin-left:6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.chip{font-size:12px;border:1px solid var(--line);border-radius:99px;padding:1px 9px;background:var(--chip)}.chip b{font-family:var(--mono);font-size:11px;margin-right:4px;color:var(--mute)}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line2);vertical-align:top;font-size:13.5px}th{font-size:12px;color:var(--mute);font-weight:600}
+.st{font:600 11.5px var(--sans);padding:1px 8px;border-radius:99px;white-space:nowrap}.st.good{background:var(--good-bg)}.st.warn{background:var(--warn-bg)}.st.crit{background:var(--crit-bg)}.st.neutral{background:var(--chip)}
+.kanban{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.col h3{font-size:13px;margin:0 0 6px}
+details>summary{cursor:pointer;color:var(--ink2);font-size:13px;padding:8px 16px}
+pre.msg{white-space:pre-wrap;font:14px/1.55 var(--sans);margin:0;padding:12px 16px;background:var(--bg);border-radius:6px}
+.lane{overflow-x:auto}svg text{fill:var(--ink);font-family:var(--sans)}
+.graph{height:520px}.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;padding:8px 16px}.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px}
+footer{font-size:12px;color:var(--mute);padding:20px 0 40px}.empty{padding:14px 16px;color:var(--mute);font-size:13px}
+@media (max-width:800px){.tiles,.kanban{grid-template-columns:1fr 1fr}}
+@media print{nav,.btn{display:none}[role=tabpanel]{display:block!important}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="hrow"><div><div class="kicker" id="kicker"></div><h1 id="title"></h1></div><div class="grow"></div>
+    <span class="pill" id="fresh"></span>
+    <button class="btn" id="copySummary" title="Copy the Mission tab as rich text (pastes into Slack)">Copy summary</button>
+    <button class="btn" id="theme" aria-label="Toggle light or dark">◐</button></div>
+  <div class="alerts" id="alerts"></div>
+</div></header>
+<nav aria-label="Views"><div class="wrap" role="tablist" id="tablist">
+  <button role="tab" id="t-mission" aria-controls="p-mission" aria-selected="true">Mission <span class="ct hot" id="c-needs"></span></button>
+  <button role="tab" id="t-journey" aria-controls="p-journey" aria-selected="false" tabindex="-1">Journey <span class="ct" id="c-journey"></span></button>
+  <button role="tab" id="t-graph" aria-controls="p-graph" aria-selected="false" tabindex="-1">Context graph</button>
+  <button role="tab" id="t-latest" aria-controls="p-latest" aria-selected="false" tabindex="-1">Latest changes <span class="ct" id="c-latest"></span></button>
+  <button role="tab" id="t-sources" aria-controls="p-sources" aria-selected="false" tabindex="-1">Sources <span class="ct" id="c-sources"></span></button>
+</div></nav>
+<main class="wrap">
+  <div role="tabpanel" id="p-mission" aria-labelledby="t-mission"></div>
+  <div role="tabpanel" id="p-journey" aria-labelledby="t-journey" hidden></div>
+  <div role="tabpanel" id="p-graph" aria-labelledby="t-graph" hidden></div>
+  <div role="tabpanel" id="p-latest" aria-labelledby="t-latest" hidden></div>
+  <div role="tabpanel" id="p-sources" aria-labelledby="t-sources" hidden></div>
+  <footer id="footer"></footer>
+</main>
+<div class="toast" id="toast" hidden></div>
+<script>
+const DATA = /*__DATA__*/null;
+const M = DATA.mission, C = DATA.computed || {}, NOW = new Date();
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const arr = x => Array.isArray(x) ? x : [];
+const days = d => d ? Math.floor((NOW - new Date(d)) / 864e5) : null;
+const hours = d => d ? (NOW - new Date(d)) / 36e5 : null;
+const ageCls = n => n == null ? '' : n > 14 ? 'red' : n > 3 ? 'amber' : '';
+const KIND = {jira:'Jira', gh:'GH', mr:'MR', file:'file', folder:'folder', session:'session', url:'link', slack:'Slack'};
+const chip = l => l && l.url ? `<a class="chip" href="${esc(l.url)}" target="_blank" rel="noopener"><b>${esc(KIND[l.kind]||l.kind||'link')}</b>${esc(l.ref ? l.ref + ': ' : '')}${esc(l.title || l.url)}</a>` : '';
+const chips = ls => arr(ls).length ? `<div class="chips">${arr(ls).map(chip).join('')}</div>` : '';
+const sec = (title, n, body, id) => `<section class="sec"${id?` id="${id}"`:''}><div class="sh"><h2>${esc(title)}</h2>${n!=null?`<span class="n">${esc(n)}</span>`:''}</div><div class="card">${body}</div></section>`;
+const empty = t => `<div class="empty">${esc(t)}</div>`;
+const ST = {ratified:'good', proposed:'warn', superseded:'neutral', reversed:'crit', open:'warn', answered:'good', done:'good', deferred:'neutral', blocked:'crit',
+  draft:'warn', sent:'neutral', answered_msg:'good', current:'warn', parked:'neutral', active:'good', abandoned:'crit'};
+const st = (v, label) => `<span class="st ${ST[v]||'neutral'}">${esc(label || v)}</span>`;
+function toast(t){const e=$('toast');e.textContent=t;e.hidden=false;setTimeout(()=>e.hidden=true,1600)}
+async function copyText(t,l){try{await navigator.clipboard.writeText(t)}catch(e){const r=document.createElement('textarea');r.value=t;document.body.append(r);r.select();document.execCommand('copy');r.remove()}toast(l)}
+async function copyRich(el,l){try{await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([el.innerHTML],{type:'text/html'}),'text/plain':new Blob([el.innerText],{type:'text/plain'})})]);toast(l)}catch(e){copyText(el.innerText,l)}}
+
+// header
+$('kicker').textContent = `Mission · ${M.status}${M.parent_issue ? ' · under ' + (M.parent_issue.title || '#' + M.parent_issue.number) : ''}`;
+$('title').innerHTML = esc(M.title) + (M.root_issue && M.root_issue.url ? ` <a class="small" href="${esc(M.root_issue.url)}" target="_blank">#${esc(M.root_issue.number)}</a>` : '');
+document.title = `Mission · ${M.title}`;
+const genH = hours(DATA.generated_at), fetchH = hours(C.fetched_at);
+const worstH = Math.max(genH || 0, fetchH == null ? 999 : fetchH);
+$('fresh').className = 'pill' + (worstH > 72 ? ' red' : worstH > 12 ? ' amber' : '');
+$('fresh').textContent = `as of ${String(DATA.generated_at).slice(0,16).replace('T',' ')}Z` + (C.fetched_at ? '' : ' · trackers not fetched');
+
+const needs = arr(M.needs_you), blocking = needs.filter(n => n.blocking !== false), fyi = needs.filter(n => n.blocking === false);
+const asksOpen = arr(M.asks).filter(a => ['open','blocked','deferred'].includes(a.state));
+const alerts = [];
+if (C.mismatches) alerts.push(['', `${C.mismatches} tracker mismatch(es): the mission and Jira/GitHub disagree. See Journey → Trackers.`]);
+arr(M.decisions).filter(d => d.state === 'ratified' && !(d.ratified_by && d.ratified_by.link)).forEach(d => alerts.push(['', `${d.id} claims ratified with no link to where a human said it. Treat it as proposed.`]));
+blocking.filter(n => days(n.since) > 14).forEach(n => alerts.push(['warn', `${n.id} has waited on you for ${days(n.since)} days.`]));
+if (worstH > 72) alerts.push(['warn', 'This report is over 3 days old. Run /mission report to refresh it.']);
+$('alerts').innerHTML = alerts.map(([c,t]) => `<div class="alert ${c}">⚑ ${esc(t)}</div>`).join('');
+
+// mission tab
+function needCard(n){
+  const opts = arr(n.options).map(o => `<label class="opt${o.label===n.recommendation?' rec':''}"><b>${esc(o.label)}</b>${o.consequence?` <span class="muted small">→ ${esc(o.consequence)}</span>`:''}${o.source?`<span class="tag">${o.source==='drafted'?'drafted by the report':'quoted from source'}</span>`:''}${o.label===n.recommendation?'<span class="tag">recommended</span>':''}</label>`).join('');
+  const d = days(n.since);
+  return `<div class="item"><div><span class="id">${esc(n.id)}</span>${d!=null?`<span class="age ${ageCls(d)}">${d}d</span>`:''}<b>${esc(n.question)}</b></div>
+    ${n.why?`<div class="muted small" style="margin:3px 0 6px">${esc(n.why)}</div>`:''}${opts}
+    ${n.after_answer?`<div class="small" style="margin-top:6px"><b>After your answer, I do:</b> ${esc(n.after_answer)}</div>`:''}${chips(n.links)}
+    <div style="margin-top:8px"><button class="btn xs" data-answer="${esc(n.id)}">Copy "ANSWER ${esc(n.id)}:"</button></div></div>`;
+}
+function missionTab(){
+  const nm = M.next_milestone;
+  const oldest = blocking.reduce((a,n) => Math.max(a, days(n.since)||0), 0);
+  let h = `<div id="summary"><p class="verdict">${esc(M.verdict || M.destination)}</p>
+  <div class="tiles">
+    <a class="tile ${blocking.length?'hot':''}" href="#needs"><div class="v">${blocking.length}</div><div class="l">Needs you</div><div class="s">${blocking.length?'oldest '+oldest+'d':'nothing waiting on you'}</div></a>
+    <a class="tile ${asksOpen.length?'warm':''}" href="#asks"><div class="v">${asksOpen.length} <span class="muted" style="font-size:14px">of ${arr(M.asks).length}</span></div><div class="l">Asks open</div><div class="s">questions and requests</div></a>
+    <a class="tile ${C.mismatches?'warm':''}" href="#" data-goto="journey"><div class="v">${C.fetched_at && !C.offline ? C.mismatches : '?'}</div><div class="l">Tracker mismatches</div><div class="s">${C.offline?'not checked (offline fetch)':C.fetched_at?'fetched '+Math.round(fetchH)+'h ago':'not fetched'}</div></a>
+    <div class="tile"><div class="v" style="font-size:16px">${esc(nm ? nm.title : 'not set')}</div><div class="l">Next milestone</div><div class="s">${esc(nm && nm.done_when ? 'done when: ' + nm.done_when : '')}</div></div>
+  </div>`;
+  h += sec('Needs you', blocking.length + ' · only you can clear these', blocking.length ? blocking.map(needCard).join('') : empty('Nothing is waiting on you.'), 'needs');
+  if (fyi.length) h += `<details class="card"><summary>FYI: ${fyi.length} item(s) you own that block nothing</summary>${fyi.map(needCard).join('')}</details>`;
+  h += `</div>`;
+  h += sec('Deliverables', arr(M.deliverables).length, arr(M.deliverables).map(d => `<div class="item"><span class="id">${esc(d.id)}</span><b>${esc(d.title)}</b><div class="small">${esc(d.status_line||'')}</div>${chips(arr(d.members).map(r => memberLink(r)).filter(Boolean))}</div>`).join('') || empty('No deliverables recorded yet.'));
+  const asks = arr(M.asks), open = asks.filter(a => !['answered','done','superseded'].includes(a.state)), closed = asks.filter(a => ['answered','done','superseded'].includes(a.state));
+  const askRow = a => `<tr><td class="mono">${esc(a.id)}</td><td>${esc(a.asker||'')}</td><td><b>${esc(a.text)}</b>${a.answer?`<div class="small muted">${esc(a.answer)}</div>`:''}</td><td>${st(a.state)}</td><td class="mono small">${esc(a.date||'')}</td></tr>`;
+  h += sec('You asked', `${open.length} open · ${closed.length} resolved`, asks.length ? `<table><thead><tr><th>ID</th><th>Who</th><th>Ask and answer</th><th>State</th><th>Date</th></tr></thead><tbody>${open.map(askRow).join('')}</tbody></table>${closed.length?`<details><summary>${closed.length} resolved</summary><table><tbody>${closed.map(askRow).join('')}</tbody></table></details>`:''}` : empty('No asks recorded yet.'), 'asks');
+  const msgs = arr(M.messages);
+  if (msgs.length) h += sec('Messages to send', msgs.length, msgs.map(x => `<div class="item"><span class="id">${esc(x.id)}</span><b>To ${esc(x.to)}</b> <span class="muted small">${esc(x.channel||'')}</span> ${st(x.state==='answered'?'answered_msg':x.state, x.state)}
+    <pre class="msg" id="msg-${esc(x.id)}" style="margin-top:8px">${esc(x.sent_text || x.draft)}</pre><div style="margin-top:6px"><button class="btn xs" data-copymsg="msg-${esc(x.id)}">Copy message</button></div></div>`).join(''));
+  const arts = arr(M.artifacts);
+  if (arts.length) h += sec('Artifacts', arts.length, `<table><tbody>${arts.map(a => `<tr><td class="mono">${esc(a.id)}</td><td><b>${esc(a.title)}</b><div class="mono small muted">${esc(a.path||a.url||'')}</div></td><td class="mono small">${esc((a.sha256||'').slice(0,12))}</td><td class="mono small">${esc(a.date||'')}</td></tr>`).join('')}</tbody></table>`);
+  if (arr(M.scope_constraints).length) h += sec('Scope constraints', null, `<ul style="margin:0;padding:10px 16px 10px 34px">${arr(M.scope_constraints).map(s => `<li>${esc(s)}</li>`).join('')}</ul>`);
+  return h;
+}
+function memberLink(ref){const m = arr(M.members).find(x => x.ref === ref);return m ? m : (/^KTP-\d+$/.test(ref) ? {kind:'jira', ref, url:'https://beklever.atlassian.net/browse/'+ref, title:ref} : null)}
+
+// journey tab
+function timeline(){
+  const js = arr(M.journey).filter(j => j.start);
+  if (!js.length) return empty('No sessions recorded yet. Each /mission update adds one.');
+  const t0 = Math.min(...js.map(j => +new Date(j.start))), t1 = Math.max(...js.map(j => +new Date(j.end || j.start)), +NOW);
+  const W = Math.max(900, js.length * 70), H = 90, x = t => 20 + (W - 40) * ((+new Date(t) - t0) / Math.max(1, t1 - t0));
+  const col = {session:'var(--accent)', night_run:'#7a5af5', commit_only:'var(--serious)', gap:'var(--crit)'};
+  let s = `<svg width="${W}" height="${H}" role="img" aria-label="Journey timeline"><defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="6" fill="var(--crit)" opacity=".5"/></pattern></defs>
+    <line x1="20" x2="${W-20}" y1="50" y2="50" stroke="var(--line)" stroke-width="2"/>`;
+  js.forEach((j,i) => {const a = x(j.start), b = Math.max(a + 6, x(j.end || j.start));
+    s += `<a href="#${esc(j.id)}"><rect x="${a}" y="40" width="${b-a}" height="20" rx="4" fill="${j.kind==='gap'||j.kind==='commit_only'?'url(#hatch)':col[j.kind]||'var(--neutral)'}"><title>${esc(j.id+' '+(j.summary||''))}</title></rect></a>
+      <text x="${a}" y="${i%2?82:32}" font-size="11">${esc(j.id)}</text>`;
+    arr(j.decisions).forEach((d,k) => s += `<circle cx="${a + 6 + k*8}" cy="36" r="3.5" fill="var(--good)"><title>${esc(d)}</title></circle>`);
+  });
+  s += `<line x1="${x(NOW)}" x2="${x(NOW)}" y1="30" y2="70" stroke="var(--ink2)" stroke-dasharray="3 3"/><text x="${x(NOW)-14}" y="22" font-size="11">now</text></svg>`;
+  return `<div class="lane" style="padding:10px 16px">${s}</div><div class="legend"><span><i style="background:var(--accent)"></i>session</span><span><i style="background:#7a5af5"></i>night run</span><span><i style="background:var(--crit);opacity:.6"></i>no session record (commit-only or gap)</span><span><i style="background:var(--good)"></i>decision</span></div>`;
+}
+const list = (label, xs) => arr(xs).length ? `<div class="small"><b>${label}:</b> ${arr(xs).map(esc).join(' · ')}</div>` : '';
+function journeyTab(){
+  let h = sec('Trajectory', arr(M.journey).length + ' entries', timeline());
+  const js = [...arr(M.journey)].reverse();
+  h += sec('Sessions and runs', 'newest first', js.map(j => `<details class="item" id="${esc(j.id)}"><summary style="padding:0"><span class="id">${esc(j.id)}</span>${st(j.kind==='gap'?'blocked':j.kind==='night_run'?'parked':'current', j.kind)} <b>${esc(j.summary||'')}</b> <span class="muted small mono">${esc((j.start||'').slice(0,10))} ${esc(j.session||'')}</span></summary>
+    <div style="padding:8px 0 0 4px">${list('Milestones', j.milestones)}${list('Blockers', j.blockers)}${list('Confusion', j.confusion)}${list('Findings', j.findings)}${list('Decisions', j.decisions)}${chips(j.links)}</div></details>`).join('') || empty('No sessions recorded yet.'));
+  const decs = arr(M.decisions), live = decs.filter(d => ['ratified','proposed'].includes(d.state)), dead = decs.filter(d => !['ratified','proposed'].includes(d.state));
+  const decRow = d => {const shown = d.state === 'ratified' && !(d.ratified_by && d.ratified_by.link) ? 'proposed' : d.state;
+    return `<tr><td class="mono">${esc(d.id)}</td><td><b>${esc(d.statement)}</b>${d.supersedes?`<div class="small muted">replaces ${esc(d.supersedes)}</div>`:''}${arr(d.licenses).length?`<div class="small muted mono">built on it: ${arr(d.licenses).map(esc).join(', ')}</div>`:''}</td><td>${st(shown)}</td><td class="small">${d.ratified_by?esc(d.ratified_by.who||'')+(d.ratified_by.link?' '+chip(d.ratified_by.link):''):'<span class="muted">nobody yet</span>'}</td><td class="mono small">${esc(d.date||'')}</td></tr>`};
+  h += sec('Decisions', `${live.length} in force or proposed · ${dead.length} retired`, decs.length ? `<table><thead><tr><th>ID</th><th>Decision</th><th>State</th><th>Ratified by</th><th>Date</th></tr></thead><tbody>${live.map(decRow).join('')}</tbody></table>${dead.length?`<details><summary>${dead.length} superseded or reversed</summary><table><tbody>${dead.map(decRow).join('')}</tbody></table></details>`:''}` : empty('No decisions recorded yet.'));
+  h += sec('Disproven: do not reload', arr(M.disproven).length, arr(M.disproven).map(x => `<div class="item"><span class="id">${esc(x.id)}</span><b>False:</b> ${esc(x.claim)}${chips([x.evidence])}<div class="small muted mono">grep: ${esc(x.signature)}</div></div>`).join('') || empty('Nothing disproven yet.'));
+  const pk = arr(M.parked), col = b => pk.filter(p => p.bucket === b).map(p => `<div class="item"><span class="id">${esc(p.id)}</span><b>${esc(p.title)}</b><div class="small muted">${esc(p.owner||'')}${p.since?' · since '+esc(p.since)+' ('+days(p.since)+'d)':''}${p.recheck?' · recheck '+esc(p.recheck):''}</div>${p.reentry?`<div class="small">Re-entry: ${esc(p.reentry)}</div>`:''}${chips(p.links)}</div>`).join('') || empty('none');
+  h += `<section class="sec"><div class="sh"><h2>Parked tracks</h2><span class="n">${pk.length}</span></div><div class="kanban"><div class="col"><h3>Horizon</h3><div class="card">${col('horizon')}</div></div><div class="col"><h3>Tomorrow</h3><div class="card">${col('tomorrow')}</div></div><div class="col"><h3>Blocked on a person</h3><div class="card">${col('blocked_on_person')}</div></div></div></section>`;
+  const tr = arr(C.trackers);
+  h += sec('Trackers', C.fetched_at ? `live from Jira and GitHub, fetched ${String(C.fetched_at).slice(0,16).replace('T',' ')}Z` : 'not fetched: run mission_fetch.py', tr.length ? `<table><thead><tr><th>Member</th><th>Mission says</th><th>Tracker says</th><th>Verdict</th></tr></thead><tbody>${tr.map(t => `<tr><td>${chip({kind:t.kind, ref:t.ref, url:t.url, title:t.title})}</td><td>${st(t.role)}</td><td>${esc(t.status || t.error || '')}</td><td>${t.mismatch?`<span class="st crit">${esc(t.mismatch)}</span>`:t.error?'<span class="st neutral">not checked</span>':'<span class="st good">agree</span>'}</td></tr>`).join('')}</tbody></table>` : empty('No Jira or GitHub members to check.'));
+  return h;
+}
+
+// graph tab
+function graphTab(){
+  const g = M.graph || {}, nodes = arr(g.nodes), edges = arr(g.edges);
+  if (!nodes.length) return sec('Context graph', null, empty('No graph yet. Add nodes and edges to mission.yaml under graph.'));
+  const KC = {system:'#2a78d6', person:'#0ca30c', concept:'#7a5af5', decision:'#fab219', ticket:'#ec835a', repo:'#52514e', env:'#d03b3b'};
+  const legend = Object.entries(KC).filter(([k]) => nodes.some(n => n.kind === k)).map(([k,c]) => `<span><i style="background:${c}"></i>${k}</span>`).join('');
+  setTimeout(() => drawGraph(nodes, edges, KC), 0);
+  return sec('Context graph', `${nodes.length} concepts · ${edges.length} links · drag to move, click to focus`, `<svg class="graph" id="graph" width="100%" viewBox="0 0 1100 520"></svg><div class="legend">${legend}</div>`);
+}
+function drawGraph(nodes, edges, KC){
+  const svg = $('graph'); if (!svg) return; const W = 1100, H = 520, P = {};
+  nodes.forEach((n,i) => P[n.id] = {x: W/2 + 220*Math.cos(i*2*Math.PI/nodes.length), y: H/2 + 180*Math.sin(i*2*Math.PI/nodes.length), vx:0, vy:0});
+  const E = edges.filter(e => P[e.from] && P[e.to]);
+  for (let it = 0; it < 300; it++) {
+    nodes.forEach(a => nodes.forEach(b => {if (a===b) return; const p=P[a.id], q=P[b.id]; let dx=p.x-q.x, dy=p.y-q.y, d2=dx*dx+dy*dy+.01; const f=9000/d2; p.vx+=dx*f/Math.sqrt(d2); p.vy+=dy*f/Math.sqrt(d2)}));
+    E.forEach(e => {const p=P[e.from], q=P[e.to]; const dx=q.x-p.x, dy=q.y-p.y, d=Math.sqrt(dx*dx+dy*dy)+.01, f=(d-140)*.02; p.vx+=dx/d*f; p.vy+=dy/d*f; q.vx-=dx/d*f; q.vy-=dy/d*f});
+    nodes.forEach(n => {const p=P[n.id]; p.vx+=(W/2-p.x)*.002; p.vy+=(H/2-p.y)*.002; p.x=Math.min(W-60,Math.max(60,p.x+p.vx*.5)); p.y=Math.min(H-30,Math.max(30,p.y+p.vy*.5)); p.vx*=.6; p.vy*=.6});
+  }
+  const draw = (focus) => {
+    const near = new Set([focus]); E.forEach(e => {if (e.from===focus) near.add(e.to); if (e.to===focus) near.add(e.from)});
+    const dim = id => focus && !near.has(id) ? .15 : 1;
+    svg.innerHTML = E.map(e => {const p=P[e.from], q=P[e.to], o=focus && !(near.has(e.from)&&near.has(e.to)&&(e.from===focus||e.to===focus)) ? .1 : .7;
+      return `<line x1="${p.x}" y1="${p.y}" x2="${q.x}" y2="${q.y}" stroke="var(--ink2)" opacity="${o}"/>${e.label?`<text x="${(p.x+q.x)/2}" y="${(p.y+q.y)/2-4}" font-size="10" text-anchor="middle" opacity="${o}">${esc(e.label)}</text>`:''}`}).join('')
+      + nodes.map(n => {const p=P[n.id]; return `<g data-node="${esc(n.id)}" style="cursor:grab" opacity="${dim(n.id)}"><circle cx="${p.x}" cy="${p.y}" r="9" fill="${KC[n.kind]||'#9a9890'}"/><text x="${p.x+12}" y="${p.y+4}" font-size="12.5" font-weight="600">${esc(n.label||n.id)}</text></g>`}).join('');
+  };
+  let focus = null, drag = null; draw(null);
+  const pt = ev => {const r = svg.getBoundingClientRect(); return {x:(ev.clientX-r.left)*W/r.width, y:(ev.clientY-r.top)*H/r.height}};
+  svg.onmousedown = ev => {const g = ev.target.closest('[data-node]'); if (g) drag = g.dataset.node};
+  svg.onmousemove = ev => {if (!drag) return; const q = pt(ev); P[drag].x = q.x; P[drag].y = q.y; draw(focus)};
+  svg.onmouseup = ev => {const g = ev.target.closest('[data-node]'); if (g && drag === g.dataset.node) {focus = focus === drag ? null : drag; draw(focus)} drag = null};
+}
+
+// latest changes tab
+function latestTab(){
+  const since = M.last_report_at;
+  const win = $('win') ? $('win').value : 'report';
+  const cut = win === 'all' ? 0 : win === '24h' ? NOW - 864e5 : win === '7d' ? NOW - 7*864e5 : (since ? +new Date(since) : NOW - 7*864e5);
+  const ch = arr(M.changes).filter(c => +new Date(c.at) >= cut).reverse();
+  const opt = (v,l) => `<option value="${v}"${win===v?' selected':''}>${l}</option>`;
+  return `<p class="verdict">${ch.length} change(s) ${win==='report'?(since?'since the last report ('+esc(String(since).slice(0,16).replace('T',' '))+'Z)':'in the last 7 days (no earlier report)'):win==='all'?'in total':'in the last '+win}.</p>
+    <p><label class="small">Window <select id="win">${opt('report','since last report')}${opt('24h','24 hours')}${opt('7d','7 days')}${opt('all','everything')}</select></label></p>`
+    + sec('Latest changes', 'newest first', ch.map(c => `<div class="item"><span class="id">${esc(c.id)}</span><span class="mono small muted">${esc(String(c.at).slice(0,16).replace('T',' '))}Z · ${esc(c.session||'')}</span><div><b>${esc(c.summary)}</b></div>${chips(c.refs)}</div>`).join('') || empty('Nothing changed in this window.'));
+}
+
+// sources tab
+function sourcesTab(){
+  const ms = arr(M.members), grp = r => ms.filter(m => m.role === r);
+  const row = m => `<tr><td>${chip(m.url ? m : {...m, url: '#'})}</td><td>${st(m.role)}</td><td class="small">${esc(m.note||'')}</td></tr>`;
+  return sec('Members', ms.length, ms.length ? `<table><thead><tr><th>Member</th><th>Role</th><th>Note</th></tr></thead><tbody>${['current','parked','done'].flatMap(grp).map(row).join('')}</tbody></table>${grp('superseded').length?`<details><summary>${grp('superseded').length} superseded (do not start from these)</summary><table><tbody>${grp('superseded').map(row).join('')}</tbody></table></details>`:''}` : empty('No members yet.'))
+    + (arr(M.aliases).length ? sec('Aliases', null, `<div class="item mono small">${arr(M.aliases).map(esc).join(' · ')}</div>`) : '')
+    + sec('This report', null, `<div class="item small">Record: ${chip({kind:'gh', ref:'mission.yaml', url: DATA.record_url, title: 'missions/'+M.slug+'/mission.yaml'})}<br>Rebuild: <span class="mono">/mission report ${esc(M.slug)}</span></div>`);
+}
+
+const RENDER = {mission: missionTab, journey: journeyTab, graph: graphTab, latest: latestTab, sources: sourcesTab};
+const tabs = [...document.querySelectorAll('[role=tab]')];
+function show(id){tabs.forEach(t => {const on = t.id === 't-'+id; t.setAttribute('aria-selected', on); t.tabIndex = on ? 0 : -1; $(t.getAttribute('aria-controls')).hidden = !on});
+  const p = $('p-'+id); p.innerHTML = RENDER[id](); bind(p); history.replaceState(null, '', '#'+id)}
+function bind(p){
+  p.querySelectorAll('[data-answer]').forEach(b => b.onclick = () => copyText(`ANSWER ${b.dataset.answer}: `, 'Copied. Paste in the terminal and add your answer.'));
+  p.querySelectorAll('[data-copymsg]').forEach(b => b.onclick = () => copyRich($(b.dataset.copymsg), 'Message copied'));
+  p.querySelectorAll('[data-goto]').forEach(a => a.onclick = e => {e.preventDefault(); show(a.dataset.goto)});
+  const w = p.querySelector('#win'); if (w) w.onchange = () => {p.innerHTML = latestTab(); bind(p)};
+}
+tabs.forEach((t,i) => {t.onclick = () => show(t.id.slice(2)); t.onkeydown = e => {const d = e.key==='ArrowRight'?1:e.key==='ArrowLeft'?-1:0; if (d) {const n = tabs[(i+d+tabs.length)%tabs.length]; n.focus(); n.click()}}});
+document.addEventListener('keydown', e => {if (e.target.matches('input,textarea,select')) return; if (e.key >= '1' && e.key <= '5') show(tabs[+e.key-1].id.slice(2)); if (e.key === 'c') $('copySummary').click()});
+$('copySummary').onclick = () => {show('mission'); copyRich($('summary'), 'Summary copied as rich text')};
+$('theme').onclick = () => {const r = document.documentElement; r.dataset.theme = r.dataset.theme === 'dark' ? 'light' : 'dark'};
+$('c-needs').textContent = blocking.length || ''; if (!blocking.length) $('c-needs').remove();
+$('c-journey').textContent = arr(M.journey).length; $('c-sources').textContent = arr(M.members).length;
+$('c-latest').textContent = arr(M.changes).filter(c => +new Date(c.at) >= (M.last_report_at ? +new Date(M.last_report_at) : NOW - 7*864e5)).length;
+$('footer').innerHTML = `Generated ${esc(DATA.generated_at)} by the mission skill from <a href="${esc(DATA.record_url)}">missions/${esc(M.slug)}/mission.yaml</a>. Trackers ${C.fetched_at ? 'fetched ' + esc(C.fetched_at) : 'not fetched'}. Keys: 1–5 views · c copy summary. Amber after 12 h, red after 72 h.`;
+const h0 = location.hash.slice(1); show(RENDER[h0] ? h0 : 'mission');
+</script>
+</body>
+</html>

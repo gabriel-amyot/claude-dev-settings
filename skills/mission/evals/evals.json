@@ -1,0 +1,51 @@
+{
+  "skill_name": "mission",
+  "sandbox_note": "Every behavioral run sets MISSION_PM_ROOT to a temp copy and must never create GitHub issues, post comments, commit or push. Use `mission new --no-issue` and skip `mission sync`. The fixture lives at evals/fixtures/valid/mission.yaml.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "start-mission-from-loose-intent",
+      "prompt": "ok new mission: I need the media plan agent to pull Salesforce opportunities so Amal stops copy-pasting them. there's KTP-1333 that went live in oct and #294 on github, they're not linked. it's under no component yet. set it up. (sandbox: MISSION_PM_ROOT=<tmp>, use --no-issue, do not push)",
+      "expected_output": "Proposes a slug, title and a 1-2 line destination without interrogating. Runs mission new with --no-issue. Fills members with typed, titled links for KTP-1333 and #294 (linked, not nested), aliases, a next_milestone and a first graph. mission lint passes. Terminal reply names the slug and the record path, gives the destination, and asks at most one question with options shown.",
+      "files": [],
+      "assertions": [
+        {"name": "mission-yaml-created", "check": "missions/<slug>/mission.yaml exists under MISSION_PM_ROOT"},
+        {"name": "lint-passes", "check": "mission lint <slug> exits 0"},
+        {"name": "members-typed-and-titled", "check": "members contains KTP-1333 (kind jira, url, title) and #294 (kind gh, url, title)"},
+        {"name": "destination-short", "check": "destination is under 300 characters"},
+        {"name": "no-github-side-effects", "check": "no gh issue create/comment and no git push in the transcript"},
+        {"name": "reply-has-no-bare-ids", "check": "every ticket or issue reference in the final reply carries a link or a description"}
+      ]
+    },
+    {
+      "id": 2,
+      "name": "update-after-decision-and-disproof",
+      "prompt": "Mission fixture-ttd (sandbox at <tmp>/missions/fixture-ttd). In this session Gabriel said: 'N-1: send now. And forget the idea that writes need a new Auth0 tenant, we checked, the existing tenant has the write scope (see KTP-1398 comment 41901).' Then the agent shipped nothing else. Update the mission. Do not push.",
+      "expected_output": "N-1 removed from needs_you; a ratified decision for 'send now' with ratified_by Gabriel and a link; M-1 left as draft or marked per the answer; a disproven entry X-2 with claim, evidence link to KTP-1398 and a grep signature; a journey entry with kind session and this session; changes entries; lint passes; no other file created.",
+      "files": ["evals/fixtures/valid/mission.yaml"],
+      "assertions": [
+        {"name": "needs-you-resolved", "check": "no needs_you item with id N-1"},
+        {"name": "decision-ratified-with-link", "check": "a new decision with state ratified, ratified_by.who Gabriel and a ratified_by.link"},
+        {"name": "disproven-with-signature", "check": "a new disproven entry with evidence.url containing KTP-1398 and a non-empty signature"},
+        {"name": "journey-appended", "check": "journey has one more entry than the fixture, kind session"},
+        {"name": "changes-appended", "check": "changes has at least one new entry"},
+        {"name": "lint-passes", "check": "mission lint exits 0"},
+        {"name": "single-record", "check": "no new status or summary file outside mission.yaml, README.md, report.html, computed.json"}
+      ]
+    },
+    {
+      "id": 3,
+      "name": "big-picture-terminal-reply",
+      "prompt": "mission fixture-ttd (sandbox <tmp>). wait where are we on this, what needs me? I lost track",
+      "expected_output": "Renders the report (mission render) and prints the file:// link. The terminal reply answers first: the verdict, then each blocking needs-you item with its ID AND its question AND its options with consequences, then the next milestone. No 'see above' or 'see the report' as the only answer. Every reference has a link or a description. Dial level 3 length (short).",
+      "files": ["evals/fixtures/valid/mission.yaml"],
+      "assertions": [
+        {"name": "report-rendered", "check": "report.html exists and the reply contains its file:// link"},
+        {"name": "needs-you-restated", "check": "reply contains 'N-1' together with 'Send the 0.15.7 kit' and both option labels"},
+        {"name": "no-see-above", "check": "reply does not answer with only 'see above' or 'see the report'"},
+        {"name": "no-bare-ids", "check": "every N-/DEC-/KTP-/# reference in the reply has its content or a link next to it"},
+        {"name": "short", "check": "reply is under 250 words"}
+      ]
+    }
+  ]
+}

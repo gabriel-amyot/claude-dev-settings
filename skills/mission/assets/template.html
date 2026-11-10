@@ -87,7 +87,7 @@ const chips = ls => arr(ls).length ? `<div class="chips">${arr(ls).map(chip).joi
 const sec = (title, n, body, id) => `<section class="sec"${id?` id="${id}"`:''}><div class="sh"><h2>${esc(title)}</h2>${n!=null?`<span class="n">${esc(n)}</span>`:''}</div><div class="card">${body}</div></section>`;
 const empty = t => `<div class="empty">${esc(t)}</div>`;
 const ST = {ratified:'good', proposed:'warn', superseded:'neutral', reversed:'crit', open:'warn', answered:'good', done:'good', deferred:'neutral', blocked:'crit',
-  draft:'warn', sent:'neutral', answered_msg:'good', current:'warn', parked:'neutral', active:'good', abandoned:'crit'};
+  draft:'warn', approved:'warn', sent:'neutral', answered_msg:'good', current:'warn', parked:'neutral', active:'good', abandoned:'crit'};
 const st = (v, label) => `<span class="st ${ST[v]||'neutral'}">${esc(label || v)}</span>`;
 function toast(t){const e=$('toast');e.textContent=t;e.hidden=false;setTimeout(()=>e.hidden=true,1600)}
 async function copyText(t,l){try{await navigator.clipboard.writeText(t)}catch(e){const r=document.createElement('textarea');r.value=t;document.body.append(r);r.select();document.execCommand('copy');r.remove()}toast(l)}
@@ -216,7 +216,7 @@ function drawGraph(nodes, edges, KC){
 
 // latest changes tab
 function latestTab(){
-  const since = M.last_report_at;
+  const since = DATA.window_start;
   const win = $('win') ? $('win').value : 'report';
   const cut = win === 'all' ? 0 : win === '24h' ? NOW - 864e5 : win === '7d' ? NOW - 7*864e5 : (since ? +new Date(since) : NOW - 7*864e5);
   const ch = arr(M.changes).filter(c => +new Date(c.at) >= cut).reverse();
@@ -251,7 +251,7 @@ $('copySummary').onclick = () => {show('mission'); copyRich($('summary'), 'Summa
 $('theme').onclick = () => {const r = document.documentElement; r.dataset.theme = r.dataset.theme === 'dark' ? 'light' : 'dark'};
 $('c-needs').textContent = blocking.length || ''; if (!blocking.length) $('c-needs').remove();
 $('c-journey').textContent = arr(M.journey).length; $('c-sources').textContent = arr(M.members).length;
-$('c-latest').textContent = arr(M.changes).filter(c => +new Date(c.at) >= (M.last_report_at ? +new Date(M.last_report_at) : NOW - 7*864e5)).length;
+$('c-latest').textContent = arr(M.changes).filter(c => +new Date(c.at) >= (DATA.window_start ? +new Date(DATA.window_start) : NOW - 7*864e5)).length;
 $('footer').innerHTML = `Generated ${esc(DATA.generated_at)} by the mission skill from <a href="${esc(DATA.record_url)}">missions/${esc(M.slug)}/mission.yaml</a>. Trackers ${C.fetched_at ? 'fetched ' + esc(C.fetched_at) : 'not fetched'}. Keys: 1–5 views · c copy summary. Amber after 12 h, red after 72 h.`;
 const h0 = location.hash.slice(1); show(RENDER[h0] ? h0 : 'mission');
 </script>

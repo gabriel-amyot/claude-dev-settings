@@ -17,7 +17,7 @@ MEMBER_ROLE = {"current", "done", "superseded", "parked"}
 LINK_KIND = {"jira", "gh", "mr", "file", "folder", "session", "url", "slack"}
 PARK_BUCKET = {"horizon", "tomorrow", "blocked_on_person"}
 JOURNEY_KIND = {"session", "night_run", "commit_only", "gap"}
-MSG_STATE = {"draft", "sent", "answered"}
+MSG_STATE = {"draft", "approved", "sent", "answered"}
 PREFIX = {"deliverables": "D-", "decisions": "DEC-", "disproven": "X-", "needs_you": "N-",
           "asks": "A-", "parked": "P-", "messages": "M-", "artifacts": "ART-", "journey": "J-",
           "changes": "C-"}
@@ -169,6 +169,18 @@ def lint(m: dict) -> tuple[list[str], list[str]]:
             for k in ("question", "text", "statement", "title"):
                 if len(str(item.get(k, ""))) > 400:
                     warn.append(f"{item.get('id')}.{k}: over 400 characters, write the high level and link the detail")
+    dead = {d.get("id") for d in m.get("decisions") or [] if d.get("state") in ("superseded", "reversed")}
+    live_texts = [(a.get("id"), a.get("answer")) for a in m.get("asks") or []] + \
+                 [(n.get("id"), f"{n.get('question', '')} {n.get('why', '')}") for n in m.get("needs_you") or []] + \
+                 [("scope_constraints", " ".join(map(str, m.get("scope_constraints") or []))), ("verdict", m.get("verdict"))]
+    for where, text in live_texts:
+        for ref in re.findall(r"DEC-\d+", str(text or "")):
+            if ref in dead:
+                warn.append(f"{where}: cites {ref}, which is superseded or reversed; point it at the decision that replaced it")
+    asked = " ".join(f"{n.get('question', '')} {n.get('why', '')}" for n in m.get("needs_you") or [])
+    for d in m.get("decisions") or []:
+        if d.get("state") == "proposed" and d.get("id") not in asked:
+            warn.append(f"{d.get('id')}: proposed but no needs_you item asks Gabriel to ratify it")
     return err, warn
 
 

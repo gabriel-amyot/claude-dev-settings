@@ -3,19 +3,39 @@
 Usage: mission_render.py <slug|path> [--open] [--no-mark]
 
 report.html is overwritten in place: one report per mission, never a new dated file.
-The "Latest changes" view covers changes since the previous report. After rendering,
-last_report_at is set to now (skip with --no-mark).
+The "Latest changes" view covers changes since the previous report. A render more than
+2 hours after the last one moves the window (report_window_start = old last_report_at,
+last_report_at = now). Renders closer together keep the same window. --no-mark never moves it.
+Only those two lines of mission.yaml are touched, so the file is never reflowed.
 """
 from __future__ import annotations
 
 import json
 import sys
 
-from mission_lib import MISSIONS_DIR, SKILL_DIR, gh_url, load, load_computed, mission_dir, now_utc, run, save
+import datetime as dt
+
+from mission_lib import MISSIONS_DIR, SKILL_DIR, gh_url, load, load_computed, mission_dir, now_utc, run, set_top
+
+WINDOW_HOLD_HOURS = 2
 
 
 def _mm(s: str) -> str:
     return str(s).replace('"', "'").replace("\n", " ")[:60]
+
+
+def _age_hours(v) -> float:
+    t = v if isinstance(v, dt.datetime) else dt.datetime.fromisoformat(str(v).replace("Z", "+00:00"))
+    t = t if t.tzinfo else t.replace(tzinfo=dt.timezone.utc)
+    return (dt.datetime.now(dt.timezone.utc) - t).total_seconds() / 3600
+
+
+def _iso(v) -> str | None:
+    if v in (None, ""):
+        return None
+    t = v if isinstance(v, dt.datetime) else dt.datetime.fromisoformat(str(v).replace("Z", "+00:00"))
+    t = t if t.tzinfo else t.replace(tzinfo=dt.timezone.utc)
+    return t.astimezone(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def readme(m: dict, c: dict, ts: str) -> str:
@@ -82,16 +102,19 @@ def main() -> int:
         return 2
     d = mission_dir(sys.argv[1])
     m, c, ts = load(d), load_computed(d), now_utc()
+    last, start = m.get("last_report_at"), m.get("report_window_start")
+    shift = last is None or _age_hours(last) > WINDOW_HOLD_HOURS
+    window_start = last if shift else start
     data = {"mission": json.loads(json.dumps(m, default=str)), "computed": c, "generated_at": ts,
-            "record_url": gh_url(d / "mission.yaml")}
+            "record_url": gh_url(d / "mission.yaml"), "window_start": _iso(window_start)}
     tpl = (SKILL_DIR / "assets" / "template.html").read_text()
     payload = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
     (d / "report.html").write_text(tpl.replace("/*__DATA__*/null", payload))
     (d / "README.md").write_text(readme(m, c, ts))
     (MISSIONS_DIR / "INDEX.md").write_text(index())
-    if "--no-mark" not in sys.argv:
-        m["last_report_at"] = ts
-        save(d, m)
+    if "--no-mark" not in sys.argv and shift:
+        set_top(d, "report_window_start", _iso(last))
+        set_top(d, "last_report_at", ts)
     print(f"file://{d / 'report.html'}")
     if "--open" in sys.argv:
         run(["open", str(d / "report.html")], check=False)

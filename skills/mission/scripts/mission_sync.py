@@ -12,7 +12,7 @@ import subprocess
 import sys
 import tempfile
 
-from mission_lib import GH_REPO, MISSIONS_DIR, PM_ROOT, gh_url, load, load_computed, mission_dir, now_utc, run, save
+from mission_lib import GH_REPO, MISSIONS_DIR, PM_ROOT, gh_url, load, load_computed, mission_dir, now_utc, run, set_top
 from mission_lint import lint
 from mission_render import index, readme
 
@@ -51,7 +51,7 @@ def main() -> int:
             print(f"ERROR {e}")
         sys.exit("lint failed: fix mission.yaml before sync")
     m["updated"] = now_utc()
-    save(d, m)
+    set_top(d, "updated", m["updated"])
     (d / "README.md").write_text(readme(m, load_computed(d), m["updated"]))
     (MISSIONS_DIR / "INDEX.md").write_text(index())
 

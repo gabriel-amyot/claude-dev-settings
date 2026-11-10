@@ -14,7 +14,7 @@ import re
 import sys
 import tempfile
 
-from mission_lib import GH_REPO, MISSIONS_DIR, SKILL_DIR, gh_url, load, now_utc, run, save
+from mission_lib import GH_REPO, MISSIONS_DIR, SKILL_DIR, gh_url, load, now_utc, run, set_top
 
 LABEL = "kind:mission"
 
@@ -78,12 +78,13 @@ def main() -> int:
                    "--body-file", f.name, "--label", LABEL, "--label", "status:in-progress"]).stdout.strip().splitlines()[-1]
         number = int(url.rstrip("/").split("/")[-1])
         m["root_issue"] = {"number": number, "url": url}
+        set_top(d, "root_issue", m["root_issue"])
         if a.parent:
             iid = run(["gh", "api", f"repos/{GH_REPO}/issues/{number}", "--jq", ".id"]).stdout.strip()
             run(["gh", "api", "-X", "POST", f"repos/{GH_REPO}/issues/{a.parent}/sub_issues", "-F", f"sub_issue_id={iid}"])
             p = json.loads(run(["gh", "issue", "view", str(a.parent), "-R", GH_REPO, "--json", "title,url"]).stdout)
             m["parent_issue"] = {"number": a.parent, "url": p["url"], "title": p["title"]}
-    save(d, m)
+            set_top(d, "parent_issue", m["parent_issue"])
     print(json.dumps({"mission_dir": str(d), "root_issue": m.get("root_issue"), "parent": m.get("parent_issue")}, indent=2))
     return 0
 

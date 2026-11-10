@@ -53,6 +53,7 @@ Log every command first: `mission log use --command <cmd> --mission <slug> --ses
 ### `/mission start <destination>`: create a mission
 
 1. Search for an existing mission first: read `missions/INDEX.md` and grep the aliases in each `mission.yaml`. If one matches, offer to join it instead.
+   Then look for existing work on the same capability: the org bibliothèque (`INDEX.md`, `ALIASES.md`), open GitHub issues (`gh issue list -R gabriel-amyot/klever-project-management -S "<keywords>"`), and the named tickets' parents and links. Add what you find as members, or record it in `why`. A mission that ignores an existing reader or prior attempt starts stale.
 2. Agree with Gabriel on four things: a slug, a title, a destination of 1 or 2 lines ("done looks like…"), and a parent component issue if there is one. Propose them, and do not interrogate.
 3. `mission new --slug <slug> --title "<title>" --destination "<…>" --why "<…>" [--parent <N>] --session <session>`. This creates the folder, `mission.yaml`, and the `kind:mission` root issue, then links the parent.
 4. Fill in `mission.yaml`: members (the tickets, issues and folders already known), aliases, next milestone, scope constraints, and a first graph. Use the Edit tool.

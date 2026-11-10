@@ -104,6 +104,27 @@ def main() -> int:
         after = yaml.safe_load((d / "mission.yaml").read_text())
         check("render/marks-last-report-at", after.get("last_report_at") != VALID["last_report_at"])
 
+        before = (d / "mission.yaml").read_text()
+        r = script(root, "mission_render.py", str(d))
+        after2 = (d / "mission.yaml").read_text()
+        changed = [ln for ln in after2.splitlines() if ln not in before.splitlines()]
+        check("render/second-render-keeps-window", r.returncode == 0 and changed == [], "\n".join(changed))
+        doc = yaml.safe_load(after2)
+        check("render/window-start-is-previous-report", str(doc.get("report_window_start", "")).startswith("2026-11-09"), str(doc.get("report_window_start")))
+        html2 = (d / "report.html").read_text()
+        check("render/window-in-data", '"window_start": "2026-11-09T12:00:00Z"' in html2)
+
+        lib = util.spec_from_file_location("ml", SCRIPTS / "mission_lib.py"); ml = util.module_from_spec(lib); lib.loader.exec_module(ml)
+        raw = (d / "mission.yaml").read_text()
+        ml.set_top(d, "updated", "2026-12-01T00:00:00Z")
+        diff = [ln for ln in (d / "mission.yaml").read_text().splitlines() if ln not in raw.splitlines()]
+        check("lib/set-top-changes-one-line", diff == ["updated: '2026-12-01T00:00:00Z'"] or diff == ["updated: 2026-12-01T00:00:00Z"], str(diff))
+
+        lspec = util.spec_from_file_location("mlint", SCRIPTS / "mission_lint.py"); mlint = util.module_from_spec(lspec); lspec.loader.exec_module(mlint)
+        _, w = mlint.lint(VALID)
+        check("lint/warns-citation-of-superseded-decision", any("A-3: cites DEC-1" in x for x in w), str(w))
+        check("lint/warns-proposed-without-needs-you", any("DEC-2: proposed but no needs_you" in x for x in w), str(w))
+
         r = script(root, "mission_log.py", "use", "--command", "report", "--mission", "fixture-ttd")
         r2 = script(root, "mission_log.py", "feedback", "--rating", "-1", "--text", "what is N-2?", "--command", "report")
         r3 = script(root, "mission_log.py", "summary")

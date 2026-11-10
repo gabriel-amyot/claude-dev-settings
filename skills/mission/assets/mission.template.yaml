@@ -5,6 +5,7 @@ status: active
 created: __NOW__
 updated: __NOW__
 last_report_at: null
+report_window_start: null
 
 root_issue: {number: null, url: null}
 parent_issue: null

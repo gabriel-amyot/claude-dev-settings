@@ -1,0 +1,189 @@
+run_id: run-2026-10-16-KTP-1334
+ticket: KTP-1334
+ticket_url: "https://beklever.atlassian.net/browse/KTP-1334"
+parent_ticket: "https://beklever.atlassian.net/browse/KTP-1332"
+blocks: "https://beklever.atlassian.net/browse/KTP-1335"
+conductor: "sprint-factory KTP-1334 KTP-1335 (tier 1)"
+date: '2026-10-16'
+terminal_status: READY_TO_SHIP
+tool_belt: java
+primary_repo: app-proximity-report
+branch: KTP-1334-plan-file-attach
+head_commit: f664296
+base: "origin/dev@a6e9635 (0.1.145)"
+release_version: 0.1.146
+commits_ahead_of_dev: 15
+ticket_folder: "/Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-536/KTP-1334"
+spec_source: AC-LOCAL.md
+ac_in_scope: [AC-1, AC-3, AC-4, AC-5, AC-6, AC-7]
+tdd_gate_mode: halt
+tdd_warn_mode_violations: []
+
+phases:
+  - phase: concierge
+    status: PASS
+    confidence: 88
+  - phase: design
+    status: pass
+    confidence: 80
+    note: >
+      impl-plan.md plus a draft ADR (plan file async attach). Grill amended the plan five times
+      (A1 to A5), so the design left a production test hook, raw byte[] fields, a 20 s shutdown
+      grace and misleading failure text for the grill to catch.
+  - phase: grill
+    status: pass
+    confidence: 85
+    note: >
+      16 assumptions challenged against origin/dev, 5 amendments, one gap G1 (AC-3 version 2 on
+      the same Request needs withdrawn-at mapped, mapped in dev only).
+  - phase: implement
+    status: pass
+    confidence: 84
+    note: >
+      RED then GREEN per AC. AC-4 RED is exempt (guard behaviour already true), proven by a
+      mutation instead. Follow-up commits for edge-case tests and release 0.1.146.
+  - phase: review
+    status: "blocking:0"
+    confidence: 82
+    note: >
+      review/ holds only diff.patch (2684 lines). No findings.json was persisted, so blocking 0
+      cannot be audited after the run.
+  - phase: qa
+    status: ALL_PASS
+    confidence: 85
+    note: >
+      Full suite 1819/0/0 on JDK 17 (declared 17). RED re-run per AC from test-only commits.
+      Live spring-boot run with curl against the stub gateway, flag on, flag off, and with
+      withdrawn-at mapped. PMD clean on new files. Live Salesforce sandbox sub-AC deferred to
+      end-to-end validation after KTP-1335.
+  - phase: ship-prep
+    status: pass
+    confidence: 88
+
+scores:
+  task_confidence: 84
+  factory_fitness: 78
+
+deductions:
+  - score: task_confidence
+    points: 6
+    reason: >
+      The AC-1 live Salesforce sub-AC (file in the sandbox Files list, Excel content, displayed
+      name) is not proven. All proof runs against the stub gateway. Deferred to end-to-end
+      validation after KTP-1335.
+  - score: task_confidence
+    points: 4
+    reason: >
+      AC-3 (version 2 on the same Request) holds only where withdrawn-at is mapped. Base and prod
+      mappings start a new Request on send again. Prod ships with the flag off, but the AC is
+      environment-conditional (grill gap G1).
+  - score: task_confidence
+    points: 3
+    reason: >
+      Review verdict blocking 0 has no persisted findings.json, so the review result cannot be
+      audited.
+  - score: task_confidence
+    points: 2
+    reason: >
+      Deploy runtime shutdown grace was not verified in the DAC repo. Amendment A3 chose 8 s as
+      a guess. Queued uploads can be lost on restart (accepted risk).
+  - score: task_confidence
+    points: 1
+    reason: >
+      Load balancer body size limit for a ~7 MB base64 field stays an open question from the
+      grill.
+  - score: factory_fitness
+    points: 6
+    reason: >
+      Review phase did not write review/findings.json. QA flagged it as a red flag. The same gap
+      appeared in the KTP-1335 run, so no gate enforces the review artifact.
+  - score: factory_fitness
+    points: 5
+    reason: >
+      Design produced five defects the grill had to amend (production test hook on the stub,
+      unguarded byte[], shutdown grace longer than the container grace, wrong failure wording,
+      wrong constructor count). Design does not read repo conventions or the PMD rule set first.
+  - score: factory_fitness
+    points: 4
+    reason: >
+      tdd/, review/, qa/, analyst/ and architecture/ artifacts are untracked in project-management.
+      Nothing commits them at the end of the run.
+  - score: factory_fitness
+    points: 3
+    reason: >
+      Soft per-phase confidence sits in a narrow 80 to 88 band with no rubric, so it does not
+      separate the weak design phase from the strong QA phase.
+  - score: factory_fitness
+    points: 2
+    reason: >
+      The live-system sub-AC had no path inside the factory. The factory accepted a deferral to a
+      post-KTP-1335 end-to-end check with no named owner or gate.
+  - score: factory_fitness
+    points: 1
+    reason: >
+      The retro received no active session id (state.yaml session_id empty), so the handoff went
+      to the ticket reports folder.
+  - score: factory_fitness
+    points: 1
+    reason: >
+      A GREEN commit subject uses an em-dash as a separator ("AC-7 GREEN — re-read ..."), against
+      the commit style rule.
+
+red_flags:
+  - "review/findings.json missing. review/ holds only diff.patch. Review verdict is not auditable."
+  - "Phase artifacts in the KTP-1334 ticket folder are untracked in project-management."
+  - >
+    AC-3 passes only with withdrawn-at mapped (dev). Without it, send again creates a new Request
+    and version 1 of a new document.
+  - "AC-1 live Salesforce sandbox check deferred, no owner and no gate recorded."
+  - "AC-4 RED is exempt. Proof relies on one mutation script (qa/mutate-ac4.sh)."
+  - "Shutdown grace (8 s) chosen without the DAC runtime value."
+  - "Load balancer request body limit for ~7 MB base64 not verified."
+  - "Design proposed a production test hook (moveStatus on StubSalesforceGateway). Grill removed it."
+  - "Commit subject on the AC-7 GREEN commit uses an em-dash separator."
+  - "No active session id at retro time."
+
+improvements:
+  - title: "Ship-prep gate requires review/findings.json"
+    detail: >
+      In workflow.js, ship-prep must fail when review/findings.json is missing or empty under the
+      ticket folder. Contract 5 must write findings.json even when there are zero findings
+      (an empty array plus the reviewed commit range). Two runs in a row (KTP-1335, KTP-1334) lost it.
+  - title: "Commit phase artifacts at the end of the run"
+    detail: >
+      After retro, the main loop commits the ticket folder (analyst, architecture, design, tdd,
+      review, qa) on project-management main with "KTP-XXXX: record the factory run artifacts".
+      Untracked artifacts are lost on clean or worktree prune.
+  - title: "Live-system sub-AC must produce a tracked deferral"
+    detail: >
+      When QA defers a sub-AC to a live system (Salesforce sandbox, dev deploy), contract 6 must
+      write qa/deferred.yaml with the sub-AC, the trigger (for example KTP-1335 merged), and the
+      command to run. Ship-prep must surface it in the MR and the Jira comment. Score it PARTIAL,
+      not PASS.
+  - title: "Design contract reads repo quality gates before planning"
+    detail: >
+      Contract 2 must read the PMD and Checkstyle rule set, the boundary tests, and the existing
+      test doubles before it proposes new fields or hooks. Require a "conventions checked" table
+      in impl-plan.md (byte[] copies, no production test hooks, failure wording reuse).
+  - title: "Environment-conditional AC must be flagged at the concierge"
+    detail: >
+      When an AC depends on per-profile config (here withdrawn-at mapped only in dev), the
+      concierge or grill must record it as CONDITIONAL in acs.json, and QA must report the AC
+      per profile.
+  - title: "Infra limits go into grill as verified facts or explicit questions"
+    detail: >
+      Grill must read the DAC repo for container stop grace and load balancer body limit when the
+      design depends on them, or file an open question on the Jira ticket. Do not choose a guessed
+      value.
+  - title: "Give soft confidence a rubric"
+    detail: >
+      Each contract states what lowers confidence (amendments by a later phase, deferred checks,
+      missing artifacts). Design with five grill amendments should score below 75.
+  - title: "Commit subject lint in the implement gate"
+    detail: >
+      Reject commit subjects with an em-dash separator. Use "AC-7 GREEN, re-read the status ..."
+      instead.
+  - title: "Resolve the active session id before retro"
+    detail: >
+      sprint-factory must pass the session slug to contract 9, so the handoff lands in
+      sessions/active/<slug>/prompts/ and not in the ticket folder.

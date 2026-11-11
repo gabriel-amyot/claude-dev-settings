@@ -50,6 +50,13 @@ organizations:
       app-proximity-explorer: ~/Developer/grp-beklever-com/grp-app/grp-backend/grp-gcp/grp-models/app-proximity-explorer
       dac-gcp-back-proexp: ~/Developer/grp-beklever-com/grp-dac/grp-dac-env-back/dac-gcp-back-proexp
       dac-gcp-back-proxrp: ~/Developer/grp-beklever-com/grp-dac/grp-dac-env-back/dac-gcp-back-proxrp
+      # --- Portal frontend infrastructure (TWO DACs, and the distinction matters) ---
+      # LIVE. This is the frontend DAC in use from 2026-09-29 onward. It serves
+      # portal.dev.klever1.ai and is the one to bump + apply when shipping the portal.
+      dac-gcp-front-klv1ai: ~/Developer/grp-beklever-com/grp-dac/grp-dac-env/grp-dac-env-front/dac-gcp-front-klv1ai
+      # SUPERSEDED, kept deliberately for backward compatibility and reference. Do NOT
+      # delete, and do NOT bump its image tag expecting a portal deploy — applying it
+      # will not update the live host.
       dac-gcp-front-portal: ~/Developer/grp-beklever-com/grp-dac/grp-dac-env-front/dac-gcp-front-portal
       # --- NOT git repos (plain directories) ---
       # grp-app: ~/Developer/grp-beklever-com/grp-app  (scaffold only)
@@ -73,7 +80,8 @@ organizations:
       # e.g. prj-e-global-front-XXXX, prj-p-global-front-XXXX
     gitlab_project_ids:
       # GitLab numeric IDs (for MR URLs and CI vars)
-      dac-gcp-front-portal: 514  # DATASOPHIA_INCL_BUILD_DOCKER_TARGET_PROJECT_ID in app-front-portal/.gitlab-ci.yml. Path not cloned locally.
+      dac-gcp-front-klv1ai: 804  # LIVE frontend DAC. Serves portal.dev.klever1.ai; bump TF_VAR_build_docker_tag_version (scope dev) here and run its dev pipeline to deploy the portal.
+      dac-gcp-front-portal: 514  # SUPERSEDED by 804, kept for reference. Both carry a dev-scoped TF_VAR_build_docker_tag_version, which is the trap: applying 514 does not move the live host.
     iap_refresh_repo: cfg-app  # use this repo for `git fetch` to refresh IAP cookie
     default_branch: dev
     mr_target_override:

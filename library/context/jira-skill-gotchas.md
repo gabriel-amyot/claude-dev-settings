@@ -272,6 +272,18 @@ Then: `j.issue("KTP-XXX").update(fields={"assignee": {"accountId": "6054ad7681b8
 
 Source: vivid-ibis KTP-719/720/721 session (2026-06-10/11).
 
+## @mentions via `add-comment` need the raw accountId
+
+`add-comment` converts markdown to wiki markup (API v2). `[~Display Name]` does not resolve to a mention. `[~accountid:<id>]` passes through `markdown_to_jira_wiki` unchanged and notifies the user. `get --full` prints only the display name, so it does not give the id.
+
+**To get the id:** import the skill module with `sys.argv=['j','--org','klever','get','KEY']`, wrap the import in `contextlib.redirect_stdout`, then read `j.jira.issue('KEY').fields.reporter.accountId`.
+
+| Person (Klever) | accountId |
+|---|---|
+| Raj (Rajan Takiar) | `712020:a23b6355-5e0e-41c9-8c9b-b9737959f85b` |
+
+Source: keen-lark KTP-1264 session (2026-10-14).
+
 ## Attachment download 403s via API token even though listing/upload work
 
 `jira_skill.py attachments KEY` lists attachments fine, and `upload-attachment` works fine, but `download-attachment` (both `/rest/api/2/attachment/content/{id}` and `/secure/attachment/` URLs) returns HTTP 403 `"You do not have permission to view attachment"` when using the API token auth the skill uses. This is a Jira Cloud permission quirk on the *download* path specifically — the token has enough scope to list and upload, not to fetch attachment content.
@@ -414,3 +426,52 @@ Jira does not log a description supplied at issue creation as a changelog item. 
 - **`fetch`'s `ticket.yaml` `parent` field is unreliable.** It reported `parent: None` for a ticket that a `parent = KTP-571` JQL correctly returns. Trust the JQL over the fetched field.
 
 **Source:** session `quiet-lynx`, KTP-571 board consolidation (2026-09-18).
+
+## A trimmed projection reports absence it never measured
+
+Generalizes the `fetch`/`parent` bullet above. That was written as a property of `fetch`. It is
+not. It is a property of every `jira_skill.py` subcommand that projects a subset of fields.
+
+`get <KEY>` returns exactly three: `key`, `summary`, `status`. `parent`, the epic link,
+`description`, `labels` and `assignee` are **not requested**, so they cannot come back empty —
+they are simply not there. Reading `parent` off that output and finding nothing looks identical to
+a ticket with no epic.
+
+On 2026-09-29 an agent did exactly that, told the user KTP-1257 had no epic, and filed the ticket
+folder under `no-epic/`. It sits under [KTP-571](https://beklever.atlassian.net/browse/KTP-571).
+The user caught it. The same class had already been recorded for `fetch` eleven days earlier, in
+this file, unread.
+
+**How to apply:** never assert a Jira field is absent from a `jira_skill.py` projection. To read a
+field the CLI drops, import the module and reuse its authenticated client — do not rebuild auth
+from `JIRA_*` env vars, which the skill ignores in favour of `get_org_config` (see the 404 note
+below).
+
+```python
+spec = importlib.util.spec_from_file_location("js", "~/.claude/skills/jira/jira_skill.py")
+# exec_module prints then raises SystemExit; catch it, then use m.jira
+m.jira.issue("KTP-1257").fields.parent.key
+```
+
+## A 404 from the Jira REST API is an auth signal
+
+Hand-rolled `GET /rest/api/3/issue/{KEY}` using `JIRA_URL` / `JIRA_USERNAME` / `JIRA_API_TOKEN`
+from `.env` returns **404 on both v2 and v3** for an issue that exists and that the skill reads
+without trouble. Jira answers an unauthorized read with 404, not 401, so a stale token presents as
+a missing issue.
+
+**How to apply:** do not conclude "no such issue" from a 404 on a hand-rolled call. The skill
+resolves credentials through `get_org_config(org_name)` and falls back to the environment only
+when no org config matches, so the `.env` values are usually not the live ones.
+
+## Descriptions on beklever are wiki markup, not Markdown or ADF
+
+`h2.`, `{code}`, `*bold*`, `||header||`, `[text|url]`, `!attachment.jpg|width=380!`. Markdown
+posted into a description renders literally.
+
+**How to apply:** run `jira_skill.py --org klever description <SOME-EXISTING-KEY>` and read the
+stored string before composing. One call tells you the dialect. A Markdown-to-wiki converter lives
+at `project-management/tools/md_to_jira.py` — keep the Markdown on disk as the source of truth and
+post the generated output, so the text stays diffable and re-postable.
+
+**Source:** session `crisp-badger`, KTP-1257 scoping (2026-09-29).

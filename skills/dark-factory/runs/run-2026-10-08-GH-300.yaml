@@ -1,0 +1,206 @@
+run_id: run-2026-10-08-GH-300
+ticket: GH-300
+ticket_url: "https://github.com/gabriel-amyot/klever-project-management/issues/300"
+parent_map: "https://github.com/gabriel-amyot/klever-project-management/issues/294"
+date: '2026-10-08'
+terminal_status: HALT_TDD_GATE
+tool_belt: frontend
+primary_repo: app-front-portal
+branch: GH-300-media-plan-submit
+ticket_folder: "/Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/wayfinder/map-294/issue-300"
+ac_count: 19
+tdd_gate_mode: halt
+tdd_warn_mode_violations: []
+
+phases:
+  - phase: concierge
+    status: PASS
+    confidence: 88
+    note: >
+      Third pass. The issue body was rewritten twice; ac_count moved 16 to 19 after the human
+      answered Q1 (implement all five contract status states), adding AC-9a/9b/9c.
+  - phase: design
+    status: pass
+    confidence: 84
+    note: >
+      Produced design/impl-plan.md (358 lines). Carried a wrong identifier through the whole
+      status half; grill caught it, design did not.
+  - phase: grill
+    status: partial
+    confidence: 84
+    note: >
+      One blocking contradiction resolved by decision (port PlanIdDeriver into the portal as a
+      pure function). Seven gaps G2 to G10 handed forward to implement rather than back to design.
+  - phase: implement
+    status: pass
+    confidence: 72
+    note: >
+      19 ACs in one slice. review/diff.patch is 2689 lines. Suite green at the end
+      (85 Playwright assertions plus 17 route-gate assertions, 0 failed).
+  - phase: review
+    status: not_reached
+    confidence: null
+  - phase: qa
+    status: not_reached
+    confidence: null
+  - phase: preship
+    status: not_reached
+    confidence: null
+
+halt_cause: >
+  AC-6 carries no isolated RED. The scaffold commit 055ae238 wrote a real body into
+  advertiserLookupUrl instead of a neutral stub, so by the time AC-6's test could be authored the
+  behaviour already satisfied it, and the route half had already shipped inside AC-4's GREEN
+  (54a50ff7). The implementer recorded the violation honestly in tdd/AC-6.md rather than
+  manufacturing a fake RED or reverting working code as theatre. AC-8 is a declared exemption
+  (rendered-UI criterion, no extractable logic) and is not the halt cause, but it is a second
+  criterion with no automated proof.
+
+scores:
+  task_confidence: 62
+  factory_fitness: 66
+
+deductions:
+  - points: 10
+    reason: >
+      task_confidence. HALT_TDD_GATE. AC-6 has no RED; the test-first guarantee does not hold for
+      that criterion, so its coverage is assertion-by-inspection, not proven-by-failure.
+  - points: 6
+    reason: >
+      task_confidence. AC-8 is exempted with no automated proof at all. Its own ledger names the
+      owed evidence - a screenshot of the submit control beside DownloadPlanMenu driven by
+      "?mediaPlanFixture=plan" - and that screenshot does not exist.
+  - points: 8
+    reason: >
+      task_confidence. The seedable/visual criteria (AC-2 salesDemo refusal, AC-5 unresolvable
+      identity, AC-8 placement, the AC-9a/9c reload proofs) have no ui-probe evidence because the
+      QA phase was never reached.
+  - points: 6
+    reason: >
+      task_confidence. The review phase never ran. A 2689-line diff across routes, permissions and
+      canvas components has had no adversarial pass.
+  - points: 4
+    reason: >
+      task_confidence. Nine stub-closed criteria - the whole status half - were verified only
+      against a local stub. The counterparty GH-307 is pushed on branch
+      "GH-307-salesforce-media-plan-submit" and NOT merged, so nothing was exercised against the
+      real backend.
+  - points: 4
+    reason: >
+      task_confidence. The plan-id derivation is now duplicated in two repos (Java PlanIdDeriver
+      and a TypeScript port) while contract section 10-Q1 is still open. If the write spec changes
+      the minting scheme, six criteria break silently. Mitigation is an ADR draft only.
+  - points: 10
+    reason: >
+      factory_fitness. The scaffold step is allowed to write real behaviour. Commit 055ae238 put a
+      working body into advertiserLookupUrl, which destroyed AC-6's RED before the TDD loop ever
+      reached that criterion. No gate checks that a scaffold commit contains only neutral stubs.
+  - points: 8
+    reason: >
+      factory_fitness. Design passed at confidence 84 carrying an identifier mismatch that would
+      have made AC-9a, AC-9b, AC-9c, AC-11, AC-13 and AC-14 unreachable - the portal would have
+      sent a 36-char thread UUID to a path that rejects anything failing "^mp[0-9a-z]{18}$" with a
+      400, and the portal maps non-OK to "unknown", so the failure is silent. Only grill caught it.
+      Design has no cross-repo identifier check.
+  - points: 6
+    reason: >
+      factory_fitness. Grill returned "partial" with seven open gaps and the workflow advanced to
+      implement anyway. There is no mechanism that confirms each named gap was actually closed.
+  - points: 4
+    reason: >
+      factory_fitness. 19 ACs were built in a single implement slice. No slice-size gate exists,
+      so the TDD gate only fired after all 19 were built.
+  - points: 3
+    reason: >
+      factory_fitness. Concierge ran three passes because the issue body was rewritten twice. Spec
+      churn was absorbed by re-running the front gate rather than by holding at it.
+  - points: 3
+    reason: >
+      factory_fitness. The TDD gate evaluates at the end of implement. The AC-6 ordering violation
+      was structurally determined at scaffold time and only surfaced many commits later.
+
+red_flags:
+  - >
+    A scaffold commit wrote real production behaviour (advertiserLookupUrl in 055ae238), which made
+    a later RED impossible for AC-6. This is the root cause of the halt and it is a factory defect,
+    not an implementer defect.
+  - >
+    AC-6's behaviour half had already shipped inside a DIFFERENT criterion's GREEN commit
+    (AC-4's 54a50ff7). ACs are leaking into each other's GREEN commits.
+  - >
+    Two of 19 criteria (AC-6, AC-8) end the run with no proven RED. AC-8's exemption reason -
+    "rendered-UI AC, no extractable logic" - is reasonable but is self-granted with no reviewer.
+  - >
+    Design confidence 84 on a plan whose status half could never have worked. Soft confidence did
+    not correlate with correctness.
+  - >
+    Grill verdict "partial" with gaps G2 through G10 was treated as a pass. G2 in particular is a
+    live data-integrity risk - advertiserId defaults to the "All advertisers" pseudo-brand "0",
+    which is non-blank and passes the backend validator, creating a Salesforce Requests__c row
+    parented to an advertiser that does not exist.
+  - >
+    The ADR for the duplicated plan-id derivation is still a draft in the ticket folder. It has not
+    been pushed to agent-os, and the follow-up on map 294 that would keep both sides in step is
+    named in the grill report but not confirmed opened.
+  - >
+    Every AC ledger ends with the same copy-pasted suite line ("85 passed ... 17 passed, 0 failed").
+    It reads as a template, so a stale or un-rerun suite would be invisible.
+  - >
+    Three concierge passes on one ticket. The AC set changed shape (16 to 19) after design-adjacent
+    work had begun.
+  - >
+    Nine criteria depend on an unmerged counterparty branch. The run can reach READY_TO_SHIP
+    without any of them having touched the real backend once.
+
+improvements:
+  - title: Gate the scaffold commit - a stub must be a stub
+    detail: >
+      Add a check in workflow.js between scaffold and the TDD loop. For every symbol the plan names
+      as a scaffold stub, assert the scaffold commit's body is a throw/TODO/empty return and not a
+      working implementation. Fail the scaffold step, not the TDD gate 19 commits later. This one
+      check would have prevented this run's halt outright.
+  - title: Bind each AC's GREEN to its own commit
+    detail: >
+      Contract 5 should refuse a GREEN whose diff is empty because an earlier AC already shipped the
+      behaviour. AC-6's route half landed inside AC-4's GREEN (54a50ff7). Require that each AC's
+      GREEN commit touch at least one non-test line not already covered by a prior AC's GREEN, or
+      force an explicit "covered by AC-N" declaration at PLAN time, before any code exists.
+  - title: Make a grill "partial" produce a tracked gap list that implement must close
+    detail: >
+      Grill already emits numbered gaps (G2 to G10). Have contract 3 write them to
+      design/grill-gaps.json with ids and a closed=false flag, and have the implement exit check
+      require every gap to be marked closed with a commit or an explicit accepted-risk line. Today
+      they live only in prose and nothing verifies closure.
+  - title: Add a cross-repo identifier check to design
+    detail: >
+      Contract 2 should require, for every value the portal puts on a URL path or in a request body
+      that the counterparty validates, a line naming the counterparty's validator and the proof the
+      two shapes match. This run's near-miss was a 36-char UUID aimed at a "^mp[0-9a-z]{18}$" path.
+      The check is cheap and would have moved the catch from grill to design.
+  - title: Cap the implement slice
+    detail: >
+      19 ACs in one slice is too large for the gate to be useful feedback. Add a slice-size gate -
+      roughly 6 to 8 ACs - and run the TDD gate per slice. The AC-6 violation would then have
+      halted the run after about five criteria instead of after all nineteen.
+  - title: Require a reviewer for every TDD exemption
+    detail: >
+      AC-8's "not_applicable (rendered-UI AC, no extractable logic)" is self-granted by the builder.
+      Route exemptions to the review socket for a yes/no before the gate evaluates, and record the
+      verdict in the ledger. An honest exemption survives review; a lazy one does not.
+  - title: Hold at concierge when the issue body is being rewritten
+    detail: >
+      Three concierge passes on GH-300 because the body changed twice. If the body's hash changes
+      after design starts, the workflow should return to the human gate rather than re-run
+      silently and let an AC count drift from 16 to 19 mid-flight.
+  - title: Carry the unmerged-counterparty dependency into the terminal status
+    detail: >
+      Nine criteria here are stub-closed against GH-307, which is pushed and not merged. Add a
+      terminal state (or a required field on READY_TO_SHIP) that names the branch the run depends
+      on, so the main loop cannot open an MR whose verification rests on code that is not on dev.
+
+summary: >
+  GH-300 built 19 criteria in app-front-portal with a green suite and honest, commit-stamped
+  RED-to-GREEN ledgers for 17 of them, then halted at the TDD gate because AC-6 never had a RED -
+  a scaffold commit had written the real behaviour before the test could be authored. The build is
+  substantially sound; what is missing is the visual proof, the review pass and any exercise
+  against the unmerged GH-307 counterparty.

@@ -1,0 +1,18 @@
+key: KTP-1220
+summary: Planning Map renders from the shared tilesets and shared backend routes
+status: TO DO
+type: Story
+priority: Medium
+assignee: null
+reporter: Gabriel Amyot
+created: 2026-09-18T15:53:01.062+0000
+updated: 2026-09-18T15:53:20.594+0000
+parent_key: KTP-571
+epic_key: KTP-571
+labels: []
+components: []
+resolution: null
+estimate: null
+sprint: Q3 Sprint 6
+url: https://beklever.atlassian.net/browse/KTP-1220
+links: []

@@ -1,0 +1,257 @@
+run_id: run-2026-10-07-KTP-1292
+ticket: KTP-1292
+source: jira
+jira_url: https://beklever.atlassian.net/browse/KTP-1292
+parent: KTP-1289
+issue_type: Sub-task
+title: >
+  Label or drop the money figure on list_ad_groups. Repo app-ttd-trading-mcp, belt
+  python-service, branch KTP-1292-drop-unwindowed-ad-group-spend cut from origin/dev.
+date: 2026-10-07
+terminal_status: READY_TO_SHIP
+ticket_folder: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/KTP/no-epic/KTP-1292
+
+resolution: >
+  The analyst established that AD_GROUPS_DOCUMENT requested "spend { spend riskLevel }" while
+  the ad-group currentFlight block carries no dates, so no window can be named for the figure.
+  AC-2 is therefore the operative criterion and the figure was dropped at the GraphQL document
+  level, following the BIDS_DOCUMENT precedent, rather than labelled. AC-1 and AC-3 are
+  satisfied vacuously: no figure is carried, so no label is written.
+
+git_state:
+  worktree: /Users/gabrielamyot/Developer/grp-beklever-com/grp-app/grp-backend/grp-mcp/worktrees/KTP-1292-drop-unwindowed-ad-group-spend
+  branch: KTP-1292-drop-unwindowed-ad-group-spend
+  head: '6998ac2 "KTP-1292: AC-2 adversarial — the document filter tolerates the shapes an override may send"'
+  worktree_clean: true
+  pushed: true
+  head_equals_origin: true
+  diff_base: 'origin/dev 8b26b26'
+  commits_ahead: 3
+  mr: "none yet — the main loop creates the MR and the Jira comment after this phase"
+  version_bump: "0.11.1 -> 0.12.0 in pyproject.toml, packaging/manifest.json and uv.lock"
+  changelog: "written, 21 added lines"
+  diffstat: >
+    10 files, 234 insertions, 21 deletions. documents.py, server.py, tests/conftest.py,
+    tests/test_spend_labelling.py (+147), CHANGELOG.md, pyproject.toml,
+    packaging/manifest.json, uv.lock, agent-os/architecture/contracts/mcp-tools.md,
+    agent-os/architecture/known-limits.md.
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy_config: true
+  signal: clean_but_narrow
+  note: >
+    The gate ran in the default halt mode with zero warn-mode violations. The commit graph
+    carries an ordered RED then GREEN pair for AC-2 (33252a7 RED, ecadaa4 GREEN) and an
+    adversarial follow-up (6998ac2). AC-1 and AC-3 have no RED because the chosen resolution
+    makes them vacuous. The gate stayed silent on that, so a vacuous AC and an untested AC
+    look identical to it.
+
+green_verification:
+  verified_by_retro: true
+  command: "uv run --frozen pytest -q, run by this retro in the branch worktree"
+  result: "933 passed, 31 skipped, 1 failed in 57.31s"
+  failure:
+    test: "tests/test_bundle_artifact.py::test_the_packaged_server_announces_its_world_to_the_model[sandbox]"
+    assertion: "assert len(served['descriptions']) == 10, actual 17"
+    caused_by_this_diff: false
+    evidence: >
+      The assertion was last touched by f6c5aa2 (KTP-1182), long before this branch, and this
+      branch adds no tool. The same file reports 18 skipped on the clean dev checkout because
+      dist/ is gitignored and absent there, so the bundle tests never select. A dist/ holding
+      ttd-trading-sandbox-0.12.0.mcpb exists in the branch worktree, which makes the same
+      latent stale expectation run and fail.
+    consequence: >
+      QA reported ALL_PASS. A full suite run in the same worktree does not reproduce that
+      string. The failure is pre-existing and unrelated to the change, but no baseline diff
+      against origin/dev was recorded, so nothing in the run distinguishes the two cases.
+
+per_phase:
+  - phase: concierge
+    status: PASS
+    confidence: 85
+  - phase: design
+    status: pass
+    confidence: 86
+  - phase: grill
+    status: pass
+    confidence: 88
+    note: "grill-report.md, 149 lines, on disk"
+  - phase: implement
+    status: pass
+    confidence: 84
+    note: "no implement artifact in the ticket folder; evidence is the commit graph only"
+  - phase: review
+    status: "blocking:0"
+    confidence: 82
+    note: "no review/ folder in the ticket folder; the zero-blocking claim is unverifiable"
+  - phase: qa
+    status: ALL_PASS
+    confidence: 87
+    note: "no qa/ folder in the ticket folder; contradicted by this retro's own suite run"
+  - phase: ship-prep
+    status: pass
+    confidence: 86
+    note: "version, changelog, manifest, lock and contracts all updated and pushed"
+
+artifacts_on_disk:
+  present:
+    - analyst/ac.json
+    - analyst/assumptions.json
+    - analyst/affected-repos.json
+    - design/impl-plan.md
+    - design/grill-report.md
+  absent:
+    - implement/
+    - review/
+    - qa/
+    - reports/
+  note: >
+    Four of seven phases left nothing in the ticket folder. The trace carries their verdicts
+    as strings with no backing file, so the retro cannot re-verify review or QA at all.
+
+scores:
+  task_confidence: 84
+  factory_fitness: 80
+
+deductions:
+  - points: 6
+    score: task_confidence
+    reason: >
+      AC-1 and AC-3 pass vacuously because the figure was dropped. That is probably the right
+      engineering call, but nobody asked the ticket reporter whether dropping the number is
+      acceptable, and no Jira comment records the conditional reading. The project rule says a
+      deferred or conditional AC must surface to the PO on the ticket, not only on disk.
+  - points: 5
+    score: task_confidence
+    reason: >
+      QA's ALL_PASS does not reproduce. A full suite run in the branch worktree returns one
+      failure. It is pre-existing and unrelated to the diff, but the run recorded no baseline,
+      so the claim as written is wrong.
+  - points: 3
+    score: task_confidence
+    reason: >
+      READY_TO_SHIP is pre-merge. No MR exists, the Jira ticket carries no comment, and nothing
+      is deployed. The task is done as code, not as a shipped change.
+  - points: 2
+    score: task_confidence
+    reason: >
+      No QA or review evidence on disk, so the retro cannot independently confirm any AC beyond
+      reading the diff and running the tests itself.
+  - points: 8
+    score: factory_fitness
+    reason: >
+      Review and QA returned verdicts with zero artifacts. GH-231 praised exactly the opposite
+      behaviour and GH-230 was faulted for it. The factory still lets a phase pass on a bare
+      status string.
+  - points: 5
+    score: factory_fitness
+    reason: >
+      The suite scope is nondeterministic. An untracked gitignored dist/ built during the run
+      changes which tests select, and no origin/dev baseline was captured, so a stale pre-existing
+      failure cannot be told apart from a regression.
+  - points: 4
+    score: factory_fitness
+    reason: >
+      sessions/active/state.yaml still carries an empty session_id, so contract 9's primary
+      handoff target cannot be resolved and the handoff falls back to the ticket folder again.
+      This is the sixth run filing it.
+  - points: 3
+    score: factory_fitness
+    reason: >
+      The TDD gate has no way to express "this AC is vacuous under the chosen resolution". Two
+      of three ACs have no RED commit and the halt-mode gate said nothing.
+
+red_flags:
+  - "Review returned blocking:0 and wrote no findings file. The claim cannot be checked."
+  - "QA returned ALL_PASS and wrote no results file. A retro-run suite contradicts the string."
+  - >
+    One test fails in the branch worktree: test_bundle_artifact sandbox expects 10 tool
+    descriptions and the server exposes 17. Pre-existing from KTP-1182, masked on the clean
+    checkout because dist/ is absent there.
+  - >
+    The run built a sandbox bundle into an untracked dist/, which silently widened the test
+    selection relative to the dev checkout. Nothing in the run records that.
+  - "Two of three ACs pass with no test and no PO confirmation that the vacuous reading is agreed."
+  - "No Jira comment exists on KTP-1292 carrying the conditional-AC reading back to the reporter."
+  - "Four of seven phases left no artifact in the ticket folder."
+  - "sessions/active/state.yaml session_id is empty, sixth consecutive filing."
+  - >
+    Only the sandbox bundle was built. The prod bundle test stayed skipped, so the packaging
+    half of the repo is half-exercised either way.
+
+improvements:
+  - title: Make review and QA fail closed without an artifact
+    detail: >
+      The gate must reject a review verdict that has no review/findings.json in the ticket
+      folder and a QA verdict that has no qa/results.json. The file, not the returned string,
+      is the verdict. This is the third run where an unbacked phase status reached the retro,
+      and the first where the retro could prove the string wrong.
+  - title: Require a test baseline diff, not a raw pass claim
+    detail: >
+      QA must run the suite twice, once at the branch tip and once at the merge base, and emit
+      qa/test-baseline.json with pass, fail and skip counts for both plus the set of failing
+      test ids on each side. ALL_PASS is only allowed when the branch failing-set is a subset
+      of the base failing-set. Had this existed, this run would have reported "1 pre-existing
+      failure, 0 new" instead of a claim that does not reproduce.
+  - title: Pin the test selection against untracked build output
+    detail: >
+      A gitignored dist/ built mid-run changed which tests select, so the branch worktree and
+      the dev checkout do not run the same suite. QA must record whether dist/ exists and either
+      build it on both sides of the baseline diff or exclude the bundle tests from the pass
+      claim and say so.
+  - title: Give the TDD gate a vacuous-AC verdict
+    detail: >
+      AC-1 and AC-3 have no RED because the chosen resolution removed the thing they describe.
+      That is legitimate, and today it is indistinguishable from skipping them. Add a per-AC
+      status of vacuous to the gate's input, requiring the analyst's note plus the AC id of the
+      criterion that dictated the vacuity. Then "no RED" is an answer, not a silence.
+  - title: Force a conditional or vacuous AC onto the Jira ticket before READY_TO_SHIP
+    detail: >
+      The analyst wrote that AC-1 and AC-3 become live only if a window for AdGroupSpend.spend
+      is ever established. That sentence exists only in ac.json. Ship-prep must refuse
+      READY_TO_SHIP while any AC carries a conditional or vacuous note without a matching Jira
+      comment addressed to the reporter. The project rule already demands this for deferred ACs.
+  - title: Fix the empty session_id or delete the session-folder branch of contract 9
+    detail: >
+      sessions/active/state.yaml has carried an empty session_id for six runs. Either populate
+      it at session init or simplify contract 9 to write the improvement handoff to the ticket
+      folder unconditionally and stop pretending the session folder is reachable. Sixth filing.
+  - title: Fix the stale bundle assertion as its own ticket
+    detail: >
+      tests/test_bundle_artifact.py line 517 pins 10 tool descriptions against a server that
+      exposes 17, and it only runs when a local dist/ exists, so CI and the clean checkout both
+      skip it. It is a dormant failing test, not a passing one. File it under KTP-1289's parent
+      rather than folding it into this branch.
+
+what_went_right:
+  - >
+    The analyst did not take the ticket title at face value. "Label or drop" was resolved by
+    checking the actual GraphQL document and finding that the ad-group currentFlight block
+    carries no dates, so no honest window can be named. That read is what stopped the factory
+    inventing a plausible but false label.
+  - >
+    The resolution followed an in-repo precedent, BIDS_DOCUMENT, removing the field from the
+    document rather than stripping it from the response. The fix matches how the repo already
+    solved the same problem once.
+  - >
+    AC-3's note caught a trap: SPEND_SCOPE's current value is literally "the campaign flight,
+    not one ad group", so reusing get_campaign_pacing's label verbatim would have been wrong
+    had a label been written. Only SPEND_CURRENCY and SPEND_BILLING are reuse-safe.
+  - >
+    Ship-prep is complete and consistent. Version 0.12.0 across pyproject, manifest and
+    uv.lock, a written CHANGELOG, and both agent-os contracts and known-limits updated in the
+    same commit range.
+  - >
+    An adversarial commit landed after the GREEN, hardening the document filter against the
+    shapes an override may send, rather than stopping at the minimum that turns the test green.
+  - "The branch is pushed, HEAD equals origin, and the worktree is clean."
+
+resume_pointer: >
+  Create the MR for KTP-1292-drop-unwindowed-ad-group-spend into dev and post the Jira comment.
+  The comment must state plainly that the spend figure was dropped rather than labelled, that
+  AC-1 and AC-3 are therefore vacuous, and that they become live only if a window for
+  AdGroupSpend.spend is ever established. That is a product-visible behaviour change on
+  list_ad_groups and the reporter has not seen it. Separately, file the stale
+  test_bundle_artifact sandbox assertion (10 vs 17 tool descriptions) as its own ticket.

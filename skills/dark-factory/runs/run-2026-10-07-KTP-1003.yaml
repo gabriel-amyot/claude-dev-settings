@@ -1,0 +1,223 @@
+run_id: run-2026-10-07-KTP-1003
+ticket: KTP-1003
+date: 2026-10-07
+terminal_status: HALT_PRESHIP
+ticket_folder: ~/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-571/KTP-1003
+repo: app-proximity-report
+branch: KTP-1003-census-serving-contract
+head: a9709ebe96d3a9c2b4e9a93d8caf90eba2baf11b
+pushed: >
+  true. Retro verified independently: git ls-remote origin refs/heads/KTP-1003-census-serving-contract
+  returns a9709eb, the same head QA and review measured.
+base: origin/dev bb1b3a62088a8896bec7990567f34ca8dedd2e58
+belt: java
+worktree: ~/Developer/grp-beklever-com/.worktrees/KTP-1003-census-contract
+
+spec_source: >
+  AC-LOCAL.md in the ticket folder, not the Jira description. The file declares a deliberate divergence
+  on two axes (substrate GCS not BigQuery, scope one backend slice) and states the Jira reporter is
+  Rajan Takiar, so the Jira text must not be rewritten. The factory read the right spec.
+
+title: >
+  app-proximity-report census serving slice. Three ACs. AC-L1 closes the silent-drop hole in
+  CensusService.buildEnvelope by adding NOT_IN_RELEASE. AC-L2 writes the committed serving contract page
+  under docs/agent-os/architecture. AC-L3 adds a SpringBootTest contract test that posts through the real
+  Jackson converters and compares a derived schema to a committed JSON schema file.
+
+terminal_cause: >
+  QA returned raw_overall PARTIAL on AC-L2, so the pre-ship blocker list was non-empty and the run stopped
+  before ShipPrep. The gap is one sentence. The new contract page carries a
+  "[VERIFIED against app-proximity-report@bb1b3a6]" stamp on the claim that every census response carries
+  a Cache-Control header. CensusController.getCensus line 66 returns ResponseEntity.ok(body) on the
+  GRAIN_UNAVAILABLE branch with no .cacheControl() call, unlike served() and getGrains(). The reviewer
+  demonstrated it with a failing test and QA re-ran that test. AC-L2's deliverable is claim accuracy, so a
+  stamped claim a test falsifies is a real gap. The halt is correct. User impact is LOW, no wrong data is
+  shown, and the fix is one line in either the doc or the controller.
+
+phases:
+  - phase: concierge
+    status: PASS
+    confidence: 80
+  - phase: design
+    status: pass
+    confidence: 82
+  - phase: grill
+    status: partial
+    confidence: 82
+  - phase: implement
+    status: pass
+    confidence: 86
+  - phase: review
+    status: "blocking: 0"
+    confidence: 82
+  - phase: qa
+    status: PARTIAL
+    confidence: 86
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy: yes
+  note: >
+    The un-skippable gate ran in its default halt mode and recorded zero warn-mode violations, so this
+    run's TDD evidence can be trusted at face value.
+
+red_green_evidence:
+  AC-L1:
+    red_commit: 0b90608
+    red_stat: "1 file changed, 46 insertions, CensusServiceTest.java only, no production source"
+    red_result: "Tests run 2, Failures 2, AssertionError not compile error"
+    red_output: tickets/KTP/KTP-571/KTP-1003/qa/AC-L1-red.out
+    same_test_green: "git diff 0b90608 a9709eb on CensusServiceTest.java shows no change to either RED method"
+  AC-L2:
+    red: exempt
+    exemption_check: >
+      Judged legitimate by QA. The AC-L2 diff is a 144-line Markdown page, one INDEX.md line and two
+      Schema description strings. No extractable pure function could carry a unit RED. The exemption is
+      self-declared in the QA artifact with no gate behind it. See improvement 2.
+  AC-L3:
+    red_commit: 42bd7fe
+    red_stat: "1 file changed, 186 insertions, CensusContractTest.java only, no production source"
+    red_result: "Tests run 2, Failures 1, assertion failure at CensusContractTest line 92"
+    red_output: tickets/KTP/KTP-571/KTP-1003/qa/AC-L3-red.out
+
+work_produced:
+  suite: "817 tests, 0 failures, 0 errors, 0 skipped, BUILD SUCCESS, JDK zulu-21 against a pom targeting release 17"
+  static_analysis: >
+    java-quality PMD scan of the three changed main files is clean. A wider scan of the model package
+    reports 25 pre-existing violations across 22 files, none in a changed file. Reported, not blocking.
+  artifacts:
+    - tickets/KTP/KTP-571/KTP-1003/qa/result.yaml
+    - tickets/KTP/KTP-571/KTP-1003/review/findings.json
+    - tickets/KTP/KTP-571/KTP-1003/design/grill-report.md
+    - tickets/KTP/KTP-571/KTP-1003/design/impl-plan.md
+  not_done: >
+    No MR, no Jira comment, no merge. Correct at HALT_PRESHIP. The main loop owns those and never ran.
+
+review:
+  criticals_open: 0
+  findings:
+    - severity: LOW
+      demonstrated: true
+      title: "Stamped doc claim that every response carries Cache-Control is false on the GRAIN_UNAVAILABLE branch"
+    - severity: LOW
+      demonstrated: false
+      title: "Routing section omits that chunk-json serves ZIP only whatever census.derived.enabled says"
+    - severity: LOW
+      demonstrated: false
+      title: "buildEnvelope de-duplicates ids that CensusRequest.normalize already de-duplicated"
+
+scores:
+  task_confidence: 78
+  factory_fitness: 80
+
+deductions:
+  - points: 10
+    score: task_confidence
+    reason: >
+      AC-L2 is PARTIAL. A VERIFIED-stamped sentence in the delivered contract page is falsified by a test
+      the reviewer wrote. The ticket cannot ship until a one-line fix lands.
+  - points: 5
+    score: task_confidence
+    reason: >
+      Terminal state is HALT_PRESHIP. No MR, no Jira comment, nothing in review. The work is pushed but a
+      human must restart the line to deliver it.
+  - points: 4
+    score: task_confidence
+    reason: >
+      AC-L2 carries no RED commit. Its proof is a claim-by-claim audit plus a green build, so the one AC
+      that failed is also the one AC with the weakest evidence shape.
+  - points: 3
+    score: task_confidence
+    reason: >
+      Two undemonstrated LOW findings are left open in the shipped doc, one of which can mislead an
+      operator into setting census.derived.enabled on a chunk-json deployment.
+  - points: 8
+    score: factory_fitness
+    reason: >
+      The bounded fix loop did not fix a demonstrated one-line defect. Review found it, left it at LOW,
+      and the same defect then drove QA to PARTIAL and the run to a halt. A fix round inside review would
+      have shipped this run.
+  - points: 5
+    score: factory_fitness
+    reason: >
+      The design phase handed grill a SpringBootTest harness that could not start. Grill named three
+      defects in it, including a missing EnableAutoConfiguration and an incomplete bean list that misses
+      two of the controller's five constructor arguments. Design should boot-check a new test harness.
+  - points: 4
+    score: factory_fitness
+    reason: >
+      There is no gate behind the RED exemption. QA accepted a self-declared exempt on AC-L2, and nothing
+      forces a doc-shaped AC to carry an executable claim check instead.
+  - points: 3
+    score: factory_fitness
+    reason: >
+      The reviewer's demonstration test lives at review/ReviewCacheHeaderTest.java.evidence, outside the
+      suite. The proof of the defect is not runnable by the next agent without reconstruction.
+
+red_flags:
+  - >
+    Review returned "blocking 0" on a finding it had already demonstrated with a failing test. QA then
+    reclassified the same finding as a real gap and halted the run. Two phases disagreed on the severity
+    of one identical, test-backed fact.
+  - >
+    A VERIFIED stamp was applied to a sentence that was never executed against the branch. The stamp
+    convention exists to stop exactly this, and it was applied by the same phase that wrote the claim.
+  - >
+    AC-L2 was allowed to be RED-exempt on the author's own judgement. The exempt AC is the one that failed.
+  - >
+    The design plan's test harness was wrong in three independent ways and only grill caught it. A run
+    with a weaker grill ships a test that is green on a laptop and red in CI.
+  - >
+    The repo had zero SpringBootTest classes before this branch, which grill read as evidence the path was
+    deliberately avoided. The factory added the first one without surfacing that as a decision for a human.
+  - >
+    The demonstration test was parked as a .evidence file rather than committed, so the defect's proof
+    leaves the suite the moment the branch moves.
+  - >
+    QA ran on JDK 21 against a pom that targets release 17, and the repo CLAUDE.md records a JDK 21
+    Lombok break. The suite passed, so no harm landed, but the toolchain QA measured is not the toolchain
+    the build declares.
+
+improvements:
+  - title: "Make a demonstrated finding blocking, whatever its severity label"
+    detail: >
+      In contract 7, a finding with demonstrated true and a failing test_ref must enter the fix loop
+      regardless of severity. LOW should describe user impact, never whether the factory acts. This single
+      rule turns the present run from HALT_PRESHIP into READY_TO_SHIP, because the fix is one line.
+  - title: "Gate the VERIFIED stamp on an executed check"
+    detail: >
+      A sentence carrying [VERIFIED against <repo>@<sha>] must name a command or a test that was run at
+      that sha. Contract 5 should refuse to emit a stamp without one, and QA should fail any AC whose
+      deliverable is a stamped document when a stamp has no execution behind it.
+  - title: "Replace the RED exemption with a claim check for doc-shaped ACs"
+    detail: >
+      When an AC's diff is documentation, require a claim-extraction test instead of accepting exempt. The
+      contract page lists its claims, a test asserts each one against the code at the branch head. The
+      reviewer wrote exactly such a test by hand this run, which proves it is cheap.
+  - title: "Commit the reviewer's demonstration test instead of parking it as .evidence"
+    detail: >
+      Contract 7 should require a demonstrated finding's test to land on the branch, red, and to turn green
+      in the fix loop. Keep the .evidence copy only when the test cannot compile on the branch.
+  - title: "Boot-check any new test harness during design, before grill"
+    detail: >
+      Contract 2 should require that a new SpringBootTest or integration harness is started once, with its
+      full constructor bean list enumerated from the class under test, before the plan is handed on. Grill
+      found a missing EnableAutoConfiguration, a credentials dependency that would be green locally and red
+      in CI, and two missing beans. All three are mechanical to detect.
+  - title: "Pin the QA toolchain to the pom's declared release"
+    detail: >
+      Contract 8 should read maven.compiler.source or maven.compiler.release and refuse a JDK that does not
+      match, or record the mismatch as an explicit finding. The repo CLAUDE.md already documents a JDK 21
+      Lombok break, so the divergence is known and still went unflagged.
+  - title: "Surface a first-of-its-kind pattern as a human decision"
+    detail: >
+      When a branch introduces the first instance of a pattern the repo has zero of, such as the first
+      SpringBootTest here, the concierge or review phase should name it in the ship notes. Absence at that
+      scale is usually a past decision, not an oversight.
+
+summary: >
+  A strong run that halted on a one-line defect. Three ACs built, 817 tests green, PMD clean on every
+  changed file, both testable ACs carrying genuine test-only RED commits, and the branch pushed. The halt
+  is correct but avoidable: the reviewer demonstrated the Cache-Control gap with a failing test, labelled
+  it LOW, and the fix loop never ran, so QA found the same fact again and stopped the line.

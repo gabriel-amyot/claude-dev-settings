@@ -1,0 +1,200 @@
+run_id: run-2026-10-16-GH-342-run2
+ticket: GH-342
+source: github
+issue_url: https://github.com/gabriel-amyot/klever-project-management/issues/342
+previous_run: run-2026-10-16-GH-342 (HALT_TDD_GATE at Implement, branch head dcab23e)
+title: >
+  Backend half of GH-341. Save every media plan decision on generation in app-proximity-report.
+  Second run of the day, built on top of the pushed branch GH-342-save-every-plan. Belt java.
+date: 2026-10-16
+terminal_status: BLOCKED_REVIEW_CRITICAL
+halt_phase: "Review round 3 (after the second and last fix round)"
+ticket_folder: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/wayfinder/no-map/issue-342
+tdd_gate_mode: halt
+tdd_warn_violations: []
+
+branch_state:
+  verified_against: "git fetch origin GH-342-save-every-plan; origin/GH-342-save-every-plan = 7cc62a7"
+  head: 7cc62a7
+  commits_ahead_of_dev: 25
+  diff: "30 files changed, 1741 insertions(+), 71 deletions(-)"
+  pushed: true
+  mr: none
+  report_back_to_issue: none
+
+review_rounds:
+  - round: 1
+    head: dcab23e
+    blocking: 2
+    note: "Findings not kept on disk in the main ticket folder. Fix-1 commits address AC-5 (due date on send again, save keeps a withdraw)."
+  - round: 2
+    head: e3a0374
+    blocking: 3
+    findings_file: "tickets/wayfinder/no-map/issue-342/review/findings.json (main checkout, 17:27)"
+    root_defect: >
+      Save-every-plan routes every write after the first generation through the resend update path.
+      Its fill-only rule froze Summary, Start/End dates and other fields at the first generation.
+      CRITICAL AC-3 (submit sends stale fields), HIGH AC-2 (regeneration does not update fields),
+      MEDIUM AC-5 (startup guard accepts save-every-plan without a withdrawn-at field).
+  - round: 3
+    head: 7cc62a7
+    blocking: 2
+    criticals_open: 0
+    findings_file: "project-management/.claude/worktrees/wf_021a6f35-b74-9/tickets/wayfinder/no-map/issue-342/review/findings.json (worktree only)"
+    open_findings:
+      - "HIGH AC-2 (demonstrated): a regeneration of a never-sent plan leaves fields the new plan omits (End_Date__c) at the older value. mapUpdate omits unresolved optional keys, so the PATCH does not clear them."
+      - "HIGH AC-3 (demonstrated): the same root cause on submit. The strategist reviews an end date the user never submitted."
+      - "LOW AC-6 (not demonstrated): read-then-PATCH race can overwrite a strategist decision."
+    suggested_fix: "For a never-sent Request, send null for every mapped optional field the new plan omits."
+
+phases:
+  - phase: concierge
+    status: PASS
+    confidence: 80
+  - phase: design
+    status: pass
+    confidence: 80
+  - phase: grill
+    status: pass
+    confidence: 82
+  - phase: implement
+    status: pass
+    confidence: 80
+  - phase: review
+    status: "blocking:2"
+    confidence: 78
+  - phase: fix-1
+    status: pass
+    confidence: 85
+  - phase: review-2
+    status: "blocking:3"
+    confidence: 80
+  - phase: fix-2
+    status: pass
+    confidence: 80
+  - phase: review-3
+    status: "blocking:2"
+    confidence: 78
+  - phase: qa
+    status: not_run
+  - phase: preship
+    status: not_run
+
+scores:
+  task_confidence: 60
+  factory_fitness: 67
+
+deductions:
+  - score: task_confidence
+    points: 20
+    reason: >
+      Blocked at Review with two demonstrated HIGH findings open (stale omitted fields on AC-2 and
+      AC-3). QA and preship did not run. The RED commits were not re-verified by a segregated QA.
+  - score: task_confidence
+    points: 8
+    reason: >
+      Side deliverables S1 (sandbox picklist values on KleverOne_Decision__c) and S2 (integration user
+      Edit) are still not done. The dev flag cannot go on until S1 lands. No data/backups folder exists.
+  - score: task_confidence
+    points: 5
+    reason: >
+      Execute-verify ran on the stub gateway only, and at dcab23e. It was not re-run after the six
+      fix commits that changed the update path (head is now 7cc62a7).
+  - score: task_confidence
+    points: 3
+    reason: "Class-level CyclomaticComplexity on MediaPlanSubmissionUseCase (raised in run 1). No evidence it was resolved or accepted."
+  - score: task_confidence
+    points: 2
+    reason: "LOW AC-6 read-then-PATCH race is recorded across three rounds but not addressed or explicitly accepted."
+  - score: task_confidence
+    points: 2
+    reason: "No MR and no report-back comment on issue 342."
+  - score: factory_fitness
+    points: 10
+    reason: >
+      Design and grill missed the root defect. Routing save through the resend update path (fill-only,
+      PATCH omits absent keys) is a design decision. Review 1 also missed it. It surfaced as a CRITICAL
+      only in review 2, which left one fix round for a structural change.
+  - score: factory_fitness
+    points: 6
+    reason: >
+      Review and fix agents ran with isolation worktree rooted in project-management. Review 3 wrote
+      findings.json only into .claude/worktrees/wf_021a6f35-b74-9. The main ticket folder holds stale
+      review-2 findings. Four wf_* worktrees exist in project-management, which its CLAUDE.md forbids.
+  - score: factory_fitness
+    points: 4
+    reason: >
+      The fix budget of two rounds expired while findings were converging (CRITICAL to zero, the
+      remaining HIGHs share one narrow root cause). No narrow-scope last round exists for that case.
+  - score: factory_fitness
+    points: 4
+    reason: >
+      The retro prompt carries only blocking counts, not the blocking findings. Same gap as
+      tdd_violations in KTT-49 and GH-342 run 1. The retro had to search worktrees to find them.
+  - score: factory_fitness
+    points: 3
+    reason: "Execute-verify is produced once at Implement and never refreshed after fix rounds. Its artifact is stale at dcab23e."
+  - score: factory_fitness
+    points: 3
+    reason: >
+      The run resumed after a HALT_TDD_GATE but the trace starts at concierge. How the AC-8 gate issue
+      was cleared (an out-of-band Codex verdict, KEEP) is not recorded in the trace.
+  - score: factory_fitness
+    points: 3
+    reason: "Per-phase confidence stays flat at 78-85 through three blocking reviews. It carries no signal."
+
+red_flags:
+  - "Review 2 found a CRITICAL root defect that design, grill and review 1 all passed."
+  - "Review 3 findings.json exists only inside a project-management worktree; the main ticket folder copy is stale (review 2)."
+  - "Four stray wf_* worktrees under project-management/.claude/worktrees, created by this workflow family."
+  - "Retro prompt received blocking counts but not the blocking findings."
+  - "execute-verify.md still cites dcab23e after six fix commits on the write path."
+  - "Each fix round closed its findings but exposed a neighbour on the same update path (fill-only, then omitted keys). The fix treated symptoms field by field."
+  - "LOW AC-6 race carried for three rounds with no decision."
+  - "S1/S2 sandbox prerequisites still not started; no gate tracks them."
+  - "Flat per-phase confidence (78-85) through three blocking reviews."
+  - "Trace does not show how the run-1 TDD halt on AC-8 was resolved."
+
+improvements:
+  - title: "Pass blocking findings and violations into the retro prompt"
+    detail: >
+      In dark-factory.workflow.js, build the retro prompt from the terminal result. Include
+      blocking_findings (severity, ac, title, test_ref) and tdd_violations, not only per-phase counts.
+      This is the third run that needed it.
+  - title: "Copy review artifacts from the agent worktree to the main ticket folder"
+    detail: >
+      After every review and fix agent, copy <worktree>/tickets/.../review/findings.json and
+      review/tests to the main ticket folder, or run these agents without isolation when the target
+      ticket folder is in project-management. Then remove the worktree. Assert in the preamble that no
+      worktree is created under project-management.
+  - title: "Grill must probe write-path semantics for update-in-place designs"
+    detail: >
+      Add a contract 3 checklist item. When a design reuses an existing update path for a new intent,
+      the grill lists that path's field rules (fill-only, create-only, absent-key behaviour) and asks
+      for one test per rule against the new intent. This finds the fill-only and omitted-key defects
+      at design time.
+  - title: "Fix rounds must fix the root cause, not the field"
+    detail: >
+      Contract for Fix: when a finding names a root cause shared by several fields, the fix adds a
+      table-driven test over every mapped field, not one field. Review 3 then would have found the
+      omitted-key case in round 2.
+  - title: "Allow one narrow convergence round"
+    detail: >
+      When the last review has criticals_open 0, fewer blocking findings than the round before, and
+      all share one cited root cause, allow one extra fix round scoped to those findings only. Keep
+      the hard stop if the count does not drop.
+  - title: "Re-run execute-verify after fix rounds that touch the main path"
+    detail: >
+      Make the last fix round refresh execute-verify.md at the new head, or have QA do it. The
+      artifact must cite the head it ran against.
+  - title: "Record resume provenance in the trace"
+    detail: >
+      When a run builds on top of a pushed branch after a halt, add a trace entry that says what
+      cleared the earlier halt (artifact path and verdict).
+
+resume_path: >
+  Do not re-run the factory from scratch. On GH-342-save-every-plan at 7cc62a7: adopt the review-3
+  test (End_Date__c) red, make a never-sent Request send null for every mapped optional field the new
+  plan omits, add a table-driven test over all mapped optional fields, then run a build-on-top tail
+  (Review, QA, preship). Re-run execute-verify at the new head. Decide AC-6 (accept or conditional
+  PATCH). Then S1/S2 with backups, MR with /klever-mr, and report back on issue 342.

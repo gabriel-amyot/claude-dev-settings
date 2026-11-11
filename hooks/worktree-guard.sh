@@ -33,6 +33,11 @@ case "$FILE_PATH" in
   *"/project-management/"*) exit 0 ;;
 esac
 
+# Exempt the Notion mirror's run staging (cache, not code)
+case "$FILE_PATH" in
+  *"/notion-checkout/runs/"*) exit 0 ;;
+esac
+
 # Find the first existing ancestor directory of the file
 # (Write tool can target non-existent subdirs; walking up prevents that bypass)
 FILE_DIR=$(dirname "$FILE_PATH")

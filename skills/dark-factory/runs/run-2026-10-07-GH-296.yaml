@@ -1,0 +1,372 @@
+run_id: run-2026-10-07-GH-296
+ticket: GH-296
+source: github
+issue_url: https://github.com/gabriel-amyot/klever-project-management/issues/296
+parent_map: 294
+title: >
+  REST and Pub/Sub push doors on app-salesforce-outbound. Belt python-service,
+  branch GH-296-rest-and-push-doors cut from origin/dev d8cbce6.
+date: 2026-10-07
+terminal_status: HALT_PRESHIP
+halt_phase: "pre-ship (contract 7 never ran; no MR, no tracker report-back)"
+ticket_folder: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/wayfinder/map-294/issue-296
+
+halt_point: >
+  The run ends one step from the finish line. Unlike the GH-230 and GH-231 halts of 2026-10-06,
+  the code DID reach the remote. Verified at retro time: git ls-remote origin returns
+  2fc626a22aee873e5ac31e5647f884d3fbc122aa for refs/heads/GH-296-rest-and-push-doors, and the
+  local branch is 0 ahead and 0 behind that ref. The Datasophia git tier answered normally.
+  What is missing is everything after the push, the merge request, the status comment and the
+  wayfinder report-back to map 294, plus any contract 7 artifact on disk.
+
+root_cause_of_the_halt:
+  verdict: "orchestration, not infrastructure and not code quality"
+  verified_against: >
+    git worktree list and git ls-remote on
+    grp-app/grp-backend/grp-gcp/grp-models/app-salesforce-outbound at 2026-10-07. Branch pushed,
+    worktree clean, 21 commits on origin/dev..HEAD, suite green on the branch.
+  consequence: >
+    A run whose code is finished, pushed, reviewed and QA-verified is recorded as a HALT because
+    the pipeline has no state for "pushed and waiting for a merge request". The same shape as
+    GH-230 and GH-231, with the opposite cause. There the remote was down. Here the remote was
+    up and the factory still stopped.
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy_config: true
+  signal: clean
+  note: >
+    The gate ran in the default halt mode with zero warn-mode violations. The commit graph carries
+    an ordered RED then GREEN pair for all eight ACs. QA then re-verified every RED by three
+    independent conditions, recorded in qa/result.yaml red_ledger_recheck. Each RED commit touches
+    test files only (git show --stat), fails on an assertion at that commit, and the same test
+    names pass at the tip 2fc626a. All eight pass all three.
+  one_irregularity: >
+    AC-5's RED needed an import stub, so the stub went in as a separate earlier commit 71e733b
+    and the RED commit 8a77455 stayed test-only. Self-documented and honest. Recorded because a
+    gate that only reads "the RED commit touches tests only" is satisfied by a split that a less
+    honest run could use to hide production code.
+
+green_verification:
+  verified_by_retro: partial
+  retro_checks:
+    - "branch pushed and in sync with origin: confirmed"
+    - "worktree clean: confirmed (git status -s empty)"
+    - "CHANGELOG.md:32 still claims '18 skipped before, 0 after': confirmed, the measured after is 1"
+    - "app.py:68 still FastAPI(version=\"0.1.0\") while pyproject.toml is 0.2.0: confirmed"
+  source: "QA phase, in its own detached worktree at /tmp/qa-gh296, baseline at /tmp/qa-gh296-dev"
+  result: >
+    Branch 313 collected, 312 passed, 1 skipped. origin/dev baseline 276 collected, 258 passed,
+    18 skipped. Both measured under /tmp, where a project-management checkout is NOT an ancestor,
+    which is the only place the AC-8 vendoring claim can be measured honestly.
+  live_execution: >
+    A real uvicorn process was started and the routes were driven over HTTP. GET /healthz 200,
+    /readyz 404, /sync 404, /events/mediaplan still live. The AC-3 inversion was proven at runtime,
+    because the identical ContractError payload returns push_status 200 at /_pubsub/media-plans and
+    rest_status 400 at /api/v1/media-plans.
+
+git_state:
+  repo: app-salesforce-outbound
+  worktree: /Users/gabrielamyot/Developer/grp-beklever-com/grp-app/grp-backend/grp-gcp/grp-models/app-salesforce-outbound-GH-296-wt
+  branch: GH-296-rest-and-push-doors
+  head: '2fc626a "GH-296: document the new surface and bump to 0.2.0"'
+  base: "origin/dev d8cbce6"
+  commits_ahead_of_dev: 21
+  worktree_clean: true
+  pushed: true
+  remote_in_sync: true
+  mr: "none recorded on disk; no ship/ artifact and no MR link in the ticket folder"
+  version: "pyproject 0.2.0 (bumped inside an implement commit, not by a contract 7 ship commit)"
+
+per_phase:
+  - phase: concierge
+    status: PASS
+    confidence: 85
+    note: >
+      Repo, belt (python-service) and scope resolved correctly, and the decisions it took are load
+      bearing downstream. Q1 settled that /readyz may move and /sync may be deleted, which the grill
+      then re-proved against the DAC terraform. The defect is not the decision, it is the record.
+      No factory/ folder exists in the ticket folder, so the decisions survive only as prose quoted
+      inside later artifacts.
+  - phase: design
+    status: pass
+    confidence: 78
+    note: >
+      impl-plan.md, 26 KB. It corrected the issue text on where the 18 skips live, naming a third
+      file (test_write_back_tripwire.py) the issue omits. The grill re-measured and the plan was
+      right. Confidence of 78 is honest for a plan that the grill then found eight gaps in.
+  - phase: grill
+    status: partial
+    confidence: 84
+    note: >
+      Verdict PARTIAL, not stuck, correctly reasoned. Seven claims verified against origin/dev with
+      commands on disk, eight gaps found, two of which would have stopped the suite going green if
+      the plan were followed literally. It also verified both DAC premises by grepping the real
+      terraform, confirming the startup probe is pinned to /healthz and that nothing references
+      /readyz or /sync, so AC-6 and AC-7 touch no deployed contract.
+  - phase: implement
+    status: pass
+    confidence: 82
+    note: >
+      Twenty-one commits, eight ordered RED/GREEN pairs, two refactor-first commits that separate
+      the submission call from the status translation before any AC is attempted, and an explicit
+      edge-case commit for the cases AC-1 and AC-2 do not mention. Clean, legible history.
+  - phase: review
+    status: "blocking:0"
+    confidence: 86
+    note: >
+      review/findings.json is machine-readable, carries criticals_open 0, and re-proved AC-3 and
+      AC-4 by raising ContractError and ConfigError at their REAL sites (the contract validator and
+      the gateway factory build_client) rather than through the suite's gateway injection. That is
+      the difference between testing the taxonomy and testing the wiring. Four LOW findings, all
+      demonstrated, none blocking.
+  - phase: qa
+    status: ALL_PASS
+    confidence: 88
+    note: >
+      Ran in its own detached worktree, independent of the implementor's, with a separate origin/dev
+      baseline worktree. Every AC carries a code_ref, a reproducible command, an output path on disk
+      and a red_verified boolean. It re-derived the review's four LOW findings independently instead
+      of copying them. The strongest QA artifact in the recent record.
+  - phase: fix
+    status: never_ran
+    confidence: null
+    note: "Correct by the gate's rule, review returned blocking:0. Consequence: four findings leave the run with no owner."
+  - phase: ship
+    status: never_ran
+    confidence: null
+    note: >
+      Contract 7 produced nothing. The version bump and CHANGELOG landed inside implement commit
+      2fc626a instead, so no phase boundary records the ship prep and no gate ever checked the
+      CHANGELOG's accuracy.
+
+acceptance_state:
+  AC-1: "PASS - POST /api/v1/media-plans returns 201 plus Location, percent-encoded for a plan id with a slash"
+  AC-2: "PASS - replayed digest 200 with zero gateway mutations; changed digest updates in place, 200"
+  AC-3: "PASS - ContractError, SalesforceRejection, DryRunViolation ack 200 at the push door, proven live"
+  AC-4: "PASS - ConfigError from the real build_client nacks; SalesforceSyncError 502, unexpected 500"
+  AC-5: "PASS - both doors call MediaPlanService.submit; the log source distinguishes push from api"
+  AC-6: "PASS - /sync deleted; route table is /healthz, /api/v1/readiness, /api/v1/media-plans, /_pubsub/media-plans, /events/mediaplan"
+  AC-7: "PASS - /healthz unchanged, /readyz now 404, readiness at /api/v1/readiness"
+  AC-8: "PASS - measured in isolation: dev 258 passed 18 skipped, branch 312 passed 1 skipped; all 18 originals execute"
+
+open_review_findings:
+  count: 4
+  closed: 0
+  note: "All four confirmed still present at HEAD 2fc626a by the retro, not taken on trust."
+  items:
+    - severity: LOW
+      title: "The push door silently acknowledges a URL-safe base64 message.data, dropping the plan"
+      demonstrated: true
+      retro_note: >
+        This is a silent data-loss path. Google Pub/Sub emits standard base64 today, so it is
+        hardening rather than a live bug, but an acked-and-dropped plan leaves no retry and no alert.
+    - severity: LOW
+      title: "The anti-drift guard on the vendored fixture never runs where drift matters"
+      demonstrated: true
+      retro_note: "It can only execute on a machine that does not need the vendored copy, so CI never runs it."
+    - severity: LOW
+      title: "CHANGELOG.md:32 reports '18 skipped before, 0 after' while a clean isolated run shows 1"
+      demonstrated: true
+      retro_note: "Confirmed by the retro at HEAD. A shipped artifact that states a measured number that is wrong."
+    - severity: LOW
+      title: "app.py:68 sets the FastAPI app version to 0.1.0 while pyproject.toml is 0.2.0"
+      demonstrated: true
+      retro_note: "Confirmed by the retro at HEAD. /openapi.json advertises 0.1.0 to every consumer of the new surface."
+
+artifact_integrity:
+  written:
+    - "analyst/acs.json, analyst/assumptions.json, analyst/affected-repos.json"
+    - "design/impl-plan.md (26 KB), design/grill-report.md (13 KB)"
+    - "architecture/adr/ADR-draft-three-status-policies-over-one-submission-path.md"
+    - "tdd/AC-1.md through tdd/AC-8.md (one per AC, RED command plus captured failure output)"
+    - "review/findings.json, review/diff.patch"
+    - "qa/result.yaml plus 33 captured output files (per-AC red and green, isolated suites, live probes)"
+  empty_folders: []
+  missing_folders:
+    - "factory/ - no decisions.yaml. The concierge gate answers exist nowhere machine-readable."
+    - "ship/ - contract 7 never ran, so there is no record of the version bump as a ship step."
+    - "reports/ - created by this retro to hold the improvement handoff (the session folder does not resolve)."
+  fragile: >
+    Review ran in /tmp/sfout-review-296 and QA in /tmp/qa-gh296 and /tmp/qa-gh296-dev. None of the
+    three exists today. The evidence survives only because both phases copied their outputs into the
+    ticket folder. Nothing in the pipeline required that, so the survival is a habit, not a gate.
+
+scores:
+  task_confidence: 78
+  factory_fitness: 76
+
+deductions:
+  - points: 10
+    reason: >
+      TASK. The branch is on origin and nothing downstream happened. No merge request, no status
+      comment, no wayfinder report-back to map 294. Twenty-one commits of verified work are visible
+      to a human only if that human already knows the branch name.
+  - points: 4
+    reason: >
+      TASK. CHANGELOG.md:32 states "18 skipped before, 0 after". The measured after is 1. Review and
+      QA both caught it, the retro confirmed it still stands at HEAD, and it ships as the repo's
+      written record of this change.
+  - points: 3
+    reason: >
+      TASK. app.py:68 still reports FastAPI version 0.1.0 while pyproject is 0.2.0, so /openapi.json
+      advertises the wrong version on the very release that adds the new public surface.
+  - points: 3
+    reason: >
+      TASK. The push door acks and drops a URL-safe base64 body. A dropped plan leaves no retry and
+      no alert. Demonstrated, graded LOW, unfixed, and filed nowhere a future session will look.
+  - points: 2
+    reason: >
+      TASK. Four review findings open, zero closed, no owner and no follow-up issue, because the fix
+      socket correctly never ran on blocking:0.
+  - points: 8
+    reason: >
+      FACTORY. There is still no state between "pushed" and "shipped". The code reached origin, the
+      worktree is clean and HEAD is green, and the run is still filed as HALT_PRESHIP. GH-230 and
+      GH-231 halted in the same shape two days ago for the opposite reason, a dead remote. Both
+      causes land in the same unhelpful bucket.
+  - points: 5
+    reason: >
+      FACTORY. Non-blocking review findings still have no owner. Third consecutive filing. This run
+      produced four demonstrated findings, two of which are factually wrong statements inside
+      shipped artifacts, and the pipeline has no lever that forces any of them to be fixed, filed
+      or waived.
+  - points: 4
+    reason: >
+      FACTORY. sessions/active/state.yaml carries an empty session_id and the folder named in the
+      ledger does not exist on disk, so contract 9's primary handoff target fails again. Sixth
+      consecutive run on the ticket-folder fallback.
+  - points: 3
+    reason: >
+      FACTORY. No factory/ folder and no decisions.yaml. The concierge was the phase that authorised
+      deleting /sync and moving /readyz, and that authorisation is unreadable by any later gate, by
+      the MR body and by this retro except as prose quoted inside the grill report.
+  - points: 2
+    reason: >
+      FACTORY. Contract 7 never ran, yet the version bump and the CHANGELOG landed anyway inside an
+      implement commit. The ship step was performed by the wrong phase, so no gate checked the
+      CHANGELOG's number against the measured one, which is exactly how the wrong number shipped.
+  - points: 2
+    reason: >
+      FACTORY. Review and QA ran in /tmp worktrees that are now gone. The evidence survived only
+      because both phases chose to copy outputs into the ticket folder. No gate required it.
+
+red_flags:
+  - >
+    The run is filed HALT_PRESHIP while the branch is fully pushed and in sync with origin. The
+    terminal taxonomy cannot tell "finished but unmerged" from "nothing shipped".
+  - >
+    The CHANGELOG ships a measured number that is wrong. Review and QA both caught it and the
+    pipeline shipped it anyway, because no gate owns a LOW finding.
+  - >
+    /openapi.json advertises version 0.1.0 on the release that adds the new REST and push surface.
+  - >
+    A URL-safe base64 push body is acked and the plan is dropped with no retry and no alert. Graded
+    LOW, demonstrated, unfixed, and not filed as an issue anywhere.
+  - >
+    No factory/decisions.yaml. The concierge decision that authorised deleting a route and moving
+    another is not machine-readable anywhere.
+  - >
+    Contract 7 never ran, yet its work (version bump, CHANGELOG) was done by the implement phase.
+    A phase doing another phase's job silently defeats that phase's gate.
+  - >
+    The new anti-drift guard can only run where drift cannot happen. It is green by construction
+    in CI and therefore proves nothing there.
+  - >
+    Review and QA worktrees under /tmp no longer exist. Every reproduction command in qa/result.yaml
+    names a path that is gone.
+  - >
+    sessions/active/state.yaml session_id is empty for the sixth consecutive run and the folder named
+    in the ledger does not exist, so the handoff lands in the ticket folder by fallback.
+
+improvements:
+  - title: Split the terminal taxonomy so a pushed, green branch is not a HALT
+    detail: >
+      Add READY_FOR_MR as a distinct terminal state. The predicate is mechanical and cheap: worktree
+      clean, git ls-remote shows the branch at HEAD, QA overall ALL_PASS, criticals_open 0. When it
+      holds, the run ends READY_FOR_MR and the main loop opens the merge request. Only when the
+      predicate fails is it a HALT. Today GH-296 (remote up, pushed, green) and GH-231 (remote 502,
+      nothing pushed) carry the same label, which makes the run index useless as a signal.
+  - title: Make the ship phase own the version bump and verify the CHANGELOG against measured output
+    detail: >
+      Contract 7 never ran and implement did its job instead, so nothing checked the CHANGELOG. Add
+      a ship gate that (a) refuses to pass when the version bump commit is not the contract 7 commit,
+      and (b) requires every numeric claim in the new CHANGELOG entry to cite a file under qa/. Here
+      the entry says "0 after" and qa/full-suite-isolated.out says "1 skipped" on the same line of
+      output. That is a diff a script can make, not a judgement call.
+  - title: Give a non-blocking review finding an owner before any terminal state
+    detail: >
+      Third filing. Add a carry_forward outcome alongside blocking. Before a terminal state, every
+      finding in review/findings.json must close by a commit sha, by a filed follow-up issue under
+      the parent map, or by a one-line waiver recorded in the telemetry. This run would then have
+      forced a decision on four findings instead of shipping all four. Two of them (the CHANGELOG
+      number and the app version string) are one-line fixes.
+  - title: Make a finding that contradicts a shipped artifact's own measurement blocking
+    detail: >
+      Narrower and sharper than the general carry_forward rule. If a finding shows that a file this
+      branch wrote states a number that this branch's own QA output contradicts, that is blocking
+      regardless of severity. A wrong CHANGELOG is not code quality, it is the repo's record of the
+      change being false.
+  - title: Require factory/decisions.yaml before design may start
+    detail: >
+      The concierge authorised deleting POST /sync and moving /readyz. That authorisation exists only
+      as prose inside design/grill-report.md. Make the concierge write factory/decisions.yaml with
+      one object per question (id, question, answer, evidence, fallback) and make the design gate
+      refuse to start without it. The MR body and the retro both read from that file.
+  - title: Forbid an ephemeral path as the only home for review and QA evidence
+    detail: >
+      Review used /tmp/sfout-review-296 and QA used /tmp/qa-gh296. Both are gone. The evidence lives
+      only because both phases volunteered to copy it out. Require phase worktrees under
+      .worktrees/<TICKET>-<phase>, and have the phase gate rewrite every reproduction command in its
+      result file to a path that still exists at retro time.
+  - title: Flag a test that can only pass where its failure mode is impossible
+    detail: >
+      The anti-drift guard skips wherever vendoring is actually needed, which is CI and every bare
+      clone. A test that is skipped in the only environment that matters is worse than no test,
+      because the suite count says it exists. Add a QA check: any test added by the branch that
+      skips in the isolated run must be named in the result file with a reason, and a skip whose
+      reason is "the condition this guards cannot occur here" is a finding.
+  - title: Fix the empty session_id or delete the session-folder branch of contract 9
+    detail: >
+      Sixth consecutive run. sessions/active/state.yaml has an empty session_id and the ledger names
+      a folder that is not on disk. Either populate it at session init or simplify contract 9 to
+      write the handoff to the ticket folder unconditionally. The current rule has a primary path
+      that has never once worked.
+
+what_went_right:
+  - >
+    QA re-ran the whole suite in a detached worktree under /tmp specifically because AC-8's claim is
+    about what happens when a project-management checkout is NOT an ancestor. Measuring that in tree
+    would have been meaningless, and the phase understood why.
+  - >
+    Review re-proved AC-3 and AC-4 by raising ContractError at the real contract validator and
+    ConfigError inside the real build_client factory, not through the suite's gateway injection.
+    That tests the wiring, not just the taxonomy, and it is what a sceptical human would have asked for.
+  - >
+    The AC-3 inversion was demonstrated on a live uvicorn process: the identical payload returns 200
+    at the push door and 400 at the REST door. Two retry contracts, one call path, proven at runtime
+    rather than argued.
+  - >
+    The grill re-measured the skip split independently and found the ISSUE text wrong by one file.
+    It then verified both DAC premises by grepping the real terraform, confirming the startup probe
+    is pinned to /healthz and that no deployed contract references /readyz or /sync.
+  - >
+    Every RED commit was re-verified by QA against three conditions, and the one irregularity
+    (AC-5's import stub needing its own earlier commit) was recorded rather than smoothed over.
+  - >
+    The implement phase refactored first, separating the submission call from the status translation
+    in two commits before touching any AC. Three status policies over one submission path is the
+    right shape and it got its own ADR draft.
+  - >
+    QA derived the four LOW findings independently instead of copying review's list, and the two
+    lists agree. That is a real cross-check, not a rubber stamp.
+
+resume_pointer: >
+  Open the merge request for GH-296-rest-and-push-doors on app-salesforce-outbound at
+  grp-app/grp-backend/grp-gcp/grp-models/app-salesforce-outbound-GH-296-wt (HEAD 2fc626a, already on
+  origin, 21 commits ahead of dev d8cbce6) using /klever-mr, then report back to wayfinder map 294
+  via /wayfinder-report-back. Before the MR, make two one-line fixes: CHANGELOG.md:32 "0 after"
+  becomes 1 with the anti-drift guard named, and app.py:68 FastAPI version becomes 0.2.0. File the
+  URL-safe base64 push-door drop as its own issue under map 294, and decide explicitly whether the
+  anti-drift guard is worth keeping given it cannot run in CI.

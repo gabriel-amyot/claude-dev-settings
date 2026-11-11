@@ -396,12 +396,14 @@ After setting auto-merge, the skill continues with deployment to dev. This is **
 
 | App repo | DAC repo | Version variable | DAC scope |
 |---|---|---|---|
-| `app-front-portal` | `dac-gcp-front-portal` | `build_docker_tag_version` | `dev` |
+| `app-front-portal` | `dac-gcp-front-klv1ai` | `build_docker_tag_version` | `dev` |
 | `app-proximity-report` | `dac-gcp-back-proxrp` | `cpe_cos_version` | `dev` |
 | `app-user-management` | `dac-gcp-back-usermg` | `cpe_cos_version` | `dev` |
 | `app-proximity-explorer` | `dac-gcp-back-proexp` | `cpe_cos_version` | `dev` |
 
 If the app repo is not in this table, skip deploy. Report: "No DAC mapping for this repo. Deploy manually."
+
+`dac-gcp-front-portal` also exists and looks like the obvious match for `app-front-portal`, but it is not the live downstream. It last ran 2026-09-29; `dac-gcp-front-klv1ai` runs on every `app-front-portal` dev pipeline and is what serves `portal.dev.klever1.ai`. Targeting the wrong one returns 404 and reads like a broken deploy.
 
 ### Step 6: Wait for MR to merge
 

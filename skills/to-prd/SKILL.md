@@ -3,6 +3,17 @@ name: to-prd
 description: Turn the current conversation context into a PRD and publish it to the project issue tracker. Use when user wants to create a PRD from the current context.
 ---
 
+# To PRD
+
+## Host compatibility
+
+Read [the shared host mapping](../../docs/skill-host-compatibility.md) before execution. Use native tools and the existing shared agent instructions. Required executors and companion skills remain real dependencies.
+
+
+## Shared maintenance note (2026-10-26)
+
+Keep the ticket/specification group. Gabriel wants these available, with a short purpose explanation when choosing one. Repair stale paths or evidence assumptions before activation. See [the shared selection record](../../docs/harness-skill-selection.md).
+
 This skill takes the current conversation context and codebase understanding and produces a PRD. Do NOT interview the user — just synthesize what you already know.
 
 The issue tracker and triage label vocabulary should have been provided to you — run `/setup-matt-pocock-skills` if not.

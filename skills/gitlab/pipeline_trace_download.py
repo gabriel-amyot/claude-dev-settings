@@ -1,4 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["requests"]
+# ///
 """Download full GitLab CI job trace to a local file in the DAC repo.
 
 Imports auth and config from gitlab_skill.py (now safe to import as a module).
@@ -6,9 +10,17 @@ Imports auth and config from gitlab_skill.py (now safe to import as a module).
 import argparse
 import os
 import re
+import shutil
 import sys
 
-import requests
+try:
+    import requests
+except ModuleNotFoundError:
+    uv_bin = shutil.which("uv")
+    if __name__ == "__main__" and uv_bin and not os.environ.get("GITLAB_SKILL_UV_REEXEC"):
+        os.environ["GITLAB_SKILL_UV_REEXEC"] = "1"
+        os.execv(uv_bin, [uv_bin, "run", "--quiet", "--script", os.path.abspath(__file__), *sys.argv[1:]])
+    raise
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, SCRIPT_DIR)

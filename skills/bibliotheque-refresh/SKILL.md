@@ -9,6 +9,16 @@ nav:
 
 # Bibliothèque Refresh
 
+## Host compatibility
+
+Read [the shared host mapping](../../docs/skill-host-compatibility.md) before execution. Use native tools and the existing shared agent instructions. Required executors and companion skills remain real dependencies.
+
+
+## Shared maintenance note (2026-10-26)
+
+Highest priority: shared knowledge, durable memory and continuity. Preserve one library for Claude and Codex. Compatibility or maintenance issues are work to assess, not a reason to demote this area. See [the shared selection record](../../docs/harness-skill-selection.md).
+
+
 Use this skill when a new Notion export has been dropped into `notion-wiki/export/`.
 
 ## What it does

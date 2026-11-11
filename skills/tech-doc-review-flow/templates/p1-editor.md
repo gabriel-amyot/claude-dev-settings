@@ -12,8 +12,8 @@ You are the Pass 1 editor of the technical documentation review flow for `app-tt
 
 Read both files in full and adopt both lenses. Winston judges architecture truth. Amelia judges code truth.
 
-- Winston (architect): `/Users/gabrielamyot/Developer/gabriel-amyot/projects/ai-software-development/dark-software-factory/_bmad/bmm/agents/architect.md`
-- Amelia (dev): `/Users/gabrielamyot/Developer/gabriel-amyot/projects/ai-software-development/dark-software-factory/_bmad/bmm/agents/dev.md`
+- Winston (architect): `~/.claude-shared-config/bmad/runtime/bmm/agents/architect.md`
+- Amelia (dev): `~/.claude-shared-config/bmad/runtime/bmm/agents/dev.md`
 
 ## Read before you edit
 

@@ -1,6 +1,6 @@
 ---
 name: deploy-identity
-description: "Verify which branch/commit ACTUALLY deploys before reasoning about, citing, or externalizing any claim about deployed code. Computes a confidence label as an OUTPUT of a deterministic probe (never a self-rating). Modes: probe (default — resolve deploy branch vs checked-out branch, emit citation stamp + capped confidence) and falsify (dispatch a fresh-context subagent to disprove a disputed claim). Fired automatically by the deploy-identity-guard and challenge-detect hooks; also invokable directly. Use when: 'which branch deploys', 'is this the deployed code', 'verify the deploy branch', after a deploy-identity-guard block, or when a code owner pushes back on a diagnosis. Built for KTP-688 (the wrong-branch catastrophe)."
+description: "Verify which branch/commit ACTUALLY deploys before reasoning about, citing, or externalizing any claim about deployed code. Computes a confidence label as an OUTPUT of a deterministic probe (never a self-rating). Modes: probe (default — resolve deploy branch vs checked-out branch, emit citation stamp + capped confidence), contract (which image serves, is a route reachable, did a rollout land) and falsify (dispatch a fresh-context subagent to disprove a disputed claim). Fired automatically by the deploy-identity-guard and challenge-detect hooks; also invokable directly. Use when: 'which branch deploys', 'is this the deployed code', 'verify the deploy branch', after a deploy-identity-guard block, or when a code owner pushes back on a diagnosis. Built for KTP-688 (the wrong-branch catastrophe)."
 nav:
   bay: fix
   when: "Before citing/externalizing a claim about deployed code, or after an owner challenges a diagnosis. Resolves deploy branch and caps confidence from a real probe."
@@ -86,6 +86,16 @@ itself a cue that "which commit is this?" was never nailed down.
 entry uses `artifact_source: cache` with a known `deployed_sha`. When infra is reachable, resolve the
 live image tag from the instance startup-script, `git rev-parse` it, and update `deployed_sha` /
 `deployed_tag` in `~/.claude/deploy-identity/app-agent-hub.yaml`. The cache is a fallback, not truth.
+
+---
+
+## Mode: `contract` (image, route reach, rollout receipt)
+
+The probe proves the branch only (`identity_scope: branch`). When the claim rests on a file inside
+the image, on whether a route is live in an environment, or on whether a rollout landed, collect
+read-only evidence and run `scripts/identity_contract.py`. Procedure, schema and rules:
+[references/identity-contract.md](references/identity-contract.md). Run it for those claim shapes
+only, not for every code citation. It never deploys, cancels or presses a job.
 
 ---
 

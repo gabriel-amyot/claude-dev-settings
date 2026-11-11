@@ -57,6 +57,11 @@ If it returns `{"error": "IAP authentication failed..."}`, run `git -C ~/Develop
 - `merged` / `closed` → the review train has left. Say so and ask whether they still want post-merge notes (the code is already on the target branch, so comments read as follow-up, not gatekeeping) or would rather raise findings as a dev follow-up / new ticket. Don't silently review a dead MR.
 - A merged MR's source branch is usually deleted, so don't rely on a local checkout of it — the API diff is your source of truth (see Step 6).
 
+**Read the whole discussion history.** Fetch every thread, including resolved threads and late replies:
+`python3 ~/.claude/skills/gitlab/gitlab_skill.py --org klever api "projects/{URL_ENCODED_PROJECT_PATH}/merge_requests/{MR_IID}/discussions" --all-pages`. Step 4 uses it to deduplicate, and Step 6 rechecks it.
+
+**An empty patch is not evidence that a file is unchanged.** `mr-diff` drops GitLab's `too_large` and `collapsed` flags, so a changed file can arrive with an empty or partial `diff`. For any such file, read the full source at `head_sha` before you reason about it: `git -C <local clone> fetch origin && git -C <local clone> show {head_sha}:{path}`, or `api "projects/{URL_ENCODED_PROJECT_PATH}/repository/files/{URL_ENCODED_FILE_PATH}" --param ref={head_sha}`.
+
 Optionally pull the Jira ticket AC (branch names carry the key, e.g. `KTP-933`): `python3 ~/.claude/skills/jira/jira_skill.py --org klever get {KEY}` — use it only to understand intent, not to grade the MR against a checklist.
 
 ---
@@ -101,6 +106,10 @@ Rules for this step:
 - For any claim about **deployed / other-branch code**, sync first (`git fetch`) and read `origin/<deploy-branch>:<path>` — a stale local checkout produces false "X is missing" conclusions. This is the deploy-identity discipline: confidence is an OUTPUT of verification, not a feeling.
 - If you **can** cheaply prove the fix idea works (e.g. run a changeset's SQL twice in a throwaway container, compile a snippet), do it now — a crux you've actually validated is worth ten you've imagined (see Step 4).
 - If a claim can't be verified, either downgrade it to an open *question* ("is X the case?") or drop it. Never assert an unverified behavior as fact.
+- **Reproduce through reachable paths.** Drive a behavior claim through the lifecycle transitions a user or job can actually reach (the real UI flow, the real scheduler path), not a state you construct by hand.
+- **Wait for all background work.** When you measure a job, a queue, or a cache warm-up, wait until every started task finishes before you read the result. A partial run is not a measurement.
+- **A defect probe is not a correctness suite.** A probe that reproduces a failure proves the failure. A green test suite proves only what its assertions check. Do not report one as the other.
+- **Trace identities across boundaries.** When data crosses producer, cache, and consumer, confirm that the ids and labels mean the same thing on each side.
 
 Kill any finding that doesn't survive this step. It's normal to enter Step 4 with fewer findings than you left Step 2 with.
 
@@ -126,6 +135,10 @@ Every comment follows the same 3-beat *shape* — but the wording, especially th
 3. **"What do you think about [concrete suggestion]?"** — only if it's potentially a miss. Frame the fix as a suggestion, never a demand. Vary: "what do you think about…", "would it be worth…", "one option might be…".
 
 The *charity and the question* are the constant. The *words* are not. If two comments in a draft open the same way, rewrite one.
+
+**Default voice: collaborative and guiding** (Gabriel, MR !481, 2026-10-25). Each comment states the issue, the evidence, the impact, and the intended outcome. Give the backend entry point (repo path, class) when it helps the author find the place. Keep current-MR work apart from architecture follow-ups, and say which is which. Do not switch to prescriptive patches or DO NOT lists only because the author uses a coding agent. Use that format only when the user asks for it. The bibliothèque SOP `sops/qa-review/colleague-review-klever-mr-discipline.md` records both positions.
+
+**Deduplicate by issue, not by file and line.** Compare each draft with every existing thread body from Step 1. If a thread already describes the same problem in other words, drop the draft. If your point refines an existing comment of Gabriel's, propose an edit to that comment (`mr-note-edit`) instead of a new thread.
 
 ### Suggestions: a concrete crux, NOT a merge-ready handoff
 
@@ -205,6 +218,8 @@ Only after user approval. **Before posting, re-fetch the MR** (`mr-diff` again) 
 - **The head can move.** New commits change `diff_refs` (`head_sha`) — posting against stale shas fails or anchors wrong. Always use the shas from a *fresh* `mr-diff`.
 - **Files can be renamed.** On this agent's first run a test file was renamed between fetch and post (`KTP933InternalComponentIT.java` → `InternalComponentIT.java`); a draft anchored to the old path would post to nothing. Recompute every anchor (`new_path` + `new_line`) from the **fresh** diff, not your Step-2 notes.
 - If a file you were commenting on vanished or changed substantially, re-verify the finding still applies before posting.
+- **Threads can move too.** Re-fetch the discussions and repeat the issue-level deduplication from Step 4. Someone may have raised the point since your draft.
+- **Confirm each post or edit landed.** After every `mr-note` or `mr-note-edit`, read the note back (`api ".../discussions/{discussion_id}"`) and check the rendered body. A draft is not published until that read-back matches.
 
 ### Computing the line number
 

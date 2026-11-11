@@ -157,3 +157,35 @@ The reverse order gives you a failure with two candidate causes and no signal to
 **How to apply:** Order every credential cleanup after the dependent job has one confirmed green
 run. This generalizes past MCP: the same shape applies to rotating a key, narrowing an IAM binding,
 or deleting a service account a cron job might still use.
+
+## A Headless `claude -p` Child Kills Its Own Workflow When Its Turn Ends
+
+The `Workflow` tool always runs in the background and returns a task id at once. In print mode
+(`claude -p`), the model then ends its turn ("I will wait for the notification"), and the process
+exits about ten minutes later. The exit kills the workflow. Two builds were lost this way, one
+died in Design and one in Grill, while the session output still reported success with a duration
+of about five seconds.
+
+**The fix:** the launcher prompt tells the child never to end its turn while the workflow runs. It
+must call Bash `sleep 540` repeatedly. The workflow's task-notification arrives next to one of
+those tool results. Cap the loop (around 30 sleeps) and write the run id to disk early. A prose
+instruction like "wait for it" has the same latent flaw.
+
+**How to apply:** Never trust a prose instruction to keep a `claude -p` child alive across a
+background `Workflow` run. Make the child poll with a bounded sleep loop instead, and verify the
+workflow is still alive a few minutes in before trusting the launch succeeded.
+
+Source: Claude session amber-heron, Klever KTP-1216 factory restart, issues #558-#561 under
+umbrella #557 (2026-11-01/02). Klever wiki companion: `documentation/bibliotheque/sops/autonomous-workflows/2026-11-03-headless-dark-factory-launcher-build.md`.
+
+## OAuth Can Expire Between the Smoke Test and the Unattended Launch
+
+A `claude -p "Reply OK"` smoke test passed hours before an unattended launch. At launch time both
+children failed in about 100 ms with `Failed to authenticate: OAuth session expired and could not
+be refreshed`, while the session output still carried a nominal success shape (`is_error: true`
+buried inside an otherwise ordinary `subtype: success` envelope).
+
+**How to apply:** Run the auth smoke test at launch time, inside the supervisor itself, not hours
+earlier. Stop the batch on an auth failure rather than trusting an earlier smoke test.
+
+Source: Claude session amber-heron, Klever KTP-1216 factory restart (2026-11-01/02).

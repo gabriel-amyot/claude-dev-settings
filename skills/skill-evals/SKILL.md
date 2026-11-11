@@ -9,6 +9,12 @@ nav:
 
 # Skill Evals — one entry point for harness regression suites
 
+## Shared view of eval evidence
+
+The sweep publishes typed result references to the shared harness catalog after writing its existing report. Definitions remain in `evals/manifest.yaml`; source reports and runner outcomes remain authoritative. Read `~/.claude-shared-config/harness/INDEX.md` for the view and `catalog.py retry` for pending bridge deliveries. Publication or rendering errors must not change the suite's result or producer exit code.
+
+A prior `last_green` is historical metadata, not proof that the current skill revision passes. Preserve unknown tested revisions. Simulated failures are reporting exercises and must be labeled as such.
+
 Every ≥1/month skill and every wired hook has (or is excluded from) a regression suite,
 registered in **`~/.claude-shared-config/evals/manifest.yaml`**. Read that manifest first;
 it is the source of truth for what exists, how to run it, and what is deliberately excluded.

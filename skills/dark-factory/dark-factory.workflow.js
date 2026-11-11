@@ -106,6 +106,82 @@ const nowIso = (args && args.now) || null
 // 0.10.5 — { "<AC>": "<review evidence path>" }; see applyAcceptedBaseline().
 const acceptedBaseline = (args && args.accepted_baseline && typeof args.accepted_baseline === 'object') ? args.accepted_baseline : null
 
+// ---- Substrate preflight (0.10.6) — see references/substrate-preflight.md ----
+// Two defects combined into one confusing failure (2026-06-16: 20 stray worktrees; 2026-08-20: a full
+// disk killed a run mid `git worktree add`):
+//  1. `isolation: 'worktree'` isolates the repo the WORKFLOW was launched from, not the target code repo.
+//     Launched from project-management, it creates worktrees in a repo that must never have one, and the
+//     agents still have to find the target repo themselves. Runtime isolation is now used ONLY when the
+//     caller states the workflow cwd (args.cwd) and that cwd is not project-management. Otherwise every
+//     code agent self-manages a worktree in the TARGET repo (WORKTREE_NOTE below).
+//  2. No run checked free disk. A full volume surfaced as hundreds of "No space left on device" lines and
+//     a WorktreeIsolationError. The spine cannot read the disk (no filesystem API), so the caller measures
+//     the target-repo volume and passes args.free_disk_gb. Below the floor the run halts BEFORE any agent.
+// Read-only by design: stray-worktree cleanup is destructive and stays a manual step.
+const PM_PATH_RX = /(^|\/)project-management(\/|$)/
+const DEFAULT_MIN_FREE_GB = 15
+function runtimeIsolation(cwd) {
+  if (typeof cwd !== 'string' || cwd.trim() === '') return false
+  return !PM_PATH_RX.test(cwd.trim())
+}
+function substratePreflight(a) {
+  const x = a || {}
+  const problems = []
+  const notes = []
+  const min = (typeof x.min_free_gb === 'number' && isFinite(x.min_free_gb) && x.min_free_gb > 0) ? x.min_free_gb : DEFAULT_MIN_FREE_GB
+  if (typeof x.free_disk_gb === 'number' && isFinite(x.free_disk_gb)) {
+    if (x.free_disk_gb < min) problems.push(`free disk on the target-repo volume is ${x.free_disk_gb} GB, below the ${min} GB floor. Free space first (see the disk-management skill), then re-run. A factory run on a full volume dies mid 'git worktree add' with "No space left on device".`)
+  } else {
+    notes.push(`No numeric args.free_disk_gb supplied: free disk was NOT checked. Measure the target-repo volume (df -g <repo>) and pass it.`)
+  }
+  const isolate = runtimeIsolation(x.cwd)
+  if (!isolate) notes.push(`Runtime worktree isolation is OFF (args.cwd ${typeof x.cwd === 'string' && x.cwd ? 'is project-management' : 'not supplied'}). Code agents create their own worktree in the target repo.`)
+  if (typeof x.pm_worktrees === 'number' && x.pm_worktrees > 0) notes.push(`${x.pm_worktrees} stray worktree(s) exist in project-management. Cleanup is a manual, human-approved step (references/substrate-preflight.md).`)
+  return { ok: problems.length === 0, problems, notes, isolate, min_free_gb: min }
+}
+const substrate = substratePreflight({
+  cwd: args && args.cwd,
+  free_disk_gb: args && args.free_disk_gb,
+  min_free_gb: args && args.min_free_gb,
+  pm_worktrees: args && args.pm_worktrees,
+})
+const ISO = substrate.isolate ? { isolation: 'worktree' } : {}
+const WORKTREE_NOTE = substrate.isolate
+  ? 'The Workflow runtime gave you your OWN git worktree of the target repo. Do NOT run \'git worktree add\'; work in your current directory.'
+  : 'The runtime did NOT isolate you (the workflow was not launched from inside the target code repo). Create your OWN worktree in the TARGET code repo: \'git -C <target repo> fetch origin\' then \'git -C <target repo> worktree add <target repo>/.claude/worktrees/' + ticket + '-<phase> origin/dev\', and work only there. NEVER create a worktree or a branch in project-management. Before you return, remove your worktree (\'git -C <target repo> worktree remove <path>\'); the pushed branch on origin is the handoff.'
+
+// ---- AC preservation (0.10.6) — a review finding never cuts AC-listed scope ----
+// KTP-779: a reviewer filed "NAME on state_boundaries is redundant (consumer reads centers)" with
+// demonstrated:false. That claim was acted on, only the centers tileset shipped, and a live click-test
+// later proved the boundary tileset was required. A redundancy claim is not a defect: it cannot be
+// "demonstrated" by a failing test, so the blocking gate cannot see it. These helpers make it visible.
+// Rule: the factory never descopes. A redundancy claim WITH a consumer trace is a proposal for the
+// human. WITHOUT a trace it is needs-proof and non-actionable.
+const SCOPE_CUT_RX = /\b(redundant|unnecessary|not needed|unneeded|superfluous|descope|can be (dropped|removed|skipped))\b/i
+function isScopeCutClaim(f) {
+  if (!f) return false
+  return f.scope_cut === true || SCOPE_CUT_RX.test(String(f.title || ''))
+}
+function scopeCutFindings(review) {
+  const out = { needs_proof: [], proposed: [] }
+  if (!review || !Array.isArray(review.findings)) return out
+  for (const f of review.findings) {
+    if (!isScopeCutClaim(f)) continue
+    const trace = typeof f.redundancy_trace === 'string' ? f.redundancy_trace.trim() : ''
+    if (trace === '') out.needs_proof.push(f)
+    else out.proposed.push(f)
+  }
+  return out
+}
+function scopeCutNote(cuts) {
+  if (!cuts || (!cuts.needs_proof.length && !cuts.proposed.length)) return ''
+  const parts = []
+  if (cuts.needs_proof.length) parts.push(`${cuts.needs_proof.length} NEEDS-PROOF redundancy claim(s) with no consumer trace (non-actionable)`)
+  if (cuts.proposed.length) parts.push(`${cuts.proposed.length} traced redundancy proposal(s) for a human decision`)
+  return `SCOPE — ${parts.join(' + ')}. The factory did not cut scope: every AC-listed item ships as worded. Do NOT descope on these findings without verifying against the live consumer (ui-probe/runtime) and a human decision.`
+}
+const AC_PRESERVATION_RULE = 'AC PRESERVATION: never remove, skip, or narrow an item the ACs enumerate because a finding calls it redundant, unnecessary, or unused. A redundancy claim is not a defect. Report it; do not act on it.'
+
 // ---- Schemas (handoffs are validated objects, not parsed text) ----
 
 const CONCIERGE_SCHEMA = {
@@ -307,6 +383,11 @@ const REVIEW_SCHEMA = {
           // way back, so the proof never survived into telemetry. Required in spirit whenever
           // `demonstrated: true`; enforced as a recorded red flag (missingTestRef), never as a gate.
           test_ref: { type: 'string' },
+          // 0.10.6: set scope_cut:true when the finding argues an AC-listed item is redundant or could be
+          // dropped. redundancy_trace = the consumer code path (plus live check) proving the item unused.
+          // Without a trace the claim is needs-proof. With one it is a proposal for a human. Never a cut.
+          scope_cut: { type: 'boolean' },
+          redundancy_trace: { type: 'string' },
         },
       },
     },
@@ -1031,7 +1112,7 @@ one run today — surface it so the split-fan-out (a later capability) or a huma
 
   phase('Implement')
   const impl = await agent(`${readContract('4-implement')}
-The Workflow runtime gave you your OWN git worktree — do NOT run 'git worktree add'. TDD per AC, RED
+${WORKTREE_NOTE} TDD per AC, RED
 FIRST and PROVEN: for each AC, write the new-behavior test and run it so it FAILS ON AN ASSERTION (stub
 the signature so it compiles first — a compile/import/typo error is NOT a valid RED), commit that test
 ALONE as a test-only RED commit, THEN write the minimal code to GREEN and commit that. Write a per-AC
@@ -1050,7 +1131,7 @@ After all ACs are green,
 ATTEMPT to run the artifact and record execution_verified honestly (never skip). Then PUSH the feature
 branch to origin and write 'git diff origin/dev..HEAD' to a file in the ticket folder; return its path
 as diff_artifact and set pushed=true. ${decisionsNote}${handoffUncertainty(grill, 'Grill')}`,
-    { schema: IMPLEMENT_SCHEMA, label: 'implement', phase: 'Implement', isolation: 'worktree' })
+    { schema: IMPLEMENT_SCHEMA, label: 'implement', phase: 'Implement', ...ISO })
   if (!impl) return agentSkipped('Implement')
   rec('implement', impl)
   if (acceptedBaseline) {
@@ -1106,16 +1187,18 @@ EXISTING ac_tdd: ${JSON.stringify(impl.ac_tdd || [])}`,
 
   // Review prompt reused across the bounded fix loop (each round is a fresh, segregated reviewer).
   const reviewPrompt = `${readContract('5-review')}
-You did NOT write this code and have no design context. The runtime gave you your own worktree: run
+You did NOT write this code and have no design context. ${WORKTREE_NOTE} In that worktree run
 'git fetch origin ${impl.branch}' then 'git checkout ${impl.branch}'. Review only 'git diff
 origin/dev..HEAD' against the ACs and the repo CLAUDE.md. Find bugs that reach users; for each, write a
 test and run it; retract if it passes. Diff artifact (backup): ${impl.diff_artifact}.
+If a finding argues an AC-listed item is redundant or could be dropped, set scope_cut:true and put the
+consumer code path that proves it unused in redundancy_trace. Without that trace the claim is needs-proof.
 MANDATORY: write your findings to ${_tf}/review/findings.json on EVERY run — including criticals_open:0
 — and return its absolute path as findings_artifact (schema-required; a clean review with no on-disk
 record is unverifiable).`
 
   phase('Review')
-  let review = await agent(reviewPrompt, { schema: REVIEW_SCHEMA, label: 'review', phase: 'Review', isolation: 'worktree' })
+  let review = await agent(reviewPrompt, { schema: REVIEW_SCHEMA, label: 'review', phase: 'Review', ...ISO })
   if (!review) return { ...agentSkipped('Review'), branch: impl.branch }
   rec('review', review, 'blocking:' + blockingFindings(review).length)
   {
@@ -1124,6 +1207,12 @@ record is unverifiable).`
     // 0.10.4: recorded, not gated. See missingTestRef for why citing a test is not a blocking condition.
     const noTest = missingTestRef(review)
     if (noTest) log(`Review evidence gap — ${noTest}.`)
+  }
+  // 0.10.6: a redundancy claim is recorded and surfaced, never acted on (see scopeCutFindings).
+  const firstScopeCuts = scopeCutFindings(review)
+  if (scopeCutNote(firstScopeCuts)) {
+    log(scopeCutNote(firstScopeCuts))
+    trace.push({ phase: 'review-scope-cuts', status: `needs_proof:${firstScopeCuts.needs_proof.length} proposed:${firstScopeCuts.proposed.length}`, confidence: null })
   }
 
   // Bounded fix loop (0.6.0): on a blocking finding, bounce back to a targeted fix + re-review instead
@@ -1139,8 +1228,8 @@ record is unverifiable).`
     phase('Fix')
     const fix = await agent(`${readContract('4-implement')}
 FIX MODE (round ${fixRounds}/${MAX_FIX_ROUNDS}). You are addressing ONLY the blocking review findings
-below — do NOT add scope, refactor unrelated code, or touch ACs that already pass. The runtime gave you
-your own worktree: 'git fetch origin ${impl.branch}' then 'git checkout ${impl.branch}'. For each finding:
+below — do NOT add scope, refactor unrelated code, or touch ACs that already pass. ${AC_PRESERVATION_RULE}
+${WORKTREE_NOTE} In that worktree: 'git fetch origin ${impl.branch}' then 'git checkout ${impl.branch}'. For each finding:
 write/keep a test that demonstrates the bug, fix the code minimally, re-run the affected tests, then PUSH
 the branch. Return execution_verified honestly and pushed=true.
 A finding is listed below for ONE of two reasons: it is CRITICAL, or the reviewer DEMONSTRATED it with a
@@ -1153,7 +1242,7 @@ rewrite it from scratch, and do not leave it outside the suite. It already fails
 so it is your RED: adopt it red, fix the code, watch it go green. A proof that stays outside the suite
 leaves the branch, and the next agent cannot re-run it (KTP-1003 left its only proof at a .evidence path).
 BLOCKING FINDINGS: ${JSON.stringify(criticals)}`,
-      { schema: IMPLEMENT_SCHEMA, label: `fix-round-${fixRounds}`, phase: 'Fix', isolation: 'worktree' })
+      { schema: IMPLEMENT_SCHEMA, label: `fix-round-${fixRounds}`, phase: 'Fix', ...ISO })
     if (!fix) return { ...agentSkipped('Fix'), branch: impl.branch }
     rec(`fix-${fixRounds}`, fix)
     if (fix.pushed !== true) {
@@ -1168,7 +1257,7 @@ BLOCKING FINDINGS: ${JSON.stringify(criticals)}`,
     }
 
     phase('Review')
-    review = await agent(reviewPrompt, { schema: REVIEW_SCHEMA, label: `review-r${fixRounds + 1}`, phase: 'Review', isolation: 'worktree' })
+    review = await agent(reviewPrompt, { schema: REVIEW_SCHEMA, label: `review-r${fixRounds + 1}`, phase: 'Review', ...ISO })
     if (!review) return { ...agentSkipped('Review'), branch: impl.branch }
     rec(`review-${fixRounds + 1}`, review, 'blocking:' + blockingFindings(review).length)
   }
@@ -1184,15 +1273,15 @@ BLOCKING FINDINGS: ${JSON.stringify(criticals)}`,
   const redLedger = JSON.stringify((impl.ac_tdd || []).map((e) => ({ ac: e.ac, red_commit: e.red && e.red.commit, exempt: e.exempt || null })))
   phase('QA')
   const qa = await agent(`${readContract('6-qa')}
-You did NOT write this code or its plan. The runtime gave you your own worktree: run 'git fetch origin
-${impl.branch}' then 'git checkout ${impl.branch}'. Prove each AC with concrete evidence (code_ref + a
+You did NOT write this code or its plan. ${WORKTREE_NOTE} In that worktree run 'git fetch origin
+${impl.branch}' then 'git checkout ${impl.branch}'. Prove each AC as WORDED (${AC_PRESERVATION_RULE}) with concrete evidence (code_ref + a
 passing test_ref; for runnable behaviour, run it). ALSO re-verify the TDD RED per AC against the ledger
 below: 'git show --stat <red_commit>' must touch the TEST file only (no production source change), and the
 test must FAIL when run at that commit — set red_verified=true when both hold, false when not, 'exempt'
 for an exempt entry. A PASS whose RED you cannot re-verify gets capped. Return raw verdicts; do NOT
 self-assign the level.
 RED LEDGER: ${redLedger}${handoffUncertainty(impl, 'Implement')}`,
-    { schema: QA_SCHEMA, label: 'qa', phase: 'QA', isolation: 'worktree' })
+    { schema: QA_SCHEMA, label: 'qa', phase: 'QA', ...ISO })
   if (!qa) return { ...agentSkipped('QA'), branch: impl.branch }
   rec('qa', qa, qa.raw_overall)
 
@@ -1207,16 +1296,31 @@ RED LEDGER: ${redLedger}${handoffUncertainty(impl, 'Implement')}`,
 
   phase('ShipPrep')
   const shipPrep = await agent(`${readContract('7-ship')}
-The runtime gave you your own worktree: 'git fetch origin ${impl.branch}' then 'git checkout
+${WORKTREE_NOTE} In that worktree: 'git fetch origin ${impl.branch}' then 'git checkout
 ${impl.branch}'. Version bump + CHANGELOG, commit, push the branch with git. Do NOT invoke /klever-mr,
 /post-comment, or any Jira transition — the main loop does those. Return branch, version, pushed=true.`,
-    { schema: SHIPPREP_SCHEMA, label: 'ship-prep', phase: 'ShipPrep', isolation: 'worktree' })
+    { schema: SHIPPREP_SCHEMA, label: 'ship-prep', phase: 'ShipPrep', ...ISO })
   if (!shipPrep) return { ...agentSkipped('ShipPrep'), branch: impl.branch }
   rec('ship-prep', shipPrep)
   if (shipPrep.status === 'stuck' || shipPrep.pushed !== true) {
     if (looksLikeRemoteOutage(shipPrep.push_error)) return parkedAwaitingRemote('ShipPrep', impl.branch, shipPrep.push_error, { shipPrep, impl, review, qa, version: shipPrep.version })
     return { status: 'HALT_SHIPPREP_FAILED', ticket, branch: impl.branch, shipPrep, impl, review, qa, push_error: shipPrep.push_error || null }
   }
+
+  // Scope-cut claims from EVERY review round (first + re-reviews), so a claim the last round dropped
+  // still reaches the human. Deduplicated by title.
+  const finalScopeCuts = scopeCutFindings(review)
+  const scopeCuts = { needs_proof: [], proposed: [] }
+  for (const k of ['needs_proof', 'proposed']) {
+    const seen = new Set()
+    for (const f of [...firstScopeCuts[k], ...finalScopeCuts[k]]) {
+      const key = String(f.title || '')
+      if (seen.has(key)) continue
+      seen.add(key)
+      scopeCuts[k].push(f)
+    }
+  }
+  const scopeNote = scopeCutNote(scopeCuts)
 
   // Shared payload for both ship-ready terminal states.
   const shipped = {
@@ -1228,7 +1332,9 @@ ${impl.branch}'. Version bump + CHANGELOG, commit, push the branch with git. Do 
     // 0.10.4: things a human should see on the way out, even though none of them block.
     // first_of_kind is the one the handoff asked for by name: a pattern the repo has zero of is
     // usually a past decision, and the MR is the last place to say so before it becomes precedent.
-    ship_notes: [fokNote, tcm ? `TOOLCHAIN — ${tcm}.` : '', harnessNote ? `HARNESS — ${harnessNote}` : ''].filter(Boolean),
+    ship_notes: [fokNote, tcm ? `TOOLCHAIN — ${tcm}.` : '', harnessNote ? `HARNESS — ${harnessNote}` : '', scopeNote].filter(Boolean),
+    scope_cut_findings: scopeCuts,
+    substrate_notes: substrate.notes,
     // Deterministic backstop (adversarial finding): layers 1+2 are agent-reported; the MAIN LOOP can run
     // git for real. It mechanically audits each RED commit before opening the MR — the one non-LLM check.
     tdd_red_audit: (impl.ac_tdd || []).filter((e) => !e.exempt && e.red).map((e) => ({ ac: e.ac, red_commit: e.red.commit })),
@@ -1283,6 +1389,14 @@ ${impl.branch}'. Version bump + CHANGELOG, commit, push the branch with git. Do 
 }
 
 // =================== RUN + RETRO ===================
+
+// Substrate gate (0.10.6): halt BEFORE any agent() call when the target-repo volume is below the floor.
+// No Retro either: nothing ran, so there is nothing to score, and Retro is itself an agent.
+for (const n of substrate.notes) log(`Substrate — ${n}`)
+if (!substrate.ok) {
+  return { status: 'HALT_SUBSTRATE', ticket, source, tracker_ref: TRACKER.ref, issue_repo: issueRepo, issue_number: issueNumber,
+    substrate_problems: substrate.problems, substrate_notes: substrate.notes, min_free_gb: substrate.min_free_gb }
+}
 
 // Stamp the ticket source onto EVERY terminal (0.10.0), including the three that return early below.
 // The main loop branches its close-out on this, so it must never have to re-parse args.ticket.

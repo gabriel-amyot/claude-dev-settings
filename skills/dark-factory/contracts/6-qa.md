@@ -9,7 +9,8 @@ Adapted from the old skill's Phase 6 (QA).
 
 - Read your tool belt (path in your prompt, `toolcrib/<belt>.md`). It defines the **proof** for this
   work-type (run integration tests / curl endpoints / run-on-fixtures + assert output / BQ assertion).
-- The runtime gave you your own worktree. Fetch + check out the pushed branch (name in your prompt):
+- Your prompt says whether the runtime gave you a worktree. If not, create your own in the target code
+  repo as the prompt says (never in project-management). Fetch + check out the pushed branch (name in your prompt):
   `git fetch origin <branch> && git checkout <branch>`.
 - AC list: read `<ticket_folder>/analyst/`. Changed files: `git diff --name-only origin/dev..HEAD`.
 

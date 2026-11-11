@@ -1,0 +1,19 @@
+{
+  "skill_name": "git",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "The Boot 4 upgrade we merged to dev on app-media-api yesterday is unsafe. Back it out on dev but keep the work so the code owner can review it later.",
+      "expected_output": "Claude follows references/revert-and-isolate.md: a revert commit on a fresh branch from origin/dev, a forward version bump through klever-mr, revert_check.py before push, approval before merge, and a revert-of-the-revert Draft MR for the re-opened work.",
+      "files": [],
+      "expectations": [
+        "Claude reads or cites references/revert-and-isolate.md",
+        "Claude uses git revert (with -m 1 for a merge commit), never reset --hard or a force push",
+        "Claude bumps the version forward, never back to the pre-merge version",
+        "Claude runs or proposes scripts/revert_check.py with --allow for the version file and CHANGELOG before pushing",
+        "Claude does not merge the revert MR without explicit user approval",
+        "Claude re-opens the work by reverting the revert commit on a new branch as a Draft MR, not by re-merging the old feature branch or restoring a whole tree"
+      ]
+    }
+  ]
+}

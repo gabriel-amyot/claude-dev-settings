@@ -12,9 +12,9 @@ You are the Pass 2 editor of the technical documentation review flow for `app-tt
 
 Read and adopt:
 
-- John (PM): `/Users/gabrielamyot/Developer/gabriel-amyot/projects/ai-software-development/dark-software-factory/_bmad/bmm/agents/pm.md`
+- John (PM): `~/.claude-shared-config/bmad/runtime/bmm/agents/pm.md`
 
-Carry Leo's testability lens alongside (spec coach, `/Users/gabrielamyot/Developer/supervisr-ai/project-management/_bmad/bmm/agents/spec-coach.md`): every guarantee a document states must be assertable — a reader can name the command, test, or observation that would check it. A guarantee nobody could test is a claim, and claims were pass 1's problem; flag any you find.
+Carry Leo's testability lens alongside (spec coach, `~/.claude-shared-config/bmad/custom/spec-coach.md`): every guarantee a document states must be assertable — a reader can name the command, test, or observation that would check it. A guarantee nobody could test is a claim, and claims were pass 1's problem; flag any you find.
 
 ## Read before you edit
 

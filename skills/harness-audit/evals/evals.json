@@ -80,7 +80,11 @@
         {
           "name": "enters_apply_mode",
           "type": "contains_any",
-          "expected": ["apply", "skip", "stop"],
+          "expected": [
+            "apply",
+            "skip",
+            "stop"
+          ],
           "description": "Enters interactive apply mode after the report"
         },
         {
@@ -92,8 +96,77 @@
         {
           "name": "asks_before_acting",
           "type": "contains_any",
-          "expected": ["confirm", "approve", "apply"],
+          "expected": [
+            "confirm",
+            "approve",
+            "apply"
+          ],
           "description": "Does not auto-apply fixes without user confirmation"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Do we still need the sprint-dispatcher skill? I think sprint-factory replaced it. Our usage scan only greps transcripts for the skill name and covers the last 3 weeks.",
+      "expected_output": "The audit applies references/retirement-verdict.md: it names the concrete overlap, reads the creation commit, searches for a sibling decision doc and independent corroboration, and reports invocation evidence with its coverage. Because the usage scan is a 3-week quoted-text grep, coverage is partial, so the verdict is INCONCLUSIVE (or names the gap), not RETIRE_RECOMMENDED. It does not move or delete the skill.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "reports_each_evidence_step",
+          "type": "contains_any",
+          "expected": [
+            "creation commit",
+            "Creation commit"
+          ],
+          "description": "Reports what the creation-commit step found"
+        },
+        {
+          "name": "states_usage_coverage",
+          "type": "contains_any",
+          "expected": [
+            "unknown_coverage",
+            "partial coverage",
+            "coverage is partial"
+          ],
+          "description": "Treats a partial usage scan as unknown coverage, not proof of non-use"
+        },
+        {
+          "name": "no_forced_retirement",
+          "type": "not_contains",
+          "expected": "RETIRE_RECOMMENDED",
+          "description": "Does not recommend retirement on partial usage coverage"
+        },
+        {
+          "name": "no_destructive_action",
+          "type": "not_contains",
+          "expected": "git mv",
+          "description": "Does not archive or delete without --apply and user approval"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Is the dark-factory skill self-contained? Check the version and spec wiring.",
+      "expected_output": "The audit runs scripts/self_containment_check.py on the dark-factory skill dir and reports each check (version_coupling, carried_spec, spec_source, external_tether, runs_ledger, execution_laws) with PASS/FAIL/WARN. It reports a version drift between SKILL.md and CHANGELOG.md as a HIGH finding and does not edit the skill.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "runs_checker",
+          "type": "contains",
+          "expected": "self_containment_check",
+          "description": "Uses the deterministic checker"
+        },
+        {
+          "name": "reports_version_coupling",
+          "type": "contains",
+          "expected": "version_coupling",
+          "description": "Reports the version coupling result"
+        },
+        {
+          "name": "read_only",
+          "type": "not_contains",
+          "expected": "Edited SKILL.md",
+          "description": "Reports the finding without changing the skill"
         }
       ]
     }

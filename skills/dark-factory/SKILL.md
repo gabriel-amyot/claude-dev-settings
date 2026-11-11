@@ -1,6 +1,6 @@
 ---
 name: dark-factory
-version: "0.10.4"
+version: "0.10.6"
 description: "The ticket-to-dev factory for a SINGLE ticket, driven by a Jira ticket OR a wayfinder GitHub issue, orchestrated by the Workflow tool instead of prose. Gates are code (un-skippable), with a human concierge gate at the front. The concierge proposes a tool belt from the crib (java, scripting, frontend, terraform-dac-infra, or python-service); the build + tester sockets are equipped from that belt, so the same line handles multiple work-types without duplication. Review + bounded fix loop + QA. The workflow does code work and pushes the branch (terminal state READY_TO_SHIP); the main loop creates the MR + Jira comment and runs post-merge validate. For multi-ticket / epic DAGs use Sprint Factory (/sprint-factory). Triggers on: '/dark-factory', 'dark factory', 'ticket to dev', 'run this ticket'. Klever."
 user_invocable: true
 nav:
@@ -12,6 +12,11 @@ nav:
 ---
 
 # Dark Factory
+
+## Shared maintenance note (2026-10-26)
+
+Strategic priority and bread and butter. Gabriel intends substantial continued investment. A Codex port must preserve deterministic gates and the proven executor behavior; do not substitute prose for a working factory. See [the shared selection record](../../docs/harness-skill-selection.md).
+
 
 The **single-ticket** ticket-to-dev factory, built on the **Workflow tool**. Orchestration is a
 deterministic script; the phase gates are JavaScript, not prose, so no step can be skipped or
@@ -71,6 +76,8 @@ work-type needing different room *logic* is a rare new floor, not a belt. Refini
   `terraform-dac-infra`, `python-service`.
 - `tests/*.test.mjs` — gate regression harnesses; every one extracts the REAL workflow source.
 - `tools/mine-telemetry.py` — mines `runs/*.yaml` for recurring asks (the loop-closure test).
+- `references/substrate-preflight.md` — disk floor, conditional worktree isolation, manual stray-worktree cleanup.
+- `references/headless-launch.md` + `scripts/headless_launch_guard.py` — unattended launches (manual only).
 
 ## Invocation
 
@@ -118,7 +125,8 @@ Only three things vary by source:
 1. **Resolve** org from the ticket key (KTP/KTT/INS → klever).
 2. **Invoke the Workflow tool** with:
    - `scriptPath`: `/Users/gabrielamyot/.claude/skills/dark-factory/dark-factory.workflow.js`
-   - `args`: `{ "ticket": "<TICKET>", "org": "<org>" }`
+   - `args`: `{ "ticket": "<TICKET>", "org": "<org>", "cwd": "<Workflow cwd>", "free_disk_gb": <df of target repo> }`
+     (`cwd` + `free_disk_gb` feed the substrate gate: `references/substrate-preflight.md`)
    This is explicit Workflow opt-in (the user invoked this skill). **Note the returned `runId`** — you
    need it to resume after the human gate.
    - **Concierge-only / dry-run:** add `"concierge_only": true` (alias `"dry_run": true`) to run ONLY the
@@ -201,6 +209,7 @@ evidence-backed QA, QA-green-before-ship, the
 **TDD RED gate** (a proven failing-first test per AC, re-verified by QA on the branch), the **visual-AC
 gate** (rendered-UI ACs route to `NEEDS_VISUAL_VERIFY` for a real render instead of a surprise
 `HALT_PRESHIP`; a `missing` data fixture is caught at the front gate), plus the front human gate.
+Never descope an AC-listed item on a review finding: read `ship_notes` / `scope_cut_findings` (0.10.6).
 
 ## Lineage note
 

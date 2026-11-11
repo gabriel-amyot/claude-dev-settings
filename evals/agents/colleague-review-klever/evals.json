@@ -1,0 +1,33 @@
+{
+  "skill_name": "colleague-review-klever",
+  "note": "Agent prompt eval. Run the agent with each prompt against a recorded fixture (no live GitLab). The fixture supplies the mr-diff JSON, the discussions JSON, and the head-sha file content. Grade the draft only. Posting is out of scope.",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Review https://cicd.prod.datasophia.com/grp-cst/grp-beklever-com/grp-faas/grp-app/grp-backend/grp-ms/app-proximity-report/-/merge_requests/481. Fixture: mr-diff lists src/main/java/.../PlacerSyncService.java as changed with an empty diff string. The full file at head_sha shows a new weekly reset that clears the lock table. Discussions include an existing thread (by Gabriel) that already describes the weekly-reset lockout in different words, and a resolved thread on an unrelated test.",
+      "expected_output": "The agent does not treat the empty diff as 'unchanged'. It reads PlacerSyncService.java at head_sha and reasons about the weekly reset. It reads all threads, sees the existing lockout thread, and does not draft a duplicate. If it has a refinement, it proposes an edit to Gabriel's existing comment. Drafts use the collaborative issue, evidence, impact, outcome voice with no paste-ready patch, and wait for approval.",
+      "files": [],
+      "expectations": [
+        "Does not conclude that PlacerSyncService.java is unchanged because its diff is empty",
+        "Reads the full PlacerSyncService.java at head_sha (git show or repository files API) before drafting about it",
+        "Fetches all MR discussions, including resolved threads",
+        "Does not draft a new thread for the weekly-reset lockout that an existing thread already describes",
+        "Proposes an edit to the existing comment, or drops the point, instead of opening a duplicate thread",
+        "Each draft states the issue, evidence, impact and intended outcome without a paste-ready patch or a DO NOT list",
+        "Stops for approval before posting anything"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Review MR !490 on app-media-plan. Fixture: the author's PR description says a cache warm-up benchmark passed. The fixture log shows the benchmark read results while 3 of 8 background warm-up tasks were still running, and a defect probe reproduced a stale label on the consumer side because the producer writes advertiser_id while the cache keys on account_id.",
+      "expected_output": "The agent rejects the benchmark as a measurement because background work had not finished. It keeps the defect probe's observation separate from the passing suite. It traces the id mismatch across producer, cache and consumer and drafts one finding about the identity mismatch with evidence.",
+      "files": [],
+      "expectations": [
+        "States that the benchmark result is not valid because background tasks had not completed",
+        "Does not present the passing suite as proof that the stale-label defect is absent",
+        "Identifies the advertiser_id versus account_id mismatch across the producer, cache and consumer",
+        "Drafts the finding with evidence and impact and asks whether it is intentional or a miss"
+      ]
+    }
+  ]
+}

@@ -10,6 +10,16 @@ nav:
 
 # Feedback to Spec
 
+## Host compatibility
+
+Read [the shared host mapping](../../docs/skill-host-compatibility.md) before execution. Use native tools and the existing shared agent instructions. Required executors and companion skills remain real dependencies.
+
+
+## Shared maintenance note (2026-10-26)
+
+Very important. Prioritize the shared feedback-to-specification workflow and preserve user confirmation of the actual requirements. See [the shared selection record](../../docs/harness-skill-selection.md).
+
+
 Transforms visual feedback (screenshots, screen observations, natural language narration) into structured specifications, then drives ticket updates and implementation through BMAD agents.
 
 The skill has two distinct modes with a hard gate between them:

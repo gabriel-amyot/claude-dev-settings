@@ -1,6 +1,6 @@
 ---
 name: notion
-description: Read and refresh the local Notion checkout. Answers Notion questions from a local mirror at zero MCP cost, and refreshes it through an isolated headless session that never pollutes the calling context. Use whenever a Notion page, Notion URL, or Notion-documented procedure comes up ("the Notion doc says", "check Notion", "is that Notion page current", "pull that Notion page"), or when a Bibliothèque page cites a notion: source and the body is needed.
+description: "Read and refresh the local Notion checkout. Answers Notion questions from a local mirror at zero MCP cost, and refreshes it through an isolated headless session that never pollutes the calling context. Use whenever a Notion page, Notion URL, or Notion-documented procedure comes up (\"the Notion doc says\", \"check Notion\", \"is that Notion page current\", \"pull that Notion page\"), or when a Bibliothèque page cites a notion: source and the body is needed."
 nav:
   bay: know
   when: "Any Notion page lookup, or refreshing the local Notion mirror."
@@ -9,6 +9,16 @@ nav:
 ---
 
 # Notion
+
+## Host compatibility
+
+Read [the shared host mapping](../../docs/skill-host-compatibility.md) before execution. Use native tools and the existing shared agent instructions. Required executors and companion skills remain real dependencies.
+
+
+## Shared maintenance note (2026-10-26)
+
+Highest priority: shared knowledge, durable memory and continuity. Preserve one library for Claude and Codex. Compatibility or maintenance issues are work to assess, not a reason to demote this area. See [the shared selection record](../../docs/harness-skill-selection.md).
+
 
 The Klever Notion workspace is mirrored locally. **Reads are local and free** — no MCP, no network,
 no tool definitions in your context. Only `sync` and `freshness` touch Notion, in a separate process.
@@ -42,6 +52,14 @@ NOTION_CHECKOUT=/path/to/mirror $NX search "terms"
 
 If `nx` is unavailable or errors, say so and stop. Reading `pages/` by hand is not the fallback.
 
+## Missing checkout / moving between machines
+
+Run `$NX status` before lookup. Missing checkout or catalog exits 2 with its resolved
+path; an empty initialized catalog is different from a missing page. Follow
+[recovery.md](recovery.md) to restore the existing mirror and scoped fetch configuration.
+The original mirror was local-only; do not assume the shared tools repository contains it.
+Never create an empty directory to conceal a missing checkout.
+
 ## Mode: lookup (default)
 
 Someone asked something a Notion page would answer.
@@ -66,17 +84,10 @@ Do not conclude the page does not exist.
 For a Notion URL or id the mirror lacks. Runs one isolated headless session.
 
 ```bash
-CO=~/Developer/grp-beklever-com/notion-checkout
+CO="${NOTION_CHECKOUT:-$HOME/Developer/grp-beklever-com/notion-checkout}"
 RUN=fetch-$(date +%Y%m%d-%H%M%S)
-mkdir -p $CO/runs/$RUN/staging
-cd $CO && claude -p "Use the notion MCP. Fetch the page <URL_OR_ID> and every child block. \
-Write ONE json file to $CO/runs/$RUN/staging/page.json with keys: id,title,url,breadcrumb, \
-last_edited_time,coverage,access_state,markdown. Set coverage=partial if any cursor or \
-database was left unfinished. Do not summarize. Do not print the body. \
-Reply with only: the page title, byte count, and coverage." \
-  --mcp-config .mcp.json --strict-mcp-config \
-  --allowedTools "mcp__notion,Write,Bash" --permission-mode acceptEdits
-$NX ingest $RUN
+bash ~/.claude/skills/notion/fetch-shard.sh "$CO" "$RUN" one <PAGE_ID> &&
+  NOTION_CHECKOUT="$CO" python3 ~/.claude/skills/notion/nx.py ingest "$RUN"
 ```
 
 `--strict-mcp-config` is what makes the isolation real: that process loads **only** the Notion
@@ -91,12 +102,13 @@ context; three facts came back.
 ## Mode: sync — refresh the mirror
 
 ```bash
-cd ~/Developer/grp-beklever-com/notion-checkout
+cd "${NOTION_CHECKOUT:-$HOME/Developer/grp-beklever-com/notion-checkout}"
 $NX plan-refresh --older-than 30 > /tmp/nx-plan.json   # what needs re-pulling
 ```
 
 Then dispatch the headless session with that plan, one page per staged file, and `ingest` the run.
 Add `--full` to `ingest` only when the run genuinely walked the whole workspace.
+For more than a few pages, use `nx crawl` (resumable, validated, never ingests): see [crawl.md](crawl.md).
 
 **Cheap global probe first.** Ask Notion for pages sorted by `last_edited_time` descending, limit
 ~20. Compare the newest against `workspace_watermark` in `LEDGER.yaml`. If nothing is newer, the
@@ -115,6 +127,8 @@ $NX apply-freshness /tmp/nx-probe-results.json
 
 Pages whose live edit time beats ours get flagged `content_stale`. Reads then carry that flag
 until the body is re-pulled.
+
+To check whether a page's claims are still true against code, use the manual fact-check mode: [fact-check.md](fact-check.md).
 
 ## Mode: status
 

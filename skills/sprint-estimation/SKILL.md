@@ -10,6 +10,16 @@ nav:
 
 # Sprint Estimation Skill
 
+## Host compatibility
+
+Read [the shared host mapping](../../docs/skill-host-compatibility.md) before execution. Use native tools and the existing shared agent instructions. Required executors and companion skills remain real dependencies.
+
+
+## Shared maintenance note (2026-10-26)
+
+Important factory ecosystem workflow. Preserve and prioritize portability with dark-factory rather than treating it as optional harness clutter. See [the shared selection record](../../docs/harness-skill-selection.md).
+
+
 Estimate story points for Klever sprint tickets using Leo (Specification Coach) and Bob (Scrum Master) personas, with code investigation and adversarial review.
 
 **Purpose:** Coach the team on story pointing. The comments should help ticket owners think through complexity, not dictate numbers. Every estimate is a proposal. Every owner decides for themselves.
@@ -278,8 +288,8 @@ Run Phase 4.5 against **Tasks**, not Stories — the Task is what the factory in
 ## Dependencies
 
 - Jira skill (`~/.claude/skills/jira/jira_skill.py`) with `--estimate` flag support
-- Leo persona (`~/Developer/supervisr-ai/project-management/_bmad/bmm/agents/spec-coach.md`)
-- Bob persona (`~/Developer/gabriel-amyot/projects/ai-software-development/dark-software-factory/_bmad/bmm/agents/sm.md`)
+- Leo persona (`~/.claude-shared-config/bmad/custom/spec-coach.md`)
+- Bob persona (`~/.claude-shared-config/bmad/runtime/bmm/agents/sm.md`)
 - Klever Repository Map (CLAUDE.md or `~/.claude/library/context/workspace-map.yaml`)
 - Dark Factory readiness contract (`~/.claude/skills/dark-factory/readiness/README.md`) — only for Phase 4.5
 - Dark Factory tool crib (`~/.claude/skills/dark-factory/toolcrib/INDEX.md`) — belt `detect` rules, for Phase 4.5 belt matching

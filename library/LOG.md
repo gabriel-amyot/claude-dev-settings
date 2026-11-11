@@ -39,3 +39,7 @@ Klever inbox and were routed here instead, because none of them carry Klever-dom
 - **CATALOG** — 1 Topic Cross-Reference line added ("False-green failures").
 - **Open decision:** whether "an exit code is not proof of work" becomes a global CLAUDE.md rule.
   Filed as [issue #282](https://github.com/gabriel-amyot/klever-project-management/issues/282).
+
+## 2026-10-26 — steady-otter scoped curation
+
+- Added `context/shared-skills-harness-observatory.md`: 10 captured subjects cataloged through canonical operational documents. Extended filesystem topology with a dated session-plugin exception; retained earlier claims as history. Source: Klever inbox archive `2026-10-26-shared-skills-harness-observatory.md`, bronze `curate:steady-otter:n1`–`n10`. Generic knowledge placed in shared library, not a new Klever shelf. No graph sweep or external action.

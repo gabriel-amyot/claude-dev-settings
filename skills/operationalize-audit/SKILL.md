@@ -9,6 +9,17 @@ nav:
 
 # Operationalize Audit
 
+## Consolidated tracking
+
+Read `~/.claude-shared-config/harness/INDEX.md` for the shared catalog, source coverage, usage, friction and decisions. Existing usage/reference/tax scanners now publish through its producer bridge while retaining their Markdown outputs. Do not infer non-use from an unobserved or unsupported signal. Treat skill creation age as unknown when only file modification time is available.
+
+Consult Gabriel's recorded priorities before proposing retirement. Catalog retirement decisions require maintainer attribution and actual user approval. Agent analysis may append friction or a proposed decision; it cannot turn that proposal into approval or declare an eval passed. Keep proposal artifacts in their current queue and link them as evidence.
+
+## Shared maintenance note (2026-10-26)
+
+Highest priority: shared knowledge, durable memory and continuity. Preserve one library for Claude and Codex. Compatibility or maintenance issues are work to assess, not a reason to demote this area. See [the shared selection record](../../docs/harness-skill-selection.md).
+
+
 Review the backlog of auto-captured tribal knowledge and skill proposals. Pitch each one, explain its value, let the user decide.
 
 **Usage:** `/operationalize-audit`

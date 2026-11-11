@@ -35,6 +35,8 @@ Commands:
     apply-freshness <file>    fold live last_edited_time results into the ledger
     mark <id> --volatile|--stable
     doctor                    integrity check
+    crawl --run R [--ids F]   resumable, validated multi-page fetch into staging; never ingests
+    crawl-status <run_id>     staged-record progress, cost, and handoff validation
 """
 
 from __future__ import annotations
@@ -53,7 +55,7 @@ DEFAULT_ROOT = Path.home() / "Developer/grp-beklever-com/notion-checkout"
 
 # The mirror root. Override with NOTION_CHECKOUT to point at another checkout — which is
 # what the eval suite does, and what makes this tool testable against a scripted world.
-ROOT = Path(os.environ.get("NOTION_CHECKOUT") or DEFAULT_ROOT)
+ROOT = Path(os.environ.get("NOTION_CHECKOUT") or DEFAULT_ROOT).expanduser().resolve()
 PAGES = ROOT / "pages"
 INDEX = ROOT / "index"
 RUNS = ROOT / "runs"
@@ -660,6 +662,224 @@ def cmd_doctor(args) -> int:
     return 1
 
 
+# ---------------------------------------------------------------- crawl
+
+# A crawl is a resumable, validated multi-page fetch into runs/<run>/staging.
+# It never ingests. It hands off with `nx ingest <run>` and never adds --full.
+
+CRAWL_REQUEST = "crawl-request.json"
+STAGED_KEYS = ("id", "title", "url", "breadcrumb", "last_edited_time",
+               "coverage", "access_state", "markdown")
+COVERAGE_VALUES = ("complete", "partial")
+ACCESS_VALUES = ("accessible", "restricted")
+RUN_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]+$")
+# Same patterns the REST puller refuses to write. Kept in one place: nx_pull.py.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from nx_pull import PRESIGNED, SECRET_PATTERNS  # noqa: E402
+
+
+def read_id_file(path: str) -> tuple[list[str], list[str]]:
+    ids, bad = [], []
+    for line in Path(path).expanduser().read_text(encoding="utf-8").splitlines():
+        text = line.strip()
+        if not text or text.startswith("#"):
+            continue
+        page_id = normalize_id(text)
+        if len(page_id) != 32 or not re.fullmatch(r"[0-9a-f]{32}", page_id):
+            bad.append(text)
+        elif page_id not in ids:
+            ids.append(page_id)
+    return ids, bad
+
+
+def is_current_in_catalog(row: dict | None) -> bool:
+    if row is None or row.get("content_stale"):
+        return False
+    return freshness_state(row.get("fetched_at")) == "fresh"
+
+
+def staged_problems(path: Path) -> tuple[str | None, list[str]]:
+    """Validate one staged record. Returns (normalized id or None, problems)."""
+    if path.stat().st_size == 0:
+        return None, []
+    try:
+        record = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        return None, [f"{path.name}: bad json ({type(exc).__name__})"]
+    if not isinstance(record, dict):
+        return None, [f"{path.name}: record is not an object"]
+    problems = []
+    missing = [key for key in STAGED_KEYS if key not in record]
+    if missing:
+        problems.append(f"{path.name}: missing keys {','.join(missing)}")
+    page_id = normalize_id(str(record.get("id", "")))
+    if len(page_id) != 32:
+        return None, problems + [f"{path.name}: malformed id"]
+    if normalize_id(path.stem) != page_id:
+        problems.append(f"{path.name}: filename does not match record id {page_id}")
+    if record.get("coverage") not in COVERAGE_VALUES:
+        problems.append(f"{path.name}: coverage not in {COVERAGE_VALUES}")
+    if record.get("access_state") not in ACCESS_VALUES:
+        problems.append(f"{path.name}: access_state not in {ACCESS_VALUES}")
+    text = json.dumps(record, ensure_ascii=False)
+    if PRESIGNED.search(text):
+        problems.append(f"{path.name}: pre-signed URL credential present (value withheld)")
+    for pattern in SECRET_PATTERNS:
+        if pattern.search(text):
+            problems.append(f"{path.name}: credential pattern present (value withheld)")
+            break
+    return page_id, problems
+
+
+def crawl_report(run_dir: Path, expected: list[str]) -> dict:
+    """Progress from staged records only. A shard output file is never a page."""
+    staging = run_dir / "staging"
+    valid: set[str] = set()
+    problems: list[str] = []
+    seen: dict[str, str] = {}
+    for path in sorted(staging.glob("*.json")) if staging.is_dir() else []:
+        page_id, record_problems = staged_problems(path)
+        if page_id and page_id in seen:
+            record_problems.append(f"{path.name}: duplicate id, also in {seen[page_id]}")
+        if page_id:
+            seen.setdefault(page_id, path.name)
+        problems.extend(record_problems)
+        if page_id and not record_problems:
+            valid.add(page_id)
+    cost = 0.0
+    for result in sorted((run_dir / "shards").glob("*.json")) if (run_dir / "shards").is_dir() else []:
+        try:
+            cost += float(json.loads(result.read_text(encoding="utf-8")).get("total_cost_usd") or 0)
+        except (json.JSONDecodeError, UnicodeDecodeError, AttributeError, TypeError, ValueError):
+            continue
+    missing = [page_id for page_id in expected if page_id not in valid]
+    return {"expected": len(expected), "staged_valid": len(valid & set(expected)),
+            "missing": missing, "problems": problems, "cost_usd": round(cost, 4)}
+
+
+def print_crawl_report(run_id: str, report: dict) -> int:
+    print(f"crawl {run_id}: {report['staged_valid']}/{report['expected']} staged and valid, "
+          f"{len(report['missing'])} missing, cost_usd={report['cost_usd']}")
+    if report["problems"]:
+        print("REFUSING HANDOFF. Staged records failed validation:")
+        for problem in report["problems"][:20]:
+            print(f"  - {problem}")
+        print("Remove or re-fetch the named records. Do not ingest this run yet.")
+        return 2
+    if report["missing"]:
+        print("INCOMPLETE. Re-run `nx crawl --run " + run_id + "` to resume the missing ids:")
+        for page_id in report["missing"][:20]:
+            print(f"  - {page_id}")
+        return 3
+    print(f"READY. Next: nx ingest {run_id}")
+    print("Add --full only if you can justify that this id list covered the whole workspace.")
+    return 0
+
+
+def load_or_create_request(run_dir: Path, args) -> tuple[dict | None, str]:
+    request_path = run_dir / CRAWL_REQUEST
+    if request_path.exists():
+        request = json.loads(request_path.read_text(encoding="utf-8"))
+        if args.ids:
+            ids, bad = read_id_file(args.ids)
+            if bad or set(ids) != set(request["requested"]):
+                return None, "this run already has a different id list; use a new --run"
+        return request, ""
+    if not args.ids:
+        return None, "new run needs --ids <file>"
+    ids, bad = read_id_file(args.ids)
+    if bad:
+        return None, f"{len(bad)} malformed id line(s), first: {bad[0][:60]}"
+    if not ids:
+        return None, "id file has no ids"
+    catalog = {row["id"]: row for row in read_catalog()}
+    current = [] if args.refetch else [i for i in ids if is_current_in_catalog(catalog.get(i))]
+    request = {"created_at": now_iso(), "requested": ids, "skipped_current": current,
+               "expected": [i for i in ids if i not in current]}
+    run_dir.mkdir(parents=True, exist_ok=True)
+    request_path.write_text(json.dumps(request, indent=2) + "\n", encoding="utf-8")
+    return request, ""
+
+
+def shard_commands(run_id: str, pending: list[str], args) -> list[list[str]]:
+    here = Path(__file__).resolve().parent
+    if args.executor == "rest":
+        return [[sys.executable, str(here / "nx_pull.py"), "pull", "--ids", ",".join(pending),
+                 "--staging", str(RUNS / run_id / "staging"), "--workers", str(args.parallel)]]
+    script = os.environ.get("NX_FETCH_SHARD") or str(here / "fetch-shard.sh")
+    attempt = len(list((RUNS / run_id).glob("attempt-*.json"))) + 1
+    commands = []
+    for index in range(0, len(pending), args.shard_size):
+        label = f"a{attempt:02d}-s{index // args.shard_size + 1:04d}"
+        commands.append(["bash", script, str(ROOT), run_id, label, *pending[index:index + args.shard_size]])
+    return commands
+
+
+def run_commands(commands: list[list[str]], parallel: int) -> list[int]:
+    import subprocess
+    from concurrent.futures import ThreadPoolExecutor
+
+    env = dict(os.environ, NX_FETCH_MODEL=os.environ.get("NX_FETCH_MODEL", "sonnet"))
+
+    def run_one(command: list[str]) -> int:
+        return subprocess.run(command, env=env, stdout=subprocess.DEVNULL,
+                              stderr=subprocess.DEVNULL).returncode
+
+    with ThreadPoolExecutor(max_workers=max(1, parallel)) as pool:
+        return list(pool.map(run_one, commands))
+
+
+def cmd_crawl(args) -> int:
+    if not RUN_ID_PATTERN.match(args.run):
+        print("--run must contain only letters, digits, underscores or hyphens")
+        return 2
+    if args.shard_size < 1 or args.parallel < 1:
+        print("--shard-size and --parallel must be at least 1")
+        return 2
+    if args.executor == "rest" and not os.environ.get("NOTION_TOKEN", "").strip():
+        print("executor rest needs NOTION_TOKEN. A token alone does not prove access: "
+              "pages not shared with the integration come back no_access.")
+        return 2
+    run_dir = RUNS / args.run
+    request, error = load_or_create_request(run_dir, args)
+    if request is None:
+        print(f"crawl refused: {error}")
+        return 2
+    before = crawl_report(run_dir, request["expected"])
+    pending = before["missing"]
+    print(f"crawl {args.run}: {len(request['requested'])} requested, "
+          f"{len(request['skipped_current'])} already current in catalog, "
+          f"{len(request['expected']) - len(pending)} already staged, {len(pending)} to fetch")
+    if before["problems"]:
+        return print_crawl_report(args.run, before)
+    commands = shard_commands(args.run, pending, args) if pending else []
+    if args.dry_run:
+        print(f"dry run: {len(commands)} command(s) via executor={args.executor}, parallel={args.parallel}")
+        return 0
+    if commands:
+        for empty in (run_dir / "staging").glob("*.json") if (run_dir / "staging").is_dir() else []:
+            if empty.stat().st_size == 0:
+                empty.unlink()  # an interrupted write; it holds no data and blocks the REST resume check
+        (run_dir / f"attempt-{len(list(run_dir.glob('attempt-*.json'))) + 1:02d}.json").write_text(
+            json.dumps({"started_at": now_iso(), "executor": args.executor,
+                        "pending": pending, "commands": len(commands)}, indent=2) + "\n",
+            encoding="utf-8")
+        codes = run_commands(commands, args.parallel)
+        failed = sum(1 for code in codes if code != 0)
+        if failed:
+            print(f"{failed}/{len(codes)} executor command(s) exited non-zero")
+    return print_crawl_report(args.run, crawl_report(run_dir, request["expected"]))
+
+
+def cmd_crawl_status(args) -> int:
+    request_path = RUNS / args.run / CRAWL_REQUEST
+    if not request_path.exists():
+        print(f"no crawl request at {request_path}")
+        return 1
+    request = json.loads(request_path.read_text(encoding="utf-8"))
+    return print_crawl_report(args.run, crawl_report(RUNS / args.run, request["expected"]))
+
+
 # ---------------------------------------------------------------- entrypoint
 
 
@@ -713,7 +933,34 @@ def main() -> int:
 
     sub.add_parser("doctor").set_defaults(func=cmd_doctor)
 
+    p = sub.add_parser("crawl", help="resumable validated multi-page fetch; never ingests")
+    p.add_argument("--run", required=True)
+    p.add_argument("--ids", help="file with one page id or URL per line; required for a new run")
+    p.add_argument("--shard-size", type=int, default=3)
+    p.add_argument("--parallel", type=int, default=5)
+    p.add_argument("--executor", choices=("shard", "rest"), default="shard")
+    p.add_argument("--refetch", action="store_true", help="do not skip ids already current in catalog")
+    p.add_argument("--dry-run", action="store_true")
+    p.set_defaults(func=cmd_crawl)
+
+    p = sub.add_parser("crawl-status", help="progress and validation of a crawl run")
+    p.add_argument("run")
+    p.set_defaults(func=cmd_crawl_status)
+
     args = parser.parse_args()
+    if not ROOT.is_dir():
+        print(f"checkout missing or not a directory: {ROOT}\n"
+              "Restore the existing mirror from its source machine/backup, or set "
+              "NOTION_CHECKOUT to its actual directory. See notion recovery.md.", file=sys.stderr)
+        return 2
+    if args.cmd not in ("ingest", "crawl", "crawl-status") and not CATALOG.is_file():
+        print(f"catalog missing: {CATALOG}\n"
+              "This directory is not an initialized mirror. Restore its index, or "
+              "ingest a verified staged fetch. See notion recovery.md.", file=sys.stderr)
+        return 2
+    if args.cmd in ("card", "get", "mark") and not read_catalog():
+        print("catalog empty — no pages have been mirrored. Run a verified fetch/sync first.")
+        return 1
     return args.func(args)
 
 

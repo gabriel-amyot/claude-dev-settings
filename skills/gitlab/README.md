@@ -25,23 +25,23 @@ python3 ~/.claude-shared-config/skills/gitlab/gitlab_config_setup.py default sup
 
 ```bash
 # List all groups in default organization
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py list-groups
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py list-groups
 
 # List repos in a specific group
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py list-repos --group f-r-r-s --full
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py list-repos --group f-r-r-s --full
 ```
 
 ### 3. Clone Repositories
 
 ```bash
 # Clone all repos from f-r-r-s group to org's configured local path
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py clone --group f-r-r-s
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py clone --group f-r-r-s
 
 # Clone specific repos only
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py clone --group f-r-r-s --repos repo1,repo2,repo3
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py clone --group f-r-r-s --repos repo1,repo2,repo3
 
 # Clone to custom directory
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py clone --group f-r-r-s --output /custom/path
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py clone --group f-r-r-s --output /custom/path
 ```
 
 ## Organization Configuration
@@ -80,43 +80,43 @@ security delete-generic-password -s claude-gitlab -a gitlab_<orgname>
 
 ```bash
 # List all groups and subgroups
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py list-groups
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py list-groups
 
 # List projects in a group
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py list-repos --group GROUP_ID
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py list-repos --group GROUP_ID
 
 # Get full details for a repository
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py get-repo PROJECT_PATH --full
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py get-repo PROJECT_PATH --full
 
 # Search for repositories
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py search "query" --max 20
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py search "query" --max 20
 ```
 
 ### Clone Operations
 
 ```bash
 # Clone all repos from a group (uses org's local_path)
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py clone --group GROUP_ID
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py clone --group GROUP_ID
 
 # Clone specific repos
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py clone --group GROUP_ID --repos repo1,repo2,repo3
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py clone --group GROUP_ID --repos repo1,repo2,repo3
 
 # Clone to custom directory
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py clone --group GROUP_ID --output /path/to/dir
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py clone --group GROUP_ID --output /path/to/dir
 ```
 
 ### Merge Request Operations
 
 ```bash
 # Create a merge request
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py mr --project PROJECT_ID \
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py mr --project PROJECT_ID \
   --action create --title "Title" --source feature-branch --target main
 
 # List merge requests
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py mr --project PROJECT_ID --action list
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py mr --project PROJECT_ID --action list
 
 # Approve a merge request
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py mr --project PROJECT_ID \
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py mr --project PROJECT_ID \
   --action approve --mr-iid MR_IID
 ```
 
@@ -126,13 +126,13 @@ Add `--org ORGNAME` flag to any command:
 
 ```bash
 # List repos in Klever organization
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever list-repos --group klever-group
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org klever list-repos --group klever-group
 
 # Clone repos in Origin8 organization
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org origin8 clone --group origin8-group
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py --org origin8 clone --group origin8-group
 
 # Use Supervisr by default (as set in config)
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py list-groups
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py list-groups
 ```
 
 ## Configuration File

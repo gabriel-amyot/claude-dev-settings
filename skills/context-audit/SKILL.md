@@ -9,6 +9,11 @@ nav:
 
 # Context Audit
 
+## Shared maintenance note (2026-10-26)
+
+Highest priority: shared knowledge, durable memory and continuity. Preserve one library for Claude and Codex. Compatibility or maintenance issues are work to assess, not a reason to demote this area. See [the shared selection record](../../docs/harness-skill-selection.md).
+
+
 Perform a structured health check of the context engineering infrastructure. Detect dead links, bloated files, stale knowledge, and missing scaffolding. Report findings by severity and execute safe fixes on approval.
 
 Severity classification follows `references/severity-matrix.md`. Read it before auditing.

@@ -5,6 +5,16 @@ description: "Wiki knowledge management hub. Modes: curate (batch inbox), shelve
 
 # Bibliothèque Librarian
 
+## Host compatibility
+
+Read [the shared host mapping](../../docs/skill-host-compatibility.md) before execution. Use native tools and the existing shared agent instructions. Required executors and companion skills remain real dependencies.
+
+
+## Shared maintenance note (2026-10-26)
+
+Highest priority: shared knowledge, durable memory and continuity. Preserve one library for Claude and Codex. Compatibility or maintenance issues are work to assess, not a reason to demote this area. See [the shared selection record](../../docs/harness-skill-selection.md).
+
+
 Wiki knowledge management skill. Routes to the `bibliotheque-librarian` agent for heavy work, runs inline for lightweight operations.
 
 ## Usage
@@ -24,7 +34,9 @@ Wiki knowledge management skill. Routes to the `bibliotheque-librarian` agent fo
 /bibliotheque-librarian prune-memory --interactive → human gates in-session (quarantine on approval)
 ```
 
-All modes except `stats` spawn the `bibliotheque-librarian` agent via the Agent tool.
+All modes except `stats` delegate to the existing `bibliotheque-librarian` role. In Claude, use its registered Agent tool. In Codex, use native delegation and require the worker to read `~/.claude-shared-config/agents/bibliotheque-librarian.md` and only the references for the selected mode. Preserve org scope. Do not duplicate the agent file.
+
+The agent also supports `reconcile-surfaces`; use that mode for its existing deterministic surface-registry reconciliation procedure.
 
 ## Org Detection
 
@@ -57,7 +69,7 @@ For curate, shelve, query, lint, investigate, graph, prune-memory:
    - Include any arguments (entry name, query text, nugget content)
    - Include `--wiki {id}` for org scoping
    - For writing modes (shelve, curate, prune-memory), append: "Before writing any wiki prose, run `python3 ~/.claude-shared-config/tools/ste_lint.py <draft>` and revise obvious anti-slop hits (hedges, marketing adjectives, phrasal verbs, run-ons, nominalizations). Advisory, not a block."
-3. Spawn via Agent tool:
+3. In Claude, spawn via Agent tool as below. In Codex, pass the same task and the existing agent-file path to a native subagent. Use native follow-up messaging for persistent queries.
 
 ```
 Agent(

@@ -72,4 +72,5 @@ When users report permission errors from compute instances, or when the CI/CD pi
 - `references/repositories.md`: repo roles, directory layout, Datasophia module inventory, and repo-specific differences.
 - `references/patterns.md`: shared Terraform idioms, IAM grammar, naming, API activation, imports, and common pitfalls.
 - `references/resources.md`: file-by-file resource guidance for buckets, datasets, secrets, Cloud Run, workflows, monitoring, compute, Cloud SQL, and more, including Klever-specific subnetwork guidance.
+- `references/stateful-mig-pre-change-snapshot.md`: Terraform-native snapshot before a stateful COS MIG change, with a static shape check in `scripts/`.
 - `references/troubleshooting.md`: analyzing GCP permission-denial logs, mapping permissions to IAM roles, and fixing non-existent role errors.

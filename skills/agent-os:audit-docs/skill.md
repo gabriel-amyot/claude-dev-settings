@@ -9,6 +9,11 @@ nav:
 
 # agent-os:audit-docs - Documentation Guardian Agent
 
+## Shared maintenance note (2026-10-26)
+
+Promote use. Gabriel currently uses agent-os documentation little, but wants to retain and use it more. See [the shared selection record](../../docs/harness-skill-selection.md).
+
+
 ## Purpose
 
 Comprehensive documentation integrity guardian that maintains knowledge graph coherence and enforces documentation standards across the repository.

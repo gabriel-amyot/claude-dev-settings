@@ -10,6 +10,16 @@ nav:
 
 # Sprint Ticket Validation & Closure
 
+## Host compatibility
+
+Read [the shared host mapping](../../docs/skill-host-compatibility.md) before execution. Use native tools and the existing shared agent instructions. Required executors and companion skills remain real dependencies.
+
+
+## Shared maintenance note (2026-10-26)
+
+Important factory ecosystem workflow. Preserve and prioritize portability with dark-factory rather than treating it as optional harness clutter. See [the shared selection record](../../docs/harness-skill-selection.md).
+
+
 Validate a batch of sprint tickets by generating **fresh live proof** per acceptance criterion, gate it through adversarial review, post an evidence comment on every ticket, and (in close mode) transition the closeable ones.
 
 **Two modes:**
@@ -43,7 +53,7 @@ For each ticket, use `/jira get {KEY} --full --org {org}` to retrieve:
 - Sub-task structure (parent tickets cannot close while sub-tasks are open)
 - Available transitions
 
-Cross-reference Jira ACs against local AC files in `tickets/{TICKET}/jira/ac/`.
+Resolve each ticket folder using the org prefix/epic schema. Read AC-LOCAL.md first when present; it overrides Jira ACs. Otherwise cross-reference the local jira/ac/ files and Jira description.
 
 **Important:** When spawning haiku subagents for Jira, always pass `--org {org}` flag. Subagents run from the skill directory, outside the org auto-detection path.
 
@@ -81,9 +91,9 @@ Launch one background adversarial agent per ticket. Each agent receives:
 - The adversarial prompt: "For each AC, give a verdict: PASS, FAIL, or BLOCKED. Can this test pass with a broken service? Verify coverage labels: if evidence is a unit test, label must be CODE VERIFIED, not VERIFIED."
 
 Evidence sources to reference (search in order):
-1. `tickets/{TICKET}/reports/` (implementation summaries, reviews)
-2. `tickets/{EPIC}/reports/testing/` (UI test results, screenshots)
-3. `tickets/{EPIC}/reports/e2e-scripts/` (E2E test output)
+1. `{resolved-ticket-folder}/reports/` (implementation summaries, reviews)
+2. `{resolved-epic-folder}/reports/testing/` (UI test results, screenshots)
+3. `{resolved-epic-folder}/reports/e2e-scripts/` (E2E test output)
 4. Backend test results (Gradle/Maven output)
 
 ### Phase 2.5: Adversarial Synchronization Gate
@@ -142,7 +152,7 @@ An evidence comment is posted for **every reviewed ticket**, regardless of verdi
 - any CANT-TEST → a comment stating which AC couldn't be exercised and the blocker
 
 For each ticket, sequentially:
-1. Write draft to `tickets/{TICKET}/reports/status/{validation|closing}-comment-draft-{date}.md`
+1. Write draft to `{resolved-ticket-folder}/reports/status/{validation|closing}-comment-draft-{date}.md`
 2. Preview the rendered comment to the user
 3. Wait for explicit approval via `AskUserQuestion`
 4. Post to Jira via `/post-comment` (which handles the draft→preview→approval→audit pipeline)

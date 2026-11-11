@@ -15,43 +15,43 @@
 suites:
   - target: post-comment/verify-causal-claims
     layer: A
-    runner: python3 ~/.claude-shared-config/skills/post-comment/evals/run_causal_evals.py
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/post-comment/evals/run_causal_evals.py
     owner_skill: post-comment
     last_green: 2026-09-10
 
   - target: post-comment/verify-code-claims
     layer: A
-    runner: python3 ~/.claude-shared-config/skills/post-comment/evals/run_code_claim_evals.py
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/post-comment/evals/run_code_claim_evals.py
     owner_skill: post-comment
     last_green: 2026-09-10
 
   - target: ste/linter
     layer: A
-    runner: python3 ~/.claude-shared-config/evals/ste/run_ste_evals.py
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/evals/ste/run_ste_evals.py
     owner_skill: ste
     last_green: 2026-09-10
 
   - target: gitlab/cli-core
     layer: A
-    runner: cd ~/.claude-shared-config/skills/gitlab && python3 test_gitlab_skill.py
+    runner: cd ~/.claude-shared-config/skills/gitlab && uv run --quiet --with pyyaml --with requests python3 test_gitlab_skill.py
     owner_skill: gitlab
     last_green: 2026-09-10
 
   - target: gitlab/pipeline-trace
     layer: A
-    runner: python3 ~/.claude-shared-config/skills/gitlab/evals/run_trace_evals.py
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/gitlab/evals/run_trace_evals.py
     owner_skill: gitlab
     last_green: 2026-09-10
 
   - target: har-diagnostic/har-parse
     layer: A
-    runner: python3 ~/.claude-shared-config/skills/har-diagnostic/evals/run_har_evals.py
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/har-diagnostic/evals/run_har_evals.py
     owner_skill: har-diagnostic
     last_green: 2026-09-10
 
   - target: sprint-factory/pre-ship-gate
     layer: A
-    runner: python3 ~/.claude-shared-config/skills/sprint-factory/evals/run_preship_evals.py
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/sprint-factory/evals/run_preship_evals.py
     owner_skill: sprint-factory
     last_green: 2026-09-10
 
@@ -69,13 +69,13 @@ suites:
 
   - target: status-index/completion-calc
     layer: A
-    runner: python3 ~/.claude-shared-config/skills/status-index/evals/run_status_evals.py
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/status-index/evals/run_status_evals.py
     owner_skill: status-index
     last_green: 2026-09-10
 
   - target: validate-repo-links/validate
     layer: A
-    runner: python3 ~/.claude-shared-config/skills/validate-repo-links/evals/run_link_evals.py
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/validate-repo-links/evals/run_link_evals.py
     owner_skill: validate-repo-links
     # pins a real bug: `validate` exits 0 on broken links (cases suffixed -BUG);
     # see the suite's eval report before relying on exit codes as a CI gate.
@@ -85,7 +85,7 @@ suites:
 
   - target: hooks/external-post-gate
     layer: A
-    runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook external-post-gate
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook external-post-gate
     owner_skill: post-comment
     # DESIGNED RED: the wiring assertion (expected_wired: true) fails while the hook
     # is unwired pending the PCE handoff decision. Do NOT green it by editing the
@@ -94,49 +94,49 @@ suites:
 
   - target: hooks/challenge-detect
     layer: A
-    runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook challenge-detect
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook challenge-detect
     owner_skill: deploy-identity
     last_green: 2026-09-10
 
   - target: hooks/pm-single-trunk-guard
     layer: A
-    runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook pm-single-trunk-guard
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook pm-single-trunk-guard
     owner_skill: skill-evals
     last_green: 2026-09-10
 
   - target: hooks/session-close-operationalize-guard
     layer: A
-    runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook session-close-operationalize-guard
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook session-close-operationalize-guard
     owner_skill: skill-evals
     last_green: 2026-09-10
 
   - target: hooks/claude-md-guard
     layer: A
-    runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook claude-md-guard
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook claude-md-guard
     owner_skill: harness
     last_green: 2026-09-10
 
   - target: hooks/screenshot-placement-guard
     layer: A
-    runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook screenshot-placement-guard
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook screenshot-placement-guard
     owner_skill: harness
     last_green: 2026-09-10
 
   - target: hooks/proposal-backlog-check
     layer: A
-    runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook proposal-backlog-check
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook proposal-backlog-check
     owner_skill: harness
     last_green: 2026-09-10
 
   - target: hooks/spec-guard
     layer: A
-    runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook spec-guard
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook spec-guard
     owner_skill: harness
     last_green: 2026-09-10
 
   - target: hooks/file-guard
     layer: A
-    runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook file-guard
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook file-guard
     owner_skill: harness
     # RESOLVED 2026-09-10. This carried a deliberate-red marker while the hook was
     # unwired; the wiring assertion pinned expected_wired: true to force the
@@ -147,7 +147,7 @@ suites:
 
   - target: hooks/config-protect
     layer: A
-    runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook config-protect
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook config-protect
     owner_skill: harness
     # DESIGNED RED: unwired (same decision as file-guard). Also carries a REAL BUG,
     # pinned: broken quote-escaping means it never blocks anything — see
@@ -156,20 +156,20 @@ suites:
 
   - target: hooks/branch-guard
     layer: A
-    runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook branch-guard
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook branch-guard
     owner_skill: skill-evals
     # NOTE: hook blocks with exit 1 (pinned), not the exit-2 convention.
     last_green: 2026-09-10
 
   - target: hooks/worktree-guard
     layer: A
-    runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook worktree-guard
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook worktree-guard
     owner_skill: skill-evals
     last_green: 2026-09-10
 
   - target: hooks/git-pipe-guard
     layer: A
-    runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook git-pipe-guard
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook git-pipe-guard
     owner_skill: skill-evals
     # NOTE: warn-only by design, always exits 0. Cases assert the needle, not the exit code.
     # Was wired under PreToolUse Bash with no suite and no exclusion until 2026-09-09.
@@ -177,7 +177,7 @@ suites:
 
   - target: hooks/wayfinder-close-guard
     layer: A
-    runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook wayfinder-close-guard
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook wayfinder-close-guard
     owner_skill: wayfinder
     # NOTE: warn-only by design, always exits 0. Cases assert the needle, not the exit code.
     # The wiring assertion is DESIGNED-RED until the PreToolUse entry is applied to
@@ -188,19 +188,19 @@ suites:
 
   - target: hooks/deploy-identity-guard
     layer: A
-    runner: python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook deploy-identity-guard
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook deploy-identity-guard
     owner_skill: deploy-identity
     last_green: 2026-09-10
 
   - target: deploy-identity/probe
     layer: A
-    runner: python3 ~/.claude-shared-config/skills/deploy-identity/evals/run_probe_evals.py
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/deploy-identity/evals/run_probe_evals.py
     owner_skill: deploy-identity
     last_green: 2026-09-10
 
   - target: harness/no-vendored-worktree-skill
     layer: A
-    runner: python3 ~/.claude-shared-config/hooks/evals/run_vendored_skill_evals.py
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/hooks/evals/run_vendored_skill_evals.py
     owner_skill: using-git-worktrees
     # Migration contract, 2026-09-10: using-git-worktrees moved out of the superpowers
     # plugin cache into skills/ and is now ours. Pins one authoritative copy, the correct
@@ -213,7 +213,7 @@ suites:
 
   - target: git/lint
     layer: A
-    runner: python3 ~/.claude-shared-config/skills/git/evals/run_git_evals.py
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/git/evals/run_git_evals.py
     owner_skill: git
     # Covers only the four rules no git guard hook enforces: Klever clone scheme,
     # history rewriting, DAC push targets, branch naming. Case 01 is the warm-finch
@@ -222,7 +222,7 @@ suites:
 
   - target: service-factory/gates
     layer: A
-    runner: python3 ~/.claude-shared-config/skills/service-factory/evals/run_evals.py
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/service-factory/evals/run_evals.py
     owner_skill: service-factory
     last_green: 2026-09-10
     notes: >
@@ -233,7 +233,7 @@ suites:
 
   - target: service-factory/replay-calibration
     layer: A
-    runner: python3 ~/.claude-shared-config/skills/service-factory/evals/calibrate.py
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/service-factory/evals/calibrate.py
     owner_skill: service-factory
     last_green: 2026-09-10
     notes: >
@@ -357,7 +357,7 @@ suites:
 
   - target: notion/nx-cli
     layer: A
-    runner: python3 ~/.claude-shared-config/skills/notion/evals/run_nx_evals.py
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/notion/evals/run_nx_evals.py
     owner_skill: notion
     last_green: null
     # DESIGNED RED: the notion-read-guard wiring assertion.
@@ -373,12 +373,194 @@ suites:
 
   - target: notion/read-behavior
     layer: B
-    runner: python3 ~/.claude-shared-config/skills/notion/evals/run_behavior_evals.py
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/notion/evals/run_behavior_evals.py
     owner_skill: notion
     last_green: null
     note: >
       Live headless agent runs (4). On-demand only, not for the unattended sweep.
       Grades whether SKILL.md prose induces the read ladder and staleness disclosure.
+
+  # --- added 2026-11-06 by the skill-proposal triage apply (GH-1-skill-proposals-apply) ---
+  - target: klever-mr/gate-scripts
+    layer: A
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/klever-mr/evals/run_gate_evals.py
+    owner_skill: klever-mr
+
+
+  - target: gitlab/interpreter
+    layer: A
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/gitlab/evals/run_interpreter_evals.py
+    owner_skill: gitlab
+
+  - target: git/revert-check
+    layer: A
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/git/evals/run_revert_evals.py
+    owner_skill: git
+
+  - target: git/behavioral
+    layer: B
+    runner: skill-creator benchmark — evals at ~/.claude-shared-config/skills/git/evals/evals.json (1 eval, revert-and-isolate)
+    owner_skill: git
+
+  - target: jira/history
+    layer: A
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/jira/evals/run_history_evals.py
+    owner_skill: jira
+
+
+  - target: dark-factory/substrate-scope
+    layer: A
+    runner: node ~/.claude-shared-config/skills/dark-factory/tests/substrate-scope.test.mjs
+    owner_skill: dark-factory
+
+  - target: dark-factory/headless-launch-guard
+    layer: A
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/dark-factory/tests/headless_launch_guard_test.py
+    owner_skill: dark-factory
+
+  - target: dark-factory/review-gate
+    layer: A
+    runner: node ~/.claude-shared-config/skills/dark-factory/tests/review-gate.test.mjs
+    owner_skill: dark-factory
+
+  - target: dark-factory/design-qa-gates
+    layer: A
+    runner: node ~/.claude-shared-config/skills/dark-factory/tests/design-qa-gates.test.mjs
+    owner_skill: dark-factory
+
+  - target: dark-factory/ticket-source
+    layer: A
+    runner: node ~/.claude-shared-config/skills/dark-factory/tests/ticket-source.test.mjs
+    owner_skill: dark-factory
+
+  - target: adversarial-cascade/codex-loop
+    layer: A
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/adversarial-cascade/evals/run_cascade_evals.py
+    owner_skill: adversarial-cascade
+
+  - target: test-adversarial/mutation-check
+    layer: A
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/test-adversarial/evals/run_mutation_evals.py
+    owner_skill: test-adversarial
+
+  - target: tech-doc-review-flow/single-doc-certify
+    layer: B
+    runner: skill-creator benchmark on ~/.claude-shared-config/skills/tech-doc-review-flow (evals/evals.json)
+    owner_skill: tech-doc-review-flow
+
+  - target: deploy-identity/contract
+    layer: A
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/deploy-identity/evals/run_contract_evals.py
+    owner_skill: deploy-identity
+
+  - target: klever-test/proof
+    layer: A
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/klever-test/evals/run_proof_evals.py
+    owner_skill: klever-test
+
+  - target: klever-local-stack/emulator-verify
+    layer: A
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/klever-local-stack/evals/run_verify_evals.py
+    owner_skill: klever-local-stack
+
+  - target: gcloud/agent-trace
+    layer: A
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/gcloud/evals/run_agent_trace_evals.py
+    owner_skill: gcloud
+
+
+  - target: disk-management/scan
+    layer: A
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/disk-management/evals/run_scan_evals.py
+    owner_skill: disk-management
+
+  - target: meeting-to-action/private-dest-gate
+    layer: A
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/meeting-to-action/evals/run_private_dest_evals.py
+    owner_skill: meeting-to-action
+
+  - target: meeting-to-action/behavioral
+    layer: B
+    runner: skill-creator benchmark — evals at ~/.claude-shared-config/skills/meeting-to-action/evals/evals.json
+    owner_skill: meeting-to-action
+
+  - target: research/behavioral
+    layer: B
+    runner: skill-creator benchmark — evals at ~/.claude-shared-config/skills/research/evals/evals.json
+    owner_skill: research
+
+
+  - target: mapping:tileset/pipeline
+    layer: A
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude/plugins/local-marketplace/mapping/skills/tileset/evals/eval_pipeline.py
+    owner_skill: mapping:tileset
+
+
+  - target: harness-audit/self-containment
+    layer: A
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/harness-audit/evals/run_self_containment_evals.py
+    owner_skill: harness-audit
+
+  - target: session:handoff/umbrella-idempotency
+    layer: A
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/plugins/session/skills/handoff/evals/run_handoff_match_evals.py
+    owner_skill: session:handoff
+
+  - target: session:pickup/triage-worksheet
+    layer: A
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/plugins/session/skills/pickup/evals/run_triage_worksheet_evals.py
+    owner_skill: session:pickup
+
+  - target: session:pickup/behavioral
+    layer: B
+    runner: skill-creator benchmark — evals at ~/.claude/plugins/local-marketplace/session/skills/pickup/evals/evals.json
+    owner_skill: session:pickup
+
+  - target: post-comment/draft-state
+    layer: A
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/post-comment/evals/run_draft_state_evals.py
+    owner_skill: post-comment
+
+
+  - target: notion/fact-check
+    layer: B
+    runner: skill-creator benchmark — evals at ~/.claude-shared-config/skills/notion/evals/evals.json
+    owner_skill: notion
+
+  - target: wayfinder/references
+    layer: A
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/wayfinder/evals/run_reference_evals.py
+    owner_skill: wayfinder
+
+  - target: wayfinder/behavioral
+    layer: B
+    runner: skill-creator benchmark — evals at ~/.claude-shared-config/skills/wayfinder/evals/evals.json
+    owner_skill: wayfinder
+
+  - target: ticket-to-pr-analyst/prior-work
+    layer: A
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/ticket-to-pr-analyst/evals/run_prior_work_evals.py
+    owner_skill: ticket-to-pr-analyst
+
+  - target: vendor-question-escalation/behavioral
+    layer: B
+    runner: skill-creator benchmark — evals at ~/.claude-shared-config/skills/vendor-question-escalation/evals/evals.json
+    owner_skill: vendor-question-escalation
+
+  - target: colleague-review-klever/behavioral
+    layer: B
+    runner: agent run per case against a recorded fixture (no live GitLab), grade the draft — evals at ~/.claude-shared-config/evals/agents/colleague-review-klever/evals.json
+    owner_skill: colleague-review-klever
+
+  - target: klever-terraform-infra/pre-change-snapshot
+    layer: A
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/klever-terraform-infra/evals/run_snapshot_evals.py
+    owner_skill: klever-terraform-infra
+
+  - target: batch-skill-pipeline/triage
+    layer: A
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/batch-skill-pipeline/evals/run_triage_evals.py
+    owner_skill: batch-skill-pipeline
 
 exclusions:
   - target: superpowers:brainstorming

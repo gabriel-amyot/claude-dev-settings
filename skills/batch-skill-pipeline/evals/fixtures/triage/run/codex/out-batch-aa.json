@@ -1,0 +1,12 @@
+Here is my review of the batch. I checked each claim against the files.
+
+[
+ {"file": "2026-03-01-gamma-sweep.md", "agree": false, "codex_verdict": "BUILD", "codex_score": 60,
+  "codex_invocation": "manual", "findings": [{"label": "CONFIRMED", "text": "Recurs in two later sessions."}],
+  "summary": "Keep gamma: the first pass missed later recurrences."},
+ {"file": "2026-02-01-beta-check.md", "agree": false, "codex_verdict": "ARCHIVE", "codex_score": 10,
+  "codex_invocation": "manual", "findings": [{"label": "PLAUSIBLE", "text": "Checker covers it fully."}],
+  "summary": "Archive beta: checker already covers the check."}
+]
+
+End of review.

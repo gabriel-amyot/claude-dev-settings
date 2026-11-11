@@ -1,5 +1,8 @@
 # Skill & Agent Catalog
 
+Live consolidated view: [Harness observatory](harness/view/index.html). Generate or refresh it with `python3 harness/catalog.py refresh`.
+Read [the harness index](harness/INDEX.md) for data ownership, agent write operations, evidence coverage and producer bridges. The intent guide below remains a manual navigation aid.
+
 Quick reference for what to use when. Organized by intent.
 
 ---
@@ -99,6 +102,7 @@ Quick reference for what to use when. Organized by intent.
 
 | Intent | Tool | Type |
 |--------|------|------|
+| Explicit BMAD roles and workflows | `/bmad` (Claude), `$bmad` (Codex) | shared skill |
 | BMAD party (interactive, you participate) | `bmad-party` | agent |
 | BMAD party (autonomous, no interaction) | `bmad-party-autopilot` | agent |
 | Post-mortem / debrief | `/bmad-debrief` | skill |

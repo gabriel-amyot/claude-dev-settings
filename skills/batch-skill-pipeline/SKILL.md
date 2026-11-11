@@ -1,9 +1,9 @@
 ---
 name: batch-skill-pipeline
-description: Batch-create skills from approved proposals in ~/.claude/skill-proposals/. Trigger: "build all skills", "batch create skills", "create the skills", "build proposals", "skill pipeline", "build the Tier N skills", "build approved skills".
+description: "Build approved ~/.claude/skill-proposals, or triage them (costly, run only when asked). Triggers: build all skills, batch create skills, create the skills, build proposals, skill pipeline, build the Tier N skills, build approved skills, triage the skill proposals, review the skill proposals list, adversarially review proposals."
 nav:
   bay: ops
-  when: "Batch-create skills from approved proposals in skill-proposals/."
+  when: "Batch-create skills from approved proposals in skill-proposals/, or (on request) triage the whole proposal backlog with a Claude pass, a Codex attack and a human decision page."
   when_not: "Creating a single skill (use skill-creator:skill-creator)."
 ---
 
@@ -16,7 +16,20 @@ Turn a backlog of approved proposals into deployed skills in one pass. Dispatche
 /batch-skill-pipeline                   # List all proposals, user picks which to build
 /batch-skill-pipeline --all             # Build every proposal in the inbox
 /batch-skill-pipeline --file 2026-04-25-foo.md 2026-04-25-bar.md   # Build specific files
+/batch-skill-pipeline triage [--since YYYY-MM-DD] [--resume <run-dir>]   # Triage the backlog
 ```
+
+---
+
+## Mode: triage
+
+Decide BUILD, UPDATE, MERGE, SOP or ARCHIVE for every pending proposal before building anything. Run it only when the user asks: it costs about 10 agents and 11 Codex runs.
+
+1. Read `references/triage.md` and follow its phases P0 to P8. Stop at the gates after P0, P5 and P8.
+2. The scripts live in `scripts/triage/`. Each takes `--run-dir ~/.claude/skill-proposals/.triage/<date>/`, where all state lives.
+3. `--resume <run-dir>`: read `STATE.json` there and continue at the first phase that is not done.
+4. The human decides on `triage.html` and exports `decisions.json`. Codex wins verdict conflicts unless the human overrides.
+5. Steps 1 to 7 below are the build mode. Use them for proposals that triage marked BUILD.
 
 ---
 

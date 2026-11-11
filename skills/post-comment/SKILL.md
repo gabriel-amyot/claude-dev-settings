@@ -10,6 +10,13 @@ nav:
 
 # /post-comment
 
+## Host compatibility
+
+Read [the shared host mapping](../../docs/skill-host-compatibility.md) before execution. Use native tools and the existing shared agent instructions. Required executors and companion skills remain real dependencies.
+
+
+Read ~/.claude-shared-config/agents/post-comment.md before executing. Claude can use its registered agent. Codex uses that same instruction body through native delegation or in the current context. Frontmatter agent: does not install a Codex agent. Run the existing verifiers, renderer and audit steps explicitly; Claude hook markers alone do not provide enforcement on another host. Existing user authorization governs whether another approval question is necessary.
+
 Safe external posting pipeline. Enforces: draft on disk, template render, full preview, explicit approval, audit log. Supports new posts, edits, and batch posting.
 
 ## Usage
@@ -46,6 +53,8 @@ Drafts and posted content are saved to `tickets/{TICKET}/reports/ship/posts/`:
 - `{date}-{slug}.md` for drafts
 - `{date}-{slug}.posted` for rendered content that was actually posted
 
+**Unsent drafts own durable state.** If the human does not approve a previewed draft in the same turn, record it with `draft-state.py hold` and a hard expiry date before the turn ends. Before you resurface a held or untracked draft, reconcile the remote posting state first: a missing local log entry does not prove the draft is unsent. Procedure: [references/unsent-drafts.md](references/unsent-drafts.md).
+
 ## Templates
 
 Templates live in `~/.claude-shared-config/skills/templates/`. See `README.md` there for the full list and draft file format.
@@ -55,7 +64,7 @@ Templates live in `~/.claude-shared-config/skills/templates/`. See `README.md` t
 - **Causal claims must carry epistemic status (KTP-907 gate).** Before preview, the agent runs `verify-causal-claims.py` on the draft (and re-runs it on the rendered output). Any root-cause assertion or defect attribution must either reference a validation artifact (`Confirmed-in-context: <path>` — a falsification PRODUCT with `Repro-command:`/`Observed:` evidence against the ACTUAL failing input; existence alone is not enough, self-reference and prose-only files block), quote an already-published RCA ("Per the published RCA (KTP-XXX)"), or be explicitly labeled `[HYPOTHESIS — reproduced in isolation]` (escalated when the hypothesis names specific code). Bare causal claims BLOCK the post. When blocked, the remediation is for the CALLER to dispatch a fresh-context falsifier against the real failing input (the post-comment agent cannot spawn subagents) — NOT to reword the draft to slip past the detector. The preview shows the epistemic-status banner as a claim-to-verify with an approver checklist, not a guarantee. The regex layer is a backstop: the agent owns semantic cases (correlational causation, blame-by-name in neutral grammar).
 - **Describe code and behavior, never authors (KTP-907 blame rule).** External artifacts must not attribute a defect to a named person or use git-blame-derived attribution in causal narrative. No override — a confirmed cause still doesn't need an author in the story. If ownership matters, tag the person as reviewer/decision-maker ("fix options below — {name}'s call") with no causal claim about their code. `verify-causal-claims.py` blocks blame language unconditionally.
 - **Inline diff anchors count as code-location citations.** A GitLab/GitHub inline comment carries its `file:line` in the API position object, invisible to text gates. Before posting any inline discussion, the draft text must contain the corresponding stamped citation (e.g. `flow.py:247 [VERIFIED against dev@<sha>]`) so both verifiers can see it.
-- **Code-review etiquette: suggest, don't push (learned KTP PRD-review 2026-07-13).** When reviewing someone else's PR/MR, propose code changes as **inline comments with `suggestion` blocks** attached to the relevant lines, so the author clicks "Apply suggestion" if they agree. Never push commits to, or edit files on, another person's branch. Each suggestion is toned as a justification ("X can mislead because Y, so Z would help"), not a demand. It is the author's branch and the author's call. This binds even when you have write access and even when the fix is obviously correct.
+- **Code-review etiquette, updated 2026-10-26.** Read existing comments first and do not repeat covered issues. Use Gabriel's collaborative, guiding and encouraging tone. Explain the issue, why it matters and the direction to investigate. Avoid prescribing a detailed implementation unless requested or necessary to clarify the issue. Suggestion blocks are optional. Never push to or edit another person's branch as part of a review.
 - **Code-location claims must carry a deploy-identity stamp (KTP-688 gate).** Before preview, the agent runs `verify-code-claims.py` on the draft. Any citation like `bigquery.py:46` must be stamped `[VERIFIED against <branch>@<sha>]` or `[UNVERIFIED — read on <branch>, deploy=<branch>]`. Unstamped code refs BLOCK the post. Produce the stamp with `/deploy-identity`. This is the containment boundary that would have stopped the wrong-branch line-refs from reaching the code owner.
 - **No AI tag, no persona, no model — write as Gabriel (supersedes the old persona/model header rule).** External posts carry NO `[automated]` tag, NO "Message from {persona}", NO model name, NO "Posted via Claude Code". They are written in Gabriel's own voice, as him. Provenance lives only in the on-disk audit log. Reason: the visible AI tag caused teammates to skip the comments unread. The BMAD persona remains an INTERNAL lens for choosing what to write; it never appears in the text or as a signature.
 - **Voice and brevity doctrine (governs every external post).** Fewest words that carry the point. A wall of text disrespects the reader's time and rarely gets read; long AND wrong never gets read again, while short AND occasionally wrong is recoverable. Write like Gabriel types:

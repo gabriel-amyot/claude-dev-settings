@@ -35,6 +35,10 @@ When invoked without arguments, present this menu and ask the user which option:
 | 5 | **Backend: API E2E Tests** | Runs Python scripts that call proximity-report endpoints with assertions. 22 tests total. | Python (`python3`) | [backend-api-tests.md](backend-api-tests.md) |
 | 6 | **Sprint Proof Runner** | Generates per-ticket proof artifacts (screenshots, API logs, unit test results, grep checks) in Jira wiki markup. AC-driven: maps every acceptance criterion to a test layer and produces evidence. Covers full sprint or single ticket. | run-proof.sh | [proof-runner.md](proof-runner.md) |
 | 7 | **Post-Train Prod Regression** | Validates app-front-portal on prod AFTER a dev→prod release train. Two layers: always-on core smoke (fixed) + diff-targeted feature checks inferred from the train's code delta. Verifies the shipped features AND that nothing major broke. Live execution via ui-probe; data-layer BQ checks where applicable. | train-diff-to-testplan.py + ui-probe | [post-train-regression.md](post-train-regression.md) |
+| 8 | **Live Upstream Proxy** (explicit request only) | Validates a backend proxy against the LIVE vendor API: field population and casing, not HTTP 200. | classify_proof.py | [references/live-upstream-proxy.md](references/live-upstream-proxy.md) |
+| 9 | **Agent Probe** (explicit request only) | Drives an internal AG-UI agent directly over an IAP tunnel and checks the event stream. Backend-side counterpart to ui-probe. | agui_events.py | [references/agent-probe.md](references/agent-probe.md) |
+
+**Deployed-path evidence rule.** Any run against dev or prod classifies its evidence as PASS, FAIL or UNPROVEN under [references/deployed-path-proof.md](references/deployed-path-proof.md). A status code alone is never PASS.
 
 ## Auto-Selection Heuristics
 
@@ -50,6 +54,8 @@ If the user provides context, skip the menu:
 | "test the backend", "test the API", "run backend tests" | #5 Backend: API E2E |
 | "generate proof", "proof artifacts", "sprint proof", "AC evidence", "proof for KTP-XXX", "prove the sprint", "test the sprint", "run proof", "ticket proof" | #6 Sprint Proof Runner |
 | "post-train regression", "validate the portal after the train", "regression after prod deploy", "did the release break anything", "post-deploy portal check" | #7 Post-Train Prod Regression |
+| "validate the proxy against the live API", "green mocks but is the live contract right" | #8 Live Upstream Proxy. Confirm environment and call budget first |
+| "probe the agent directly", "hit /agent", "check the AG-UI events" | #9 Agent Probe. Confirm environment first. "Is dev up" goes to /dev-status |
 
 ## Autonomous Agent Usage
 

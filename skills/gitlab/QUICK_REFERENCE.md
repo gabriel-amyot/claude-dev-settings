@@ -217,13 +217,13 @@ gitlab_skill.py mr --project 123 --action approve --mr-iid 42
 Test your setup:
 ```bash
 # Should show groups
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py list-groups
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py list-groups
 
 # Should show repos
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py list-repos --group f-r-r-s
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py list-repos --group f-r-r-s
 
 # Should clone successfully
-python3 ~/.claude-shared-config/skills/gitlab/gitlab_skill.py clone --group f-r-r-s --repos test-repo
+uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py clone --group f-r-r-s --repos test-repo
 ```
 
 ---

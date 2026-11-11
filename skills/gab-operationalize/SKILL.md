@@ -9,6 +9,16 @@ nav:
 
 # Operationalize
 
+## Host compatibility
+
+Read [the shared host mapping](../../docs/skill-host-compatibility.md) before execution. Use native tools and the existing shared agent instructions. Required executors and companion skills remain real dependencies.
+
+
+## Shared maintenance note (2026-10-26)
+
+Highest priority: shared knowledge, durable memory and continuity. Preserve one library for Claude and Codex. Compatibility or maintenance issues are work to assess, not a reason to demote this area. See [the shared selection record](../../docs/harness-skill-selection.md).
+
+
 Turn ad-hoc sessions into permanent knowledge. Every extracted nugget is **tribal knowledge**. Some nuggets also produce a skill proposal.
 
 **Usage:**
@@ -34,9 +44,9 @@ Turn ad-hoc sessions into permanent knowledge. Every extracted nugget is **triba
 
 The manifest is the session's in-session memory of what has already been captured. It makes repeat runs cheap (no duplicate nuggets) and gives the close gate a deterministic signal.
 
-**Locate it.** Find the active session folder under `{org-project-management}/sessions/active/`. If exactly one exists, use it. If several, pick the one whose `state.yaml` `last_activity` is newest. The manifest is `sessions/active/{slug}/knowledge-manifest.yaml`.
+**Locate it.** Use only the session slug established for THIS conversation or explicitly supplied by its handoff. Verify the matching ledger entry and `state.yaml`. Never choose by folder count, newest `last_activity`, or an ambiguous ticket match. The manifest is `sessions/active/{slug}/knowledge-manifest.yaml`.
 - If the folder exists but the manifest file does not (a session created before v2), **create it** now per schema `knowledge_manifest_format` (`last_run: null`, empty `nuggets`/`skills`/`runs`), then proceed.
-- If no active session folder exists at all, you are in legacy mode — skip every manifest step below and run the skill normally.
+- If this conversation has no reliable session association, capture to a new bibliothèque inbox entry in legacy mode. Do not touch another session's manifest or recorded inbox file. A close request must initialize this conversation's session before obtaining close evidence.
 
 **Read before mining (feeds Phase 1).** Load `nuggets[].subject` from the manifest. These subjects are already persisted to the inbox. They are still in your context, but **do not re-extract them.** Mine only for subjects that are NOT already on that list. Dedup is **by subject**, never by timestamp — you cannot filter your own context by "what arrived after the last run", so the manifest's subject list is the only reliable dedup key.
 

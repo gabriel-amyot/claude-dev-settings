@@ -70,6 +70,29 @@ find "$WT" -maxdepth 2 \
 
 ---
 
+## A Bash Tool Call Containing a Heredoc Can Hang Silently, With No Output At All
+
+A Claude Code `Bash` tool call that contains a heredoc (`cat > file <<'EOF' ... EOF`,
+`python3 - <<'EOF' ... EOF`) hung until the tool's 120-second timeout. Nothing ran: no `mkdir`, no
+output file, no log line. This is not a Codex-specific stdin issue; it is the Bash tool itself,
+and it fires on an ordinary shell heredoc, not only on a CLI invocation that reads from stdin.
+
+**The tell:** stuck `zsh -c source .../shell-snapshots/...` processes from other sessions show the
+same pattern, and the backgrounded task leaves an empty output file while the target files the
+command was supposed to create never appear.
+
+**How to apply:** Do not put a heredoc inside a `Bash` tool call. Write the script, prompt, or file
+content with the `Write` tool, or with `printf '%s\n' ... > file`, then run the resulting file as a
+separate `Bash` call. This is the same failure shape as the Codex-specific `$(cat <<EOF ... EOF)`
+stdin hang documented in the Klever wiki
+(`documentation/bibliotheque/sops/autonomous-workflows/codex-cli-adversarial-review-patterns.md`,
+"Fourth Confirmation: a Heredoc-Built Positional Prompt Can Still Leave stdin Open"), but it is
+broader: it hits any heredoc-bearing Bash call, not only `codex exec`.
+
+**Source:** session `lucid-kite`, Klever KTP-1264 Placer extraction review (2026-10-26).
+
+---
+
 ## A Failed Probe Reports Absence, Not "Could Not Check" — a Shared Pattern
 
 The first draft of a worktree secret scan read:

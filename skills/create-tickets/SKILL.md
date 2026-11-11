@@ -1,6 +1,6 @@
 ---
 name: create-tickets
-description: Create Jira tickets (epics, stories, spikes) with proper formatting, AC quality gate, local scaffolding, and optional Leo review. Use when the user wants to create multiple related tickets, plan an epic with children, or batch-create stories/spikes. Triggers on "create tickets", "create an epic with stories", "plan the tickets", "set up the Jira tickets", "scaffold tickets for this work". Input: epic description or list of stories with AC. Returns: created Jira keys and local scaffold paths.
+description: "Create Jira tickets (epics, stories, spikes) with proper formatting, AC quality gate, local scaffolding, and optional Leo review. Use when the user wants to create multiple related tickets, plan an epic with children, or batch-create stories/spikes. Triggers on \"create tickets\", \"create an epic with stories\", \"plan the tickets\", \"set up the Jira tickets\", \"scaffold tickets for this work\". Input: epic description or list of stories with AC. Returns: created Jira keys and local scaffold paths."
 nav:
   bay: plan
   when: "Create Jira tickets (epics, stories, spikes) with AC quality gate and local scaffolding."
@@ -9,6 +9,16 @@ nav:
 ---
 
 # Create Tickets
+
+## Host compatibility
+
+Read [the shared host mapping](../../docs/skill-host-compatibility.md) before execution. Use native tools and the existing shared agent instructions. Required executors and companion skills remain real dependencies.
+
+
+## Shared maintenance note (2026-10-26)
+
+Keep the ticket/specification group. Gabriel wants these available, with a short purpose explanation when choosing one. Repair stale paths or evidence assumptions before activation. See [the shared selection record](../../docs/harness-skill-selection.md).
+
 
 End-to-end ticket creation pipeline: draft, review, create in Jira, scaffold locally, and optionally run Leo AC scan.
 

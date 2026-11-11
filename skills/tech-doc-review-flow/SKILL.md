@@ -9,6 +9,11 @@ nav:
 
 # Technical Documentation Review Flow
 
+## Shared maintenance note (2026-10-26)
+
+Keep. Gabriel uses or wants this documentation/review workflow available in both agents. See [the shared selection record](../../docs/harness-skill-selection.md).
+
+
 Three sequential passes over a repo's doc tree. Each pass loops editor → mechanical gates → adversarial verifier, max 5 rounds, exiting when zero Major/Critical findings remain. Everything is a file; every restart resumes from cache. Origin: the KTP-1182 Powers MCP run (worked example baked into the templates).
 
 ## The shape
@@ -27,6 +32,9 @@ Model tiering (binding): editors and Ship = `opus`, verifier wrappers = `sonnet`
 2. Copy `templates/*` there, plus `scripts/ast-guard.py`. Adapt per the header comment in each file: ticket key, repo, allowed `.py` files, persona paths, pass-1 mission specifics, the style charter's repo-specific rules (rule 12, the anti-bullshit rule, is not optional — read [ANTI-BULLSHIT.md](ANTI-BULLSHIT.md)).
 3. Fill `workflow.template.js` constants (`REVIEW_FLOW`, `REPO`, `BRANCH`, prerequisite-merge gate) and commit everything BEFORE launching. All prompts defined up front; no on-the-fly prompting.
 4. Launch: `Workflow({scriptPath: <the committed .js>})`. It runs Setup (gate + worktree from the base + suite baseline) → the three passes → Ship (version bump, CHANGELOG, docs lint, freshness check, push). MR creation stays in the main loop (`klever-mr`), unmerged.
+
+**One document, not a tree?** On explicit request only, use the single-document certification mode
+(adversarial verify, fix, no-context certify): [references/single-doc-certify.md](references/single-doc-certify.md).
 
 ## Hard rules
 

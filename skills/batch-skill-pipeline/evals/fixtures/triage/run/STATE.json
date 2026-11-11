@@ -1,0 +1,3 @@
+{"phase": "P3", "status": "running", "phases": {"P0": "done", "P1": "done", "P2": "done"},
+ "batches": {"batch-aa": {"claude": "done", "codex": "done"}, "batch-ab": {"claude": "done", "codex": "failed"}},
+ "budget": 120, "skills_installed": 5}

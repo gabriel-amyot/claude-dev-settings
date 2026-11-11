@@ -218,3 +218,12 @@ Write in the ASD-STE100 mechanical subset. This is the default voice for every r
 - Em-dash stays allowed only as a heading label (existing rule); never as a sentence separator.
 
 **This is guidance for conversation. On-disk external artifacts are enforced mechanically** by `~/.claude-shared-config/tools/ste_lint.py` (scored per 100 words), wired into post-comment, klever-mr, klever-3ps, and bibliotheque-librarian. See `~/.claude-shared-config/docs/specs/2026-07-30-ste-anti-slop-design.md`.
+
+<!-- shared-bmad-loading:start -->
+## BMAD loading
+
+Load `~/.claude-shared-config/skills/bmad/SKILL.md` only for an explicit BMAD request or BMAD command.
+Use its index, then read only the selected definition and required dependencies. Keep unselected personas, workflows and sidecars unread.
+Explicitly invoked workflows may load their declared BMAD dependencies. Use the active project's domain context and placement rules.
+Report unavailable definitions instead of inventing replacements. Generic role-related work does not activate BMAD.
+<!-- shared-bmad-loading:end -->

@@ -10,6 +10,14 @@ nav:
 
 # Harness Audit
 
+## Shared catalog and evidence
+
+Read `~/.claude-shared-config/harness/INDEX.md`. Use `python3 ~/.claude-shared-config/harness/catalog.py refresh` for the shared inventory, source coverage and current static view before evaluating drift. Refresh imports evidence; it does not execute evals or factories.
+
+Check collection coverage and evidence dates before interpreting usage. Static references, instruction loads, observed invocations and completed outcomes are different signals. A zero with partial coverage is not evidence of non-use. Record observed friction with the catalog's `note` command and proposals through its validated decision operation. An audit does not approve retirement or overwrite eval results.
+
+Keep the original audit report and underlying evidence. Catalog summaries and HTML are the shared point of view, not replacement evidence. See the original eval/factory artifact when verifying a conclusion.
+
 Adversarial audit of the Claude Code harness. Two phases: tear-down (findings), then rebuild (proposals).
 
 **Usage:** `/harness-audit [--org ORG] [--apply] [--quick]`
@@ -70,6 +78,9 @@ Combine all three subagent outputs. Run these checks:
 | **Empty event types** | Hook events with 0 entries (leftover from cleanup) | LOW |
 | **Orphan agents** | Agents with no corresponding skill or CLAUDE.md reference | LOW |
 | **Missing nav:** | Skill exists but has no `nav:` frontmatter and no `harness-overrides.yaml` entry | LOW |
+| **Self-containment** (factory skills, on request) | `scripts/self_containment_check.py`: version↔CHANGELOG, carried spec, runs ledger, laws. See [references/self-containment.md](references/self-containment.md) | HIGH (version drift) / MEDIUM |
+
+**Retirement candidates:** before you recommend retiring any skill, agent or hook, apply [references/retirement-verdict.md](references/retirement-verdict.md). Report the evidence for each step and the usage coverage. A zero with partial coverage gives `INCONCLUSIVE`, not retirement.
 
 ### Gap Analysis (skip if `--quick`)
 

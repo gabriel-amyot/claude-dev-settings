@@ -1,0 +1,30 @@
+{
+  "skill_name": "research",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "/research prep me for Thursday's meeting with Amal and David. We must decide whether the Canada map uses one tileset per geography level or a single merged tileset. Context is in the mapping plugin and the KTP-679 ticket folder.",
+      "expected_output": "Uses the meeting-prep variant. Writes one Markdown file with Decision, Options matrix, Data feasibility, Risks, Known unknowns, at most five Talking points, and a Source index. Each claim cites a primary source. At most four research agents.",
+      "files": [],
+      "expectations": [
+        "Claude reads or follows references/meeting-prep.md",
+        "The output file states the decision in one sentence and contains an options matrix with evidence for and against each option",
+        "The output file contains Data feasibility, Risks, Known unknowns and Talking points sections",
+        "Talking points number five or fewer",
+        "The output file ends with a source index that lists every cited path or URL",
+        "Claude dispatches no more than four research agents"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "/research how does Mapbox Tiling Service handle promoteId for string feature ids?",
+      "expected_output": "Uses the base research flow only. No meeting-prep sections (options matrix, talking points) appear in the output.",
+      "files": [],
+      "expectations": [
+        "Claude does not load references/meeting-prep.md",
+        "The output file has no Talking points or Options matrix section",
+        "Claims cite official Mapbox documentation or source code"
+      ]
+    }
+  ]
+}

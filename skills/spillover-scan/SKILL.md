@@ -10,6 +10,16 @@ nav:
 
 # Spillover Scan
 
+## Host compatibility
+
+Read [the shared host mapping](../../docs/skill-host-compatibility.md) before execution. Use native tools and the existing shared agent instructions. Required executors and companion skills remain real dependencies.
+
+
+## Shared maintenance note (2026-10-26)
+
+Keep the ticket/specification group. Gabriel wants these available, with a short purpose explanation when choosing one. Repair stale paths or evidence assumptions before activation. See [the shared selection record](../../docs/harness-skill-selection.md).
+
+
 Collect and track all accepted risks, warnings, and test gaps from recently closed tickets.
 
 **Usage:**
@@ -30,8 +40,8 @@ Collect and track all accepted risks, warnings, and test gaps from recently clos
 ### Phase 1: Collect Findings
 
 Scan these sources for each closed ticket:
-1. `tickets/{TICKET}/reports/status/closing-comment-draft-*.md` — adversarial findings noted in closing comments
-2. `tickets/{TICKET}/reports/reviews/adversarial-review-*.md` — full adversarial review reports
+1. `{resolved-source-ticket-folder}/reports/status/closing-comment-draft-*.md` — adversarial findings noted in closing comments
+2. `{resolved-source-ticket-folder}/reports/reviews/adversarial-review-*.md` — full adversarial review reports
 3. Adversarial agent output from the current session (if available)
 
 Extract every finding that was:
@@ -50,7 +60,7 @@ For each finding, record:
 
 ### Phase 3: Write Report
 
-Write to `tickets/{TRACKING-TICKET}/spillover-findings-{date}.md`:
+Write to `{resolved-tracking-ticket-folder}/spillover-findings-{date}.md`:
 
 ```markdown
 # Spillover Findings from [context] ({date})

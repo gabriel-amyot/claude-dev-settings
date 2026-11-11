@@ -22,6 +22,7 @@ Generated from `../ALIASES.md`. Every file has a row.
 | `eqs-graphql-reference.md` | Querying EQS GraphQL (field names, filter syntax, comparators) |
 | `git-history-verification.md` | Writing PR bodies, asserting code history ("X was deleted", "X never existed"), reviewing agent-written PR descriptions |
 | `harness-architecture-textbook.md` | how the harness is wired, harness subsystems, onboarding to the harness design |
+| `harness-machine-migration-checklist.md` | new Mac, new machine, migrate my harness, move credentials from the old Mac |
 | `harness-self-management.md` | Improving the harness, transcript mining, auto cost monitoring, batch API for crawls |
 | `hermes-agent-platform-mechanics.md` | hermes agent runtime, nous hermes, gravel first-responder, local agent install |
 | `java-standards.md` | Writing/reviewing Java code |
@@ -50,3 +51,5 @@ Generated from `../ALIASES.md`. Every file has a row.
 | `worktree-fleet-ops.md` | Creating a worktree from a project-management cwd, `could not lock config file ~/.gitconfig` in parallel fleets |
 | `zsh-dotfiles-double-sourcing-gotcha.md` | shell startup errors, zshenv sourcing zshrc, dotfiles run twice, intermittent terminal error |
 | `mechanical-backstops.md` | which hook enforces which rule, hook coverage and gaps |
+
+| `shared-skills-harness-observatory.md` | Sharing Claude/Codex skills, observatory usage/eval evidence, runtime cache parity and recovery |

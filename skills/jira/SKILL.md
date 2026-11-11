@@ -9,6 +9,11 @@ nav:
 
 # Jira Skill
 
+## Host compatibility
+
+Read [the shared host mapping](../../docs/skill-host-compatibility.md) before execution. Use native tools and the existing shared agent instructions. Required executors and companion skills remain real dependencies.
+
+
 ## Multi-Organization Support
 
 This skill supports multiple Jira organizations with automatic detection based on your current working directory.
@@ -69,7 +74,7 @@ Use this skill to interact with Jira issues through simple CLI commands. All com
 - `list [--status STATUS] [--project KEY] [--max N] [--full]` - List issues
 - `get KEY [--full]` - Get single issue details
 - `subtasks KEY` - List subtasks of an issue
-- `epic KEY` - Get parent epic of an issue
+- `epic KEY` - Get the epic of an issue (walks parent and epic link upward, so Sub-tasks resolve)
 - `comments KEY` - Get all comments for an issue
 - `description KEY` - Get raw description (verbatim)
 - `metadata KEY` - Get all metadata (assignee, reporter, labels, links, etc.)
@@ -82,12 +87,16 @@ Use this skill to interact with Jira issues through simple CLI commands. All com
 - `delete-comment KEY --comment-id ID` - Delete a comment from an issue
 - `transition KEY STATUS` - Transition issue to a new status
 - `transitions KEY` - List available transitions for an issue
-- `update KEY [--description DESC] [--summary SUMMARY] [--assignee USER] [--labels LABEL1,LABEL2] [--parent KEY] [--estimate N] [--sprint SPRINT_ID] [--force]` - Update issue fields (hierarchy-validated)
+- `update KEY [--description DESC] [--summary SUMMARY] [--assignee USER] [--labels LABEL1,LABEL2] [--parent KEY] [--epic KEY] [--estimate N] [--sprint SPRINT_ID] [--force]` - Update issue fields (hierarchy-validated)
 - `sprints --project PROJECT [--state active,future]` - List sprints for a project (returns ID, name, state, dates)
 - `sprint-board (--project KEY | --board ID) [--max N]` - Active-sprint issues with key, summary, status, **assignee**, story points, epic in ONE call (Agile board API; avoids the broken openSprints JQL). `--project KTP` auto-discovers the board (Klever = board 248). Default max 100.
 - `link KEY1 KEY2 [--type "Relates"]` - Create a link between two issues (default: Relates)
 - `link-types` - List all available issue link types
-- `retype KEY --type "Story"` - Change an issue's type (e.g., Epic to Story)
+- `retype KEY --type "Story"` - Change an issue's type (e.g., Epic to Story). Returns `ui_steps` when Jira refuses a Sub-task conversion
+- `history KEY [--field description] [--back N]` - Read-only field history, newest first; `--back N` recovers earlier text
+- `restore-description KEY [--back N] [--confirm --backup-dir DIR] [--force]` - Explicit request only. Dry run without `--confirm`
+
+History, restore and structure writes (`--parent`, `--epic`, `retype`, `epic` ancestor walk): [references/history-and-structure.md](references/history-and-structure.md). Run with `uv run` when `python3` lacks the `jira` package (the script also re-runs itself under uv).
 
 ## fetch — Materialize a Ticket to Disk
 
@@ -175,11 +184,11 @@ Get the parent epic of an issue:
 cd ~/.claude/skills/jira && python3 jira_skill.py epic INS-226
 ```
 
-## Delegation to Haiku
+## Native Delegation
 
-All Jira API calls should be delegated to Haiku subagents. Jira operations are I/O-bound (network calls, JSON parsing) and do not require deep reasoning. Delegating to Haiku saves tokens on the orchestrator while keeping response times fast.
+Jira operations are I/O-bound. Delegate larger API reads and parsing when useful, using the host's available subagent tools. A small lookup can run directly.
 
-**Pattern:** Spawn a Haiku subagent with `model: "haiku"` for any `jira_skill.py` invocation. The subagent runs the command, parses the output, and returns a concise summary. The orchestrator (Opus/Sonnet) handles interpretation, decision-making, and user communication.
+**Pattern:** Give the worker the exact jira_skill.py invocation, resolved --org and output scope. It returns a concise summary. In Claude, Haiku is suitable for mechanical I/O. In Codex, use the configured host model rather than an unavailable Claude model name. Interpretation and user communication remain with the caller.
 
 **Exception:** The `create` command requires the orchestrator to run the AC quality gate (Rule 6) and human gate (Rule 0) before delegating the actual API call.
 

@@ -1,0 +1,34 @@
+{
+  "skill_name": "wayfinder",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "/wayfinder Run another overnight round on the Proxi cloud map (#545). Last round, the deploy of the cron fix failed QA, so the agent rolled it back and marked the gate green because the service was healthy again. Plan tonight's round.",
+      "expected_output": "The agent follows references/overnight-rounds.md. It checks that the map Notes allow execution and that a charter exists. It refuses to count the rolled-back task as passed and records it as failed with a cause. It builds an ordered task list with explicit asks first, uses existing executors (dark-factory or sprint-crawl) per task, and ends with a completeness check and a morning brief.",
+      "files": [],
+      "expectations": [
+        "Checks the map's Notes for an execution override, or asks, before planning execution",
+        "Reads or requires the charter (destination, verified facts, authority, incident rules) before the round",
+        "States that the rolled-back task did not pass its gate and records it as a failed task with a cause",
+        "Orders tasks by hard dependencies only and puts explicit asks first",
+        "Uses dark-factory or sprint-crawl for execution rather than inventing a new executor",
+        "Ends the round with a completeness check against the charter and a morning brief that lists decisions waiting for Gabriel"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I want to send a subagent to work the wayfinder ticket 'Which BQ table backs the census cache?' (#612) on map #545. Write the dispatch prompt. Jira is read-only today, use Sonnet.",
+      "expected_output": "The agent fills references/dispatch-template.md instead of writing a free-form relay. The prompt tells the subagent to read SKILL.md itself, pre-check the wayfinder label, claim first, resolve through wayfinder_runs.py, and do a guarded map append. The slots carry Jira read-only and Sonnet. The agent states the orchestrator check for the trailer and the map line after the subagent returns.",
+      "files": [],
+      "expectations": [
+        "Uses the dispatch template rather than paraphrasing the procedure",
+        "Tells the subagent to read ~/.claude/skills/wayfinder/SKILL.md rather than relaying a copy of the procedure",
+        "Includes the wayfinder label pre-check and claim-first steps",
+        "Resolves through wayfinder_runs.py resolve, not a bare gh issue close",
+        "Includes the fetch, edit, re-fetch guarded map append",
+        "Fills the Jira slot as read-only and the model slot as Sonnet",
+        "States the post-return verification of the run trailer and the map gist"
+      ]
+    }
+  ]
+}

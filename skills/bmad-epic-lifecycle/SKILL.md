@@ -18,10 +18,10 @@ Run the full BMAD pipeline for a feature: concept → PRD → architecture → t
 
 | Role | Persona | File |
 |------|---------|------|
-| PM | John | `~/Developer/gabriel-amyot/projects/ai-software-development/dark-software-factory/_bmad/bmm/agents/pm.md` |
-| Architect | Winston | `~/Developer/gabriel-amyot/projects/ai-software-development/dark-software-factory/_bmad/bmm/agents/architect.md` |
-| Developer | Amelia | `~/Developer/gabriel-amyot/projects/ai-software-development/dark-software-factory/_bmad/bmm/agents/dev.md` |
-| QA | Quinn | `~/Developer/gabriel-amyot/projects/ai-software-development/dark-software-factory/_bmad/bmm/agents/qa.md` |
+| PM | John | `~/.claude-shared-config/bmad/runtime/bmm/agents/pm.md` |
+| Architect | Winston | `~/.claude-shared-config/bmad/runtime/bmm/agents/architect.md` |
+| Developer | Amelia | `~/.claude-shared-config/bmad/runtime/bmm/agents/dev.md` |
+| QA | Quinn | `~/.claude-shared-config/bmad/runtime/bmm/agents/qa.md` |
 | Spec Coach | Leo | See BMAD persona guide |
 
 ## Phase 1: Concept Roundtable (John)

@@ -6,6 +6,16 @@ disable-model-invocation: true
 
 # Setup Matt Pocock's Skills
 
+## Host compatibility
+
+Read [the shared host mapping](../../docs/skill-host-compatibility.md) before execution. Use native tools and the existing shared agent instructions. Required executors and companion skills remain real dependencies.
+
+
+## Shared maintenance note (2026-10-26)
+
+Keep the ticket/specification group. Gabriel wants these available, with a short purpose explanation when choosing one. Repair stale paths or evidence assumptions before activation. See [the shared selection record](../../docs/harness-skill-selection.md).
+
+
 Scaffold the per-repo configuration that the engineering skills assume:
 
 - **Issue tracker**: where issues live (GitHub by default; local markdown is also supported out of the box)

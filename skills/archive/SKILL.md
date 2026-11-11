@@ -1,6 +1,6 @@
 ---
 name: archive
-description: Archive completed project tickets with intelligent promotion of architecture artifacts (ADRs, contracts) to global documentation. Use when user mentions archiving tickets, closing tickets, cleanup of completed work, or moving finished tickets. Handles the full workflow - scanning for unpromoted ADRs/contracts, merging to global docs, and moving to archive folder. Input: ticket ID or folder path. Returns: list of promoted artifacts and archive location.
+description: "Archive completed project tickets with intelligent promotion of architecture artifacts (ADRs, contracts) to global documentation. Use when user mentions archiving tickets, closing tickets, cleanup of completed work, or moving finished tickets. Handles the full workflow - scanning for unpromoted ADRs/contracts, merging to global docs, and moving to archive folder. Input: ticket ID or folder path. Returns: list of promoted artifacts and archive location."
 allowed-tools: Read, Glob, Bash, Edit, Write
 nav:
   bay: ops
@@ -9,6 +9,11 @@ nav:
 ---
 
 # Archive Ticket Skill
+
+## Shared maintenance note (2026-10-26)
+
+Keep the ticket/specification group. Gabriel wants these available, with a short purpose explanation when choosing one. Repair stale paths or evidence assumptions before activation. See [the shared selection record](../../docs/harness-skill-selection.md).
+
 
 Archive completed project tickets while intelligently promoting architecture artifacts to global documentation.
 

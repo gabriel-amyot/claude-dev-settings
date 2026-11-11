@@ -142,3 +142,14 @@ _unlock
 
 echo "Scorecard entry appended to $SCORECARD_FILE"
 echo "Entry: $DATE | $CRAWL_TYPE | $TICKET | #$CRAWL_NUM | $EXIT_R | ${ITER_USED}/${ITER_BUDGET} iters | ${WALL}min"
+
+# Publish only after the original write succeeds. Telemetry cannot change its result.
+HARNESS_SHARED_ROOT="${HARNESS_ROOT:-${HOME}/.claude-shared-config}"
+if [[ -f "${HARNESS_SHARED_ROOT}/harness/producer.py" ]]; then
+  if ! printf '%s' "$JSON_PAYLOAD" | python3 "${HARNESS_SHARED_ROOT}/harness/producer.py" \
+      --kind crawl-scorecard --source "$SCORECARD_FILE" --records -; then
+    echo "WARN harness bridge failed; original scorecard was saved" >&2
+  fi
+else
+  echo "WARN harness bridge unavailable; original scorecard was saved" >&2
+fi

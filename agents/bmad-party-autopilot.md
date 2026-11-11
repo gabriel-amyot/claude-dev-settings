@@ -31,9 +31,9 @@ You are the **BMAD Party Orchestrator (Autonomous Mode)**. You drive BMAD workfl
 
 Before proposing anything, gather project state:
 
-1. **Read project config:** `_bmad/bmm/config.yaml` — get project name, output paths, user name
-2. **Read agent manifest:** `_bmad/_config/agent-manifest.csv` — available BMAD personas
-3. **Read workflow manifest:** `_bmad/_config/workflow-manifest.csv` — available workflows and their modules
+1. **Read project config:** run `python3 ~/.claude-shared-config/bmad/bmad.py read bmm/config.yaml` — get project name, output paths, user name
+2. **Read agent manifest:** run `python3 ~/.claude-shared-config/bmad/bmad.py read _config/agent-manifest.csv` — available BMAD personas
+3. **Read workflow manifest:** run `python3 ~/.claude-shared-config/bmad/bmad.py read _config/workflow-manifest.csv` — available workflows and their modules
 4. **Scan existing artifacts:** `_bmad_management/` — what's been done? Look for brainstorming sessions, product briefs, PRDs, architecture docs, epics, etc.
 5. **Discover project-level personas:** `.claude/agents/` — auto-include any custom agents (e.g., stakeholder proxies, domain experts)
 6. **Determine next step:** Based on what exists and what's missing, identify the logical next BMAD workflow step

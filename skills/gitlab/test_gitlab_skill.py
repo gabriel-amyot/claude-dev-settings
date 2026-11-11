@@ -1,8 +1,12 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["requests"]
+# ///
 """Tests for gitlab_skill.py safeguards, project resolution, and core logic.
 
-Run: python3 -m unittest test_gitlab_skill -v
-From: ~/.claude-shared-config/skills/gitlab/
+Run: uv run ~/.claude-shared-config/skills/gitlab/test_gitlab_skill.py
+(plain python3 fails when the default interpreter has no `requests`).
 """
 import json
 import os
@@ -528,6 +532,182 @@ class TestIndexFileLocking(unittest.TestCase):
             with open(index_path) as f:
                 data = json.load(f)
             self.assertEqual(data["version"], 1)
+
+
+# ===========================================================================
+# 2026-11-06: api passthrough, recent, discoverability, DAC merge guard
+# ===========================================================================
+
+def _ok(payload):
+    resp = MagicMock()
+    resp.status_code = 200
+    resp.json.return_value = payload
+    return resp
+
+
+class TestApiPassthrough(unittest.TestCase):
+    """`api` is a GET-only passthrough. It must never become a write path."""
+
+    def setUp(self):
+        _set_test_globals()
+
+    def test_normalizes_endpoint_forms(self):
+        for given in ("projects/1", "/projects/1", "/api/v4/projects/1", " projects/1 "):
+            self.assertEqual(gitlab_skill.normalize_api_endpoint(given), "/projects/1")
+
+    def test_refuses_full_url(self):
+        with self.assertRaises(ValueError):
+            gitlab_skill.normalize_api_endpoint("https://evil.example.com/api/v4/projects/1")
+
+    def test_refuses_empty_endpoint(self):
+        with self.assertRaises(ValueError):
+            gitlab_skill.normalize_api_endpoint("  ")
+
+    def test_parse_params(self):
+        self.assertEqual(gitlab_skill.parse_api_params(["state=opened", "q=a=b"]),
+                         {"state": "opened", "q": "a=b"})
+        with self.assertRaises(ValueError):
+            gitlab_skill.parse_api_params(["novalue"])
+
+    def test_issues_get_with_org_token_and_params(self):
+        with patch("requests.get", return_value=_ok({"id": 1})) as g, \
+             patch("requests.post") as post, patch("requests.put") as put, \
+             patch("requests.delete") as delete:
+            result = gitlab_skill.api_get("projects/1", params={"statistics": "true"})
+        self.assertEqual(result, {"id": 1})
+        url = g.call_args[0][0]
+        self.assertEqual(url, "https://test.example.com/api/v4/projects/1")
+        self.assertEqual(g.call_args[1]["headers"]["PRIVATE-TOKEN"], "test-token")
+        self.assertEqual(g.call_args[1]["params"], {"statistics": "true"})
+        post.assert_not_called(); put.assert_not_called(); delete.assert_not_called()
+
+    def test_all_pages_follows_until_short_page(self):
+        pages = [_ok([{"n": i} for i in range(100)]), _ok([{"n": 100}, {"n": 101}])]
+        with patch("requests.get", side_effect=pages) as g:
+            result = gitlab_skill.api_get("projects", all_pages=True)
+        self.assertEqual(len(result), 102)
+        self.assertEqual(g.call_count, 2)
+        self.assertEqual(g.call_args_list[1][1]["params"]["page"], "2")
+
+    def test_error_propagates_and_stops_paging(self):
+        not_found = MagicMock(); not_found.status_code = 404; not_found.text = "404 Not Found"
+        with patch("requests.get", return_value=not_found) as g:
+            result = gitlab_skill.api_get("projects/999", all_pages=True)
+        self.assertIn("error", result)
+        self.assertEqual(g.call_count, 1)
+
+    def test_parser_has_no_method_flag(self):
+        parser = gitlab_skill._build_parser()
+        with self.assertRaises(SystemExit):
+            with patch("sys.stderr"):
+                parser.parse_args(["api", "projects/1", "--method", "POST"])
+
+
+class TestRecentProjects(unittest.TestCase):
+
+    def setUp(self):
+        _set_test_globals()
+
+    def test_orders_by_created_at_desc(self):
+        rows = [{"id": 2, "created_at": "2026-11-05", "path_with_namespace": "g/new",
+                 "default_branch": None, "empty_repo": True}]
+        with patch("requests.get", return_value=_ok(rows)) as g:
+            result = gitlab_skill.recent_projects(limit=1)
+        params = g.call_args[1]["params"]
+        self.assertEqual((params["order_by"], params["sort"]), ("created_at", "desc"))
+        self.assertEqual(result, [{"created_at": "2026-11-05", "id": 2, "default_branch": None,
+                                   "empty_repo": True, "path_with_namespace": "g/new"}])
+
+    def test_match_filters_paths(self):
+        rows = [{"id": 1, "path_with_namespace": "grp-app/app-x"},
+                {"id": 2, "path_with_namespace": "grp-dac/dac-x"}]
+        with patch("requests.get", side_effect=[_ok(rows), _ok([])]):
+            result = gitlab_skill.recent_projects(limit=5, match="grp-dac")
+        self.assertEqual([r["id"] for r in result], [2])
+
+
+class TestDiscoverability(unittest.TestCase):
+    """Proposal 2026-09-14: a bare call and --help must show the real verbs."""
+
+    SCRIPT = os.path.join(SKILL_DIR, "gitlab_skill.py")
+
+    def _run(self, *args):
+        import subprocess
+        return subprocess.run([sys.executable, self.SCRIPT, *args],
+                              capture_output=True, text=True, timeout=60)
+
+    def test_help_lists_new_and_mr_commands(self):
+        out = self._run("--help")
+        self.assertEqual(out.returncode, 0)
+        for verb in ("recent", "api", "mr", "mr-diff", "auto-merge"):
+            self.assertIn(verb, out.stdout)
+
+    def test_bare_invocation_prints_usage_and_fails(self):
+        out = self._run()
+        self.assertEqual(out.returncode, 1)
+        self.assertIn("usage:", out.stderr)
+        self.assertIn("No command specified", out.stdout)
+
+    def test_mr_help_lists_all_six_actions(self):
+        out = self._run("mr", "--help")
+        for action in ("create", "list", "approve", "merge", "auto-merge", "update"):
+            self.assertIn(action, out.stdout)
+
+
+class TestDacMergeGuard(unittest.TestCase):
+    """merge/auto-merge into main/uat on a grp-dac project is human-initiated only."""
+
+    def setUp(self):
+        _set_test_globals()
+
+    def _fake_api(self, target, path, calls):
+        def fake(endpoint, method="GET", params=None, data=None, raw=False):
+            calls.append((method, endpoint))
+            if method == "PUT":
+                return {"iid": 7, "state": "merged"}
+            if endpoint.endswith("/merge_requests/7"):
+                return {"iid": 7, "target_branch": target}
+            return {"id": 42, "path_with_namespace": path}
+        return fake
+
+    def _merge(self, target, path, action="merge", allow=False):
+        calls = []
+        with patch.object(gitlab_skill, "api_request", side_effect=self._fake_api(target, path, calls)):
+            result = gitlab_skill.manage_merge_request(42, action, mr_iid="7",
+                                                       allow_dac_promotion=allow)
+        return result, [c for c in calls if c[0] == "PUT"]
+
+    def test_blocks_dac_main(self):
+        result, puts = self._merge("main", "grp-beklever-com/grp-dac/dac-portal")
+        self.assertTrue(result.get("blocked"))
+        self.assertEqual(puts, [])
+
+    def test_blocks_dac_uat_auto_merge(self):
+        result, puts = self._merge("uat", "grp-dac/dac-x", action="auto-merge")
+        self.assertTrue(result.get("blocked"))
+        self.assertEqual(puts, [])
+
+    def test_allows_dac_dev(self):
+        result, puts = self._merge("dev", "grp-dac/dac-x")
+        self.assertTrue(result.get("merged"))
+        self.assertEqual(len(puts), 1)
+
+    def test_allows_app_repo_main(self):
+        result, puts = self._merge("main", "grp-app/app-front-portal")
+        self.assertTrue(result.get("merged"))
+
+    def test_human_override(self):
+        result, puts = self._merge("main", "grp-dac/dac-x", allow=True)
+        self.assertTrue(result.get("merged"))
+
+    def test_fails_closed_when_mr_unreadable(self):
+        def fake(endpoint, method="GET", **kw):
+            if method == "PUT":
+                raise AssertionError("must not merge")
+            return {"error": "API Error 404"}
+        with patch.object(gitlab_skill, "api_request", side_effect=fake):
+            result = gitlab_skill.manage_merge_request(42, "merge", mr_iid="7")
+        self.assertIn("could not read MR", result["error"])
 
 
 if __name__ == "__main__":

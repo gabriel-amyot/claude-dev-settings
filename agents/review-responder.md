@@ -126,8 +126,8 @@ Classify each actionable item:
 - Check the INDEX.md if working from local artifacts (persona may be pre-assigned)
 - If not pre-assigned: Winston for architecture decisions, service boundaries, data model. Amelia for code quality, naming, patterns, implementation details.
 - Read the full persona file before adopting the role:
-  - Winston: `~/Developer/gabriel-amyot/projects/ai-software-development/dark-software-factory/_bmad/bmm/agents/architect.md`
-  - Amelia: `~/Developer/gabriel-amyot/projects/ai-software-development/dark-software-factory/_bmad/bmm/agents/dev.md`
+  - Winston: `~/.claude-shared-config/bmad/runtime/bmm/agents/architect.md`
+  - Amelia: `~/.claude-shared-config/bmad/runtime/bmm/agents/dev.md`
 
 ## Phase 4 — Draft Responses
 

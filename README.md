@@ -50,3 +50,9 @@ cd ~/.claude-shared-config && git pull && bash bootstrap.sh
 ```
 
 Commit and push harness changes before switching machines.
+
+## BMAD
+
+The [shared BMAD payload](bmad/INDEX.md) preserves the migrated beta and custom personas outside automatic skill scans.
+Bootstrap restores its small user-level rules and one router for Claude Code and Codex.
+Use an explicit BMAD request, `/bmad` in Claude, or `$bmad` in Codex. Dexter is restored from recovered source. The old BMB builders remain unavailable until their original source is recovered.

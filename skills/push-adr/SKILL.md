@@ -10,6 +10,16 @@ nav:
 
 # push-adr — Push Architectural Decisions to agent-os
 
+## Host compatibility
+
+Read [the shared host mapping](../../docs/skill-host-compatibility.md) before execution. Use native tools and the existing shared agent instructions. Required executors and companion skills remain real dependencies.
+
+
+## Shared maintenance note (2026-10-26)
+
+Keep. Gabriel uses or wants this documentation/review workflow available in both agents. See [the shared selection record](../../docs/harness-skill-selection.md).
+
+
 Formalize an architectural decision by creating an ADR and updating all related specifications in a repository's `agent-os/` tree.
 
 ## Usage
@@ -50,7 +60,7 @@ If not provided via arguments, ask the user:
 
 ### Step 2: Spawn push-adr Agent
 
-Use the Task tool to spawn the `push-adr` agent:
+Read `~/.claude-shared-config/agents/push-adr.md`. In Claude, spawn the registered `push-adr` agent with the context below. In Codex, use native delegation and require the worker to read that same file, then execute Discovery, ADR, Contracts, Standards, Cross-References and Summary. Preserve the current repo and org constraints. Do not invoke an unavailable Task tool or create a second agent implementation.
 
 ```
 Task(

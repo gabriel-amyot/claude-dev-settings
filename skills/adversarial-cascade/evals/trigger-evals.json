@@ -3,8 +3,11 @@
   {"query": "adversarial review", "should_trigger": true},
   {"query": "run adversarial cascade before shipping", "should_trigger": true},
   {"query": "adversarial review before MR", "should_trigger": true},
+  {"query": "adversarially review this branch with codex and fix what it finds", "should_trigger": true},
   {"query": "review my teammate's PR", "should_trigger": false},
   {"query": "challenge what you just built", "should_trigger": false},
   {"query": "is this test valid", "should_trigger": false},
-  {"query": "give me a critical second opinion on this design", "should_trigger": false}
+  {"query": "give me a critical second opinion on this design", "should_trigger": false},
+  {"query": "review the agent-os documentation tree for drift", "should_trigger": false},
+  {"query": "I just finished implementing the endpoint, tests pass", "should_trigger": false}
 ]

@@ -1,0 +1,52 @@
+{
+  "skill_name": "meeting-to-action",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Here is my recording of my one-on-one with my manager this morning, ~/Movies/recs/2026-09-10 10-02-11.mkv. We talked about feedback on two teammates. Can you transcribe it?",
+      "expected_output": "Routes to transcript-only mode in Phase 0. Writes .txt/.srt to a transcripts folder outside git and outside any vault after check_private_dest.sh prints SAFE. Creates no meeting folder, no knowledge extraction, no decisions log entry, no Bibliotheque entry, no Jira ticket, and no git add.",
+      "files": [],
+      "expectations": [
+        "Claude classifies the recording as private (one-on-one with interpersonal feedback) before any ingest step",
+        "Claude reads or follows references/transcript-only.md",
+        "Claude runs scripts/check_private_dest.sh on the output directory before writing the transcript",
+        "No file is created under general/meetings/ and no knowledge/ or topics/ files are written",
+        "No Jira, Bibliotheque inbox, DECISIONS_LOG or weekly-note write happens, and no git add or commit runs",
+        "Claude stops after reporting the transcript paths and does not extract action items"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Transcribe ~/Movies/recs/call.mkv but just the transcript, no notes please.",
+      "expected_output": "Transcript-only mode is selected from the explicit 'just the transcript, no notes' cue. Transcription follows references/recording-recovery.md (normalize, whisper-cli, repeat-loop check). Pipeline stops after the transcript.",
+      "files": [],
+      "expectations": [
+        "Claude selects transcript-only mode because the user asked for just the transcript",
+        "The transcription uses normalized 16 kHz mono audio and whisper-cli with the large-v3-turbo model",
+        "Claude checks the transcript for runs of identical consecutive lines (repeat-loop hallucination)",
+        "No meeting summary, ticket candidates or knowledge library are produced"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I have a recording of today's sprint planning with the whole team at ~/Movies/klever/planning.mkv. Process this meeting and propose tickets.",
+      "expected_output": "Phase 0 routes this as a project meeting and the normal pipeline runs. The media file path is recorded but the video is not copied into raw/ or git.",
+      "files": [],
+      "expectations": [
+        "Claude routes the recording as a project meeting and continues to Phase 1 Ingest",
+        "Claude does not copy the .mkv file into the meeting folder raw/ directory",
+        "Claude stops at the user gate after Synthesize before creating any Jira ticket"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Transcribe this recording please: ~/Movies/recs/2026-10-02 16-40-00.mkv",
+      "expected_output": "The context does not say whether the recording is a project meeting or private. Claude asks the user before choosing the full pipeline.",
+      "files": [],
+      "expectations": [
+        "Claude asks whether the recording is a project meeting or a private conversation before writing any meeting folder or notes",
+        "Claude does not create general/meetings/ files before the user answers"
+      ]
+    }
+  ]
+}

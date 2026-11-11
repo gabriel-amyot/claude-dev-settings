@@ -1,0 +1,18 @@
+{
+  "skill_name": "pickup",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "/pickup --triage. The handoff queue has 60 awaiting handoffs. One of them is for KTP-12, whose Jira status is Done, but its Prompt section says 'Verify the bid write gate on prod before release.'",
+      "expected_output": "The skill follows references/queue-triage.md: it builds the worksheet on disk with triage_worksheet.py instead of loading 60 rows into context, joins Jira in one batched query, and holds the KTP-12 handoff (env_named scope flag) instead of offering it as a Done archive candidate. Approved archive moves use ledger claim --expect-status with an archive_reason.",
+      "files": [],
+      "expectations": [
+        "Writes the worksheet to disk with scripts/triage_worksheet.py and does not paste all 60 rows into the conversation",
+        "Runs one batched Jira status query and passes it with --jira-status",
+        "Does NOT present the KTP-12 handoff as a Done / archive candidate, because its ask names prod",
+        "Asks the human to approve archive batches; archives nothing without approval",
+        "Uses ledger claim --expect-status awaiting_initiation (CAS), not a blind batch or a hand edit, and sets archive_reason on each archived row"
+      ]
+    }
+  ]
+}

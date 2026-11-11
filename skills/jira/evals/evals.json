@@ -130,6 +130,43 @@
         "The command targets the Klever Jira instance (beklever), consistent with the --org value",
         "Output is concise and scannable, not a raw JSON dump"
       ]
+    },
+    {
+      "id": 12,
+      "prompt": "What did the KTP-746 description say before the last edit?",
+      "expected_output": "The agent runs the read-only history command and reports the earlier text. It writes nothing to Jira.",
+      "files": [],
+      "expectations": [
+        "The agent runs jira_skill.py history KTP-746 (with --back 1 or reads the edit list) and --org klever",
+        "The agent does not run update, restore-description --confirm, or any other Jira write",
+        "The agent reports who made the last edit and the reporter of the ticket",
+        "The agent does not hand-roll a REST or importlib call against the changelog"
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "I overwrote Amal's description on KTP-718 by mistake. Put her original text back.",
+      "expected_output": "The agent previews the recovered text with a restore-description dry run, names the reporter, and asks for explicit approval. Only after approval does it run --confirm with a --backup-dir under the ticket folder, and --force because the reporter is not Gabriel.",
+      "files": [],
+      "expectations": [
+        "The agent runs restore-description KTP-718 without --confirm first (dry run) or history --back N",
+        "The agent shows the recovered text or a faithful summary and asks for approval before any write",
+        "The agent does not write the description through update --description (markdown conversion can corrupt wiki text)",
+        "When it proposes the write, the command carries --confirm and --backup-dir under tickets/.../data/backups",
+        "The agent flags any chain-gap warning instead of restoring silently"
+      ]
+    },
+    {
+      "id": 14,
+      "prompt": "Make the four sub-tasks under KTP-900 into stories under epic KTP-880 so they can be pointed.",
+      "expected_output": "The agent treats this as an explicit structural write. It prints the before/after tree for all four tickets and waits for confirmation, then runs retype and update --parent one ticket at a time. If Jira refuses the Sub-task conversion, it relays the ui_steps instead of skipping the conversion.",
+      "files": [],
+      "expectations": [
+        "The agent shows the before/after hierarchy for all four tickets before any write",
+        "The agent waits for explicit confirmation before the first retype or update --parent",
+        "The agent uses jira_skill.py retype and update --parent, not an importlib hack against the jira module",
+        "If retype returns ui_steps, the agent relays those steps to the user and does not report the conversion as done"
+      ]
     }
   ]
 }

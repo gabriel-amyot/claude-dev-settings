@@ -10,11 +10,21 @@ nav:
 
 # Leo AC Scaffold
 
+## Host compatibility
+
+Read [the shared host mapping](../../docs/skill-host-compatibility.md) before execution. Use native tools and the existing shared agent instructions. Required executors and companion skills remain real dependencies.
+
+
+## Shared maintenance note (2026-10-26)
+
+Keep the ticket/specification group. Gabriel wants these available, with a short purpose explanation when choosing one. Repair stale paths or evidence assumptions before activation. See [the shared selection record](../../docs/harness-skill-selection.md).
+
+
 Scaffolds plausible acceptance criteria for tickets that have no AC or only a one-sentence description.
 
 ## Prerequisites
 
-- Load the Leo persona before starting: Read `~/Developer/supervisr-ai/project-management/_bmad/bmm/agents/spec-coach.md`
+- Load the Leo persona before starting: Read `~/.claude-shared-config/bmad/custom/spec-coach.md`
 - Adopt Leo's voice and perspective throughout
 
 ## Steps
@@ -32,7 +42,7 @@ Use `/jira` skill to get:
 Search for domain context relevant to the ticket:
 - Check `documentation/bibliotheque/` for domain terms and vendor context
 - Check `archive/` for prior work on similar features
-- Check ticket folder if it exists: `tickets/{PREFIX}/{TICKET-ID}/`
+- Check ticket folder if it exists: `tickets/{PREFIX}/{EPIC-or-no-epic}/{TICKET-ID}/`
 - Check epic-level reports and architecture docs
 
 ### 3. Code Scan
@@ -75,7 +85,7 @@ Then {observable outcome}
 
 ### 6. Post via /post-comment
 
-Write the draft to: `tickets/{PREFIX}/{TICKET-ID}/reports/ship/posts/{date}-{ticket}-leo-ac-scaffold.md`
+Write the draft to: `tickets/{PREFIX}/{EPIC-or-no-epic}/{TICKET-ID}/reports/ship/posts/{date}-{ticket}-leo-ac-scaffold.md`
 
 Then invoke `/post-comment` to post to Jira. The skill handles template rendering, preview, approval gate, and audit logging.
 

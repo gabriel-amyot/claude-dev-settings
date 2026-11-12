@@ -12,7 +12,7 @@
   "permissions": {
     "defaultMode": "bypassPermissions"
   },
-  "model": "opus",
+  "model": "opus[1m]",
   "hooks": {
     "SessionStart": [
       {
@@ -20,18 +20,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/gabrielamyot/Developer/gabriel-amyot/projects/mission-control-dashboard/tools/hooks/session-start.sh",
-            "timeout": 5000
-          }
-        ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/Users/gabrielamyot/.claude/hooks/proposal-backlog-check.sh",
+            "command": "/Users/gamyot/.claude/hooks/proposal-backlog-check.sh",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "/Users/gamyot/.claude/hooks/session-init.sh"
           }
         ]
       },
@@ -40,7 +34,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash /Users/gabrielamyot/.claude/plugins/local-marketplace/session/hooks/session-init-reminder.sh",
+            "command": "bash /Users/gamyot/.claude/plugins/local-marketplace/session/hooks/session-init-reminder.sh",
             "timeout": 3000
           }
         ]
@@ -50,7 +44,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/gabrielamyot/.claude-shared-config/tools/harness-parity-check.sh",
+            "command": "/Users/gamyot/.claude-shared-config/tools/harness-parity-check.sh",
             "timeout": 5000
           }
         ]
@@ -59,7 +53,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/gabrielamyot/.claude/hooks/agents-md-mirror-startup.sh"
+            "command": "/Users/gamyot/.claude/hooks/agents-md-mirror-startup.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gamyot/.claude/hooks/peon-herdr/peon-herdr hook claude",
+            "timeout": 10
           }
         ]
       }
@@ -70,7 +74,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/gabrielamyot/Developer/gabriel-amyot/projects/mission-control-dashboard/tools/hooks/prompt-submit.sh",
+            "command": "/Users/gamyot/.claude/hooks/challenge-detect.sh",
             "timeout": 5000
           }
         ]
@@ -80,7 +84,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/gabrielamyot/.claude/hooks/challenge-detect.sh",
+            "command": "/Users/gamyot/.claude/hooks/bibliotheque-recall.sh",
             "timeout": 5000
           }
         ]
@@ -90,7 +94,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/gabrielamyot/.claude/hooks/bibliotheque-recall.sh",
+            "command": "/Users/gamyot/.claude/hooks/rabbit-hole-guard.sh",
             "timeout": 5000
           }
         ]
@@ -100,8 +104,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/gabrielamyot/.claude/hooks/rabbit-hole-guard.sh",
-            "timeout": 5000
+            "command": "/Users/gamyot/.claude/hooks/peon-herdr/peon-herdr hook claude",
+            "timeout": 10,
+            "async": true
           }
         ]
       }
@@ -112,7 +117,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/gabrielamyot/.claude/hooks/on-exit.sh",
+            "command": "/Users/gamyot/.claude/hooks/on-exit.sh",
             "timeout": 30
           }
         ]
@@ -122,8 +127,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/gabrielamyot/Developer/gabriel-amyot/projects/mission-control-dashboard/tools/hooks/stop.sh",
-            "timeout": 5000
+            "command": "/Users/gamyot/.claude/hooks/peon-herdr/peon-herdr hook claude",
+            "timeout": 10,
+            "async": true
           }
         ]
       }
@@ -134,7 +140,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/gabrielamyot/.claude/hooks/auto-operationalize-cmd.sh",
+            "command": "/Users/gamyot/.claude/hooks/auto-operationalize-cmd.sh",
             "timeout": 10
           }
         ]
@@ -144,8 +150,19 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/gabrielamyot/.claude/hooks/pre-compact-guard.sh",
+            "command": "/Users/gamyot/.claude/hooks/pre-compact-guard.sh",
             "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gamyot/.claude/hooks/peon-herdr/peon-herdr hook claude",
+            "timeout": 10,
+            "async": true
           }
         ]
       }
@@ -156,12 +173,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/gabrielamyot/.claude/hooks/pm-single-trunk-guard.sh",
+            "command": "/Users/gamyot/.claude/hooks/pm-single-trunk-guard.sh",
             "timeout": 3000
           },
           {
             "type": "command",
-            "command": "/Users/gabrielamyot/.claude/hooks/jira-create-gate.sh",
+            "command": "/Users/gamyot/.claude/hooks/jira-create-gate.sh",
             "timeout": 3000
           }
         ]
@@ -171,7 +188,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/gabrielamyot/.claude/hooks/worktree-guard.sh",
+            "command": "/Users/gamyot/.claude/hooks/worktree-guard.sh",
             "timeout": 3000
           }
         ]
@@ -181,7 +198,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/gabrielamyot/.claude/hooks/branch-guard.sh",
+            "command": "/Users/gamyot/.claude/hooks/branch-guard.sh",
             "timeout": 3000
           }
         ]
@@ -191,7 +208,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/gabrielamyot/.claude/hooks/session-close-operationalize-guard.sh",
+            "command": "/Users/gamyot/.claude/hooks/session-close-operationalize-guard.sh",
             "timeout": 5000
           }
         ]
@@ -201,7 +218,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/gabrielamyot/.claude/hooks/deploy-identity-guard.sh",
+            "command": "/Users/gamyot/.claude/hooks/deploy-identity-guard.sh",
             "timeout": 5000
           }
         ]
@@ -211,7 +228,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/gabrielamyot/.claude/hooks/library-stamp-guard.sh",
+            "command": "/Users/gamyot/.claude/hooks/library-stamp-guard.sh",
             "timeout": 5000
           }
         ]
@@ -221,7 +238,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/gabrielamyot/.claude/hooks/ledger-write-guard.sh"
+            "command": "/Users/gamyot/.claude/hooks/ledger-write-guard.sh"
           }
         ]
       },
@@ -230,7 +247,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/gabrielamyot/.claude/hooks/file-guard.sh",
+            "command": "/Users/gamyot/.claude/hooks/file-guard.sh",
             "timeout": 5000
           }
         ]
@@ -240,7 +257,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/gabrielamyot/.claude/hooks/ticket-path-guard.sh"
+            "command": "/Users/gamyot/.claude/hooks/ticket-path-guard.sh"
           }
         ]
       },
@@ -249,16 +266,16 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/gabrielamyot/.claude/hooks/git-pipe-guard.sh"
+            "command": "/Users/gamyot/.claude/hooks/git-pipe-guard.sh"
           }
         ]
       },
       {
-        "matcher": "Bash",
+        "matcher": "Read|Grep|Glob",
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/gabrielamyot/.claude/hooks/wayfinder-close-guard.sh"
+            "command": "/Users/gamyot/.claude/hooks/notion-read-guard.sh"
           }
         ]
       }
@@ -269,8 +286,20 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/gabrielamyot/.claude/hooks/spec-guard.sh",
+            "command": "/Users/gamyot/.claude/hooks/spec-guard.sh",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "/Users/gamyot/.claude/hooks/auto-index.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/gamyot/.claude/hooks/library-shelving-guard.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/gamyot/.claude/hooks/pmd-java-gate.py"
           }
         ]
       },
@@ -279,18 +308,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/gabrielamyot/.claude/hooks/claude-md-guard.sh",
+            "command": "/Users/gamyot/.claude/hooks/claude-md-guard.sh",
             "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/Users/gabrielamyot/Developer/gabriel-amyot/projects/mission-control-dashboard/tools/hooks/post-tool-use.sh",
-            "timeout": 5000
           }
         ]
       },
@@ -299,7 +318,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/gabrielamyot/.claude/hooks/screenshot-placement-guard.sh",
+            "command": "/Users/gamyot/.claude/hooks/screenshot-placement-guard.sh",
             "timeout": 3000
           }
         ]
@@ -309,7 +328,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 /Users/gabrielamyot/.claude/hooks/pmd-java-gate.py"
+            "command": "python3 /Users/gamyot/.claude/hooks/pmd-java-gate.py"
           }
         ]
       },
@@ -318,7 +337,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/gabrielamyot/.claude/hooks/agents-md-mirror.sh"
+            "command": "/Users/gamyot/.claude/hooks/agents-md-mirror.sh"
           }
         ]
       },
@@ -327,7 +346,81 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/gabrielamyot/.claude/hooks/claude-md-tier-lint.sh"
+            "command": "/Users/gamyot/.claude/hooks/claude-md-tier-lint.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gamyot/.claude/hooks/context-monitor.sh"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gamyot/.claude/hooks/peon-herdr/peon-herdr hook claude",
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gamyot/.claude/hooks/peon-herdr/peon-herdr hook claude",
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gamyot/.claude/hooks/peon-herdr/peon-herdr hook claude",
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gamyot/.claude/hooks/peon-herdr/peon-herdr hook claude",
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gamyot/.claude/hooks/peon-herdr/peon-herdr hook claude",
+            "timeout": 10,
+            "async": true
           }
         ]
       }
@@ -335,11 +428,11 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "bash /Users/gabrielamyot/.claude/statusline-command.sh",
+    "command": "~/.claude/statusline.sh",
     "padding": 0
   },
   "enabledPlugins": {
-    "ralph-loop@claude-plugins-official": true,
+    "ralph-loop@claude-plugins-official": false,
     "claude-md-management@claude-plugins-official": false,
     "pr-review-toolkit@claude-plugins-official": false,
     "skill-creator@claude-plugins-official": true,
@@ -349,8 +442,8 @@
     "jdtls-lsp@claude-plugins-official": false,
     "chrome-devtools-mcp@claude-plugins-official": false,
     "agent-browser@agent-browser": true,
-    "playwright@claude-plugins-official": true,
-    "superpowers@claude-plugins-official": true,
+    "playwright@claude-plugins-official": false,
+    "superpowers@claude-plugins-official": false,
     "claude-reflect@claude-reflect-marketplace": true,
     "session@local": true,
     "sprint-harness@local": true,
@@ -374,7 +467,7 @@
     "local": {
       "source": {
         "source": "directory",
-        "path": "/Users/gabrielamyot/.claude/plugins/local-marketplace"
+        "path": "/Users/gamyot/.claude/plugins/local-marketplace"
       }
     },
     "crit": {
@@ -384,10 +477,10 @@
       }
     }
   },
-  "alwaysThinkingEnabled": true,
-  "effortLevel": "high",
+  "effortLevel": "medium",
   "autoCompactWindow": 300000,
   "showClearContextOnPlanAccept": true,
+  "tui": "fullscreen",
   "voice": {
     "enabled": true,
     "mode": "hold"
@@ -396,6 +489,7 @@
   "autoDreamEnabled": true,
   "showThinkingSummaries": false,
   "skipDangerousModePermissionPrompt": true,
+  "theme": "auto",
   "autoCompactEnabled": false,
   "remoteControlAtStartup": false,
   "voiceEnabled": true,

@@ -26,6 +26,7 @@ FOSA_KB="${FOSA_KB:-$HOME/Developer/gabriel-amyot/resources/Fundamentals of Soft
 
 - **Progressive disclosure.** Read `$FOSA_KB/INDEX.md` once (task router). Then read the chapter `study.md` or `INDEX.md` for summaries. Open a section file only when you need the detail or a citation. Use the section frontmatter (`head -20`) to decide before you load a section. Never read `source/book.md`.
 - **Routing per step:** [references/kb-routing.md](references/kb-routing.md).
+- **Read budget.** The KB's "router plus one file" rule is for a single question. A mode runs several steps: read at most the router once, then one or two files per step. Read frontmatter before any full section.
 - **If `$FOSA_KB` does not exist:** say so in one line, run the method from [references/method.md](references/method.md) only, and mark every claim "uncited".
 - **Copyright.** Quote at most one short phrase. Paraphrase and cite. Never copy book text into a repo, a PR, a ticket or any external post.
 

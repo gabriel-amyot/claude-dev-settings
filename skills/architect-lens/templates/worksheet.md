@@ -1,5 +1,8 @@
 # Architecture worksheet: <problem name>
 
+<!-- In a single-step or partial mode, fill only the sections that mode covers. Keep the other headings and write "Not in scope for this mode." under them, so a later session can continue the same file. -->
+
+
 - Date: <YYYY-MM-DD>
 - Mode: <worksheet | characteristics | ...> · Stance: <coach | do>
 - Method: Fundamentals of Software Architecture, Part 1 (via architect-lens)

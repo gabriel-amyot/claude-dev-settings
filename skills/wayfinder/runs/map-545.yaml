@@ -1,8 +1,8 @@
 map: 545
 map_title: 'Foursquare Targeting in KleverOne: prototype-proven requirements and ticket
   plan (KTP-1216 spike)'
-map_state: OPEN
-harvested: '2026-11-01T02:11:44+00:00'
+map_state: CLOSED
+harvested: '2026-11-12T19:33:33+00:00'
 telemetry_epoch: '2026-09-10'
 runs:
 - run_id: e26f7b4a
@@ -22,7 +22,7 @@ runs:
   - tag: tooling
     note: wayfinder_runs.py needs PyYAML, absent from system python; ran via uv --with
       pyyaml
-  issue_state: OPEN
+  issue_state: CLOSED
   comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/545#issuecomment-6508461300
 - run_id: c83ff5fc
   spec_version: 0.4.0
@@ -37,6 +37,19 @@ runs:
   ticket_type: prototype
   issue_state: CLOSED
   comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/556#issuecomment-6534416815
+- run_id: 1ba979ae
+  spec_version: 0.4.0
+  mode: resolve
+  map: 545
+  date: '2026-10-31'
+  outcome: resolved
+  tickets_created: 0
+  fog_graduated: 0
+  friction: []
+  ticket: 553
+  ticket_type: grilling
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/553#issuecomment-6552219867
 - run_id: dde6ff6a
   spec_version: 0.4.0
   mode: resolve
@@ -50,6 +63,19 @@ runs:
   ticket_type: prototype
   issue_state: CLOSED
   comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/552#issuecomment-6552178060
+- run_id: 09477136
+  spec_version: 0.4.0
+  mode: resolve
+  map: 545
+  date: '2026-10-31'
+  outcome: resolved
+  tickets_created: 0
+  fog_graduated: 0
+  friction: []
+  ticket: 551
+  ticket_type: prototype
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/551#issuecomment-6552237026
 - run_id: ff3b560a
   spec_version: 0.4.0
   mode: resolve
@@ -63,6 +89,19 @@ runs:
   ticket_type: research
   issue_state: CLOSED
   comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/550#issuecomment-6508508830
+- run_id: 0dec6412
+  spec_version: 0.4.0
+  mode: resolve
+  map: 545
+  date: '2026-10-31'
+  outcome: resolved
+  tickets_created: 0
+  fog_graduated: 0
+  friction: []
+  ticket: 549
+  ticket_type: prototype
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/549#issuecomment-6552208821
 - run_id: c3a49797
   spec_version: 0.4.0
   mode: resolve
@@ -89,8 +128,13 @@ runs:
   ticket_type: prototype
   issue_state: CLOSED
   comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/547#issuecomment-6531947610
-gaps: []
+gaps:
+- issue: 607
+  title: 'E4: Which Foursquare targetIds match Klever''s TTD partner seats? (read-only)'
+  type: research
+  closed_at: '2026-11-04'
+  reason: closed with no run trailer — this run was never traced
 malformed_trailers: []
-missing_reflection: false
+missing_reflection: true
 pre_telemetry_closures: 0
 feedback: []

@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["pyyaml"]
+# ///
 """run_sweep.py — run every Layer A eval suite registered in evals/manifest.yaml.
 
 Fast path only: deterministic fixture runners (seconds each, no model calls), so it is
@@ -26,7 +30,15 @@ import re
 import subprocess
 import sys
 
-import yaml
+try:
+    import yaml
+except ModuleNotFoundError:
+    import os, shutil, sys
+    _uv, _main = shutil.which("uv"), getattr(sys.modules.get("__main__"), "__file__", None)
+    if _uv and _main and os.environ.get("UV_DEPS_REEXEC") != os.path.abspath(_main):
+        os.environ["UV_DEPS_REEXEC"] = os.path.abspath(_main)
+        os.execv(_uv, [_uv, "run", "--quiet", "--with", "pyyaml", "python", os.path.abspath(_main), *sys.argv[1:]])
+    raise
 
 SHARED = os.path.expanduser("~/.claude-shared-config")
 MANIFEST = os.path.join(SHARED, "evals", "manifest.yaml")

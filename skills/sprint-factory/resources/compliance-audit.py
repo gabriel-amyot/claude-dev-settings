@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["pyyaml"]
+# ///
 """Dark Factory — Compliance Audit logic (Layer 2 backstop).
 
 Invoked by compliance-audit.sh (a PostToolUse hook). Prints a plain-text
@@ -14,6 +18,16 @@ import os
 import sys
 import glob
 import re
+
+try:
+    import yaml  # noqa: F401  re-run under uv when missing; the state read below stays tolerant
+except ModuleNotFoundError:
+    import os, shutil, sys
+    _uv, _main = shutil.which("uv"), getattr(sys.modules.get("__main__"), "__file__", None)
+    if _uv and _main and os.environ.get("UV_DEPS_REEXEC") != os.path.abspath(_main):
+        os.environ["UV_DEPS_REEXEC"] = os.path.abspath(_main)
+        os.execv(_uv, [_uv, "run", "--quiet", "--with", "pyyaml", "python", os.path.abspath(_main), *sys.argv[1:]])
+    pass
 
 COMPLETEISH = {"complete", "completed", "shipping", "shipped",
                "validating", "qa", "reviewing"}

@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["pyyaml"]
+# ///
 """Version guard — the version↔improvement + no-drift gate (Law 5).
 
 The self-improvement loop had no mechanical link to a version, and the spec
@@ -32,7 +36,12 @@ from pathlib import Path
 
 try:
     import yaml
-except ImportError:  # pragma: no cover
+except ModuleNotFoundError:
+    import os, shutil, sys
+    _uv, _main = shutil.which("uv"), getattr(sys.modules.get("__main__"), "__file__", None)
+    if _uv and _main and os.environ.get("UV_DEPS_REEXEC") != os.path.abspath(_main):
+        os.environ["UV_DEPS_REEXEC"] = os.path.abspath(_main)
+        os.execv(_uv, [_uv, "run", "--quiet", "--with", "pyyaml", "python", os.path.abspath(_main), *sys.argv[1:]])
     yaml = None
 
 _SEMVER = re.compile(r"^\d+\.\d+\.\d+")

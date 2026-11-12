@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["pyyaml"]
+# ///
 """The dark-factory improvement queue — one tracked list, deduped and counted.
 
 Why this exists
@@ -35,8 +39,13 @@ import sys
 
 try:
     import yaml
-except ImportError:
-    sys.exit("needs pyyaml: python3 -m pip install --user pyyaml")
+except ModuleNotFoundError:
+    import os, shutil, sys
+    _uv, _main = shutil.which("uv"), getattr(sys.modules.get("__main__"), "__file__", None)
+    if _uv and _main and os.environ.get("UV_DEPS_REEXEC") != os.path.abspath(_main):
+        os.environ["UV_DEPS_REEXEC"] = os.path.abspath(_main)
+        os.execv(_uv, [_uv, "run", "--quiet", "--with", "pyyaml", "python", os.path.abspath(_main), *sys.argv[1:]])
+    sys.exit("needs pyyaml: install uv, or run with: uv run --with pyyaml python3 <script>")
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 QUEUE = ROOT / "improvements" / "QUEUE.yaml"

@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["jira"]
+# ///
 """
 Sprint estimation-ownership audit (Klever, KTP project).
 
@@ -29,7 +33,15 @@ import argparse
 import json
 import subprocess
 import sys
-from jira import JIRA
+try:
+    from jira import JIRA
+except ModuleNotFoundError:
+    import os, shutil, sys
+    _uv, _main = shutil.which("uv"), getattr(sys.modules.get("__main__"), "__file__", None)
+    if _uv and _main and os.environ.get("UV_DEPS_REEXEC") != os.path.abspath(_main):
+        os.environ["UV_DEPS_REEXEC"] = os.path.abspath(_main)
+        os.execv(_uv, [_uv, "run", "--quiet", "--with", "jira", "python", os.path.abspath(_main), *sys.argv[1:]])
+    raise
 
 CONFIG_FILE = "/Users/gabrielamyot/.claude-shared-config/skills/jira/jira_config.json"
 KEYCHAIN_SERVICE = "claude-jira"

@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["pyyaml"]
+# ///
 """
 Status Index Skill - Generate or refresh STATUS_SNAPSHOT.yaml for tickets and epics.
 
@@ -15,7 +19,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Dict, List, Tuple, Any
 import subprocess
-import yaml
+try:
+    import yaml
+except ModuleNotFoundError:
+    import os, shutil, sys
+    _uv, _main = shutil.which("uv"), getattr(sys.modules.get("__main__"), "__file__", None)
+    if _uv and _main and os.environ.get("UV_DEPS_REEXEC") != os.path.abspath(_main):
+        os.environ["UV_DEPS_REEXEC"] = os.path.abspath(_main)
+        os.execv(_uv, [_uv, "run", "--quiet", "--with", "pyyaml", "python", os.path.abspath(_main), *sys.argv[1:]])
+    raise
 
 
 def get_project_management_root() -> Path:

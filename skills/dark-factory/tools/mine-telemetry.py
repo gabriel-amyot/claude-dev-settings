@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["pyyaml"]
+# ///
 """Mine the dark-factory run telemetry in runs/*.yaml.
 
 The factory's auto-improve loop claims each run makes the next one better. That claim is
@@ -18,8 +22,13 @@ from collections import Counter, defaultdict
 
 try:
     import yaml
-except ImportError:
-    sys.exit("needs pyyaml: python3 -m pip install --user pyyaml")
+except ModuleNotFoundError:
+    import os, shutil, sys
+    _uv, _main = shutil.which("uv"), getattr(sys.modules.get("__main__"), "__file__", None)
+    if _uv and _main and os.environ.get("UV_DEPS_REEXEC") != os.path.abspath(_main):
+        os.environ["UV_DEPS_REEXEC"] = os.path.abspath(_main)
+        os.execv(_uv, [_uv, "run", "--quiet", "--with", "pyyaml", "python", os.path.abspath(_main), *sys.argv[1:]])
+    sys.exit("needs pyyaml: install uv, or run with: uv run --with pyyaml python3 <script>")
 
 RUNS = pathlib.Path(__file__).resolve().parent.parent / "runs"
 

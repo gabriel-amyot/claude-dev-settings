@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["pyyaml"]
+# ///
 """wayfinder_runs.py — run telemetry for the wayfinder skill.
 
 WHAT THIS IS
@@ -57,8 +61,13 @@ from pathlib import Path
 
 try:
     import yaml
-except ImportError:  # pragma: no cover
-    print("wayfinder_runs.py needs PyYAML (pip install pyyaml)", file=sys.stderr)
+except ModuleNotFoundError:
+    import os, shutil, sys
+    _uv, _main = shutil.which("uv"), getattr(sys.modules.get("__main__"), "__file__", None)
+    if _uv and _main and os.environ.get("UV_DEPS_REEXEC") != os.path.abspath(_main):
+        os.environ["UV_DEPS_REEXEC"] = os.path.abspath(_main)
+        os.execv(_uv, [_uv, "run", "--quiet", "--with", "pyyaml", "python", os.path.abspath(_main), *sys.argv[1:]])
+    print("wayfinder_runs.py needs PyYAML: install uv, or run with: uv run --with pyyaml python3 <script>", file=sys.stderr)
     raise
 
 # --------------------------------------------------------------------------

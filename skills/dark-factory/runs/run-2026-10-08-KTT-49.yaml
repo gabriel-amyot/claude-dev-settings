@@ -1,0 +1,338 @@
+run_id: run-2026-10-08-KTT-49
+ticket: KTT-49
+ticket_url: "https://beklever.atlassian.net/browse/KTT-49"
+parent_ticket: "https://beklever.atlassian.net/browse/KTT-48"
+date: '2026-10-08'
+terminal_status: HALT_TDD_GATE
+tool_belt: "python-service + terraform-dac-infra (full_stack)"
+primary_repo: app-agent-hub
+secondary_repo: dac-gcp-back-biag
+branches:
+  app_agent_hub: KTT-49-langsmith-otel-tracing
+  dac_gcp_back_biag: KTT-49-langsmith-secret-and-env
+ticket_folder: "/Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/KTT/no-epic/KTT-49"
+ac_count: 6
+ac_in_scope: 3
+tdd_gate_mode: halt
+tdd_warn_mode_violations: []
+tdd_violations_forwarded_to_retro: false
+
+phases:
+  - phase: concierge
+    status: PASS
+    confidence: 76
+    note: >
+      Second pass. The first concierge recorded the AC-6 IAM binding as approved in principle;
+      Gabriel reversed that. ac-list.json carries revision 2026-10-09b, which supersedes 2026-10-09
+      on Q3 and sets the binding to NOT approved and NOT committable.
+  - phase: design
+    status: pass
+    confidence: 82
+    note: >
+      Produced design/impl-plan.md (351 lines) and ran the Q1 span-fidelity gate first. The OTLP
+      proof PASSED, so the halt branch was never taken, and the plan carries the five findings the
+      proof produced.
+  - phase: grill
+    status: pass
+    confidence: 83
+    note: >
+      design/grill-report.md (243 lines). 13 resolved claims, 10 gaps G-A to G-J, 5 parked items.
+      Nine of the ten gaps were handed forward to implement rather than bounced back to design.
+  - phase: implement
+    status: pass
+    confidence: 72
+    note: >
+      Both repos built and pushed. app-agent-hub +638 lines across 6 files, with real RED then GREEN
+      commits on AC-4 (1402721 then 8549627) and AC-5 (fae45ab then 009ce94). dac-gcp-back-biag +61
+      lines in one commit 39a28ef. Suite 286 passed, 3 failed; the 3 failures reproduce at the merge
+      base ca3108c and are pre-existing. Execution verified by starting the app on port 8099 and
+      reading "tracing: disabled:flag" in the startup log.
+  - phase: review
+    status: not_reached
+    confidence: null
+  - phase: fix
+    status: not_reached
+    confidence: null
+  - phase: qa
+    status: not_reached
+    confidence: null
+  - phase: preship
+    status: not_reached
+    confidence: null
+
+halt_cause: >
+  The TDD gate halted after implement. The exact violation strings were NOT available to this retro:
+  workflow.js line 1284 forwards only tddWarnings (warn-mode violations, empty by construction when
+  the gate runs in halt mode) and never forwards result.tdd_violations. The halt cause is therefore
+  reconstructed from the on-disk ledger, not read from the gate.
+  Reconstruction. Of the six ACs, only AC-4, AC-5 and AC-6 were in scope. AC-4 and AC-5 both carry a
+  well-formed RED/GREEN pair with artifacts (tdd/AC-4-red-output.txt, tdd/AC-5-red-output.txt), so
+  neither is a plausible violation. AC-6 is the single exempt entry. Its ledger exempt reads
+  not_applicable(terraform HCL: no unit surface, and terraform plan/apply is forbidden by standing
+  rule and unreachable from this machine). That string matches the gate's exempt regex, so the
+  remaining candidates are the two routers that fire after it: the doc-shape router (an exemption
+  whose deliverable ends in .md must use doc_claims, and AC-6's reviewable artifact is
+  reports/architecture/ac6-iam-binding-proposal.md), or a completeness violation on an AC marked done
+  in ac_progress without a ledger entry. This ambiguity is itself the top finding of the run.
+
+tdd_ledger_on_disk:
+  location: "project-management branch worktree-wf_f1bd81db-ec8-4, path tickets/KTT/no-epic/KTT-49/tdd/"
+  on_main: false
+  entries:
+    - ac: AC-4
+      kind: red_green
+      red_commit: '1402721'
+      green_commit: '8549627'
+      artifact: tdd/AC-4-red-output.txt
+    - ac: AC-5
+      kind: red_green
+      red_commit: fae45ab
+      green_commit: '009ce94'
+      artifact: tdd/AC-5-red-output.txt
+    - ac: AC-6
+      kind: exempt
+      exempt: "not_applicable(terraform HCL: no unit surface, and terraform plan/apply is forbidden by standing rule and unreachable from this machine)"
+      artifact: tdd/AC-6.md
+
+ac_outcomes:
+  - ac: AC-1
+    verdict: PRODUCTION_GATED
+    note: "Awaiting Gabriel's prod deploy and secret population. No PASS claimed. Trace ingestion is not verified."
+  - ac: AC-2
+    verdict: PRODUCTION_GATED
+    note: "Same prod gate. Ships metadata option (a): crewai.task.id plus agent role on each span, correlated through driver.py logs."
+  - ac: AC-3
+    verdict: PRODUCTION_GATED
+    note: "Console prerequisite done by Gabriel (application BI Agent, project bi-agent-prod). Separation check waits for ingestion."
+  - ac: AC-4
+    verdict: DONE
+    note: "LANGSMITH_TRACING gate in init_tracing(), plus DAC dev = false. Genuine RED then GREEN."
+  - ac: AC-5
+    verdict: DONE
+    note: "Secret read failure, empty value and the literal ADD IT MANUALLY placeholder each disable tracing with a warning. Genuine RED then GREEN."
+  - ac: AC-6
+    verdict: PARTIAL
+    note: >
+      Secret resource sec-langsmith-api-key committed to local.datasophia_secret_res. The
+      secretAccessor binding is deliberately withheld as an un-committed diff artifact per Gabriel's
+      Q3 reversal. Evidence stamped plan-level HCL only, NOT live-verified.
+
+scores:
+  task_confidence: 48
+  factory_fitness: 50
+
+deductions:
+  - score: task_confidence
+    points: 14
+    reason: >
+      The run halted at the TDD gate immediately after implement. Review, the fix loop, QA and
+      pre-ship never ran, so 638 new lines of telemetry code carry zero independent verification and
+      no MR exists on either repo.
+  - score: task_confidence
+    points: 10
+    reason: >
+      AC-1, AC-2 and AC-3 cannot be completed inside a dev-only autonomous run. They need a prod
+      deploy and a human-populated secret. The LangSmith destination exists but trace ingestion is
+      unverified, so half the ticket's acceptance surface is untouched.
+  - score: task_confidence
+    points: 8
+    reason: >
+      AC-6 is only half shippable. The secret resource is committed but the secretAccessor binding is
+      withheld pending Gabriel's approval, so as the branch stands the deployed workload still cannot
+      read the secret and tracing would fail closed in prod.
+  - score: task_confidence
+    points: 5
+    reason: >
+      AC-6 evidence degrades to plan-level HCL review. terraform validate and terraform plan were both
+      unreachable, and this machine's gcloud identity cannot see the biag project. Only terraform fmt
+      and a diff review were actually executed.
+  - score: task_confidence
+    points: 4
+    reason: >
+      Multi-crew span attribution under overlapping requests was never driven. Grill P4 named it and
+      assigned the two-request probe to QA. QA never ran.
+  - score: task_confidence
+    points: 4
+    reason: >
+      Egress from the biag COS MIG to api.smith.langchain.com port 443 is unproven (grill G-I). The
+      repo declares INGRESS rules only and no NAT. If egress is absent, AC-1 fails as silent export
+      timeouts rather than as a config error.
+  - score: task_confidence
+    points: 3
+    reason: >
+      AC-2 ships thread/run metadata option (a) only. Gabriel has not accepted that option (a) is
+      sufficient, and option (b) is a one-line change in driver.py that was not made.
+  - score: task_confidence
+    points: 2
+    reason: >
+      The design proof left a scratch project ktt49-design-proof inside the same LangSmith workspace
+      AC-3 asks an engineer to inspect for separation (grill G-J). It was never deleted.
+  - score: task_confidence
+    points: 2
+    reason: >
+      Three pre-existing failures in tests/unit/tools/test_demo_data.py were correctly identified as
+      merge-base failures, then left red with no ticket filed.
+  - score: factory_fitness
+    points: 12
+    reason: >
+      The retro phase is blind to the halt it exists to explain. workflow.js line 1284 forwards
+      tddGateMode and tddWarnings, but never result.tdd_violations, so on a halt-mode run the retro
+      receives an empty violations array and must reverse-engineer the cause from disk.
+  - score: factory_fitness
+    points: 10
+    reason: >
+      The Workflow runtime created a git worktree AND a branch inside project-management
+      (.claude/worktrees/wf_f1bd81db-ec8-4, branch worktree-wf_f1bd81db-ec8-4). That repo's CLAUDE.md
+      forbids both absolutely. KTT-49's whole implement evidence set, tdd/, review/diff.patch,
+      review/diff-dac-gcp-back-biag.patch and reports/implementation/build-result.md, is committed on
+      that off-trunk branch and does not exist on main.
+  - score: factory_fitness
+    points: 6
+    reason: >
+      Two further stale project-management worktrees, wf_5ad34c43-127-4 and wf_5ad34c43-127-5, are
+      still mounted with their own branches. Nothing in the factory prunes them, so the violation
+      accumulates run over run.
+  - score: factory_fitness
+    points: 5
+    reason: >
+      The TDD gate has no first-class category for infrastructure-as-code. An HCL AC with no unit
+      surface must self-select into not_applicable, and when its reviewable deliverable is a markdown
+      proposal it can trip the doc-shape router that was written for contract pages.
+  - score: factory_fitness
+    points: 4
+    reason: >
+      The gate fires after the push. Both branches reached origin before the TDD gate ran, so a halt
+      leaves two unreviewed KTT-49 branches on two remotes with nothing downstream to clean them up.
+  - score: factory_fitness
+    points: 4
+    reason: >
+      AC gating state lives in prose inside ac-list.json (production_gated, tracked not parked) rather
+      than in a schema field. The gate therefore cannot tell "the implementer skipped this" from "the
+      factory is structurally unable to do this", and every phase re-derives the distinction by reading
+      paragraphs.
+  - score: factory_fitness
+    points: 3
+    reason: >
+      The concierge needed a second pass because Q3 reversed an earlier approved-in-principle answer on
+      the IAM binding. A human correction landing after the analyst artifacts were written cost a full
+      re-run of phase 1.
+  - score: factory_fitness
+    points: 3
+    reason: >
+      The ticket folder INDEX.md on main lists analyst, design, architecture and reports, but not tdd/,
+      review/ or build-result.md. A human opening the ticket cannot reach the implement evidence at all.
+  - score: factory_fitness
+    points: 3
+    reason: >
+      Grill handed nine of its ten gaps (G-A through G-J) forward to implement instead of bouncing them
+      to design. Implement absorbed design rework on top of a two-repo build, which is visible in its
+      confidence of 72 against grill's 83.
+
+red_flags:
+  - >
+    Terminal status is HALT_TDD_GATE but the retro prompt received an empty violations list. The
+    violation strings exist in the workflow result object and are dropped before the only phase that
+    reads them.
+  - >
+    The factory ran a worktree inside project-management, which that repo's CLAUDE.md names as an
+    absolute prohibition after the 2026-06-16 incident. The same incident is now repeating.
+  - >
+    KTT-49's TDD ledger and both diff patches are committed only on branch worktree-wf_f1bd81db-ec8-4.
+    Anyone reading tickets/KTT/no-epic/KTT-49 on main sees a ticket with no implement evidence.
+  - >
+    Three project-management worktree branches are live simultaneously (two of them from an earlier
+    workflow id), so the condition is not a one-off.
+  - >
+    Half the ticket (AC-1, AC-2, AC-3) was known production-gated at concierge time, yet the run was
+    still dispatched as a full factory pass that can only ever reach a partial terminal state.
+  - >
+    AC-6's only exempt entry carries a markdown deliverable, which is exactly the shape the doc-shape
+    router rejects, and the implementer had no infra-specific exemption to reach for instead.
+  - >
+    Both feature branches were pushed to origin before the gate ran, so a halt cannot un-publish them.
+  - >
+    The design-gate proof wrote into the production LangSmith workspace (project ktt49-design-proof)
+    and left it there, polluting the exact evidence surface AC-3 asks a human to inspect.
+  - >
+    Three unit tests are red on the branch. They are honestly attributed to the merge base, but the
+    factory has no mechanism that turns a reproduced pre-existing failure into a filed ticket.
+
+improvements:
+  - title: "Forward tdd_violations into the retro prompt"
+    detail: >
+      workflow.js line 1284 builds the retro prompt with tddGateMode and tddWarnings only. Add
+      result.tdd_violations. One line: append
+      "Halt-mode TDD violations: ${JSON.stringify(result.tdd_violations || [])}." A retro that cannot
+      name the violation that stopped the run produces a reconstruction, and reconstructions are
+      exactly the unstamped verdicts the house rules forbid. This run spent most of its budget
+      reverse-engineering a string the runtime already had in hand.
+  - title: "Never isolate a Workflow phase inside project-management"
+    detail: >
+      The runtime created .claude/worktrees/wf_f1bd81db-ec8-4 plus branch worktree-wf_f1bd81db-ec8-4
+      in a repo whose CLAUDE.md declares a single trunk and forbids both operations. Add a hard
+      precondition to the agent() helper, or to the isolation:'worktree' call site: if the resolved
+      isolation root is the project-management checkout, refuse and run in place. Ticket artifacts
+      belong on main, where the next session and the human both look.
+  - title: "Recover the stranded KTT-49 evidence and prune the three stray worktrees"
+    detail: >
+      Cherry-pick or copy tickets/KTT/no-epic/KTT-49/tdd/, review/diff.patch,
+      review/diff-dac-gcp-back-biag.patch and reports/implementation/build-result.md from branch
+      worktree-wf_f1bd81db-ec8-4 onto main, update the ticket INDEX.md to list them, then
+      git worktree remove the three .claude/worktrees entries and delete their branches. Do this before
+      the next factory run, because a later git clean in that repo deletes the only copy.
+  - title: "Give the TDD gate a first-class infrastructure exemption"
+    detail: >
+      Add infra_declarative(<why>) alongside not_applicable, infra_blocked and doc_claims. It applies
+      when the deliverable is declarative configuration with no executable unit surface (HCL, a k8s
+      manifest, a CI template). Make it carry its own cheap proof list in the same shape doc_claims
+      uses: each entry names a static check actually run, such as terraform fmt -check -diff, a diff
+      assertion that a forbidden file is byte-identical to origin, or a grep proving no credential
+      literal is present. KTT-49's AC-6 ledger already ran exactly four such checks by hand, so the
+      evidence shape exists and only the schema slot is missing.
+  - title: "Make the exemption router read a deliverable list, not one string"
+    detail: >
+      AC-6 ships two deliverables: committed HCL and an un-committed markdown proposal. The doc-shape
+      router inspects a single deliverable string, so a mixed AC either hides its document or trips a
+      router written for contract pages. Change deliverable to an array and apply the doc_claims rule
+      only when EVERY deliverable is a document.
+  - title: "Mark production-gated ACs in the schema and short-circuit them"
+    detail: >
+      Add a per-AC field, for example completable_by_factory: false with a reason, written by the
+      concierge. The TDD gate skips those ACs outright instead of requiring prose in ac-list.json to
+      be re-read by every phase, and the concierge can tell the human up front that a run covering
+      three of six ACs is the best available outcome. KTT-49 knew this at phase 1 and still ran a full
+      pass.
+  - title: "Push after the TDD gate, not before"
+    detail: >
+      Implement currently pushes both branches and then the gate halts, so a failed run publishes
+      unreviewed branches. Either move the push to after the gate clears, or make the halt path report
+      the pushed branch names as cleanup work in the handoff so nothing is left orphaned on the remote.
+  - title: "Turn a reproduced pre-existing failure into a filed ticket"
+    detail: >
+      Implement correctly reproduced three test_demo_data failures at merge base ca3108c and correctly
+      declined to fix them. Nothing records them anywhere a human will see. Require the implement
+      contract to emit a pre_existing_failures array (test id, merge-base sha, one-line symptom) and
+      have the ship or retro phase write it to the inbox at general/inboxes/gabriel/pending/.
+  - title: "Clean up design-gate scratch artifacts in shared SaaS"
+    detail: >
+      The design proof created LangSmith project ktt49-design-proof inside the shared production
+      workspace and left it. When a design gate writes into a shared external system, the contract
+      should require a named teardown step, or a scratch workspace, before the phase returns.
+  - title: "Bounce a grill gap back to design when it changes the plan"
+    detail: >
+      Grill produced ten gaps and forwarded nine to implement as a work list. G-A, G-B and G-C are
+      design changes (a consent call, failure-event subscription with buffer bounding, a crew-identity
+      key), not implementation details. Let grill mark a gap as design_rework and return that subset to
+      phase 2, so implement is not absorbing design debt on top of a two-repo build.
+
+context_notes:
+  - >
+    Honesty quality on this run was high and should not be read as absent from the low scores. The
+    implementer refused to claim PASS on AC-1, AC-2 or AC-3, stamped AC-6 as plan-level and NOT
+    live-verified, declined to write a fake unit test around HCL, and held the un-approved IAM binding
+    out of the commit as Gabriel instructed. The scores are low because the work is undeployable, not
+    because the reporting was unreliable.
+  - >
+    The Q1 design gate worked exactly as intended. It demanded proof that google-adk and crewai spans
+    reach LangSmith over OTLP with model steps, tool steps and timing before any build started. The
+    proof passed and produced five findings that shaped the implementation.

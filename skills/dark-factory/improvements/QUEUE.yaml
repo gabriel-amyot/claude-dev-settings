@@ -4792,6 +4792,57 @@ entries:
     Blocked GH-558/559 on 2026-11-02.'
   runs:
   - launch-review-2026-11-02-GH-557
+- key: require-ac-tdd-deliverable-to-be-a-path-not-pros
+  theme: confidence-is-inert
+  status: open
+  times_proposed: 1
+  first_proposed: '2026-10-08'
+  last_proposed: '2026-10-08'
+  titles:
+  - Require ac_tdd deliverable to be a path, not prose, so the doc_claims router cannot misfire
+  detail: 'KTT-49 hard-halted at HALT_TDD_GATE on a labelling fault, losing the Review and QA phases entirely.
+    The 0.10.4 doc-shape router tests deliverable with /\.(md|markdown|rst|adoc|txt)$/i. The implement
+    contract asks for ''the primary path that AC ships'', but the agent returned a PROSE SENTENCE for
+    AC-6: ''dac-gcp-back-biag terraform/secret_res.tf (...) + ... env block, commit 39a28ef; the IAM binding
+    is deliberately UN-committed at tickets/KTT/no-epic/KTT-49/reports/architecture/ac6-iam-binding-proposal.md''.
+    That sentence ends in .md, so a terraform AC was routed to doc_claims and rejected. AC-6 actually
+    ships terraform/secret_res.tf. The gate behaved correctly on malformed input; the field contract is
+    what failed. Suggested fix, strictly tightening not loosening: validate deliverable shape in tddViolations
+    (reject a value containing whitespace or more than one path-like token, with the message ''deliverable
+    must be a single repo-relative PATH, not prose''), AND make the inline implement prompt say so explicitly.
+    Do NOT widen isShapeOnlyTdd to cover this: the author''s comment deliberately excludes malformed-exempt
+    from the repair path, and letting a repair agent rewrite deliverable would re-open the KTP-1003 self-selection
+    escape. Note the real cost here was not the halt but what the halt skipped: the run''s own confidence
+    deductions flagged that the SHIPPED telemetry.py never emitted a span (proof ran against a divergent
+    /tmp prototype) and that multi-crew span attribution was unproven, which are exactly the things Review
+    and QA exist to catch.'
+  runs:
+  - run-2026-10-08-KTT-49
+- key: implement-s-isolation-worktree-strands-ticket-ar
+  theme: tdd-ledger
+  status: open
+  times_proposed: 1
+  first_proposed: '2026-10-08'
+  last_proposed: '2026-10-08'
+  titles:
+  - Implement's isolation:'worktree' strands ticket artifacts in a project-management worktree the guard
+    cannot see
+  detail: 'The Implement agent() runs with isolation:''worktree''. The worktree is created in the WORKFLOW''s
+    repo, which is project-management, not in the target code repo. On KTT-49 this produced .claude/worktrees/wf_f1bd81db-ec8-4/
+    inside project-management, holding the ONLY copy of every implement-phase artifact: tdd/AC-4.md, AC-5.md,
+    AC-6.md, both RED outputs, review/diff.patch, review/diff-dac-gcp-back-biag.patch, reports/implementation/build-result.md
+    and execute-verify-transcript.txt, plus a richer ac6-iam-binding-proposal.md than the one on main.
+    All untracked, all one ''git clean'' from gone, and invisible to pm-single-trunk-guard.sh (which by
+    design cannot see Workflow-internal worktrees). This also directly violates project-management''s
+    CLAUDE.md rule ''NEVER create a worktree here''. It is already a known pattern, see the library entry
+    agent-tool-isolation-worktree-in-pm. Suggested fix: the implement step writes its ticket artifacts
+    to the REAL ticket folder path on main rather than the worktree-relative one, or the terminal payload
+    carries an explicit artifact-recovery step the main loop must run before any cleanup. Today recovery
+    depends entirely on the main loop noticing, which is luck. Note the returned diff_artifact path was
+    itself worktree-relative, so a caller following the payload literally would read a path that is about
+    to be deleted.'
+  runs:
+  - run-2026-10-08-KTT-49
 - key: consume-the-per-phase-confidence-numbers
   theme: confidence-is-inert
   status: landed

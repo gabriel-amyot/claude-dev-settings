@@ -1,0 +1,171 @@
+run_id: run-2026-10-16-KTP-1335
+ticket: KTP-1335
+ticket_url: "https://beklever.atlassian.net/browse/KTP-1335"
+parent_ticket: "https://beklever.atlassian.net/browse/KTP-1332"
+blocked_by: "https://beklever.atlassian.net/browse/KTP-1334"
+conductor: "sprint-factory KTP-1334 KTP-1335 (tier 2)"
+date: '2026-10-16'
+terminal_status: READY_TO_SHIP
+tool_belt: frontend
+primary_repo: app-front-portal
+branch: KTP-1335-attach-plan-excel-on-send
+head_commit: 9e5f753c
+base: "origin/dev@1ca87c7a (2.0.93)"
+release_version: 2.0.94
+diff_stat: "19 files, +1137 -42"
+ticket_folder: "/Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/KTP/KTP-536/KTP-1335"
+spec_source: AC-LOCAL.md
+ac_in_scope: [AC-1, AC-5, AC-6]
+tdd_gate_mode: halt
+tdd_warn_mode_violations: []
+
+phases:
+  - phase: concierge
+    status: PASS
+    confidence: 80
+  - phase: design
+    status: pass
+    confidence: 82
+    note: >
+      impl-plan.md 149 lines. Grill found two required corrections the design missed
+      (G1 import "server-only" not resolvable outside a Next build, G2 flag read at module load).
+  - phase: grill
+    status: pass
+    confidence: 84
+    note: >
+      grill-report.md. 10 assumptions challenged, all resolved or parked with a named
+      post-merge gate. Two required corrections, two human-confirmation items (runtime read under
+      public/, first base64 encode in app code).
+  - phase: implement
+    status: pass
+    confidence: 84
+    note: >
+      Real RED then GREEN commit pairs for AC-1 (c83b6644, 80ad63d1), AC-5 (a95dbd5f, 60ed8ee4),
+      AC-6 (8306a580, 3eee2945). Follow-up commits c83e06fb (no empty planFileError), 1da4bc36
+      (release 2.0.94 and contract doc), 9e5f753c (two lint errors in the new specs).
+  - phase: review
+    status: "blocking:0"
+    confidence: 82
+    note: >
+      findings.json has one LOW finding open. The logo read failure is cached as null for the
+      life of the server process.
+  - phase: qa
+    status: ALL_PASS
+    confidence: 86
+    note: >
+      38 logic specs pass. Live route sends through next dev against a recorder for flag on, flag
+      off and builder failure. RED re-verified for all three ACs. Build exit 0. 8 lint and type
+      errors, all identical on the origin/dev baseline.
+  - phase: ship-prep
+    status: pass
+    confidence: 88
+
+scores:
+  task_confidence: 82
+  factory_fitness: 77
+
+deductions:
+  - score: task_confidence
+    points: 6
+    reason: >
+      KTP-1334 (backend) is pushed on origin/KTP-1334-plan-file-attach but not merged to dev.
+      QA used a recorder, so the cross-repo planFile contract never ran end to end.
+  - score: task_confidence
+    points: 3
+    reason: >
+      The internal load balancer body limit for the base64 body is unverified. It is a
+      post-merge gate before the flag flip.
+  - score: task_confidence
+    points: 3
+    reason: >
+      The logo read under the standalone /app runtime and ICU America/New_York data in
+      node:22-alpine were proven under next dev only, not inside the built image.
+  - score: task_confidence
+    points: 2
+    reason: >
+      AC-1 GREEN commit 80ad63d1 changed one expected file name in a RED test (bare-name fallback).
+      QA judged it correct, but a test assertion moved during GREEN.
+  - score: task_confidence
+    points: 2
+    reason: "One LOW review finding stays open (logo failure cached as null for the process life)."
+  - score: task_confidence
+    points: 2
+    reason: "Portal tests do not run in CI. The proof is local counts only."
+  - score: factory_fitness
+    points: 10
+    reason: >
+      Phase artifacts are stranded in three project-management worktrees
+      (.claude/worktrees/wf_ad61ac49-aeb-4 tdd and review diff, -5 review findings, -6 qa).
+      The main ticket folder holds only analyst, design and architecture. QA had to search a
+      sibling worktree for review/findings.json. This breaks the project-management single-trunk rule.
+  - score: factory_fitness
+    points: 5
+    reason: >
+      The ticket was built and reached READY_TO_SHIP before its blocker KTP-1334 merged, against
+      the AC-LOCAL rule "branch from origin/dev after KTP-1334 is merged". Only a grill note holds
+      the merge order. No gate enforces it.
+  - score: factory_fitness
+    points: 3
+    reason: >
+      The design phase missed two repo conventions (server-only directive, per-request flag read)
+      that the grill had to correct.
+  - score: factory_fitness
+    points: 2
+    reason: >
+      Lint errors in new specs escaped the implement gate and needed a later commit 9e5f753c.
+      The lint sweep also needed a manual baseline diff against origin/dev.
+  - score: factory_fitness
+    points: 2
+    reason: >
+      Every phase reports a soft confidence between 80 and 88 with no stated basis, so the
+      numbers do not separate a strong phase from a weak one.
+  - score: factory_fitness
+    points: 1
+    reason: >
+      The retro received no active session id, so the handoff went to the ticket reports folder.
+
+red_flags:
+  - >
+    tdd/, review/ and qa/ artifacts exist only in project-management worktrees
+    wf_ad61ac49-aeb-4, -5 and -6. They are untracked and at risk of loss on worktree prune.
+  - >
+    KTP-1335 is READY_TO_SHIP while KTP-1334 is unmerged. A portal MR merged first is safe only
+    because MEDIA_PLAN_ATTACH_EXCEL defaults off.
+  - "QA verified the send against a recorder, not against app-proximity-report with KTP-1334."
+  - "AC-1 GREEN commit edited an expected value in a RED test."
+  - "Implement phase let two unused-variable lint errors into the new specs."
+  - "Design phase proposed import server-only, which does not resolve outside a Next build."
+  - "Runtime-image checks (logo under /app, ICU tz in alpine) are deferred to dev smoke with no owner."
+
+improvements:
+  - title: "Write phase artifacts to the main project-management path, never a worktree"
+    detail: >
+      In workflow.js, resolve the ticket folder as the absolute main-checkout path and pass it to
+      every phase. Never run project-management phases with isolation worktree. Add a ship-prep
+      gate that fails when tdd/, review/findings.json or qa/result.yaml is missing under the main
+      ticket folder.
+  - title: "Sprint-factory merge-order gate for blocked tickets"
+    detail: >
+      When a ticket has an unmerged blocker, ship-prep must emit READY_TO_SHIP_HOLD_FOR with the
+      blocker key, and the main loop must not merge the MR until the blocker is merged to dev.
+      Alternatively, hold tier-2 dispatch until the tier-1 MR merges.
+  - title: "Cross-repo contract test in QA when both branches exist"
+    detail: >
+      Contract 6 should run the dependent backend branch locally (KTP-1334) and send one real
+      envelope through it when both sides are pushed. Record a recorder-only result as PARTIAL, not PASS.
+  - title: "Implement gate runs eslint on changed files before the last GREEN"
+    detail: >
+      Add eslint on changed files (and tsc against an origin/dev baseline) to the implement exit
+      gate for the frontend belt, so lint fixes do not need a separate commit after implement.
+  - title: "Design contract reads the repo lib/ conventions list"
+    detail: >
+      Contract 2 should grep for existing directive and env-read patterns (use server-only,
+      per-request process.env reads) before it proposes a new import or a module-level default.
+  - title: "Flag GREEN commits that change RED assertions"
+    detail: >
+      The TDD gate should diff the test files between the RED and GREEN commits and require a
+      written reason in tdd/AC-N.md for any changed expected value.
+  - title: "Give soft confidence a rubric"
+    detail: >
+      Each phase contract should state what lowers confidence (unverified items, workarounds,
+      deferred checks) so the number carries signal.

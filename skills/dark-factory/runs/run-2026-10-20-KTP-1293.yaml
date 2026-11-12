@@ -1,0 +1,189 @@
+run_id: run-2026-10-20-KTP-1293
+ticket: KTP-1293
+source: jira
+issue_url: "https://beklever.atlassian.net/browse/KTP-1293"
+title: >
+  Pacing window must honour the campaign timezone, not UTC. Python MCP server
+  app-ttd-trading-mcp, belt python-service.
+date: 2026-10-20
+terminal_status: BLOCKED_SPEC_QUALITY
+ticket_folder: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/KTP/no-epic/KTP-1293
+tdd_gate_mode: halt
+tdd_warn_violations: []
+
+artifacts_on_disk:
+  - analyst/ac.json
+  - analyst/affected-repos.json
+  - analyst/assumptions.json
+missing_artifacts:
+  - "reports/ folder (no halt rationale recorded)"
+  - "questions file (artifacts cite Q2 with nothing defining it)"
+  - "AC-LOCAL.md draft (spec failed; no repairable spec emitted)"
+
+repo_state:
+  primary_repo: app-ttd-trading-mcp
+  primary_path: /Users/gabrielamyot/Developer/grp-beklever-com/grp-app/grp-backend/grp-mcp/app-ttd-trading-mcp
+  default_branch: dev
+  local_checkout: "HEAD 123 commits behind origin/dev; every analyst fact read from origin/dev"
+  branch_created: false
+  commits: 0
+  pushed: false
+
+phases:
+  - phase: concierge
+    status: FAIL
+    confidence: 74
+
+spec_findings:
+  - ac: AC-1
+    buildable: partial
+    reason: >
+      Hour LABELLING in the campaign timezone needs TTD's beta time-bucketing argument plus the
+      TTD-GQL-Beta request header. The MCP sets only Authorization on the relay. Cross-repo,
+      backend-gated on app-klever-media-api. Only the filter-bound shift is in-repo.
+  - ac: AC-2
+    buildable: yes
+    reason: "Fits the existing label pattern. spend_label already carries a flight_window string."
+  - ac: AC-3
+    buildable: blocked
+    reason: >
+      Contradicts pinned safety invariant A5 ("the reporting window is computed, not passed"),
+      pinned by tests/test_tools_over_protocol.py and restated in the mcp-tools contract.
+      Retiring an invariant is a human decision under the Spec Fidelity rule.
+  - ac: AC-4
+    buildable: partial
+    reason: >
+      False premise. TTD types Campaign.timeZone as NON_NULL String, so "timezone absent" is not
+      the failure mode. The real one is an unmappable Windows time zone ID.
+  - ac: scope
+    buildable: "not satisfiable as written"
+    reason: >
+      The ticket says fix the pacing trio. Only one call site consumes the UTC day window
+      (server.py:1135). The forecast tool sends no window argument. No third tool exists.
+
+task_confidence: 12
+factory_fitness: 72
+
+deductions:
+  - score: task_confidence
+    points: 45
+    reason: >
+      Nothing was built. The run halted at the front gate with no branch, no commits, no tests and
+      zero ACs implemented. The ticket is not deployable in any form.
+  - score: task_confidence
+    points: 15
+    reason: >
+      AC-3 contradicts a pinned safety invariant (A5). The factory cannot resolve it. A human must
+      either retire the invariant or drop the AC before any run can finish this ticket.
+  - score: task_confidence
+    points: 10
+    reason: >
+      The ticket's scope statement ("the whole pacing trio") is not satisfiable. One call site
+      exists. The ticket needs rewriting, not just clarifying.
+  - score: task_confidence
+    points: 8
+    reason: >
+      The AC-1 half that matters to a trader (hour labels in the campaign timezone) is gated on a
+      second repo setting a beta header. Even the buildable half ships right hours with wrong labels.
+  - score: task_confidence
+    points: 5
+    reason: >
+      AC-4 rests on a false premise about the TTD schema, so it is untestable as written. The real
+      failure mode (unmappable Windows zone ID) is unspecified.
+  - score: task_confidence
+    points: 5
+    reason: >
+      No live proof path exists. The TTD sandbox carries no delivery data (fact F8, marked
+      UNVERIFIED-LIVE), so any future build ends at fixture plus stdio-walk proof only.
+  - score: factory_fitness
+    points: 8
+    reason: >
+      The blocked and deferred ACs never left the disk. No Jira comment on KTP-1293, no file under
+      general/inboxes/gabriel/pending/, no Open Questions section. The project rule requires the
+      pairing. Disk-only parking is the documented failure mode.
+  - score: factory_fitness
+    points: 6
+    reason: >
+      affected-repos.json says "unless option A on Q2 is chosen" but no questions artifact defines
+      Q1 or Q2. A next run cannot resolve the reference.
+  - score: factory_fitness
+    points: 5
+    reason: >
+      The concierge halted at confidence 74 and wrote no halt record. The ticket folder holds only
+      analyst/, so the reason for BLOCKED_SPEC_QUALITY survives in the trace and nowhere on disk.
+  - score: factory_fitness
+    points: 4
+    reason: >
+      The spec failed and the factory emitted no AC-LOCAL.md draft. The project's own override
+      mechanism for a bad Jira description was available and unused, so the block has no repair path.
+  - score: factory_fitness
+    points: 3
+    reason: >
+      The active session was unresolvable again (sessions/active/state.yaml session_id is empty), so
+      the handoff fell back to the ticket folder. Same defect filed on the GH-343 run, still open.
+  - score: factory_fitness
+    points: 2
+    reason: >
+      The local checkout is 123 commits behind origin/dev. The analyst handled it correctly by
+      reading origin/dev, but by discipline, not by a preflight sync gate.
+
+credits:
+  - "The front gate did its job. A spec this broken reaching implement would have burned a full run."
+  - "Every analyst fact carries a verified_against stamp against origin/dev, not the stale local tree."
+  - "The AC-4 false-premise catch and the one-call-site scope finding are both premise audits, not logic checks."
+
+red_flags:
+  - "Blocked and deferred ACs exist only on disk. No Jira comment, no inbox item, no PO visibility."
+  - "Artifacts reference Q1/Q2 but no questions file exists in the ticket folder."
+  - "Concierge FAIL left no halt rationale on disk. Only analyst/ was written, no reports/."
+  - "Spec failed and no AC-LOCAL.md draft was produced, so the block has no repair path."
+  - "sessions/active/state.yaml session_id empty. Handoff target unresolved, second run in a row."
+  - "Local primary repo checkout 123 commits behind origin/dev with no preflight sync gate."
+  - "Concierge soft confidence 74, below the 85 bar, yet the artifacts read as high-certainty."
+  - "The repo's own test fixture uses an IANA zone name while TTD returns a Windows ID. A wrong implementation would pass the existing fixture."
+
+improvements:
+  - title: "BLOCKED_SPEC_QUALITY must produce a Jira comment, not just disk artifacts"
+    detail: >
+      Contract 1 should, on a spec FAIL, write the blocking questions as a draft and route it
+      through /post-comment to the Jira ticket, plus a file under
+      general/inboxes/gabriel/pending/. workflow.js should refuse the BLOCKED_SPEC_QUALITY terminal
+      state until both a questions artifact and a posted-or-drafted PO surface exist.
+  - title: "Emit questions.json whenever an artifact cites a question id"
+    detail: >
+      Add analyst/questions.json to the concierge output schema with fields
+      {id, question, options, blocks_ac, decision_owner}. Validate that every Q<n> string appearing
+      in any analyst artifact resolves to an id in that file. Here Q2 dangles.
+  - title: "On spec FAIL, draft the AC-LOCAL.md instead of only diagnosing"
+    detail: >
+      The concierge already knows which ACs are buildable, blocked, or false-premised. It should
+      write a proposed AC-LOCAL.md to the ticket folder with the rewritten ACs, the dropped ones, and
+      a header stating the divergence from Jira. That turns a dead halt into a one-human-decision
+      restart. Marked clearly as a proposal, never auto-adopted.
+  - title: "Gate an AC that contradicts a pinned invariant as a named terminal reason"
+    detail: >
+      AC-3 collides with safety invariant A5. Add a distinct terminal status
+      BLOCKED_INVARIANT_CONFLICT carrying {invariant_id, file, pinning_test, ac_id}, so the miner can
+      separate a vague spec from a genuine architecture decision. The two need different humans.
+  - title: "Preflight sync gate on the primary repo"
+    detail: >
+      The concierge should run git fetch then git rev-list --count HEAD..origin/<default> and record
+      it. Above zero, every artifact fact must be stamped as read from origin/<default>. Halt if any
+      fact cites the local tree. Here the analyst did this by hand at 123 commits behind.
+  - title: "Resolve the active session from the ledger, not state.yaml"
+    detail: >
+      Repeat of the GH-343 finding, still unfixed. Contract 9 should query ledger --org klever for
+      the launching session and use its prompts folder. Fall back to the ticket reports folder only
+      after the ledger lookup fails.
+  - title: "Flag fixtures that disagree with the recorded vendor schema"
+    detail: >
+      tests/conftest.py:418 uses America/New_York while the committed TTD schema dump describes
+      Campaign.timeZone as a Windows time zone ID. The concierge should report a fixture-vs-schema
+      mismatch as a blocking finding, because such a fixture lets a wrong implementation go green.
+
+summary: >
+  The front gate worked. KTP-1293 was stopped at concierge with evidence-stamped proof that one AC
+  contradicts a pinned safety invariant, one rests on a false schema premise, and the stated scope
+  covers call sites that do not exist. The failure is what happened next: the findings never reached
+  the PO, no questions file backs the Q2 reference, and no AC-LOCAL.md draft was produced, so the
+  block has no repair path.

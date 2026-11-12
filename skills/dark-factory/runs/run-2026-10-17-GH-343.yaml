@@ -1,0 +1,160 @@
+run_id: run-2026-10-17-GH-343
+ticket: GH-343
+source: github
+issue_url: https://github.com/gabriel-amyot/klever-project-management/issues/343
+spec_issue_url: https://github.com/gabriel-amyot/klever-project-management/issues/341
+title: >
+  Portal half of GH-341. Save every media plan on generation from app-front-portal through a new
+  fire-and-forget route /api/media-plan/plans, gated by MEDIA_PLAN_SAVE_EVERY_PLAN (default off). Belt frontend.
+date: 2026-10-17
+terminal_status: READY_TO_SHIP
+ticket_folder: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/wayfinder/no-map/issue-343
+tdd_gate_mode: halt
+tdd_warn_violations: []
+
+branch_state:
+  verified_against: "git fetch origin GH-343-save-every-plan; FETCH_HEAD log origin/dev..branch = 11 commits, head 065b1d61"
+  repo: app-front-portal
+  branch: GH-343-save-every-plan
+  base: "origin/dev@22fdf0ba"
+  head: 065b1d61
+  commits_ahead_of_dev: 11
+  changed_files: 14
+  pushed: true
+  mr: "none yet (main loop creates it)"
+  backend_dependency: "GH-342 merged to app-proximity-report dev (merge commit c3d06ab), verified 2026-10-17"
+
+phases:
+  - phase: concierge
+    status: PASS
+    confidence: 82
+  - phase: design
+    status: pass
+    confidence: 80
+  - phase: grill
+    status: pass
+    confidence: 84
+  - phase: implement
+    status: pass
+    confidence: 85
+  - phase: review
+    status: "blocking:0"
+    confidence: 80
+  - phase: qa
+    status: ALL_PASS
+    confidence: 86
+  - phase: ship-prep
+    status: pass
+    confidence: 88
+
+acs:
+  - id: AC-1
+    kind: baseline_plus_new
+    red_commit: 9b4bcac2
+    green_commit: 6e88abe9
+  - id: AC-3
+    kind: baseline
+    exempt: "not_applicable(brownfield, no production change)"
+    baseline_commit: bf48ea0e
+    screenshot: tdd/screenshots/gh-343-save-every-plan-bro-c0170-as-waiting-with-the-request-chromium.png
+  - id: AC-7
+    kind: baseline_plus_new
+    red_commit: 1542f417
+    green_commit: 819170be
+  - id: adversarial-latest-wins
+    red_commit: c315af97
+    green_commit: f1bbd552
+    note: "Grill gap 1 turned into a RED test before the fix. Good pattern."
+
+task_confidence: 80
+factory_fitness: 81
+
+deductions:
+  - score: task_confidence
+    points: 8
+    reason: >
+      No live end-to-end proof. All proof is mocked upstream plus local screenshots. "Within one minute a
+      Request exists in Salesforce" (AC-1 parent) depends on sandbox S1/S2 and the DAC env var for
+      MEDIA_PLAN_SAVE_EVERY_PLAN, none exercised in this run.
+  - score: task_confidence
+    points: 4
+    reason: >
+      Grill gap 1 (thread restore can render intermediate plans and POST older versions) stays UNVERIFIED.
+      The latest-wins chain mitigates it, but the real render order was never observed.
+  - score: task_confidence
+    points: 3
+    reason: >
+      Flag ships default off. Merging the branch changes nothing user-visible until a human sets the flag
+      in each environment, so "done" means "dormant code ready", not "feature live".
+  - score: task_confidence
+    points: 3
+    reason: >
+      Browser latch step passes on dedupe alone (fixture content is identical across regenerate). The latch
+      proof is logic-test only. Grill stated this, but a browser proof of regenerate-sends-second-save is absent.
+  - score: task_confidence
+    points: 2
+    reason: "Soft confidence below 85 on design (80) and review (80)."
+  - score: factory_fitness
+    points: 6
+    reason: >
+      Review findings are not persisted to the main ticket folder. review/ holds only diff.patch, no
+      findings.json, so "blocking:0" cannot be audited later (same gap seen on GH-342 run2).
+  - score: factory_fitness
+    points: 5
+    reason: >
+      Active session not resolvable for the handoff (sessions/active/state.yaml session_id empty), so the
+      handoff fell back to the ticket reports folder.
+  - score: factory_fitness
+    points: 4
+    reason: >
+      The ticket README says "Depends on the backend issue being merged to dev" but no gate checks it. The
+      concierge acs.json claims "#342, merged" with no verified_against stamp. True today (c3d06ab), but
+      unstamped.
+  - score: factory_fitness
+    points: 4
+    reason: >
+      AC-3 browser proof needed a manual local server on port 3043 (BASE_URL override). A "1 Issue" Next dev
+      badge from ECONNREFUSED proxy routes appears in screenshots, which a visual judge could misread.
+
+red_flags:
+  - "review/ contains only diff.patch. Findings JSON for the blocking:0 verdict was not written to the main ticket folder."
+  - "acs.json asserts GH-342 merged without a verified_against stamp. Correct today, unverified at concierge time."
+  - "Browser latch step cannot fail on the latch (dedupe makes it pass). Logic test is the only real proof."
+  - "Grill gap 1 (intermediate plan render on thread restore) is UNVERIFIED. Mitigated, not observed."
+  - "Screenshots show a '1 Issue' Next dev overlay caused by absent local services, not by the change."
+  - "Handoff target session unresolved. state.yaml session_id is empty."
+  - "Feature flag default off. Activation needs a DAC env var per environment, not tracked by the factory."
+
+improvements:
+  - title: "Persist review findings JSON to the main ticket folder"
+    detail: >
+      Contract for the review phase should write review/findings.json (even when blocking is 0) to the main
+      checkout ticket folder, not the worktree. workflow.js should refuse to advance past review unless that
+      file exists and its blocking count matches the phase status.
+  - title: "Gate cross-repo dependencies with a stamp"
+    detail: >
+      When the issue body says "depends on X merged to dev", the concierge must emit
+      dependencies[{repo, ref, verified_against}] from a git fetch plus merge-base check. workflow.js should
+      halt if a declared dependency has no stamp.
+  - title: "Emit an activation checklist for flag-gated work"
+    detail: >
+      Ship-prep should write reports/activation.md listing the flag name, the DAC repo and variable per
+      environment, and the live proof still owed (here sandbox S1/S2). The main loop links it from the MR.
+  - title: "Reject browser steps that cannot fail on the claim they name"
+    detail: >
+      QA contract should require each browser test to name the assertion that would fail without the change.
+      A step that passes via a different mechanism (dedupe vs latch) must be renamed smoke or get a distinct
+      fixture (here, a second fixture plan version so regenerate sends a second POST).
+  - title: "Start the frontend proof server through a standard preflight"
+    detail: >
+      The frontend belt should start or detect the local portal on a known port and stub or silence absent
+      proxy services, so screenshots carry no dev-error overlay. Record the BASE_URL in tdd notes automatically.
+  - title: "Resolve the active session from the ledger, not state.yaml"
+    detail: >
+      Contract 9 handoff path resolution should query `ledger --org klever` for the session that launched the
+      workflow. Fall back to the ticket reports folder only if the ledger lookup fails.
+
+summary: >
+  Clean READY_TO_SHIP on the portal half of GH-341. Strict RED then GREEN per AC, and an adversarial
+  latest-wins test came straight from a grill gap. Residual risk is the absence of live Salesforce proof
+  and a review verdict that left no findings file on disk.

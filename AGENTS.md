@@ -1,6 +1,6 @@
 <!-- generated-mirror-of-claude-md -->
 <!-- source: ~/.claude-shared-config/CLAUDE.md -->
-<!-- source-sha256: 13acae622a45648c -->
+<!-- source-sha256: f1cf58287ab118f9 -->
 
 > **Generated file. Do not edit.**
 >
@@ -66,6 +66,7 @@ For the full framework (compaction strategies, note-taking patterns, subagent ar
 - Never correct Gabriel's English or grammar. He is not a native speaker and does not want language coaching. Read through typos and phrasing to the intent; do not teach English.
 - **No dashes as separators.** Never use em-dash, hyphens, or double-hyphens to join sentences. Use periods, commas, or conjunctions instead.
 - **Never rewrite git history.** No `git push --force`, `git rebase` on shared branches, `git reset --hard` to before pushed commits, `git commit --amend` on pushed commits, or any other history-rewriting operation. This is absolute, even if the user approves it. If the user insists, provide the exact command with full context (branch, remote, paths) for them to run manually. You will not execute it.
+- **Never auto-launch a new Claude Code session on the user's behalf.** If a task implies starting another session (a crawl, a scheduled run, a parallel instance), propose it and let the user start it themselves.
 
 # Mechanical Backstops
 
@@ -76,6 +77,7 @@ Hooks enforce many rules in this file. They are defense-in-depth, never a substi
 # Inline Review with Crit
 - **Recommend `/crit:crit` before committing to a plan or a large diff.** When you finish a written plan, or when a diff is large enough that scanning it inline is error-prone (roughly 100+ changed lines or 5+ files), proactively suggest running `/crit:crit` so the human can leave inline comments in the browser and you address them in a loop. Recommend, don't force: a one-line change or a quick answer doesn't need it.
 - The crit CLI must be installed (`brew install crit`); the plugin ships only the skill. If `crit` returns `command not found`, surface that and stop rather than guessing an install path.
+- **Never open a crit review with an auto-close timer.** Open it and leave the connection open; the user reports back manually when they're done reviewing. An auto-timer closes the review before they're finished.
 
 # BMAD Workflows
 - No directory constraints. BMAD workflows run from wherever you are (typically project-management). Don't invent execution context requirements. If unsure, ask.
@@ -93,7 +95,7 @@ Hooks enforce many rules in this file. They are defense-in-depth, never a substi
 - **Main worktree stays clean.** All code edits happen in git worktrees, never in the main checkout. On a block: `git fetch origin`, then invoke `using-git-worktrees`. `project-management/` is exempt.
 - **Branch naming:** `{TICKET-ID}-short-description` — e.g., `SPV-23-datastore-adapter-lenient-types`. No `fix/`, `feature/`, `chore/` prefixes. No folder-style separators.
 - **Commit messages must contain why and what.** First line: `{TICKET-ID}: {short imperative what}`. Body: why this change exists (problem/ask), then what changed (outcome, not file list). MR descriptions are built from commits, so each commit must be self-explanatory.
-- Assume feature flags will be used for any complex feature implementation — wire up from the start with fallback to legacy behavior when disabled.
+- **Feature flags: propose, never add by default.** If a change seems to need a flag (rollout order, kill switch), ask Gabriel before the flag goes into a spec, a Jira description or code. State why it is needed and what it costs: a variable to turn on in each environment, and a later removal.
 - **NEVER commit documentation to repo** — put implementation summaries, design docs, analysis in `project-management/tickets/{ticket-or-branch-name}/`
 - **Don't touch what you don't understand.** If you see something unfamiliar in the codebase (a config field, an input variable, a file you didn't create), do NOT delete or modify it. Ask the user first.
 - **You don't own other people's code.** Other engineers contribute to these repos. Respect their work. If something looks wrong but was added by someone else, flag it — don't silently change it.

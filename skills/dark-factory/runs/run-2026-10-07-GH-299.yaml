@@ -1,0 +1,270 @@
+run_id: run-2026-10-07-GH-299
+ticket: GH-299
+source: github
+issue_url: https://github.com/gabriel-amyot/klever-project-management/issues/299
+parent_map: 294
+title: >
+  Agent: emit a plan_approved event when the user approves. Belt python-service,
+  branch GH-299-plan-approved-event cut from origin/dev, repo app-media-plan.
+date: 2026-10-07
+terminal_status: HALT_PRESHIP
+halt_phase: "pre-ship (contract 7 never ran; no MR, no wayfinder report-back)"
+ticket_folder: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/wayfinder/map-294/issue-299
+
+halt_point: >
+  Same shape as run-2026-10-07-GH-296. The code reached the remote and stopped there.
+  Verified at retro time from the run worktree
+  .worktrees/GH-299-plan-approved: git ls-remote origin returns
+  831fa90c53587a354869beecba6f8b009d13259f for refs/heads/GH-299-plan-approved-event, and
+  git rev-list --left-right --count against that ref is 0 / 0, so the branch is pushed and
+  in sync. Nine commits sit on origin/dev..HEAD. What is missing is the merge request, the
+  status comment, and the report-back to map 294. GitHub issue 299 is still OPEN with zero
+  comments, verified with gh issue view at retro time.
+
+root_cause_of_the_halt:
+  verdict: "orchestration, plus an unresolved product decision carried all the way to the end"
+  verified_against: >
+    git ls-remote and git rev-list on
+    grp-app/grp-backend/grp-gcp/grp-models/app-media-plan at 2026-10-07; gh issue view 299
+    returning state OPEN and comments 0; the ticket folder having no ship/ artifact.
+  consequence: >
+    Two separate stops are collapsed into one status. The pipeline has no state for
+    "pushed and waiting for a merge request", which is the fourth run in a row to end this
+    way. Independently, QA returned PARTIAL on two of five ACs and the reviewer's one HIGH
+    finding needs a human ruling, so even a working pre-ship step should not have opened an
+    MR unannotated.
+
+phases:
+  - phase: concierge
+    status: PASS
+    confidence: 80
+  - phase: design
+    status: pass
+    confidence: 84
+  - phase: grill
+    status: partial
+    confidence: 84
+  - phase: implement
+    status: pass
+    confidence: 86
+  - phase: review
+    status: "blocking:0"
+    confidence: 73
+  - phase: qa
+    status: PARTIAL
+    confidence: 87
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy_config: true
+  signal: clean
+  note: >
+    The gate ran in the default halt mode with zero warn-mode violations, so the run is
+    trustworthy on this axis. The commit graph carries an ordered RED then GREEN pair for
+    AC-1, AC-2, AC-3 and AC-4. QA re-verified every RED: each RED commit touches
+    tests/test_plan_approved.py only, each fails on a real assertion at its own commit and
+    not on an import or a NotImplementedError, and git diff between the first RED and the
+    tip removes zero lines from the test file, so no assertion was weakened to manufacture
+    a green. AC-5 took a documented RED exemption, which QA assessed as legitimate and
+    re-proved against the real diff rather than against the ledger.
+
+qa_result:
+  raw_overall: PARTIAL
+  suite: "uv run pytest -q -> 228 passed, 0 failed"
+  compile_gate: "uv run python -m compileall -q src/ app.py -> exit 0"
+  toolchain_match: true
+  per_ac:
+    AC-1: PARTIAL
+    AC-2: PARTIAL
+    AC-3: PASS
+    AC-4: PASS
+    AC-5: PASS
+  partial_cause: >
+    AC-1 emission is proven only on the dispatched-graph path, while USE_DEEP_AGENT defaults
+    true and sends production traffic to event_stream_deep, which never emits plan_approved.
+    AC-2 dedupe uses a process-global dict instead of the in-state fingerprint plus
+    aupdate_state write the AC names.
+
+review_result:
+  criticals_open: 0
+  findings: 4
+  severities: "1 HIGH, 1 MEDIUM, 2 LOW"
+  all_demonstrated: false
+  note: >
+    The reviewer recorded the reachability gap as HIGH with demonstrated false and explained
+    why: AC-1 is worded "when the confirm node has run", the deep state has no confirm_output
+    and no routing field, so the AC's precondition never holds on the production path and the
+    code does not violate the AC as written. Honest, and it is also the reason the gate
+    counted zero criticals on a feature that does not fire for the user.
+
+task_confidence: 65
+factory_fitness: 68
+
+deductions:
+  - points: 12
+    reason: >
+      score task_confidence. AC-1 PARTIAL. The emission lives only in event_stream, the
+      dispatched-LangGraph path. POST /agent picks the path from USE_DEEP_AGENT, which
+      defaults true, and the repo CLAUDE.md records the deep agent as the default in every
+      environment. An Account Manager approving a plan in the portal produces no
+      plan_approved today, so the downstream integration this ticket exists to feed never
+      fires. The logic is correct and tested; its reachability is not.
+  - points: 10
+    reason: >
+      score task_confidence. AC-2 PARTIAL. The AC names an in-state fingerprint written with
+      aupdate_state, exactly as rfp_emitted does. The implementation uses a module-global
+      dict _approved_emitted. Behaviour matches today because the dispatched path's own
+      session store is equally in-memory, but the value is not durable, is invisible to
+      _log_state and the model_validate backstop, never evicts, and there is no
+      aupdate_state write to assert on.
+  - points: 6
+    reason: >
+      score task_confidence. HALT_PRESHIP. The branch is pushed and in sync, but there is no
+      merge request, no status comment and no contract 7 artifact on disk. Finished code
+      that nobody can merge is not deployable work.
+  - points: 3
+    reason: >
+      score task_confidence. No report-back to map 294. GitHub issue 299 is OPEN with zero
+      comments, so the map still shows this patch as fog and a later route walk would
+      re-dispatch it.
+  - points: 2
+    reason: >
+      score task_confidence. The reviewer's HIGH reachability finding is open and needs a
+      human ruling on whether the ticket is done or a follow-up must carry approval into the
+      deep path. Nothing in the run routed that question to a human.
+  - points: 2
+    reason: >
+      score task_confidence. Two residual defects accepted without a ticket. Two overlapping
+      /agent turns on one thread_id can both emit plan_approved, because the read and the
+      write straddle three yields, and _approved_emitted grows without bound.
+  - points: 10
+    reason: >
+      score factory_fitness. The grill phase flagged G1 as BLOCKING-ADJACENT, an operator
+      decision, and confirmed claim C15 as understated: the production default path cannot
+      emit this event. That was known before a line was written, and no gate converted it
+      into a human stop. The factory spent a full implement, review and QA cycle to
+      rediscover the same fact at the end.
+  - points: 8
+    reason: >
+      score factory_fitness. HALT_PRESHIP for the fourth consecutive run, after GH-230,
+      GH-231 and GH-296. The pipeline still has no state for "pushed and awaiting a merge
+      request", so a run whose code is finished, pushed, reviewed and QA-verified is filed
+      as a halt. A repeat with a known cause costs more than a first occurrence.
+  - points: 5
+    reason: >
+      score factory_fitness. The review gate's only lever is demonstrated true or false, and
+      a reachability gap can never be demonstrated by a failing test, because the AC's
+      precondition does not hold on the path in question. So a HIGH finding that nullifies
+      the ticket's purpose passed the gate as criticals_open 0, by construction rather than
+      by judgement.
+  - points: 4
+    reason: >
+      score factory_fitness. The AC itself was internally contradictory and nothing sent it
+      back. AC-5's note told the implementer to read snap.values confirm_output and routing
+      at app.py:259, a line inside event_stream_deep, and neither key exists on
+      MediaPlanDeepState. The design and grill phases both proved that, and the build
+      proceeded on a spec that is unsatisfiable as written.
+  - points: 3
+    reason: >
+      score factory_fitness. AC-5's literal file allowlist was widened inside the build.
+      Commit 831fa90 changed the guard assertion to admit uv.lock rather than the AC being
+      amended by its author. The reasoning is sound and QA accepted it, but the factory
+      allows a run to edit the assertion that judges it, with no record outside a commit
+      message.
+  - points: 2
+    reason: >
+      score factory_fitness. The GitHub-issue source path has no close-out automation at
+      all. Nothing wrote a comment, moved a label, or recorded the branch URL on issue 299,
+      so the only trace of this run outside the worktree is the ticket folder.
+
+red_flags:
+  - >
+    Review returned criticals_open 0 while carrying a HIGH finding whose own detail says the
+    feature never fires in production. Zero criticals read as "clean" to any downstream
+    consumer.
+  - >
+    The grill phase named the fatal issue as G1 at design time and the run continued anyway.
+    A partial grill verdict with an operator-decision gap is being treated as advisory.
+  - >
+    Every one of the four review findings is demonstrated false. A review phase that
+    demonstrates nothing is indistinguishable, to the gate, from a review that found nothing.
+  - >
+    QA returned PARTIAL on two of five ACs yet every phase confidence stayed in the 73 to 87
+    band. The soft confidence numbers did not move when the substance did.
+  - >
+    AC-5 told the implementer to read two state keys that do not exist on the target model.
+    The spec was wrong about the code it was written against.
+  - >
+    The build widened an AC's own assertion, mid-run, to admit a file the AC excluded.
+  - >
+    Fourth HALT_PRESHIP in a row. The repeat is the flag, not the halt.
+  - >
+    Wayfinder issue 299 is OPEN with zero comments after a complete build. The map has no
+    idea the work exists.
+  - >
+    Two accepted defects, a read-modify-write race across three yields and an unbounded
+    dict, were documented and then left with no follow-up ticket.
+
+improvements:
+  - title: "Make a grill 'operator decision' gap a hard stop before implement"
+    detail: >
+      Contract 3 already emits a verdict of partial with labelled gaps. Add a field,
+      operator_decision_required, as a list of gap ids. workflow.js must halt with
+      BLOCKED_NEEDS_HUMAN when that list is non-empty, and print the gap body, rather than
+      passing it to implement as prose. G1 here was correct, early, and ignored, and that
+      cost a full build cycle.
+  - title: "Add a reachability assertion to the AC schema and to contract 6"
+    detail: >
+      For any AC that emits, writes or exposes something a user or a downstream system
+      consumes, require a reachability_proof field naming the entry point the shipped
+      default configuration actually takes, plus the env var or flag that selects it. QA may
+      not return PASS on such an AC without it. That would have caught USE_DEEP_AGENT
+      defaults true at design time, not after 228 green tests.
+  - title: "Give the review gate a severity lever, not only demonstrated true or false"
+    detail: >
+      criticals_open should count HIGH findings with demonstrated false that carry a
+      note_for_the_human, not only demonstrated ones. Route those to a human_rulings list
+      that the pre-ship contract must see as empty before it opens an MR. Today a HIGH that
+      cannot be expressed as a failing test is invisible to the gate.
+  - title: "Add the PUSHED_AWAITING_MR terminal state and stop filing it as a halt"
+    detail: >
+      Fourth run in a row. workflow.js should detect, at the pre-ship boundary, that the
+      branch exists on the remote and is in sync, and emit PUSHED_AWAITING_MR with the
+      branch ref, rather than HALT_PRESHIP. The main loop then has an unambiguous handle for
+      the MR plus report-back step, and the telemetry stops conflating a dead run with a
+      finished one.
+  - title: "Fail the run when an AC contradicts the code it was written against"
+    detail: >
+      Contract 2 or 3 should run an explicit AC-vs-code consistency check for every symbol
+      an AC names, with git show against the base ref. A miss, like AC-5's note pointing at
+      confirm_output and routing on MediaPlanDeepState, must return the AC to its author
+      instead of becoming a build-time judgement call. The analyst note F6 was already known
+      wrong at grill time, by the same mechanism.
+  - title: "Forbid the build from editing an assertion that judges it"
+    detail: >
+      Add an implement-phase check: if a commit changes a test that encodes an AC's own
+      boundary, such as the AC-5 file allowlist, the run must record an ac_amendment entry
+      with the reason and surface it in the QA report as a distinct field, not as a buried
+      deviation_noted. QA accepted the uv.lock widening on the merits, which is fine, but it
+      should not be the only place the amendment is visible.
+  - title: "Wire a wayfinder close-out into the pre-ship contract"
+    detail: >
+      For any run whose source is github, the pre-ship step must post a comment on the
+      source issue carrying the branch, the head sha, the per-AC QA verdicts and any open
+      human ruling, even when the run halts. Issue 299 has zero comments after a complete
+      build, so the map would re-dispatch this patch.
+  - title: "Require a follow-up record for accepted defects"
+    detail: >
+      When review or QA accepts a defect, the race on _approved_emitted and its unbounded
+      growth here, the run must emit a deferred_defects list that the close-out comment
+      prints. Accepted is not the same as recorded, and today it is recorded only inside a
+      JSON file in a ticket folder.
+
+summary: >
+  A technically clean, genuinely test-first run that built the wrong-reachable thing. Nine
+  commits, four verified RED to GREEN pairs, 228 tests green, nothing under src/ moved, and
+  the branch is pushed and in sync at 831fa90. It still ends at 65 on task confidence,
+  because the event does not fire on the path production takes, the dedupe mechanism is not
+  the one the AC specifies, and no merge request or map report-back exists. The factory
+  knew the reachability problem at grill time and had no gate able to stop on it.

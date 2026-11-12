@@ -5,6 +5,7 @@ harvest overwrites it. GitHub comments are the source of truth; this is the
 cross-map view over them.
 
 Maps harvested: 6 · runs: 40 · untraced runs (GAPS): 69 · maps with no reflection ticket: 13
+Maps harvested: 5 · runs: 33 · untraced runs (GAPS): 9 · maps with no reflection ticket: 13, 341
 
 | Date | Map | Mode | Ticket | Type | Outcome | Spec | Friction tags |
 |---|---|---|---|---|---|---|---|

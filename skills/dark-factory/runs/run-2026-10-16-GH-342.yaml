@@ -1,0 +1,172 @@
+run_id: run-2026-10-16-GH-342
+ticket: GH-342
+source: github
+issue_url: https://github.com/gabriel-amyot/klever-project-management/issues/342
+parent_spec: "GH-341 (spec at tickets/wayfinder/no-map/issue-341/spec.md)"
+title: >
+  Backend half of GH-341. Save every media plan decision on generation in app-proximity-report
+  (Waiting for submission / Waiting for approval, frozen after submit, flags off by default).
+  Belt java, branch GH-342-save-every-plan.
+date: 2026-10-16
+terminal_status: HALT_TDD_GATE
+halt_phase: "Implement (layer-1 TDD gate, before Review)"
+ticket_folder: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/wayfinder/no-map/issue-342
+tdd_gate_mode: halt
+tdd_warn_violations: []
+
+branch_state:
+  verified_against: "git fetch origin GH-342-save-every-plan; origin/GH-342-save-every-plan = dcab23e"
+  head: dcab23e
+  commits_ahead_of_dev: 19
+  diff: "28 files changed, 1522 insertions(+), 67 deletions(-)"
+  pushed: true
+  mr: none
+  report_back_to_issue: none
+
+halt_point: >
+  Implement returned status pass, pushed the branch, and wrote a ledger file for all eight ACs
+  (tdd/AC-1.md to AC-8.md plus execute-verify.md). The layer-1 gate still halted. The trace has
+  no implement-ledger-repair entry, so the violation was NOT shape-only (not a missing ledger
+  entry). It was a missing RED, a malformed exempt, or an unconfirmed GREEN.
+
+open_questions_unverified:
+  - question: "Which AC tripped the gate?"
+    hypothesis: >
+      AC-8 (Old Requests). Its ledger declares kind baseline_plus_new and says "No RED": the rule
+      held before the ticket, and the proof is a mutation run (mutant 2 killed, 3 of 4 tests fail).
+      tddViolations() ignores `kind` and has no exemption form for baseline_plus_new, so an honest
+      red.failed=false on AC-8 halts the run. AC-1 to AC-7 each carry a test-only RED commit with an
+      assertion failure, so they are unlikely violators.
+    why_unverified: >
+      The retro prompt does not carry tdd_violations. The workflow result has it, the retro does
+      not. Same gap as run-2026-10-08-KTT-49.
+
+phases:
+  - phase: concierge
+    status: PASS
+    confidence: 80
+  - phase: design
+    status: pass
+    confidence: 80
+  - phase: grill
+    status: pass
+    confidence: 82
+    note: "pass with gaps G1-G5 (due date at submit, stuck off-New rows, PMD, dev flag pattern, frozen log)"
+  - phase: implement
+    status: pass
+    confidence: 80
+    note: "8 ACs ledgered, execute-verify true on the stub gateway, branch pushed"
+  - phase: tdd_gate
+    status: HALT_TDD_GATE
+    confidence: null
+  - phase: review
+    status: not_run
+  - phase: qa
+    status: not_run
+  - phase: preship
+    status: not_run
+
+scores:
+  task_confidence: 60
+  factory_fitness: 64
+
+deductions:
+  - score: task_confidence
+    points: 20
+    reason: >
+      Halted before Review and QA. A 1522-line diff that writes to Salesforce Requests__c had no
+      segregated adversarial read and no QA re-verification of the RED commits.
+  - score: task_confidence
+    points: 8
+    reason: >
+      Side deliverables S1 (sandbox picklist values on KleverOne_Decision__c) and S2 (integration
+      user Edit) are not done. No data/backups folder exists. Dev flags cannot go on until S1 lands.
+  - score: task_confidence
+    points: 5
+    reason: >
+      Execute-verify ran on the stub gateway only. The live klever3--dev path is unverified and would
+      refuse at the first-use field check today.
+  - score: task_confidence
+    points: 3
+    reason: "New class-level CyclomaticComplexity on MediaPlanSubmissionUseCase (67, limit 60)."
+  - score: task_confidence
+    points: 2
+    reason: "AC-8 has no RED. Mutant 1 survived because blank decisions never reach classifyDecision (dead path)."
+  - score: task_confidence
+    points: 2
+    reason: "No MR and no report-back comment on issue 342."
+  - score: factory_fitness
+    points: 12
+    reason: >
+      The gate likely halted on an honest baseline_plus_new AC. The ac_tdd schema offers the kind,
+      the contract lists it, but tddViolations() has no accepted proof shape for it (for example a
+      killed mutant). Third HALT_TDD_GATE in the last six runs.
+  - score: factory_fitness
+    points: 8
+    reason: >
+      tdd_violations is not passed to the retro prompt. The retro must guess the violating AC. This
+      gap was already raised in run-2026-10-08-KTT-49 and is still open.
+  - score: factory_fitness
+    points: 6
+    reason: >
+      A non-shape TDD violation goes straight to a hard halt with all code already pushed. No bounded
+      remediation path exists (e.g. ask the implementer to add a mutation RED or an honest exempt).
+  - score: factory_fitness
+    points: 4
+    reason: >
+      Six stray Workflow worktrees (.claude/worktrees/wf_*) exist in project-management, which the
+      repo CLAUDE.md forbids. Not proven to come from this run, but the factory family creates them.
+  - score: factory_fitness
+    points: 3
+    reason: >
+      Side deliverables S1/S2 have no phase or gate. Nothing in the line tracks a sandbox prerequisite
+      that blocks the dev flag.
+  - score: factory_fitness
+    points: 3
+    reason: "Per-phase confidence is flat at 80-82 across all phases. It carries no signal."
+
+red_flags:
+  - "HALT_TDD_GATE on a run whose ledger files show RED+GREEN for AC-1 to AC-7 and a mutation proof for AC-8."
+  - "Retro received no tdd_violations string; the halting AC is a hypothesis, not a fact (repeat of KTT-49)."
+  - "AC-8 kind baseline_plus_new has no gate-accepted proof path."
+  - "Review and QA never ran on 1522 lines of Salesforce write code; branch is pushed and looks finished."
+  - "Several ACs had companion tests green on first run (AC-3, AC-4, AC-6, AC-7); RED was carried by one assertion each."
+  - "S1/S2 sandbox prerequisites not started; dev flag depends on them."
+  - "New PMD class-level CyclomaticComplexity violation accepted without a gate decision."
+  - "Six stray wf_* worktrees under project-management/.claude/worktrees (one locked)."
+  - "Flat per-phase confidence (80/80/82/80) gives no early warning."
+
+improvements:
+  - title: "Pass tdd_violations into the retro prompt"
+    detail: >
+      In dark-factory.workflow.js, where the retro prompt is built (near line 1284), add
+      result.tdd_violations (and result.phase) to the prompt text. Also write them to
+      <ticket_folder>/tdd/gate-violations.json at halt time. Raised in KTT-49 and still open.
+  - title: "Give baseline_plus_new a gate-accepted proof shape"
+    detail: >
+      Extend ac_tdd with mutation: { artifact, killed: true, mutant_desc } and let tddViolations()
+      accept kind=baseline_plus_new when red.failed is false but a killed mutant is recorded. Update
+      contract 4 to describe it. QA layer 2 re-runs the mutant. This keeps teeth and removes the
+      false halt.
+  - title: "Bounded TDD remediation for non-shape violations"
+    detail: >
+      When the code is pushed and only a RED proof is missing, bounce once to the implementer in its
+      worktree to add a test-only RED (or a mutation proof) for the flagged ACs, then re-gate. Record
+      the attempt in the trace like implement-ledger-repair. Keep the hard halt if the retry fails.
+  - title: "Track side deliverables as a gated checklist"
+    detail: >
+      Let design emit side_deliverables [{id, kind, blocks}] and make preship refuse READY_TO_SHIP
+      while a deliverable that blocks a shipped flag is open. S1/S2 here block the dev flag.
+  - title: "Clean and prevent project-management worktrees"
+    detail: >
+      Remove the six wf_* worktrees after confirming no unique work, and assert in the workflow
+      preamble that no agent with isolation worktree targets project-management.
+  - title: "Make phase confidence carry signal"
+    detail: >
+      Require each phase to deduct from 100 with named reasons (as retro does). A flat 80 everywhere
+      should fail schema validation or be flagged by retro automatically.
+
+resume_path: >
+  Do not re-run the factory from scratch (it rebuilds from origin/dev). Read the halt result for
+  tdd_violations, fix the ledger or add a RED for the flagged AC on GH-342-save-every-plan, then run a
+  build-on-top tail: Review, Fix, QA, preship. Then S1/S2 with backups, MR, and report-back to 342.

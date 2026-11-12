@@ -115,6 +115,8 @@ Dev only, never demo.dev, uat or prod. Infra/DAC repos and manual mode skip it. 
 
 Repo not in the table: skip deploy, report "No DAC mapping for this repo. Deploy manually."
 
+`dac-gcp-front-portal` also exists and looks like the obvious match for `app-front-portal`, but it is not the live downstream. It last ran 2026-09-29; `dac-gcp-front-klv1ai` runs on every `app-front-portal` dev pipeline and is what serves `portal.dev.klever1.ai`. Targeting the wrong one returns 404 and reads like a broken deploy.
+
 - **Step 6: Wait for merge** (max 10 min). Then run the post-merge cleanup below.
 - **Step 7: Dev app pipeline** (max 15 min). `success` or `manual` (bridge `bd-configure-dac` waiting) = build complete. `failed` = STOP.
 - **Step 8: Bridge.** List with `gitlab_skill.py bridges`. Find `deploy-in-dev` or `bd-configure-dac`: `manual` → `play-job`, `success`/`running` → read `downstream_pipeline`, `failed` → STOP. No DAC pipeline 5 min after the app pipeline: report and STOP.

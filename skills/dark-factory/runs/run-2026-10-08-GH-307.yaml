@@ -1,0 +1,227 @@
+run_id: run-2026-10-08-GH-307
+ticket: GH-307
+source: github
+issue_url: https://github.com/gabriel-amyot/klever-project-management/issues/307
+parent_map: none
+title: >
+  Salesforce client in app-proximity-report. Submit an approved media plan as a
+  Requests__c record and read its status back. Belt java, branch
+  GH-307-salesforce-media-plan-submit cut from origin/dev, repo app-proximity-report.
+date: 2026-10-08
+terminal_status: PARKED_AWAITING_REMOTE
+halt_phase: "push (contract 7 pre-ship never completed; no MR, no report-back to issue 307)"
+ticket_folder: /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tickets/wayfinder/no-map/issue-307
+worktree: /Users/gabrielamyot/Developer/grp-beklever-com/.claude/worktrees/GH-307-salesforce-submit
+
+halt_point: >
+  A new shape, and the first one in this series that is genuinely infrastructure and not
+  orchestration. The code is complete and committed. It never reached a remote. Verified at
+  retro time from the run worktree, git ls-remote --heads origin returns
+  "fatal: unable to access https://cicd.prod.datasophia.com/... The requested URL returned
+  error: 502". The Datasophia-hosted GitLab is answering 502, so the push target does not
+  exist from this machine right now. Forty-one commits sit on origin/dev..HEAD across 73
+  files, 4871 insertions. The worktree is clean, git status --porcelain is empty. GitHub
+  issue 307 is still OPEN with zero comments, verified with gh issue view at retro time.
+
+root_cause_of_the_halt:
+  verdict: "external infrastructure, compounded by two phases that never ran"
+  verified_against: >
+    git ls-remote --heads origin returning HTTP 502 from
+    grp-app/grp-backend/grp-ms/app-proximity-report at 2026-10-08; git rev-list --count
+    origin/dev..HEAD = 41; git status --porcelain empty; gh issue view 307 returning state
+    OPEN and comments 0; the ticket folder carrying no qa/ and no review findings file.
+  consequence: >
+    The infrastructure half is not the factory's fault and the park is the correct call. The
+    other half is. The per-phase trace stops after implement. There is no review entry and
+    no qa entry, not even a "skipped" one, so contracts 5 and 6 are indistinguishable in the
+    record from phases that passed. Forty-one commits of greenfield Salesforce-writing code
+    carrying the first OAuth client-credentials path in this service have had no adversarial
+    read at all. The work also lives in exactly one place, an untracked local worktree, with
+    no durable copy anywhere.
+
+phases:
+  - phase: concierge
+    status: PASS
+    confidence: 82
+  - phase: design
+    status: pass
+    confidence: 83
+  - phase: grill
+    status: partial
+    confidence: 82
+  - phase: implement
+    status: partial
+    confidence: 62
+  - phase: review
+    status: DID_NOT_RUN
+    confidence: null
+    note: >
+      Absent from the trace entirely. review/diff.patch exists in the ticket folder, 5322
+      lines, so a diff was captured, but no findings artifact was produced.
+  - phase: qa
+    status: DID_NOT_RUN
+    confidence: null
+  - phase: pre_ship
+    status: DID_NOT_RUN
+    confidence: null
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy_config: true
+  evidence: >
+    All 15 ACs carry a matching RED commit and GREEN commit on the branch. Counted with
+    git log --oneline origin/dev..HEAD against the AC-N RED / AC-N GREEN pattern. One RED
+    and one GREEN per AC for AC-1 through AC-15, no gaps, no doubles.
+
+what_actually_landed:
+  ac_coverage: "15 of 15, each with a RED then GREEN commit pair"
+  test_suite: >
+    Last local surefire run in the worktree, 145 report files, 962 tests, 0 failures,
+    0 errors, 0 skipped. Ten of those report files are the new
+    com.klever.proximity.report.service.salesforce.* classes.
+  ship_gates:
+    version_bump: "pom.xml 0.1.115 to 0.1.116, confirmed in the branch diff"
+    changelog: "CHANGELOG.md gains a [0.1.116] - 2026-10-08 Added block describing both routes and the flag"
+  grill_corrections_verified_landed:
+    - "R-1 version target corrected from 0.1.109 to 0.1.116, in the diff"
+    - "G-1 @Order(Ordered.HIGHEST_PRECEDENCE) present on MediaPlanSubmissionExceptionHandler"
+    - "G-4 Locale.US pinned, two call sites in RequestTextRenderer"
+    - "G-5.1 the second named RestTemplate bean with a configurable timeout is wired in RestTemplateConfig"
+    - "G-5.2 describeRequests is cached, SalesforceHttpGateway holds a cachedDescribe field"
+
+deductions:
+  task_confidence:
+    - points: 18
+      reason: >
+        The branch has never reached a remote. git ls-remote answers 502, so there is no
+        merge request and no durable copy. Forty-one commits of work exist only in an
+        untracked local worktree on one laptop. A git clean or a worktree prune deletes the
+        run.
+    - points: 11
+      reason: >
+        Contract 5, review, never ran. Greenfield code that builds this service's first
+        OAuth token path, its first SOQL transport and its first outbound record-creating
+        write to a third-party system of record has had zero adversarial read.
+    - points: 11
+      reason: >
+        Contract 6, QA, never ran. The only evidence any AC is satisfied is the test the
+        same phase wrote to satisfy it. No independent verification exists.
+    - points: 4
+      reason: >
+        GitHub issue 307 is still OPEN with zero comments. Nothing outside this worktree
+        records that the work happened.
+    - points: 4
+      reason: >
+        Four carry-forwards the grill flagged as surviving into implement are still open.
+        Race A, the in-memory SubmissionAttemptStore, is unresolved. SalesforceHttpGateway
+        caches the describe in a plain non-synchronized mutable field on a bean Spring will
+        share across request threads. No AC asserts the 8 second per-call timeout value.
+        Write spec section 10 is unverified against a live org by design.
+  factory_fitness:
+    - points: 10
+      reason: >
+        Design derived its entire evidence base from a checkout 57 commits behind
+        origin/dev, while correctly stating in its own section 0 that it must not. The grill
+        caught every consequence, but only after design had already spent a probe cycle
+        building and deleting a HarnessProbeTest that four committed tests on origin/dev
+        already proved. The design contract has no mechanical fetch-then-read-origin gate.
+    - points: 8
+      reason: >
+        No phase recorded itself as not having run. The trace simply ends after implement.
+        A phase missing from the trace reads identically to a phase that passed, which is
+        the worst possible failure mode for telemetry the factory learns from.
+    - points: 8
+      reason: >
+        Remote reachability was never preflighted. The factory spent a full build, 41
+        commits across 73 files, before discovering the push target answers 502. One
+        git ls-remote at concierge time costs a second and sets the whole run's posture.
+    - points: 7
+      reason: >
+        PARKED_AWAITING_REMOTE is a passive park. Nothing schedules a retry, nothing watches
+        the remote, nothing persists the branch anywhere else in the meantime. This is the
+        fifth run in a row whose terminal state is "the code stopped short of shipping" with
+        no automatic next action.
+    - points: 4
+      reason: >
+        implement returned partial at confidence 62 with no machine-readable reason in the
+        trace. A reader has to reconstruct why from the ticket folder.
+
+task_confidence: 52
+factory_fitness: 63
+
+red_flags:
+  - "Review and QA are absent from the per-phase trace entirely, with no DID_NOT_RUN marker. Silence reads as success."
+  - "Forty-one commits exist only in an untracked local worktree under .claude/worktrees/. One git clean removes the whole run."
+  - "Remote push target answers HTTP 502 and this was discovered only at push time, after all the work."
+  - "Design built its whole evidence base on a checkout 57 commits stale, then asserted five wrong first-of-its-kind claims about the repo. The grill caught it; nothing mechanical would have."
+  - "Design wasted a probe cycle writing and deleting a test harness that four committed tests on origin/dev already proved."
+  - "implement self-reported partial at confidence 62, the lowest of the four phases that ran, and the run continued to the push step anyway."
+  - "SalesforceHttpGateway caches the describe result in a plain mutable field with no synchronization, on a singleton bean. No review phase existed to catch it."
+  - "Race A, the in-memory submission attempt store, was carried forward by the grill as explicitly unresolved and is still unresolved."
+  - "GitHub issue 307 is OPEN with zero comments. Fifth consecutive run with no report-back."
+  - "The retro could not resolve an active session folder. sessions/active/free-finch was pruned, so the handoff fell back to the ticket folder."
+
+improvements:
+  - title: "Every contract must emit a trace entry, including DID_NOT_RUN"
+    detail: >
+      workflow.js should seed the trace with one entry per contract at run start, status
+      PENDING, and the retro should treat any entry still PENDING as DID_NOT_RUN. Today a
+      phase that never fires leaves no trace at all, so this run's missing review and QA
+      look the same as phases that passed. Make the absence loud.
+  - title: "Preflight the push remote at concierge time, not at push time"
+    detail: >
+      Add a git ls-remote --heads origin check to contract 1, next to the repo resolution
+      step. If it fails, record remote_reachable: false on the run and tell the operator up
+      front that the run will end parked. This run spent a full java build discovering a
+      502 that one command would have surfaced in a second.
+  - title: "PARKED_AWAITING_REMOTE must persist the branch somewhere durable"
+    detail: >
+      Before parking on an unreachable remote, bundle the branch to disk outside the
+      worktree, git bundle create <ticket-folder>/ship/<branch>.bundle origin/dev..HEAD, and
+      record the bundle path and head sha in the telemetry. Right now 41 commits survive
+      only as long as nobody runs git clean or git worktree prune.
+  - title: "Design must read origin, and prove it did"
+    detail: >
+      Contract 2 should require git fetch origin followed by
+      git rev-list --count HEAD..origin/dev, and refuse to emit any repo_count or
+      first-of-its-kind table unless every cited command used an origin/<branch>:<path> form
+      or git grep origin/<branch>. Five of this run's nine first-of-its-kind claims were
+      wrong because design read a 57-commit-stale tree. The grill is the wrong place to
+      catch a class of error that a one-line gate prevents.
+  - title: "A partial implement should gate the push, not pass through it"
+    detail: >
+      implement returned partial at 62, the lowest confidence of the run, and the workflow
+      proceeded to push anyway. Any phase returning partial should require an explicit
+      machine-readable reasons array in the trace, and a partial implement below a
+      confidence floor should route to review before any push rather than around it.
+  - title: "Run review on the diff even when the push fails"
+    detail: >
+      Review reads a diff, not a remote. There was no reason for contract 5 to be skipped by
+      a parked push, and review/diff.patch was already captured. Reorder so review and QA
+      run before the push attempt, so a remote outage parks a reviewed branch instead of an
+      unread one.
+  - title: "Report back to the issue on every terminal state, including parked"
+    detail: >
+      Five runs in a row have ended with the GitHub issue untouched. A park is information
+      the map needs. Contract 7 should post the status comment as its first action, before
+      the MR step, so an MR that cannot be created does not also swallow the comment.
+  - title: "Resolve the session folder before the retro needs it"
+    detail: >
+      The retro could not find the active session; free-finch had been pruned. Have contract
+      1 record the resolved session prompts path on the run object, so contract 9 reads it
+      rather than rediscovering it from a directory that may no longer exist.
+
+carry_forwards_for_the_next_agent:
+  - "Push GH-307-salesforce-media-plan-submit once cicd.prod.datasophia.com answers again, then open the MR and comment on issue 307."
+  - "Run review and QA on the 41-commit diff before the MR, not after."
+  - "Decide Race A: the SubmissionAttemptStore is in-memory and nothing claims it is safe."
+  - "SalesforceHttpGateway.cachedDescribe is an unsynchronized mutable field on a shared bean. Confirm or fix."
+  - "Write spec section 10 is unverified against a live org by design. Say so in the MR description so a reviewer does not read it as tested."
+  - "The date DTO deviation, line-item dates typed String rather than LocalDate, belongs in the MR description per grill G-5.3."
+
+summary: >
+  Fifteen of fifteen ACs landed with real RED then GREEN pairs and the full 962-test suite is
+  green, but the branch never reached a remote because the GitLab host answers 502, and the
+  review and QA contracts never ran at all. The code is good and completely unverified by
+  anyone other than the agent that wrote it, and it lives in exactly one untracked worktree.

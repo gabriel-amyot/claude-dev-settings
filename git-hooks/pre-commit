@@ -27,6 +27,50 @@
 #     Put a .gitleaks.toml at the repo root. gitleaks picks it up automatically.
 #     Prefer that over disabling the hook: it keeps the exception reviewable.
 
+# --- Commit identity guard -------------------------------------------------
+# A wrong author email is not fixable after the push: correcting it rewrites
+# history, which breaks every branch that shares the commit. On 2026-10-05 an
+# origin8 address reached 18 commits on origin/dev of app-ttd-trading-mcp,
+# because the Klever identity was bound to the remote URL and a fresh
+# "git init" has no remote yet. Config now binds identity to the directory;
+# this hook is the backstop for when config is bypassed or drifts.
+#
+# Deliberately narrow: it blocks the one address that must never appear on
+# Klever work. It does not demand a single approved identity, so the personal
+# agent identity used in project-management still commits normally.
+#
+# Kill switch:  GIT_IDENTITY_SKIP=1 git commit ...
+if [ -z "$GIT_IDENTITY_SKIP" ]; then
+    _id_root="$(git rev-parse --show-toplevel 2>/dev/null)"
+    case "$_id_root" in
+        "$HOME/Developer/grp-beklever-com"*)
+            _id_email="$(git config --get user.email 2>/dev/null)"
+            case "$_id_email" in
+                *origin8cares.com)
+                    echo ""
+                    echo "  COMMIT BLOCKED — wrong identity for a Klever repo"
+                    echo ""
+                    echo "    author  : $_id_email"
+                    echo "    expected: gamyot@beklever.com"
+                    echo "    repo    : $_id_root"
+                    echo ""
+                    echo "  This is a legacy Origin8 address on Klever work."
+                    echo "  Fix it for this repo:"
+                    echo ""
+                    echo "    git config user.name  'Gabriel Amyot'"
+                    echo "    git config user.email 'gamyot@beklever.com'"
+                    echo ""
+                    echo "  If it is unset, ~/.gitconfig lost its"
+                    echo "  includeIf gitdir:~/Developer/grp-beklever-com/** block."
+                    echo ""
+                    exit 1
+                    ;;
+            esac
+            ;;
+    esac
+fi
+# --- end commit identity guard ---------------------------------------------
+
 [ -n "$GITLEAKS_SKIP" ] && exit 0
 [ -f "$HOME/.claude/.gitleaks-off" ] && exit 0
 

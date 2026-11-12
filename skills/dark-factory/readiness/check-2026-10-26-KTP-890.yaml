@@ -1,0 +1,35 @@
+ticket: KTP-890
+date: '2026-10-26'
+source: sprint-estimation
+sprint: null
+verdict: SPEC_GAP
+predicted_terminal: BLOCKED_SPEC_QUALITY
+spec_quality: good
+belt:
+  matched: scripting
+  nearest: null
+  reason: Required1167image plus protected three-page query manifest absent as usable
+    inputs until predecessor delivery/controlledfixture handoff. Finite adapter/replay
+    spec is good; scripted mocked preparation is automatable.
+gate_dimensions:
+  ac_available: pass
+  placement_resolved: pass
+  fixtures_seeded: fail
+  no_open_forks: pass
+  single_repo_single_belt: pass
+  data_availability: fail
+  belt_match: pass
+gap_categories:
+- unstaged-execution-inputs
+expected_run_shape: Code/script/fixture preparation can run separately; the complete
+  ticket retains its declared real runtime/cloud/protocol evidence. No factory run
+  or cloud mutation was launched in this estimation.
+scope_note: User explicitly preserves the subtask hierarchy. This is a per-execution-slice
+  advisory check; do not count subtask points or label the parent Df-ready. No additional
+  approval gate inferred from a missing fixture.
+evidence:
+- tickets/KTP/KTP-853/KTP-867/reports/estimation/2026-10-26/leo-findings.json
+- tickets/KTP/KTP-853/KTP-867/reports/estimation/2026-10-26/repo-investigation.json
+notes: Required1167image plus protected three-page query manifest absent as usable
+  inputs until predecessor delivery/controlledfixture handoff. Finite adapter/replay
+  spec is good; scripted mocked preparation is automatable.

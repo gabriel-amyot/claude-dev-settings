@@ -1,0 +1,1 @@
+/opt/homebrew/opt/peon-ping/libexec/scripts/local-focus.sh

@@ -1,0 +1,602 @@
+{
+  "version": 1,
+  "runtime_version": "6.0.0-Beta.8",
+  "personas": [
+    {
+      "id": "bmad-master",
+      "name": "BMad Master",
+      "role": "BMad Master Executor, Knowledge Custodian, and Workflow Orchestrator",
+      "module": "core",
+      "status": "available",
+      "path": "runtime/core/agents/bmad-master.md",
+      "aliases": [
+        "bmad-agent-bmad-master",
+        "bmad-agent-core-bmad-master",
+        "core-bmad-master"
+      ]
+    },
+    {
+      "id": "analyst",
+      "name": "Mary",
+      "role": "Business Analyst",
+      "module": "bmm",
+      "status": "available",
+      "path": "runtime/bmm/agents/analyst.md",
+      "aliases": [
+        "bmad-agent-analyst",
+        "bmad-agent-bmm-analyst",
+        "bmm-analyst"
+      ]
+    },
+    {
+      "id": "architect",
+      "name": "Winston",
+      "role": "Architect",
+      "module": "bmm",
+      "status": "available",
+      "path": "runtime/bmm/agents/architect.md",
+      "aliases": [
+        "bmad-agent-architect",
+        "bmad-agent-bmm-architect",
+        "bmm-architect"
+      ]
+    },
+    {
+      "id": "dev",
+      "name": "Amelia",
+      "role": "Developer Agent",
+      "module": "bmm",
+      "status": "available",
+      "path": "runtime/bmm/agents/dev.md",
+      "aliases": [
+        "bmad-agent-dev",
+        "bmad-agent-bmm-dev",
+        "bmm-dev"
+      ]
+    },
+    {
+      "id": "pm",
+      "name": "John",
+      "role": "Product Manager",
+      "module": "bmm",
+      "status": "available",
+      "path": "runtime/bmm/agents/pm.md",
+      "aliases": [
+        "bmad-agent-pm",
+        "bmad-agent-bmm-pm",
+        "bmm-pm"
+      ]
+    },
+    {
+      "id": "qa",
+      "name": "Quinn",
+      "role": "QA Engineer",
+      "module": "bmm",
+      "status": "available",
+      "path": "runtime/bmm/agents/qa.md",
+      "aliases": [
+        "bmad-agent-qa",
+        "bmad-agent-bmm-qa",
+        "bmm-qa"
+      ]
+    },
+    {
+      "id": "quick-flow-solo-dev",
+      "name": "Barry",
+      "role": "Quick Flow Solo Dev",
+      "module": "bmm",
+      "status": "available",
+      "path": "runtime/bmm/agents/quick-flow-solo-dev.md",
+      "aliases": [
+        "bmad-agent-quick-flow-solo-dev",
+        "bmad-agent-bmm-quick-flow-solo-dev",
+        "bmm-quick-flow-solo-dev"
+      ]
+    },
+    {
+      "id": "sm",
+      "name": "Bob",
+      "role": "Scrum Master",
+      "module": "bmm",
+      "status": "available",
+      "path": "runtime/bmm/agents/sm.md",
+      "aliases": [
+        "bmad-agent-sm",
+        "bmad-agent-bmm-sm",
+        "bmm-sm"
+      ]
+    },
+    {
+      "id": "tech-writer",
+      "name": "Paige",
+      "role": "Technical Writer",
+      "module": "bmm",
+      "status": "available",
+      "path": "runtime/bmm/agents/tech-writer/tech-writer.md",
+      "aliases": [
+        "bmad-agent-tech-writer",
+        "bmad-agent-bmm-tech-writer",
+        "bmm-tech-writer"
+      ]
+    },
+    {
+      "id": "ux-designer",
+      "name": "Sally",
+      "role": "UX Designer",
+      "module": "bmm",
+      "status": "available",
+      "path": "runtime/bmm/agents/ux-designer.md",
+      "aliases": [
+        "bmad-agent-ux-designer",
+        "bmad-agent-bmm-ux-designer",
+        "bmm-ux-designer"
+      ]
+    },
+    {
+      "id": "brainstorming-coach",
+      "name": "Carson",
+      "role": "Elite Brainstorming Specialist",
+      "module": "cis",
+      "status": "available",
+      "path": "runtime/cis/agents/brainstorming-coach.md",
+      "aliases": [
+        "bmad-agent-brainstorming-coach",
+        "bmad-agent-cis-brainstorming-coach",
+        "cis-brainstorming-coach"
+      ]
+    },
+    {
+      "id": "creative-problem-solver",
+      "name": "Dr. Quinn",
+      "role": "Master Problem Solver",
+      "module": "cis",
+      "status": "available",
+      "path": "runtime/cis/agents/creative-problem-solver.md",
+      "aliases": [
+        "bmad-agent-creative-problem-solver",
+        "bmad-agent-cis-creative-problem-solver",
+        "cis-creative-problem-solver"
+      ]
+    },
+    {
+      "id": "design-thinking-coach",
+      "name": "Maya",
+      "role": "Design Thinking Maestro",
+      "module": "cis",
+      "status": "available",
+      "path": "runtime/cis/agents/design-thinking-coach.md",
+      "aliases": [
+        "bmad-agent-design-thinking-coach",
+        "bmad-agent-cis-design-thinking-coach",
+        "cis-design-thinking-coach"
+      ]
+    },
+    {
+      "id": "innovation-strategist",
+      "name": "Victor",
+      "role": "Disruptive Innovation Oracle",
+      "module": "cis",
+      "status": "available",
+      "path": "runtime/cis/agents/innovation-strategist.md",
+      "aliases": [
+        "bmad-agent-innovation-strategist",
+        "bmad-agent-cis-innovation-strategist",
+        "cis-innovation-strategist"
+      ]
+    },
+    {
+      "id": "presentation-master",
+      "name": "Caravaggio",
+      "role": "Visual Communication + Presentation Expert",
+      "module": "cis",
+      "status": "available",
+      "path": "runtime/cis/agents/presentation-master.md",
+      "aliases": [
+        "bmad-agent-presentation-master",
+        "bmad-agent-cis-presentation-master",
+        "cis-presentation-master"
+      ]
+    },
+    {
+      "id": "storyteller",
+      "name": "Sophia",
+      "role": "Master Storyteller",
+      "module": "cis",
+      "status": "available",
+      "path": "runtime/cis/agents/storyteller/storyteller.md",
+      "aliases": [
+        "bmad-agent-storyteller",
+        "bmad-agent-cis-storyteller",
+        "cis-storyteller"
+      ]
+    },
+    {
+      "id": "tea",
+      "name": "Murat",
+      "role": "Master Test Architect and Quality Advisor",
+      "module": "tea",
+      "status": "available",
+      "path": "runtime/tea/agents/tea.md",
+      "aliases": [
+        "bmad-agent-tea",
+        "bmad-agent-tea-tea",
+        "tea-tea"
+      ]
+    },
+    {
+      "id": "data-engineer",
+      "name": "Atlas",
+      "role": "Data Engineer",
+      "module": "bmm",
+      "status": "available",
+      "path": "custom/data-engineer.md",
+      "aliases": [
+        "bmad-agent-data-engineer",
+        "bmad-agent-bmm-data-engineer",
+        "data engineer"
+      ]
+    },
+    {
+      "id": "spec-coach",
+      "name": "Leo",
+      "role": "Spec Coach",
+      "module": "bmm",
+      "status": "available",
+      "path": "custom/spec-coach.md",
+      "aliases": [
+        "bmad-agent-spec-coach",
+        "bmad-agent-bmm-spec-coach",
+        "spec coach"
+      ]
+    },
+    {
+      "id": "debugger",
+      "name": "Dexter",
+      "role": "Forensic System Debugger",
+      "module": "bmm",
+      "status": "available",
+      "path": "custom/debugger.md",
+      "aliases": [
+        "bmad-agent-debugger",
+        "bmad-agent-bmm-debugger",
+        "dexter"
+      ],
+      "recovered_date": "2026-11-02"
+    },
+    {
+      "id": "agent-builder",
+      "name": "Agent Builder",
+      "role": "BMB Builder",
+      "module": "bmb",
+      "status": "unavailable",
+      "path": null,
+      "aliases": [
+        "bmad-agent-bmb-agent-builder"
+      ],
+      "reason": "The original BMB module was owned by the missing dark-software-factory checkout."
+    },
+    {
+      "id": "workflow-builder",
+      "name": "Workflow Builder",
+      "role": "BMB Builder",
+      "module": "bmb",
+      "status": "unavailable",
+      "path": null,
+      "aliases": [
+        "bmad-agent-bmb-workflow-builder"
+      ],
+      "reason": "The original BMB module was owned by the missing dark-software-factory checkout."
+    },
+    {
+      "id": "module-builder",
+      "name": "Module Builder",
+      "role": "BMB Builder",
+      "module": "bmb",
+      "status": "unavailable",
+      "path": null,
+      "aliases": [
+        "bmad-agent-bmb-module-builder"
+      ],
+      "reason": "The original BMB module was owned by the missing dark-software-factory checkout."
+    }
+  ],
+  "commands": {
+    "bmad-agent-bmad-master": {
+      "kind": "agent",
+      "agent": "bmad-master"
+    },
+    "bmad-agent-bmm-analyst": {
+      "kind": "agent",
+      "agent": "analyst"
+    },
+    "bmad-agent-bmm-architect": {
+      "kind": "agent",
+      "agent": "architect"
+    },
+    "bmad-agent-bmm-dev": {
+      "kind": "agent",
+      "agent": "dev"
+    },
+    "bmad-agent-bmm-pm": {
+      "kind": "agent",
+      "agent": "pm"
+    },
+    "bmad-agent-bmm-qa": {
+      "kind": "agent",
+      "agent": "qa"
+    },
+    "bmad-agent-bmm-quick-flow-solo-dev": {
+      "kind": "agent",
+      "agent": "quick-flow-solo-dev"
+    },
+    "bmad-agent-bmm-sm": {
+      "kind": "agent",
+      "agent": "sm"
+    },
+    "bmad-agent-bmm-tech-writer": {
+      "kind": "agent",
+      "agent": "tech-writer"
+    },
+    "bmad-agent-bmm-ux-designer": {
+      "kind": "agent",
+      "agent": "ux-designer"
+    },
+    "bmad-agent-cis-brainstorming-coach": {
+      "kind": "agent",
+      "agent": "brainstorming-coach"
+    },
+    "bmad-agent-cis-creative-problem-solver": {
+      "kind": "agent",
+      "agent": "creative-problem-solver"
+    },
+    "bmad-agent-cis-design-thinking-coach": {
+      "kind": "agent",
+      "agent": "design-thinking-coach"
+    },
+    "bmad-agent-cis-innovation-strategist": {
+      "kind": "agent",
+      "agent": "innovation-strategist"
+    },
+    "bmad-agent-cis-presentation-master": {
+      "kind": "agent",
+      "agent": "presentation-master"
+    },
+    "bmad-agent-cis-storyteller": {
+      "kind": "agent",
+      "agent": "storyteller"
+    },
+    "bmad-agent-tea-tea": {
+      "kind": "agent",
+      "agent": "tea"
+    },
+    "bmad-bmm-check-implementation-readiness": {
+      "kind": "workflow",
+      "target": "bmm/workflows/3-solutioning/check-implementation-readiness/workflow.md"
+    },
+    "bmad-bmm-code-review": {
+      "kind": "workflow",
+      "target": "bmm/workflows/4-implementation/code-review/workflow.yaml",
+      "engine": "core/tasks/workflow.xml",
+      "instructions": "Read the full engine and pass target as workflow-config. Follow the engine exactly and save outputs at each prescribed section boundary."
+    },
+    "bmad-bmm-correct-course": {
+      "kind": "workflow",
+      "target": "bmm/workflows/4-implementation/correct-course/workflow.yaml",
+      "engine": "core/tasks/workflow.xml",
+      "instructions": "Read the full engine and pass target as workflow-config. Follow the engine exactly and save outputs at each prescribed section boundary."
+    },
+    "bmad-bmm-create-architecture": {
+      "kind": "workflow",
+      "target": "bmm/workflows/3-solutioning/create-architecture/workflow.md"
+    },
+    "bmad-bmm-create-epics-and-stories": {
+      "kind": "workflow",
+      "target": "bmm/workflows/3-solutioning/create-epics-and-stories/workflow.md"
+    },
+    "bmad-bmm-create-prd": {
+      "kind": "workflow",
+      "target": "bmm/workflows/2-plan-workflows/create-prd/workflow-create-prd.md"
+    },
+    "bmad-bmm-create-product-brief": {
+      "kind": "workflow",
+      "target": "bmm/workflows/1-analysis/create-product-brief/workflow.md"
+    },
+    "bmad-bmm-create-story": {
+      "kind": "workflow",
+      "target": "bmm/workflows/4-implementation/create-story/workflow.yaml",
+      "engine": "core/tasks/workflow.xml",
+      "instructions": "Read the full engine and pass target as workflow-config. Follow the engine exactly and save outputs at each prescribed section boundary."
+    },
+    "bmad-bmm-create-ux-design": {
+      "kind": "workflow",
+      "target": "bmm/workflows/2-plan-workflows/create-ux-design/workflow.md"
+    },
+    "bmad-bmm-dev-story": {
+      "kind": "workflow",
+      "target": "bmm/workflows/4-implementation/dev-story/workflow.yaml",
+      "engine": "core/tasks/workflow.xml",
+      "instructions": "Read the full engine and pass target as workflow-config. Follow the engine exactly and save outputs at each prescribed section boundary."
+    },
+    "bmad-bmm-document-project": {
+      "kind": "workflow",
+      "target": "bmm/workflows/document-project/workflow.yaml",
+      "engine": "core/tasks/workflow.xml",
+      "instructions": "Read the full engine and pass target as workflow-config. Follow the engine exactly and save outputs at each prescribed section boundary."
+    },
+    "bmad-bmm-domain-research": {
+      "kind": "workflow",
+      "target": "bmm/workflows/1-analysis/research/workflow-domain-research.md"
+    },
+    "bmad-bmm-edit-prd": {
+      "kind": "workflow",
+      "target": "bmm/workflows/2-plan-workflows/create-prd/workflow-edit-prd.md"
+    },
+    "bmad-bmm-generate-project-context": {
+      "kind": "workflow",
+      "target": "bmm/workflows/generate-project-context/workflow.md"
+    },
+    "bmad-bmm-market-research": {
+      "kind": "workflow",
+      "target": "bmm/workflows/1-analysis/research/workflow-market-research.md"
+    },
+    "bmad-bmm-qa-automate": {
+      "kind": "workflow",
+      "target": "bmm/workflows/qa/automate/workflow.yaml",
+      "engine": "core/tasks/workflow.xml",
+      "instructions": "Read the full engine and pass target as workflow-config. Follow the engine exactly and save outputs at each prescribed section boundary."
+    },
+    "bmad-bmm-quick-dev": {
+      "kind": "workflow",
+      "target": "bmm/workflows/bmad-quick-flow/quick-dev/workflow.md"
+    },
+    "bmad-bmm-quick-spec": {
+      "kind": "workflow",
+      "target": "bmm/workflows/bmad-quick-flow/quick-spec/workflow.md"
+    },
+    "bmad-bmm-retrospective": {
+      "kind": "workflow",
+      "target": "bmm/workflows/4-implementation/retrospective/workflow.yaml",
+      "engine": "core/tasks/workflow.xml",
+      "instructions": "Read the full engine and pass target as workflow-config. Follow the engine exactly and save outputs at each prescribed section boundary."
+    },
+    "bmad-bmm-sprint-planning": {
+      "kind": "workflow",
+      "target": "bmm/workflows/4-implementation/sprint-planning/workflow.yaml",
+      "engine": "core/tasks/workflow.xml",
+      "instructions": "Read the full engine and pass target as workflow-config. Follow the engine exactly and save outputs at each prescribed section boundary."
+    },
+    "bmad-bmm-sprint-status": {
+      "kind": "workflow",
+      "target": "bmm/workflows/4-implementation/sprint-status/workflow.yaml",
+      "engine": "core/tasks/workflow.xml",
+      "instructions": "Read the full engine and pass target as workflow-config. Follow the engine exactly and save outputs at each prescribed section boundary."
+    },
+    "bmad-bmm-technical-research": {
+      "kind": "workflow",
+      "target": "bmm/workflows/1-analysis/research/workflow-technical-research.md"
+    },
+    "bmad-bmm-validate-prd": {
+      "kind": "workflow",
+      "target": "bmm/workflows/2-plan-workflows/create-prd/workflow-validate-prd.md"
+    },
+    "bmad-brainstorming": {
+      "kind": "workflow",
+      "target": "core/workflows/brainstorming/workflow.md"
+    },
+    "bmad-cis-design-thinking": {
+      "kind": "workflow",
+      "target": "cis/workflows/design-thinking/workflow.yaml",
+      "engine": "core/tasks/workflow.xml",
+      "instructions": "Read the full engine and pass target as workflow-config. Follow the engine exactly and save outputs at each prescribed section boundary."
+    },
+    "bmad-cis-innovation-strategy": {
+      "kind": "workflow",
+      "target": "cis/workflows/innovation-strategy/workflow.yaml",
+      "engine": "core/tasks/workflow.xml",
+      "instructions": "Read the full engine and pass target as workflow-config. Follow the engine exactly and save outputs at each prescribed section boundary."
+    },
+    "bmad-cis-problem-solving": {
+      "kind": "workflow",
+      "target": "cis/workflows/problem-solving/workflow.yaml",
+      "engine": "core/tasks/workflow.xml",
+      "instructions": "Read the full engine and pass target as workflow-config. Follow the engine exactly and save outputs at each prescribed section boundary."
+    },
+    "bmad-cis-storytelling": {
+      "kind": "workflow",
+      "target": "cis/workflows/storytelling/workflow.yaml",
+      "engine": "core/tasks/workflow.xml",
+      "instructions": "Read the full engine and pass target as workflow-config. Follow the engine exactly and save outputs at each prescribed section boundary."
+    },
+    "bmad-editorial-review-prose": {
+      "kind": "task",
+      "target": "core/tasks/editorial-review-prose.xml"
+    },
+    "bmad-editorial-review-structure": {
+      "kind": "task",
+      "target": "core/tasks/editorial-review-structure.xml"
+    },
+    "bmad-help": {
+      "kind": "task",
+      "target": "core/tasks/help.md"
+    },
+    "bmad-index-docs": {
+      "kind": "task",
+      "target": "core/tasks/index-docs.xml"
+    },
+    "bmad-party-mode": {
+      "kind": "workflow",
+      "target": "core/workflows/party-mode/workflow.md"
+    },
+    "bmad-review-adversarial-general": {
+      "kind": "task",
+      "target": "core/tasks/review-adversarial-general.xml"
+    },
+    "bmad-shard-doc": {
+      "kind": "task",
+      "target": "core/tasks/shard-doc.xml"
+    },
+    "bmad-tea-teach-me-testing": {
+      "kind": "workflow",
+      "target": "tea/workflows/testarch/teach-me-testing/workflow.md"
+    },
+    "bmad-tea-testarch-atdd": {
+      "kind": "workflow",
+      "target": "tea/workflows/testarch/atdd/workflow.yaml",
+      "engine": "core/tasks/workflow.xml",
+      "instructions": "Read the full engine and pass target as workflow-config. Follow the engine exactly and save outputs at each prescribed section boundary."
+    },
+    "bmad-tea-testarch-automate": {
+      "kind": "workflow",
+      "target": "tea/workflows/testarch/automate/workflow.yaml",
+      "engine": "core/tasks/workflow.xml",
+      "instructions": "Read the full engine and pass target as workflow-config. Follow the engine exactly and save outputs at each prescribed section boundary."
+    },
+    "bmad-tea-testarch-ci": {
+      "kind": "workflow",
+      "target": "tea/workflows/testarch/ci/workflow.yaml",
+      "engine": "core/tasks/workflow.xml",
+      "instructions": "Read the full engine and pass target as workflow-config. Follow the engine exactly and save outputs at each prescribed section boundary."
+    },
+    "bmad-tea-testarch-framework": {
+      "kind": "workflow",
+      "target": "tea/workflows/testarch/framework/workflow.yaml",
+      "engine": "core/tasks/workflow.xml",
+      "instructions": "Read the full engine and pass target as workflow-config. Follow the engine exactly and save outputs at each prescribed section boundary."
+    },
+    "bmad-tea-testarch-nfr": {
+      "kind": "workflow",
+      "target": "tea/workflows/testarch/nfr-assess/workflow.yaml",
+      "engine": "core/tasks/workflow.xml",
+      "instructions": "Read the full engine and pass target as workflow-config. Follow the engine exactly and save outputs at each prescribed section boundary."
+    },
+    "bmad-tea-testarch-test-design": {
+      "kind": "workflow",
+      "target": "tea/workflows/testarch/test-design/workflow.yaml",
+      "engine": "core/tasks/workflow.xml",
+      "instructions": "Read the full engine and pass target as workflow-config. Follow the engine exactly and save outputs at each prescribed section boundary."
+    },
+    "bmad-tea-testarch-test-review": {
+      "kind": "workflow",
+      "target": "tea/workflows/testarch/test-review/workflow.yaml",
+      "engine": "core/tasks/workflow.xml",
+      "instructions": "Read the full engine and pass target as workflow-config. Follow the engine exactly and save outputs at each prescribed section boundary."
+    },
+    "bmad-tea-testarch-trace": {
+      "kind": "workflow",
+      "target": "tea/workflows/testarch/trace/workflow.yaml",
+      "engine": "core/tasks/workflow.xml",
+      "instructions": "Read the full engine and pass target as workflow-config. Follow the engine exactly and save outputs at each prescribed section boundary."
+    },
+    "bmad-agent-debugger": {
+      "kind": "agent",
+      "agent": "debugger"
+    },
+    "bmad-agent-bmm-debugger": {
+      "kind": "agent",
+      "agent": "debugger"
+    }
+  },
+  "resource_aliases": {
+    "bmm/agents/workflows/party-mode/workflow.md": "core/workflows/party-mode/workflow.md"
+  }
+}

@@ -217,3 +217,38 @@ sibling of the piped-mutation trap: in both, the status you read belongs to some
 the work you wanted done.
 
 **Source:** session `tidy-heron`, wayfinder harness failure-mode audit, map #22 (2026-10-07).
+
+---
+
+## zsh Special Parameters and Modifiers Break Literal-Looking Variable Names
+
+`$GID` is a zsh special parameter; assigning it tries to `setgid` instead of creating a plain
+variable. `"$P:t"` applies a path modifier (the `:t` "tail" modifier), so
+`"$P:testIamPermissions"` does not concatenate the literal suffix — it tries to parse `:t` as a
+path tail and silently mangles the rest. Build the final string with `${P}` (or a second
+variable) instead of letting zsh's colon-modifier syntax collide with a literal colon in the
+value. Separately, `cp` is aliased to `-i` on this machine, which silently blocks a non-interactive
+overwrite waiting on a prompt that never arrives; call `command cp -f` to bypass the alias. Never
+`cd` inside a Bash tool call in this harness — the shell's `cd` override runs `eza`, which hangs a
+non-interactive shell.
+
+**How to apply:** Build any string containing a literal colon in a separate variable or with
+explicit braces (`${P}`), never bare `"$P:suffix"`. Call `command cp -f` for a guaranteed
+non-interactive overwrite. Never issue a bare `cd` from an automated shell call on this machine.
+
+## `codex exec` Hangs on stdin Unless Explicitly Redirected
+
+`codex exec` waits on "Reading additional input from stdin" and hangs indefinitely unless
+stdin is redirected away, even when no input is actually intended. Always append `< /dev/null`
+to any `codex exec` invocation run from an automated shell.
+
+## A Relayed Jira/PR Approval Is Not a Valid Approval for `/post-comment`
+
+The post-comment subagent refuses an approval that is merely relayed by another agent ("Gabriel
+approved this in the other session"). Only the main session may post after Gabriel approves the
+previewed text directly, in that same context. Separately, always read back every Jira write
+after posting — an ADF (Atlassian Document Format) link replacement has silently dropped a
+ticket key at least once; the only way to catch that is to re-fetch and verify the posted
+content, not trust the API's 200 response.
+
+**Source:** agile-badger session, Klever KTP-1265 + KTP-662 + KTP-694 close-out (2026-11-11).

@@ -58,7 +58,7 @@ A private input goes to **transcript-only mode**: follow `references/transcript-
 |-------|---------------|
 | Markdown/text transcript | Read directly, split by topic shifts |
 | Multiple chunk files (folder) | Read all, concatenate in order, then split by topic |
-| Audio (.m4a, .mp3, .wav) | Normalize and transcribe with `whisper-cli`, then check for repeat-loop hallucinations. Follow `references/recording-recovery.md`. If the tools are missing, tell the user and offer a script they can run. |
+| Audio (.m4a, .mp3, .wav) | Run `scripts/transcribe_meeting.py` (speakers, language handling, editable `attribution.json`) into `{meeting}/raw/`. Ask the user who spoke and on what before naming speakers. Then check repeat-loop suspects. Follow `references/recording-recovery.md`. If the tools are missing, tell the user and offer a script they can run. |
 | Video (.mov, .mp4, .mkv) | Same as audio (extract the audio track first). Key frames only on explicit request (same reference). |
 | Slack thread dump | Parse messages, attribute speakers, split by topic |
 | Pasted text in conversation | Save to disk first, then process |

@@ -1,0 +1,184 @@
+run_id: run-2026-11-02-GH-560
+ticket: GH-560
+source: github
+issue_url: https://github.com/gabriel-amyot/klever-project-management/issues/560
+parent_map: 557
+jira_mapping: "KTP-1384 (1 of 2 points, disk-only draft, no Jira writes)"
+title: >
+  Targeting permission component in app-user-management. Liquibase changeset 026 inserts
+  the Targeting component row once. No grant backfill. Belt java.
+date: 2026-11-02
+terminal_status: HALT_TDD_GATE
+halt_phase: Implement
+ticket_folder: /Users/gamyot/Developer/grp-beklever-com/project-management/tickets/wayfinder/map-557/issue-560
+repo: app-user-management
+branch: GH-560-targeting-permission-component
+
+phases:
+  - phase: concierge
+    status: PASS
+    confidence: 85
+  - phase: design
+    status: pass
+    confidence: 78
+  - phase: grill
+    status: partial
+    confidence: 82
+  - phase: implement
+    status: pass
+    confidence: 80
+  - phase: review
+    status: not_run
+  - phase: qa
+    status: not_run
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy_config: true
+  violations_payload_available_to_retro: false
+  note: >
+    The gate ran in the default halt mode. No warn-mode violations. The retro prompt did not
+    receive the tdd_violations array, so the exact reason for the halt is not known here.
+  probable_cause_unverified: >
+    AC-4 is an evidence-capture AC. The analyst tagged it ac_kind logic. It has no RED commit
+    and no RED log, and its deliverable is the markdown ledger tdd/AC-4.md. Under
+    tddViolations() that shape fails as "no valid RED proof", or as a not_applicable exemption
+    that delivers a .md file (doc_claims required). AC-1, AC-2 and AC-3 each have a test-only
+    RED commit with an assertion-failure log and a shared GREEN commit, so they likely pass.
+    A second, weaker candidate is AC-2 right_reason, because its RED fails on the provisioning
+    precondition, not on the boundary assertion. This is a hypothesis, not a verdict.
+
+git_state:
+  worktree: /Users/gamyot/Developer/grp-beklever-com/grp-faas/grp-app/grp-backend/grp-ms/app-user-management/.claude/worktrees/wf_aea06fd7-137-4
+  head: "fdb6f50 GH-560: edge-case tests for the Targeting component"
+  ahead_of_origin_dev: 5
+  pushed: true
+  pushed_verified_by: "git ls-remote origin returns fdb6f502 for refs/heads/GH-560-targeting-permission-component"
+  stray_worktree: "/Users/gamyot/.cache/um-gh560-design at a594caa, detached HEAD, left by the design phase"
+
+evidence_summary:
+  red_commits: [f817d0a, 10d0e09, bdb5808]
+  green_commit: 7181abb
+  edge_commit: fdb6f50
+  final_it_run: "TargetingComponentIT 15 tests, 0 failures (FIXTURE, Testcontainers MySQL 8.4)"
+  unit_suite: "mvn -o test 199 tests, 0 failures"
+  regression: >
+    Six IT classes, 40 tests, 7 failures and 9 errors on origin/dev@a594caa and the identical
+    set on the branch. Pre-existing rot (hardcoded component ids 3 and 4 deleted by changeset
+    024, KTP521BulkGrantIT seeds columns that do not exist).
+  quality_gate: "java_quality.py scan did not run. /opt/homebrew/bin/pmd is not installed."
+  toolchain: "declared 17, actual Temurin 17.0.21 unpacked to ~/.cache/dark-factory-jdks by implement. System JDK is 27."
+  deployed_evidence: "none. AC-4b is deferred to post-merge validate."
+
+scores:
+  task_confidence: 52
+  factory_fitness: 58
+
+deductions:
+  - score: task_confidence
+    points: 25
+    reason: "HALT_TDD_GATE at Implement. Review and QA never ran, so no independent verification of the diff."
+  - score: task_confidence
+    points: 8
+    reason: "AC-4b (deployed dev verification and the authorized grant on advertiser 826) is deferred. All evidence is FIXTURE."
+  - score: task_confidence
+    points: 5
+    reason: "Grill parked P1 (first-of-kind ScriptUtils / ClassPathResource changeset re-execution in tests) for human confirmation. Implement shipped it without the confirmation."
+  - score: task_confidence
+    points: 4
+    reason: "16 pre-existing IT failures in the regression set reduce the regression signal to a before/after diff only."
+  - score: task_confidence
+    points: 3
+    reason: "PMD quality scan skipped (tool not installed). Low risk, the only Java change is a test class."
+  - score: task_confidence
+    points: 3
+    reason: "Per-phase confidences of 78 to 85, design lowest at 78."
+  - score: factory_fitness
+    points: 12
+    reason: "Retro again receives only warn_mode_violations, not the tdd_violations array. The halt cause cannot be confirmed. This is a repeat of the QUEUE item filed after KTP-784 and KTP-1257-phase2."
+  - score: factory_fitness
+    points: 8
+    reason: "The analyst tagged an evidence-capture AC (AC-4) as ac_kind logic. Nothing between concierge and the gate checks that an AC can have a failing-first test. The gate fired only after full implement."
+  - score: factory_fitness
+    points: 6
+    reason: "No in-run repair path for a missing-RED or doc-deliverable violation on an evidence AC. The shape-only ledger-repair retry does not cover it, so a correct and pushed build halts."
+  - score: factory_fitness
+    points: 5
+    reason: "A grill parked item (P1) has no machine-readable gate. Implement used the parked pattern freely."
+  - score: factory_fitness
+    points: 4
+    reason: "Grill classed the JDK 17 gap as a main-loop or human environment change. Implement installed a JDK into ~/.cache anyway. The rule and the behavior disagree, and the belt has no pinned toolchain step."
+  - score: factory_fitness
+    points: 3
+    reason: "The java belt quality gate depends on a PMD binary that is not on the machine. The belt has no preflight for its own tools."
+  - score: factory_fitness
+    points: 2
+    reason: "Stray detached worktree /Users/gamyot/.cache/um-gh560-design left by the design phase."
+  - score: factory_fitness
+    points: 2
+    reason: "Retro cannot resolve the active session, so the handoff goes to the ticket folder. Repeat of the empty session_id item."
+
+red_flags:
+  - "HALT_TDD_GATE on a build whose three testable ACs have honest test-only RED commits, a shared GREEN, and a pushed branch."
+  - "Retro prompt carries tdd_violations: [] for warn mode only. The halt-mode violation list is not passed and not written to disk."
+  - "AC-4 is an evidence-capture AC tagged ac_kind logic. It has no RED log and its deliverable is a .md ledger."
+  - "AC-2 RED fails on the provisioning precondition, not the boundary assertion. The ledger says so, but right_reason=true is arguable."
+  - "Grill P1 said the plan must not rely on ScriptUtils / ClassPathResource until a human confirms. Implement used it in two tests."
+  - "Implement unpacked Temurin 17 into ~/.cache/dark-factory-jdks after grill classed the toolchain as a main-loop or human change."
+  - "PMD not installed. java_quality.py raised FileNotFoundError and the quality gate silently became a note."
+  - "Regression baseline has 7 failures and 9 errors on origin/dev in six IT classes. No ticket links that rot."
+  - "Stray design worktree at /Users/gamyot/.cache/um-gh560-design, detached at a594caa."
+  - "CHANGELOG cites run-2026-10-07-KTP-1003 and run-2026-10-16-GH-342 but runs/ has no YAML for either. Telemetry may be lost."
+
+improvements:
+  - rank: 1
+    title: "Pass and persist tdd_violations for every HALT_TDD_GATE"
+    detail: >
+      In dark-factory.workflow.js, when the Implement or Fix gate returns HALT_TDD_GATE, write
+      the violations array to <ticket>/tdd/gate-violations.json and add it to the Retro prompt
+      as tdd_violations. Contract 9 must then require a halt_cause line quoted from that array.
+      This item is already in improvements/QUEUE.yaml. It has now cost a third retro its root cause.
+  - rank: 2
+    title: "Add an evidence ac_kind and route it to doc_claims"
+    detail: >
+      Contract 1 (concierge/analyst) must tag an AC whose text is "capture", "verify after
+      deploy" or "distinguish evidence" as ac_kind evidence, not logic. tddViolations() must
+      accept an evidence AC only with a doc_claims array where each claim points at a passing
+      test or log. Add a tests/tdd-gate.test.mjs case built from GH-560 AC-4.
+  - rank: 3
+    title: "Pre-gate RED-feasibility check at grill"
+    detail: >
+      Contract 3 must emit, per AC, red_feasible true or false with a reason. The workflow must
+      refuse to start Implement when an AC is red_feasible false and has no planned exemption
+      shape. This moves the gate from after implement to before it.
+  - rank: 4
+    title: "Make grill parked items a gate input"
+    detail: >
+      Grill returns parked items as a machine-readable list with a pattern signature (for
+      GH-560, ScriptUtils|ClassPathResource). Before Review, grep the diff for each signature.
+      A hit without args.accepted_parked[<id>] sets status BLOCKED_NEEDS_HUMAN with the item.
+  - rank: 5
+    title: "Java belt toolchain and tool preflight"
+    detail: >
+      The java belt must run a preflight in concierge: resolve a JDK that matches
+      maven.compiler.release or source (pinned cache path allowed), and check pmd on PATH.
+      Record the outcome in the run trace. Either allow the pinned JDK cache explicitly in the
+      contract or block at concierge. Do not let implement decide.
+  - rank: 6
+    title: "Clean up phase worktrees"
+    detail: >
+      Design and grill phases that create a worktree must remove it before returning, or the
+      workflow must run git worktree remove on every path a phase reports. GH-560 left
+      /Users/gamyot/.cache/um-gh560-design.
+  - rank: 7
+    title: "Audit runs/ against CHANGELOG"
+    detail: >
+      Add a check that every run cited in CHANGELOG.md has a YAML in runs/ and an INDEX.md
+      line. Two cited runs (KTP-1003 2026-10-07, GH-342 2026-10-16) have no file.
+
+next_action_for_this_ticket: >
+  Read the real tdd_violations from the caller. If the cause is AC-4, re-run with AC-4 ledgered
+  as doc_claims (each AC-4a row maps to a named passing test or log) or pass
+  args.accepted_baseline for it. Get a human decision on grill P1. Then let Review and QA run.
+  AC-4b stays with the post-merge validate step.

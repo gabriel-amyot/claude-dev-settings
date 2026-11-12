@@ -1,0 +1,38 @@
+# Index — knowledge
+
+## Files
+- `adr-quality-readiness-checklist.md` — ADR Quality Readiness Checklist
+- `api-request.md` — API Request Utility
+- `api-testing-patterns.md` — API Testing Patterns
+- `auth-session.md` — Auth Session Utility
+- `burn-in.md` — Burn-in Test Runner
+- `ci-burn-in.md` — CI Pipeline and Burn-In Strategy
+- `component-tdd.md` — Component Test-Driven Development Loop
+- `contract-testing.md` — Contract Testing Essentials (Pact)
+- `data-factories.md` — Data Factories and API-First Setup
+- `email-auth.md` — Email-Based Authentication Testing
+- `error-handling.md` — Error Handling and Resilience Checks
+- `feature-flags.md` — Feature Flag Governance
+- `file-utils.md` — File Utilities
+- `fixture-architecture.md` — Fixture Architecture Playbook
+- `fixtures-composition.md` — Fixtures Composition with mergeTests
+- `intercept-network-call.md` — Intercept Network Call Utility
+- `log.md` — Log Utility
+- `network-error-monitor.md` — Network Error Monitor
+- `network-first.md` — Network-First Safeguards
+- `network-recorder.md` — Network Recorder Utility
+- `nfr-criteria.md` — Non-Functional Requirements (NFR) Criteria
+- `overview.md` — Playwright Utils Overview
+- `playwright-cli.md` — Playwright CLI — Browser Automation for Coding Agents
+- `playwright-config.md` — Playwright Configuration Guardrails
+- `probability-impact.md` — Probability and Impact Scale
+- `recurse.md` — Recurse (Polling) Utility
+- `risk-governance.md` — Risk Governance and Gatekeeping
+- `selective-testing.md` — Selective and Targeted Test Execution
+- `selector-resilience.md` — Selector Resilience
+- `test-healing-patterns.md` — Test Healing Patterns
+- `test-levels-framework.md` — Test Levels Framework
+- `test-priorities-matrix.md` — Test Priorities Matrix
+- `test-quality.md` — Test Quality Definition of Done
+- `timing-debugging.md` — Timing Debugging and Race Condition Fixes
+- `visual-debugging.md` — Visual Debugging and Developer Ergonomics

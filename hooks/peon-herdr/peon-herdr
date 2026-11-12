@@ -1,0 +1,341 @@
+#!/usr/bin/env python3
+"""peon-herdr: one peon-ping voice per herdr workspace.
+
+Hook mode (wired in Claude Code and Codex hooks):
+    peon-herdr hook claude      stdin = Claude hook JSON, forwarded to peon.sh
+    peon-herdr hook codex       stdin = Codex hook JSON, forwarded to adapters/codex.sh
+
+CLI:
+    peon-herdr list                     workspaces, labels, voices
+    peon-herdr rotate [WORKSPACE]       new random voice (default: current workspace)
+    peon-herdr set WORKSPACE PACK       pin a voice
+    peon-herdr sync                     prune, then assign a voice to every live workspace
+    peon-herdr prune                    forget workspaces herdr no longer lists
+    peon-herdr pool                     show the voices available for random picks
+
+WORKSPACE is a herdr workspace id (wS), number (4) or label (Harness).
+Config and assignments: ~/.config/peon-herdr/config.json
+"""
+import fcntl
+import json
+import os
+import random
+import re
+import subprocess
+import sys
+import time
+from contextlib import contextmanager
+
+HOME = os.path.expanduser("~")
+PEON_DIR = os.environ.get("CLAUDE_PEON_DIR", os.path.join(HOME, ".claude/hooks/peon-ping"))
+PACKS_DIR = os.path.join(PEON_DIR, "packs")
+PEON_STATE = os.path.join(PEON_DIR, ".state.json")
+CONFIG_DIR = os.path.join(HOME, ".config/peon-herdr")
+CONFIG = os.path.join(CONFIG_DIR, "config.json")
+LOCK = os.path.join(CONFIG_DIR, ".lock")
+HERDR = os.environ.get("HERDR_BIN_PATH") or "herdr"
+
+DEFAULT_CONFIG = {
+    "_doc": "pool: voices allowed for random picks (empty = every installed pack). "
+            "exclude: voices never picked at random. workspaces: managed by peon-herdr, "
+            "edit 'pack' by hand or use 'peon-herdr set'.",
+    "pool": [],
+    "exclude": [],
+    "workspaces": {},
+}
+
+
+@contextmanager
+def locked():
+    os.makedirs(CONFIG_DIR, exist_ok=True)
+    with open(LOCK, "w") as fh:
+        fcntl.flock(fh, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(fh, fcntl.LOCK_UN)
+
+
+def read_json(path, default):
+    try:
+        with open(path) as fh:
+            return json.load(fh)
+    except Exception:
+        return default
+
+
+def write_json(path, data):
+    tmp = f"{path}.tmp.{os.getpid()}"
+    with open(tmp, "w") as fh:
+        json.dump(data, fh, indent=2)
+        fh.write("\n")
+    os.replace(tmp, path)
+
+
+def load_config():
+    cfg = read_json(CONFIG, None)
+    if not isinstance(cfg, dict):
+        cfg = json.loads(json.dumps(DEFAULT_CONFIG))
+    for key, value in DEFAULT_CONFIG.items():
+        cfg.setdefault(key, json.loads(json.dumps(value)))
+    return cfg
+
+
+def installed_packs():
+    try:
+        names = os.listdir(PACKS_DIR)
+    except OSError:
+        return []
+    return sorted(
+        n for n in names
+        if os.path.isfile(os.path.join(PACKS_DIR, n, "openpeon.json"))
+        or os.path.isfile(os.path.join(PACKS_DIR, n, "manifest.json"))
+    )
+
+
+def voice_pool(cfg):
+    installed = installed_packs()
+    pool = [p for p in (cfg.get("pool") or installed) if p in installed]
+    excluded = set(cfg.get("exclude") or [])
+    return [p for p in pool if p not in excluded] or installed
+
+
+def herdr_workspaces():
+    """Return {id: label} for live workspaces, or None when herdr is unreachable."""
+    try:
+        out = subprocess.run([HERDR, "workspace", "list"], capture_output=True, text=True, timeout=3)
+        data = json.loads(out.stdout)
+        return {w["workspace_id"]: w.get("label", "") for w in data["result"]["workspaces"]}
+    except Exception:
+        return None
+
+
+def herdr_workspace_list_full():
+    try:
+        out = subprocess.run([HERDR, "workspace", "list"], capture_output=True, text=True, timeout=3)
+        return json.loads(out.stdout)["result"]["workspaces"]
+    except Exception:
+        return []
+
+
+def prune(cfg, live):
+    if live is None:
+        return []
+    gone = [wid for wid in cfg["workspaces"] if wid not in live]
+    for wid in gone:
+        del cfg["workspaces"][wid]
+    return gone
+
+
+def pick_pack(cfg, workspace_id, avoid=None):
+    pool = voice_pool(cfg)
+    if not pool:
+        return None
+    others = [w["pack"] for wid, w in cfg["workspaces"].items() if wid != workspace_id]
+    candidates = [p for p in pool if p not in others and p != avoid]
+    if not candidates:
+        usage = {p: others.count(p) for p in pool if p != avoid} or {p: 0 for p in pool}
+        least = min(usage.values())
+        candidates = [p for p, n in usage.items() if n == least]
+    return random.choice(candidates)
+
+
+def assign(cfg, workspace_id, label, pack):
+    cfg["workspaces"][workspace_id] = {
+        "label": label,
+        "pack": pack,
+        "assigned_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+    }
+
+
+def pack_for_workspace(workspace_id, refresh):
+    """Return the voice for a workspace, assigning one at random the first time."""
+    with locked():
+        cfg = load_config()
+        entry = cfg["workspaces"].get(workspace_id)
+        installed = set(installed_packs())
+        valid = entry and entry.get("pack") in installed
+        if valid and not refresh:
+            return entry["pack"]
+        live = herdr_workspaces()
+        changed = bool(prune(cfg, live))
+        entry = cfg["workspaces"].get(workspace_id)
+        label = (live or {}).get(workspace_id, (entry or {}).get("label", ""))
+        if entry and entry.get("pack") in installed:
+            if entry.get("label") != label and label:
+                entry["label"] = label
+                changed = True
+        else:
+            pack = pick_pack(cfg, workspace_id)
+            if not pack:
+                return None
+            assign(cfg, workspace_id, label, pack)
+            changed = True
+        if changed:
+            write_json(CONFIG, cfg)
+        return cfg["workspaces"][workspace_id]["pack"]
+
+
+def pin_session(session_id, pack):
+    """Write the session voice into peon-ping state, only when it differs."""
+    if not session_id or not pack:
+        return
+    state = read_json(PEON_STATE, {})
+    sessions = state.setdefault("session_packs", {})
+    current = sessions.get(session_id)
+    current_pack = current.get("pack") if isinstance(current, dict) else current
+    if current_pack == pack:
+        return
+    sessions[session_id] = {"pack": pack, "last_used": time.time()}
+    write_json(PEON_STATE, state)
+
+
+def session_id_for(agent, event):
+    if agent == "codex":
+        raw = ""
+        for key in ("session_id", "conversation_id", "thread_id"):
+            if str(event.get(key) or "").strip():
+                raw = str(event[key]).strip()
+                break
+        raw = raw or os.environ.get("CODEX_SESSION_ID", "")
+        safe = re.sub(r"[^A-Za-z0-9._:-]", "-", raw).strip("-")
+        return f"codex-{safe}" if safe else ""
+    return str(event.get("session_id") or "")
+
+
+def run_hook(agent, extra_args):
+    raw = b"" if sys.stdin.isatty() else sys.stdin.buffer.read()
+    try:
+        workspace_id = os.environ.get("HERDR_WORKSPACE_ID", "")
+        if workspace_id:
+            event = json.loads(raw or b"{}")
+            name = str(event.get("hook_event_name", "")).lower()
+            pack = pack_for_workspace(workspace_id, refresh=name == "sessionstart")
+            pin_session(session_id_for(agent, event), pack)
+    except Exception as exc:
+        if os.environ.get("PEON_HERDR_DEBUG"):
+            print(f"peon-herdr: {exc}", file=sys.stderr)
+    if agent == "codex":
+        target = ["bash", os.path.join(PEON_DIR, "adapters/codex.sh"), *extra_args]
+    else:
+        target = [os.path.join(PEON_DIR, "peon.sh"), *extra_args]
+    return subprocess.run(target, input=raw).returncode
+
+
+def resolve_workspace(ref, workspaces):
+    if not ref:
+        ref = os.environ.get("HERDR_WORKSPACE_ID", "")
+        if not ref:
+            sys.exit("peon-herdr: not inside herdr. Pass a workspace id, number or label.")
+    for w in workspaces:
+        if ref in (w["workspace_id"], str(w.get("number")), w.get("label")):
+            return w["workspace_id"], w.get("label", "")
+    lowered = ref.lower()
+    matches = [w for w in workspaces if lowered in w.get("label", "").lower()]
+    if len(matches) == 1:
+        return matches[0]["workspace_id"], matches[0].get("label", "")
+    sys.exit(f"peon-herdr: no single workspace matches '{ref}'. Run 'peon-herdr list'.")
+
+
+def play_greeting(pack):
+    pack_dir = os.path.join(PACKS_DIR, pack)
+    manifest = read_json(os.path.join(pack_dir, "openpeon.json"), None) or \
+        read_json(os.path.join(pack_dir, "manifest.json"), {})
+    categories = manifest.get("categories", {})
+    sounds = (categories.get("session.start") or next(iter(categories.values()), {})).get("sounds", [])
+    if sounds:
+        path = os.path.join(pack_dir, random.choice(sounds)["file"])
+        subprocess.Popen(["afplay", path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def cmd_list():
+    live = herdr_workspace_list_full()
+    with locked():
+        cfg = load_config()
+    by_id = {w["workspace_id"]: w for w in live}
+    current = os.environ.get("HERDR_WORKSPACE_ID", "")
+    print(f"{'#':>3}  {'id':<4} {'workspace':<28} voice")
+    for w in sorted(live, key=lambda w: w.get("number", 0)):
+        entry = cfg["workspaces"].get(w["workspace_id"], {})
+        mark = "*" if w["workspace_id"] == current else " "
+        voice = entry.get("pack", "(assigned on first agent event)")
+        print(f"{w.get('number', ''):>3}{mark} {w['workspace_id']:<4} {w.get('label', '')[:28]:<28} {voice}")
+    stale = [wid for wid in cfg["workspaces"] if live and wid not in by_id]
+    if stale:
+        print(f"\nstale (run 'peon-herdr prune'): {', '.join(stale)}")
+
+
+def cmd_rotate(ref):
+    workspace_id, label = resolve_workspace(ref, herdr_workspace_list_full())
+    with locked():
+        cfg = load_config()
+        prune(cfg, herdr_workspaces())
+        old = cfg["workspaces"].get(workspace_id, {}).get("pack")
+        pack = pick_pack(cfg, workspace_id, avoid=old)
+        assign(cfg, workspace_id, label, pack)
+        write_json(CONFIG, cfg)
+    print(f"{label} ({workspace_id}): {old or '-'} -> {pack}")
+    print("Open sessions switch on their next event.")
+    play_greeting(pack)
+
+
+def cmd_set(ref, pack):
+    if pack not in installed_packs():
+        sys.exit(f"peon-herdr: pack '{pack}' not installed. Installed: {', '.join(installed_packs())}")
+    workspace_id, label = resolve_workspace(ref, herdr_workspace_list_full())
+    with locked():
+        cfg = load_config()
+        assign(cfg, workspace_id, label, pack)
+        write_json(CONFIG, cfg)
+    print(f"{label} ({workspace_id}): {pack}")
+    play_greeting(pack)
+
+
+def cmd_sync():
+    live = herdr_workspaces()
+    if live is None:
+        sys.exit("peon-herdr: herdr is not reachable.")
+    for workspace_id in live:
+        pack_for_workspace(workspace_id, refresh=True)
+    cmd_list()
+
+
+def cmd_prune():
+    live = herdr_workspaces()
+    if live is None:
+        sys.exit("peon-herdr: herdr is not reachable, nothing pruned.")
+    with locked():
+        cfg = load_config()
+        gone = prune(cfg, live)
+        write_json(CONFIG, cfg)
+    print(f"pruned: {', '.join(gone) if gone else 'nothing'}")
+
+
+def main(argv):
+    if not argv or argv[0] in ("-h", "--help", "help"):
+        print(__doc__.strip())
+        return 0
+    command, args = argv[0], argv[1:]
+    if command == "hook":
+        return run_hook(args[0] if args else "claude", args[1:])
+    if command == "list":
+        cmd_list()
+    elif command == "rotate":
+        cmd_rotate(args[0] if args else "")
+    elif command == "set" and len(args) == 2:
+        cmd_set(args[0], args[1])
+    elif command == "prune":
+        cmd_prune()
+    elif command == "sync":
+        cmd_sync()
+    elif command == "pool":
+        with locked():
+            print("\n".join(voice_pool(load_config())))
+    else:
+        print(__doc__.strip(), file=sys.stderr)
+        return 2
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

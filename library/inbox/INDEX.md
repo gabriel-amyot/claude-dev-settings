@@ -16,7 +16,7 @@ Raw captures: session learnings, tribal knowledge, research snippets, and operat
 
 | File | Contents | Promote To |
 |------|----------|------------|
-| *(empty — inbox is clean)* | | |
+| [2026-09-01-ghostty-toolstack-verification.md](2026-09-01-ghostty-toolstack-verification.md) | Ghostty has no plugin system (config-file only); terminal-setup skill's inventory wrongly lists `jq` and `Ghostty.app` as Homebrew-managed | `operations/` or direct fix to `terminal-setup` SKILL.md |
 
 ---
 

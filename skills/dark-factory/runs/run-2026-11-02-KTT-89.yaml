@@ -1,0 +1,251 @@
+run_id: run-2026-11-02-KTT-89
+ticket: KTT-89
+source: jira
+jira_url: https://beklever.atlassian.net/browse/KTT-89
+epic: KTP-536
+title: >
+  Media Plan rail. On a 401 show "Session expired" with "Sign in again" instead of the generic
+  error. After sign-in, restore the same conversation and put the unanswered question back in the
+  composer so it is sent once. Belt frontend.
+date: 2026-11-02
+terminal_status: BLOCKED_REVIEW_CRITICAL
+halt_phase: Review (review-3, after fix round 2 of 2)
+ticket_folder: /Users/gamyot/Developer/grp-beklever-com/project-management/tickets/KTT/no-epic/KTT-89
+repo: app-front-portal
+branch: KTT-89-media-plan-session-expired
+
+phases:
+  - phase: concierge
+    status: PASS
+    confidence: 84
+    note: "AC-0 scope gate and Q2 dedupe strategy confirmed by Gabriel through resume answers."
+  - phase: design
+    status: pass
+    confidence: 80
+  - phase: grill
+    status: pass
+    confidence: 85
+    note: >
+      Grill A4 confirmed "dropping the LAST item is correct, even with branches" by reading the
+      runtime load path only. It did not check how the store appends edit siblings.
+  - phase: implement
+    status: pass
+    confidence: 80
+    commits: "21f5d3b2 .. 1a9c442c (AC-4 baseline, AC-2, AC-1, AC-3 RED/GREEN pairs)"
+  - phase: review
+    status: "blocking:1"
+    confidence: 78
+    blocking_finding: >
+      AC-3, demonstrated. The unanswered question was removed from storage before the user sent
+      it (inferred from the fix-1 commit subjects, review-1 findings were overwritten).
+  - phase: fix-1
+    status: pass
+    confidence: 85
+    commits: "a2639470 (RED), e9fc94d4 (GREEN), 699d3617 (edge-case tests)"
+  - phase: review-2
+    status: "blocking:1"
+    confidence: 78
+    blocking_finding: >
+      HIGH, demonstrated, AC-3. A question retried before Sign in again appeared twice after
+      sign-in. takeUnansweredQuestion stripped only the last trailing user message.
+  - phase: fix-2
+    status: pass
+    confidence: 88
+    commits: "ebcd6f4c (RED), c5cd8679 (GREEN)"
+  - phase: review-3
+    status: "blocking:1"
+    confidence: 80
+    blocking_finding: >
+      MEDIUM, demonstrated, AC-3. A question corrected with Edit while signed out comes back
+      merged with the abandoned text. The trailing-user scan uses array order and ignores
+      parentId, so an edit sibling is joined as if it were a retry. Reviewer test
+      review/tests/e2e/ktt-89-review-edit-retry.spec.ts fails on c5cd8679.
+  - phase: qa
+    status: not_run
+
+blocking_rule_fired: >
+  Any demonstrated finding blocks at any severity. The open blocker is MEDIUM. findings.json
+  reports criticals_open 0. The terminal status name says CRITICAL, but no CRITICAL finding exists.
+  Same mislabel as run-2026-11-02-GH-561.
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy_config: true
+  note: >
+    Default halt mode, no warn-mode violations. The branch history shows a test-only RED commit
+    before each GREEN commit for AC-2, AC-1 and AC-3, and both fix rounds. Only tdd/AC-3.md exists
+    in the ticket folder, and it holds fix round 2 only. The implement-phase ledgers for AC-1, AC-2,
+    AC-4 and the fix-1 ledger are not on disk.
+
+git_state:
+  remote_head: "c5cd8679 KTT-89 AC-3 GREEN, a retried question is drafted once and sent once"
+  pushed: true
+  pushed_verified_by: "git ls-remote origin returns c5cd8679 for refs/heads/KTT-89-media-plan-session-expired"
+  worktree: /Users/gamyot/Developer/grp-beklever-com/.worktrees/app-front-portal/KTT-89-media-plan-session-expired
+  worktree_head: "c5cd8679 (matches remote)"
+  commits_ahead_of_dev: 15
+
+evidence_summary: >
+  Branch suites ktt-89-session-expired-logic, ktt-89-restore-persist, ktt-89-review-resend-flow
+  33/33 PASS on installed Chrome. test:sessionexpired 5/5. Related suites 141 passed. npm run
+  build exit 0, next dev serves /planning with HTTP 200. lint:types clean on changed files,
+  pre-existing errors elsewhere. Local UM not running. No ui-probe proof for the visual AC-1 and
+  AC-2. The real IAP 401 path on dev (delete GCP_IAP_* cookies) is not exercised.
+
+open_findings:
+  - severity: MEDIUM
+    demonstrated: true
+    ac: AC-3
+    title: "Edit sibling while signed out is merged with the abandoned text on restore"
+    likely_fix: >
+      In lib/agent-threads/interrupted-run.ts, when trailing user messages share a parentId, keep
+      only the latest one (the head branch). The reviewer test is ready to adopt as RED.
+  - severity: MEDIUM
+    demonstrated: false
+    ac: AC-2
+    title: "AC-2 depends on IAP returning 401 to a fetch POST, not a 302"
+    note: "Premise from KTT-48 RCA (observed in IAP logs). Confirm with the dev cookie-delete check."
+  - severity: MEDIUM
+    demonstrated: false
+    ac: AC-4
+    title: "Any upstream 401 shows Session expired even when the user is signed in"
+    note: "Proxy passes upstream status verbatim. No evidence the agent emits 401 today."
+  - severity: LOW
+    demonstrated: false
+    title: "Restore now drafts every trailing question, InterruptedRunBanner removed on the Media Plan rail"
+    note: "Deliberate per Q2. Needs PO awareness."
+
+scores:
+  task_confidence: 52
+  factory_fitness: 55
+
+deductions:
+  - score: task_confidence
+    points: 18
+    reason: >
+      The run halted with one open demonstrated AC-3 defect. A user who edits the question while
+      signed out gets the abandoned and corrected text merged and sent.
+  - score: task_confidence
+    points: 12
+    reason: >
+      QA did not run. AC-1 and AC-2 are visual ACs with no ui-probe screenshot proof of the
+      Session expired prompt or the restored composer.
+  - score: task_confidence
+    points: 6
+    reason: >
+      AC-2 rests on the premise that IAP answers an expired fetch POST with 401. The real dev IAP
+      path was not exercised. The review flagged it as undemonstrated.
+  - score: task_confidence
+    points: 5
+    reason: >
+      Undemonstrated MEDIUM on AC-4. An upstream 401 from the agent produces a false Session
+      expired prompt and a reload loop.
+  - score: task_confidence
+    points: 4
+    reason: >
+      Restore behavior changed for every interrupted run (InterruptedRunBanner removed, receipts
+      dropped, distinct questions joined). It is deliberate per Q2 but the PO has not seen it.
+  - score: task_confidence
+    points: 3
+    reason: "Local UM was not running. The permission fetch failed in next dev, so the run proof is partial."
+  - score: factory_fitness
+    points: 14
+    reason: >
+      Review whack-a-mole on one function. Three review rounds found three different AC-3 defects
+      in takeUnansweredQuestion (premature removal, doubled retry, merged edit sibling). The first
+      review did not sweep the trailing-message state space (retry, edit, receipt, mixed errors).
+  - score: factory_fitness
+    points: 8
+    reason: >
+      Grill A4 confirmed the linear model by reading the runtime load path only. It did not check
+      how the stored record holds edit siblings with a shared parentId. The round-3 defect
+      originates in a premise the grill marked CONFIRMED.
+  - score: factory_fitness
+    points: 7
+    reason: >
+      The bounded fix loop (2 rounds) halted on a small, converging residual with a ready reviewer
+      test. Each fix round cleared its blocker. There is no path for a cheap last round.
+  - score: factory_fitness
+    points: 6
+    reason: >
+      Terminal status BLOCKED_REVIEW_CRITICAL with criticals_open 0 and a MEDIUM blocker. Second run
+      today with this mislabel (GH-561). The improvement was proposed but not applied.
+  - score: factory_fitness
+    points: 5
+    reason: >
+      Artifact overwrite. findings.json and tdd/AC-3.md hold only the latest round. findings.json
+      says round 2 for what the trace calls review-3. Review-1 findings and the implement and fix-1
+      TDD ledgers are not on disk, so retro had to infer them from commit subjects.
+  - score: factory_fitness
+    points: 3
+    reason: >
+      The retro prompt does not carry the blocking findings payload or the findings path. Retro
+      reconstructed the halt reason from disk and git. Same gap as GH-561.
+  - score: factory_fitness
+    points: 2
+    reason: >
+      The reviewer e2e harness lives in review/tests/ and must be copied into the repo e2e/ folder
+      with a hand-set ESBUILD_PATH from the npx cache. Brittle step for both reviewer and fixer.
+
+red_flags:
+  - "Three review rounds, three distinct demonstrated defects, all in the same function takeUnansweredQuestion."
+  - "Grill A4 marked the branch premise CONFIRMED from the load path, but the bug lives in the stored record shape."
+  - "Terminal status says CRITICAL. findings.json says criticals_open 0. The blocker is MEDIUM. Second occurrence today."
+  - "findings.json labels itself round 2 while the trace calls it review-3. Review-1 findings were overwritten."
+  - "Only tdd/AC-3.md exists, holding fix round 2. Implement-phase and fix-1 TDD ledgers are missing from the ticket folder."
+  - "The halt is on a small fix with a ready reviewer test. The fix loop was out of rounds."
+  - "QA never ran. Visual AC-1 and AC-2 have no screenshot proof."
+  - "AC-2 premise (IAP answers 401, not 302) is observed in logs, never exercised on dev in this run."
+  - "Reviewer tests run with ESBUILD_PATH pointing into a hashed npx cache folder."
+  - "Design superseded InterruptedRunBanner on one rail. The behavior change across all interrupt causes reached review as a LOW note, not a PO question."
+  - "No active session referenced KTT-89, so the improvement handoff went to the ticket reports folder."
+
+improvements:
+  - title: "Contract 5: require a state-space sweep in review round 1"
+    detail: >
+      When the diff adds logic that scans or rewrites a message history (or any ordered or tree
+      structure), the first review must enumerate the input shapes (single, retry, edit sibling,
+      mixed error causes, receipt) and test each one. Record the list in findings.json as
+      surface_sweep. A later round may block only on a shape outside the sweep or on a regression
+      from a fix. Same improvement as GH-561. Two runs now justify applying it.
+  - title: "Contract 3 (grill): an assumption audit must check the write side, not only the read side"
+    detail: >
+      For any CONFIRMED premise about data shape, the grill must cite both the code that writes
+      the shape and the code that reads it. A4 cited only the runtime load. Add a column
+      write_source to the assumption table and fail the premise if it is empty.
+  - title: "workflow.js: one bonus fix round for a converging, small residual"
+    detail: >
+      If each fix round cleared its blocker, the residual has no CRITICAL or HIGH, and each residual
+      finding has a test_ref the fixer can adopt, run one extra fix round before the blocked
+      status. Cap the total at 3. Record it in the trace. KTT-89 and GH-561 would both have reached
+      QA.
+  - title: "workflow.js: name the review terminal status by the rule that fired"
+    detail: >
+      Return BLOCKED_REVIEW_CRITICAL only when a CRITICAL is open. Return
+      BLOCKED_REVIEW_DEMONSTRATED for a demonstrated non-critical blocker. Second run with this
+      mislabel. Apply before the next run.
+  - title: "Contracts 4, 5: never overwrite round artifacts"
+    detail: >
+      Write review findings to review/findings-round-N.json and TDD ledgers to
+      tdd/AC-X-round-N.md (implement is round 0). Keep findings.json as a pointer to the latest.
+      The round number must match the trace phase name.
+  - title: "Frontend belt: ship the review e2e harness inside the repo toolchain"
+    detail: >
+      Provide a belt script that runs a reviewer spec from review/tests/ without manual copy and
+      resolves esbuild from the repo node_modules. Remove the hand-set ESBUILD_PATH.
+  - title: "Retro prompt: pass blocking findings, findings path and round artifacts"
+    detail: >
+      Include blocking_findings, fix_rounds, the findings path and the commit SHAs per round in the
+      retro task text. Same gap as GH-561.
+  - title: "Contract 2 (design): a superseded behavior must become a PO question"
+    detail: >
+      When the design removes or replaces an existing user-facing behavior (here
+      InterruptedRunBanner on the Media Plan rail), write it as an explicit concierge question, not
+      a design note. It reached review as a LOW finding.
+
+summary: >
+  The session-expired prompt and the restore hero path work and are pushed (c5cd8679), but the run
+  halted after two fix rounds on a demonstrated MEDIUM AC-3 defect, edit siblings merged on restore.
+  All three review blockers hit the same function, and the root premise was marked CONFIRMED by the
+  grill from the read side only.

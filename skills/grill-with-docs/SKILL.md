@@ -1,5 +1,6 @@
 ---
 name: grill-with-docs
+<<<<<<< Updated upstream
 description: Grilling session that challenges your plan against the existing domain model, sharpens terminology, and updates documentation (CONTEXT.md, ADRs) inline as decisions crystallise. Use when user wants to stress-test a plan against their project's language and documented decisions.
 ---
 
@@ -86,3 +87,11 @@ Only offer to create an ADR when all three are true:
 If any of the three is missing, skip the ADR. Use the format in [ADR-FORMAT.md](./ADR-FORMAT.md).
 
 </supporting-info>
+||||||| Stash base
+=======
+description: A relentless interview to sharpen a plan or design, which also creates docs (ADR's and glossary) as we go.
+disable-model-invocation: true
+---
+
+Run a `/grilling` session, using the `/domain-modeling` skill.
+>>>>>>> Stashed changes

@@ -67,3 +67,13 @@ this one-page run full. The script verifies scope, not live authentication succe
 After successful recovery, record the actual source, verified private remote if any,
 restore command, last successful fetch, counts/coverage and cross-machine push/pull
 procedure here. Until then, cross-machine durability is **unresolved**.
+
+## New mirror on the MacBook — 2026-11-11
+
+Gabriel chose to start a **new** mirror at the default path, not to restore the old one.
+It is not a restore of `4ef42ab`: it starts with 1 page (AdCP / Prebid Buyer Agent Prototype,
+coverage partial). The page was staged by hand from a claude.ai connector fetch, written through
+Bash (the Write tool is blocked there), then promoted with `nx ingest manual-20261111`.
+`.mcp.json` is not configured yet, so `fetch-shard.sh` cannot run here until the
+trust approval and OAuth steps are done in a real terminal. The old 232-page mirror is still
+unrecovered. Merge it into this one if it is found.

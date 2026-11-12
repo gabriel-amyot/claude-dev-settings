@@ -2,7 +2,7 @@
   "default_pack": "peon",
   "volume": 0.5,
   "enabled": true,
-  "desktop_notifications": true,
+  "desktop_notifications": false,
   "categories": {
     "session.start": true,
     "task.acknowledge": false,
@@ -18,7 +18,7 @@
   "suppress_subagent_complete": false,
   "no_rc": false,
   "pack_rotation": [],
-  "pack_rotation_mode": "random",
+  "pack_rotation_mode": "session_override",
   "path_rules": [],
   "session_ttl_days": 7,
   "use_sound_effects_device": true,

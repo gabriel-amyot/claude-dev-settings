@@ -33,6 +33,30 @@ whisper-cli -m ~/.local/share/whisper-models/ggml-large-v3-turbo.bin \
 Load an org `whisper-prompt.txt` as `--prompt` when one exists. Do not use `--translate` on
 Quebec French or code-switched speech. Translate the clean transcript instead.
 
+## 3b. Speakers and mixed languages: `scripts/transcribe_meeting.py`
+
+Use the script for any recording with more than one speaker. It wraps normalize, diarization
+(sherpa-onnx, no HuggingFace token), whisper, attribution and render. Validated on two
+2026-11-11 Klever recordings.
+
+```bash
+python3 ~/.claude-shared-config/skills/meeting-to-action/scripts/transcribe_meeting.py REC.wav \
+  --out general/meetings/{date}-{slug}/raw --speakers 2 --names "Gabriel,David" --confidence medium \
+  --lang-mode file --lang fr --prompt-file general/meetings/whisper-prompt.txt [--until SECONDS]
+```
+
+- `--speakers N` when known. Unknown: omit it. With many speakers on one microphone, clustering
+  merges voices; pass `--anchors anchors.json` ({name: [row ids]} where the speaker is certain
+  from content) to get voice-centroid suggestions, then set `speaker` and `confidence` by hand
+  in `attribution.json` and rerun with `--render-only`.
+- `--names` maps clusters in order of first appearance. Check two or three turns by content
+  (who explains, who asks) before trusting the mapping.
+- Code-switching with one dominant language (Quebec French + English terms): `--lang-mode file
+  --lang fr`. `--lang-mode turn` picks a language per turn by token probability, but duplicates
+  words at turn boundaries; use it only for long single-language stretches.
+- `--until SECONDS` drops a private or off-topic tail. Privacy route still applies first.
+- Never commit the audio. Commit only `raw/` text outputs.
+
 ## 4. Repeat-loop hallucination recovery
 
 On silence, music or low speech, whisper can emit one line hundreds of times and lose the real

@@ -1,0 +1,33 @@
+ticket: KTP-867
+date: '2026-10-26'
+source: sprint-estimation
+sprint: null
+verdict: STRUCTURAL_GAP
+predicted_terminal: BLOCKED_UNSUPPORTED_FLOOR
+spec_quality: good
+belt:
+  matched: none
+  nearest: null
+  reason: Six independently bounded slices cross the application, image and infrastructure
+    repositories and operational recovery proof. This rollup is not one factory run.
+gate_dimensions:
+  ac_available: pass
+  placement_resolved: pass
+  fixtures_seeded: n/a
+  no_open_forks: pass
+  single_repo_single_belt: fail
+  data_availability: n/a
+  belt_match: fail
+gap_categories:
+- multi-repo-fullstack
+expected_run_shape: Code/script/fixture preparation can run separately; the complete
+  ticket retains its declared real runtime/cloud/protocol evidence. No factory run
+  or cloud mutation was launched in this estimation.
+scope_note: User explicitly preserves the subtask hierarchy. This is a per-execution-slice
+  advisory check; do not count subtask points or label the parent Df-ready. No additional
+  approval gate inferred from a missing fixture.
+evidence:
+- tickets/KTP/KTP-853/KTP-867/reports/estimation/2026-10-26/leo-findings.json
+- tickets/KTP/KTP-853/KTP-867/reports/estimation/2026-10-26/repo-investigation.json
+notes: Six independently bounded slices cross the application, image and infrastructure
+  repositories and operational recovery proof. This rollup is not one factory run.

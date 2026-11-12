@@ -1,0 +1,96 @@
+map: 545
+map_title: 'Foursquare Targeting in KleverOne: prototype-proven requirements and ticket
+  plan (KTP-1216 spike)'
+map_state: OPEN
+harvested: '2026-11-01T02:11:44+00:00'
+telemetry_epoch: '2026-09-10'
+runs:
+- run_id: e26f7b4a
+  spec_version: 0.4.0
+  mode: chart
+  map: 545
+  date: '2026-10-29'
+  outcome: charted
+  tickets_created: 9
+  fog_graduated: 2
+  friction:
+  - tag: tooling
+    note: gh 2.95 lacks --parent; attached children via REST sub_issues endpoint
+  - tag: spec-wrong
+    note: research/<name> branch conflicts with single-trunk project-management repo;
+      findings written to a file on main instead
+  - tag: tooling
+    note: wayfinder_runs.py needs PyYAML, absent from system python; ran via uv --with
+      pyyaml
+  issue_state: OPEN
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/545#issuecomment-6508461300
+- run_id: c83ff5fc
+  spec_version: 0.4.0
+  mode: resolve
+  map: 545
+  date: '2026-10-30'
+  outcome: resolved
+  tickets_created: 0
+  fog_graduated: 0
+  friction: []
+  ticket: 556
+  ticket_type: prototype
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/556#issuecomment-6534416815
+- run_id: dde6ff6a
+  spec_version: 0.4.0
+  mode: resolve
+  map: 545
+  date: '2026-10-31'
+  outcome: resolved
+  tickets_created: 0
+  fog_graduated: 0
+  friction: []
+  ticket: 552
+  ticket_type: prototype
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/552#issuecomment-6552178060
+- run_id: ff3b560a
+  spec_version: 0.4.0
+  mode: resolve
+  map: 545
+  date: '2026-10-29'
+  outcome: resolved
+  tickets_created: 0
+  fog_graduated: 0
+  friction: []
+  ticket: 550
+  ticket_type: research
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/550#issuecomment-6508508830
+- run_id: c3a49797
+  spec_version: 0.4.0
+  mode: resolve
+  map: 545
+  date: '2026-10-30'
+  outcome: resolved
+  tickets_created: 0
+  fog_graduated: 1
+  friction: []
+  ticket: 548
+  ticket_type: research
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/548#issuecomment-6534327693
+- run_id: 5b1a8c1e
+  spec_version: 0.4.0
+  mode: resolve
+  map: 545
+  date: '2026-10-30'
+  outcome: resolved
+  tickets_created: 0
+  fog_graduated: 0
+  friction: []
+  ticket: 547
+  ticket_type: prototype
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/547#issuecomment-6531947610
+gaps: []
+malformed_trailers: []
+missing_reflection: false
+pre_telemetry_closures: 0
+feedback: []

@@ -1,0 +1,234 @@
+run_id: run-2026-11-02-GH-561
+ticket: GH-561
+source: github
+issue_url: https://github.com/gabriel-amyot/klever-project-management/issues/561
+parent_map: 557
+jira_mapping: "KTP-1384 (1 of 2 points, disk-only drafts, no Jira writes)"
+title: >
+  Targeting shell in app-front-portal. Advertiser-scoped Targeting nav entry after Planning,
+  /targeting shell gate, advertiser-aware deep link, Client Preview release gate. Belt frontend.
+date: 2026-11-02
+terminal_status: BLOCKED_REVIEW_CRITICAL
+halt_phase: Review (after fix round 2 of 2)
+ticket_folder: /Users/gamyot/Developer/grp-beklever-com/project-management/tickets/wayfinder/map-557/issue-561
+repo: app-front-portal
+branch: GH-561-targeting-shell
+
+phases:
+  - phase: concierge
+    status: PASS
+    confidence: 82
+  - phase: design
+    status: pass
+    confidence: 84
+  - phase: grill
+    status: pass
+    confidence: 78
+  - phase: implement
+    status: pass
+    confidence: 80
+  - phase: review
+    status: "blocking:1"
+    confidence: 80
+    blocking_finding: >
+      HIGH, demonstrated. The route gate ignored ?advertiserId= and redirected a deep link to a
+      granted advertiser to /home.
+  - phase: fix-1
+    status: pass
+    confidence: 80
+    commits: "255540d1 (RED), b96fc2de (GREEN)"
+  - phase: review-2
+    status: "blocking:1"
+    confidence: 78
+    blocking_finding: >
+      MEDIUM, demonstrated. In Client Preview, staff without the Targeting grant resolved to
+      allowed. A mode must only subtract.
+  - phase: fix-2
+    status: pass
+    confidence: 88
+    commits: "202e7d04 (RED), d8cd9a40 (GREEN)"
+  - phase: review-3
+    status: "blocking:1"
+    confidence: 78
+    blocking_finding: >
+      MEDIUM, demonstrated. The denied state always says "Targeting is not enabled for this
+      advertiser", also for a cross-agency deep link to a granted advertiser
+      (advertiser-not-offered) and for the Client Preview loading window (preview-loading).
+      Reviewer test review/tests/targeting-denial-copy.test.tsx gives 1 passed, 2 failed.
+  - phase: qa
+    status: not_run
+
+blocking_rule_fired: >
+  blockingFindings() in 0.10.4 blocks any demonstrated finding at any severity. The open finding
+  is MEDIUM. findings.json reports criticals_open 0. The terminal status name says CRITICAL, but
+  no CRITICAL finding exists.
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy_config: true
+  note: >
+    Default halt mode. No warn-mode violations. Each AC ledger (tdd/AC-1.md to AC-4.md) records a
+    test-only RED commit with an assertion-failure log and a GREEN commit. Both fix rounds adopted
+    the reviewer test as a test-only RED commit before the GREEN commit.
+
+git_state:
+  remote_head: "d8cd9a40 GH-561: AC-1 GREEN, Client Preview requires the staff Targeting grant"
+  pushed: true
+  pushed_verified_by: "git ls-remote origin returns d8cd9a40 for refs/heads/GH-561-targeting-shell"
+  run_worktree: /Users/gamyot/Developer/grp-beklever-com/.git-clones/app-front-portal/.claude/worktrees/wf_39afd8b9-773-4
+  run_worktree_head: "a9b0fccc (4 commits behind the remote branch, clean)"
+  version: "package.json 2.0.134, latest tag 2.0.133, origin/dev 2.0.133"
+
+evidence_summary: >
+  test:targeting 6 suites all pass. test:isolation 4/0. test:previewgates 33/0. npm run build
+  exit 0. lint:types has 8 errors, all in files outside the diff. Local UM was not running, so
+  all permission checks use fixtures. No ui-probe proof for the visual AC-1. AC-4b (live dev proof
+  on advertiser 826) is deferred until GH-560 ships the Targeting UM component. GH-560 halted at
+  the TDD gate on the same day.
+
+open_findings:
+  - severity: MEDIUM
+    demonstrated: true
+    ac: AC-2
+    title: "Denied copy ignores the denial reason (scope and loading denials say not enabled)"
+    likely_fix: >
+      Make DeniedState in components/targeting/targeting-view.tsx read access.reason and map each
+      reason to its own copy. Small change. The reviewer test is ready to adopt as RED.
+  - severity: LOW
+    demonstrated: false
+    title: "URL keeps the previous advertiserId after a picker switch to a denied advertiser"
+    note: "Not demonstrable. The frontend belt has no component harness for TargetingClient."
+  - severity: LOW
+    demonstrated: false
+    title: "No-grant user under All advertisers sees the select-an-advertiser prompt, not a denial"
+    note: "Design ambiguity against the AC-1 wording. Not filed as a defect."
+
+scores:
+  task_confidence: 50
+  factory_fitness: 58
+
+deductions:
+  - score: task_confidence
+    points: 20
+    reason: >
+      The run halted with one open demonstrated user-visible defect on AC-2 (wrong denial copy for
+      scope and loading denials).
+  - score: task_confidence
+    points: 12
+    reason: >
+      QA did not run. AC-1 is a visual AC and has no ui-probe proof of the nav placement or the
+      rendered shell.
+  - score: task_confidence
+    points: 6
+    reason: >
+      AC-4b is deferred. The Targeting UM component (GH-560) is not shipped, so no live grant check
+      on dev is possible.
+  - score: task_confidence
+    points: 4
+    reason: "AC-3 close gate (Rajan confirms 551-client-preview-gate) is still open."
+  - score: task_confidence
+    points: 3
+    reason: "Local UM was not running. All permission evidence is fixture-only."
+  - score: task_confidence
+    points: 3
+    reason: "Two undemonstrated LOW findings stay open (stale URL advertiserId, All-advertisers prompt)."
+  - score: task_confidence
+    points: 2
+    reason: "lint:types is not green (8 pre-existing errors outside the diff), so the type check is not a clean signal."
+  - score: factory_fitness
+    points: 12
+    reason: >
+      Review whack-a-mole. Three review rounds found three different defects. All three were in the
+      original implement diff, so the first review did not sweep the full denial surface.
+  - score: factory_fitness
+    points: 8
+    reason: >
+      The bounded fix loop (MAX_FIX_ROUNDS 2) halted on a small, reason-to-copy change with a
+      ready reviewer test. Each fix round converged. There is no path for a cheap residual.
+  - score: factory_fitness
+    points: 6
+    reason: >
+      Design D11 specified one denial copy for seven distinct denial reasons. The grill passed it.
+      The round-3 defect originates in the design, not the implement phase.
+  - score: factory_fitness
+    points: 6
+    reason: >
+      Terminal status BLOCKED_REVIEW_CRITICAL with criticals_open 0 and a MEDIUM finding. The name
+      misleads the main loop and the human about severity.
+  - score: factory_fitness
+    points: 4
+    reason: >
+      The frontend belt has no component harness. A LOW finding on TargetingClient could not be
+      demonstrated, and AC-2 wiring is proven by source assertions only.
+  - score: factory_fitness
+    points: 3
+    reason: "The run worktree HEAD (a9b0fccc) is 4 commits behind the pushed branch head (d8cd9a40)."
+  - score: factory_fitness
+    points: 2
+    reason: >
+      The retro prompt does not carry the blocking findings payload or the findings path. Retro had
+      to reconstruct the halt reason from disk and the workflow source.
+  - score: factory_fitness
+    points: 1
+    reason: >
+      GH-561 ran while its sibling dependency GH-560 was halted, so AC-4b was unprovable before the
+      run started.
+
+red_flags:
+  - "Three review rounds, three distinct demonstrated defects, all present in the first implement diff."
+  - "Terminal status says CRITICAL. findings.json says criticals_open 0. The blocking finding is MEDIUM."
+  - "Design D11 maps seven denial reasons to one sentence. Grill did not challenge it."
+  - "The halt is on a small copy fix with a ready reviewer test. The fix loop was out of rounds."
+  - "QA never ran, so the visual AC-1 has no screenshot proof."
+  - "Frontend belt cannot render TargetingClient outside Next. One finding stayed undemonstrated for that reason."
+  - "Run worktree HEAD a9b0fccc trails the pushed branch d8cd9a40 by 4 commits."
+  - "Local UM not running. Every permission proof is a fixture."
+  - "GH-561 started while sibling GH-560 was halted at the TDD gate."
+  - "The system python3 has no yaml module. The contract 9 YAML check needed uv run --with pyyaml."
+
+improvements:
+  - title: "Contract 5: require a full-surface sweep in review round 1"
+    detail: >
+      When the diff adds a union type of outcomes (for example TargetingAccess.reason or
+      TargetingScope.reason), the first review must enumerate every variant and test the
+      user-visible result for each. Record the enumeration in findings.json as surface_sweep. A
+      later round may block only on a finding outside the swept surface or on a regression from a
+      fix.
+  - title: "Contract 3 (grill): flag many-to-one mappings of distinct states to one user message"
+    detail: >
+      Add a grill check. When the design defines N distinct denial or error reasons and maps them
+      to fewer user messages, the grill must ask whether each message is true for every reason it
+      covers. D11 would have failed this check.
+  - title: "workflow.js: allow one bonus fix round for a converging, small residual"
+    detail: >
+      If each previous fix round cleared its blocking set, the residual set has no CRITICAL or HIGH,
+      and every residual finding carries a test_ref the fixer can adopt, run one extra fix round
+      before returning the blocked status. Cap the total at 3. Record the bonus round in the trace.
+  - title: "workflow.js: rename the review terminal status by the rule that fired"
+    detail: >
+      Return BLOCKED_REVIEW_CRITICAL only when a CRITICAL is open. Return BLOCKED_REVIEW_DEMONSTRATED
+      when the block comes from a demonstrated non-critical finding. describeBlocking() already
+      splits the reasons, so reuse its classification for the status name.
+  - title: "Frontend belt: add a client component test harness"
+    detail: >
+      Add a jsdom-based runner (or a Next-free render helper) to the frontend tool belt so the
+      reviewer and the tester can render client components that use router and context hooks.
+      This turns source assertions on wiring into behavior tests.
+  - title: "Retro prompt: pass the blocking findings and the findings path"
+    detail: >
+      Include blocking_findings, fix_rounds and the findings.json path in the retro task text, so
+      the retro does not reconstruct the halt reason from disk.
+  - title: "Fix mode: sync the run worktree to the pushed head"
+    detail: >
+      After each fix round push, fast-forward the run worktree to the branch head and assert that
+      HEAD equals the remote ref. Record the head SHA in the trace.
+  - title: "Concierge: check sibling dependency state before a MAP child run"
+    detail: >
+      For a wayfinder MAP child, read the sibling run index. If a dependency (here GH-560) is halted,
+      record the dependent ACs as deferred at the concierge gate, before the run spends build effort.
+
+summary: >
+  Permission logic is correct and pushed (d8cd9a40), but the run halted after two fix rounds on a
+  demonstrated MEDIUM defect, a single denial sentence for seven reasons. The defect originates in
+  design D11 and was not caught by grill or by the first two reviews.

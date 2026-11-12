@@ -1,0 +1,290 @@
+{
+  "date": "2026-10-26",
+  "validation": {
+    "codex_cli": "0.164.0",
+    "actual_skills_list": {
+      "requested": 33,
+      "discovered": 33,
+      "errors": [],
+      "missing": []
+    },
+    "frontmatter_required_fields": "33 passed",
+    "creator_strict_template": "10 pass; 23 reject pre-existing Claude metadata keys that actual Codex discovery accepts. Kept metadata to preserve Claude behavior.",
+    "read_only_forward_tests": {
+      "session_pickup_list": "PASS; no claims or writes; ledger v955 snapshot",
+      "library_query": "PASS; existing shared librarian role read and canonical knowledge paths cited"
+    },
+    "ledger_validate": "Structural OK with five pre-existing advisories. No ledger mutation command issued by installation. Concurrent sessions may advance the version.",
+    "link_targets": "33 resolve to the shared sources; shared doc references resolve; Claude session path and ledger helper preserved.",
+    "execution_limit": "No session close/handoff write, external post, factory execution, dev start or deploy was tested or launched.",
+    "claude_registered_runtime": "installed_plugins.json session installPath points to ~/.claude/plugins/cache/local/session/2.0.0. It now symlinks to the shared canonical plugin, after preserving its former directory. Marketplace, registered cache and Codex session-check sources pass same-file validation. New Claude conversation behavior has not been tested."
+  },
+  "entries": [
+    {
+      "alias": "bibliotheque-librarian",
+      "group": "knowledge",
+      "source": "/Users/gamyot/.claude-shared-config/skills/bibliotheque-librarian",
+      "discovered_name": "bibliotheque-librarian",
+      "enabled": true
+    },
+    {
+      "alias": "bibliotheque-refresh",
+      "group": "knowledge",
+      "source": "/Users/gamyot/.claude-shared-config/skills/bibliotheque-refresh",
+      "discovered_name": "bibliotheque-refresh",
+      "enabled": true
+    },
+    {
+      "alias": "operationalize",
+      "group": "knowledge",
+      "source": "/Users/gamyot/.claude-shared-config/skills/gab-operationalize",
+      "discovered_name": "operationalize",
+      "enabled": true
+    },
+    {
+      "alias": "vendor-api-ingest",
+      "group": "knowledge",
+      "source": "/Users/gamyot/.claude-shared-config/skills/vendor-api-ingest",
+      "discovered_name": "vendor-api-ingest",
+      "enabled": true
+    },
+    {
+      "alias": "notion",
+      "group": "knowledge",
+      "source": "/Users/gamyot/.claude-shared-config/skills/notion",
+      "discovered_name": "notion",
+      "enabled": true
+    },
+    {
+      "alias": "transcript-knowledge-miner",
+      "group": "knowledge",
+      "source": "/Users/gamyot/.claude-shared-config/skills/transcript-knowledge-miner",
+      "discovered_name": "transcript-knowledge-miner",
+      "enabled": true
+    },
+    {
+      "alias": "wiki-lint",
+      "group": "knowledge",
+      "source": "/Users/gamyot/.claude-shared-config/skills/wiki-lint",
+      "discovered_name": "wiki-lint",
+      "enabled": true
+    },
+    {
+      "alias": "pr-review",
+      "group": "review",
+      "source": "/Users/gamyot/.claude-shared-config/skills/pr-review",
+      "discovered_name": "pr-review",
+      "enabled": true
+    },
+    {
+      "alias": "push-adr",
+      "group": "review",
+      "source": "/Users/gamyot/.claude-shared-config/skills/push-adr",
+      "discovered_name": "push-adr",
+      "enabled": true
+    },
+    {
+      "alias": "index-context",
+      "group": "review",
+      "source": "/Users/gamyot/.claude-shared-config/skills/index-context",
+      "discovered_name": "index-context",
+      "enabled": true
+    },
+    {
+      "alias": "bmad-debrief",
+      "group": "review",
+      "source": "/Users/gamyot/.claude-shared-config/skills/bmad-debrief",
+      "discovered_name": "bmad-debrief",
+      "enabled": true
+    },
+    {
+      "alias": "create-tickets",
+      "group": "specification",
+      "source": "/Users/gamyot/.claude-shared-config/skills/create-tickets",
+      "discovered_name": "create-tickets",
+      "enabled": true
+    },
+    {
+      "alias": "ticket-init",
+      "group": "specification",
+      "source": "/Users/gamyot/.claude-shared-config/skills/ticket-init",
+      "discovered_name": "ticket-init",
+      "enabled": true
+    },
+    {
+      "alias": "leo-ac-scaffold",
+      "group": "specification",
+      "source": "/Users/gamyot/.claude-shared-config/skills/leo-ac-scaffold",
+      "discovered_name": "leo-ac-scaffold",
+      "enabled": true
+    },
+    {
+      "alias": "ticket-to-pr-analyst",
+      "group": "specification",
+      "source": "/Users/gamyot/.claude-shared-config/skills/ticket-to-pr-analyst",
+      "discovered_name": "ticket-to-pr-analyst",
+      "enabled": true
+    },
+    {
+      "alias": "to-issues",
+      "group": "specification",
+      "source": "/Users/gamyot/.claude-shared-config/skills/to-issues",
+      "discovered_name": "to-issues",
+      "enabled": true
+    },
+    {
+      "alias": "to-prd",
+      "group": "specification",
+      "source": "/Users/gamyot/.claude-shared-config/skills/to-prd",
+      "discovered_name": "to-prd",
+      "enabled": true
+    },
+    {
+      "alias": "triage",
+      "group": "specification",
+      "source": "/Users/gamyot/.claude-shared-config/skills/triage",
+      "discovered_name": "triage",
+      "enabled": true
+    },
+    {
+      "alias": "setup-matt-pocock-skills",
+      "group": "specification",
+      "source": "/Users/gamyot/.claude-shared-config/skills/setup-matt-pocock-skills",
+      "discovered_name": "setup-matt-pocock-skills",
+      "enabled": true
+    },
+    {
+      "alias": "spillover-scan",
+      "group": "specification",
+      "source": "/Users/gamyot/.claude-shared-config/skills/spillover-scan",
+      "discovered_name": "spillover-scan",
+      "enabled": true
+    },
+    {
+      "alias": "feedback-to-spec",
+      "group": "workflow",
+      "source": "/Users/gamyot/.claude-shared-config/skills/feedback-to-spec",
+      "discovered_name": "feedback-to-spec",
+      "enabled": true
+    },
+    {
+      "alias": "investigate",
+      "group": "workflow",
+      "source": "/Users/gamyot/.claude-shared-config/skills/investigate",
+      "discovered_name": "investigate",
+      "enabled": true
+    },
+    {
+      "alias": "sprint-estimation",
+      "group": "workflow",
+      "source": "/Users/gamyot/.claude-shared-config/skills/sprint-estimation",
+      "discovered_name": "sprint-estimation",
+      "enabled": true
+    },
+    {
+      "alias": "sprint-close",
+      "group": "workflow",
+      "source": "/Users/gamyot/.claude-shared-config/skills/sprint-close",
+      "discovered_name": "sprint-close",
+      "enabled": true
+    },
+    {
+      "alias": "jira",
+      "group": "dependencies",
+      "source": "/Users/gamyot/.claude-shared-config/skills/jira",
+      "discovered_name": "jira",
+      "enabled": true
+    },
+    {
+      "alias": "post-comment",
+      "group": "dependencies",
+      "source": "/Users/gamyot/.claude-shared-config/skills/post-comment",
+      "discovered_name": "post-comment",
+      "enabled": true
+    },
+    {
+      "alias": "session-init",
+      "group": "sessions",
+      "source": "/Users/gamyot/.claude-shared-config/plugins/session/skills/init",
+      "discovered_name": "session:init",
+      "enabled": true
+    },
+    {
+      "alias": "session-check",
+      "group": "sessions",
+      "source": "/Users/gamyot/.claude-shared-config/plugins/session/skills/check",
+      "discovered_name": "session:check",
+      "enabled": true
+    },
+    {
+      "alias": "session-handoff",
+      "group": "sessions",
+      "source": "/Users/gamyot/.claude-shared-config/plugins/session/skills/handoff",
+      "discovered_name": "session:handoff",
+      "enabled": true
+    },
+    {
+      "alias": "session-pickup",
+      "group": "sessions",
+      "source": "/Users/gamyot/.claude-shared-config/plugins/session/skills/pickup",
+      "discovered_name": "session:pickup",
+      "enabled": true
+    },
+    {
+      "alias": "session-report-back",
+      "group": "sessions",
+      "source": "/Users/gamyot/.claude-shared-config/plugins/session/skills/report-back",
+      "discovered_name": "session:report-back",
+      "enabled": true
+    },
+    {
+      "alias": "session-insights",
+      "group": "sessions",
+      "source": "/Users/gamyot/.claude-shared-config/plugins/session/skills/insights",
+      "discovered_name": "session:insights",
+      "enabled": true
+    },
+    {
+      "alias": "session-autopilot",
+      "group": "sessions",
+      "source": "/Users/gamyot/.claude-shared-config/plugins/session/skills/autopilot",
+      "discovered_name": "session:autopilot",
+      "enabled": true
+    },
+    {
+      "alias": "bmad",
+      "group": "explicit-workflow",
+      "source": "/Users/gamyot/.claude-shared-config/skills/bmad",
+      "discovered_name": "bmad",
+      "enabled": true
+    }
+  ],
+  "limits": {
+    "sessions": "Codex discovery reports session:init, session:check, session:handoff, session:pickup, session:report-back, session:insights and session:autopilot. Folder aliases are session-*. Autopilot run requires Workflow; insights remains a stub.",
+    "knowledge": "notion refresh still uses the installed Claude CLI; transcript mining remains Claude-history only; wiki-lint can mutate when invoked.",
+    "workflows": "Discovery does not certify end-to-end execution or provide Claude hooks.",
+    "pending": [
+      "dark-factory Workflow executor port",
+      "tech-doc-review-flow Workflow executor port",
+      "agent-os:audit-docs indexing dependencies and policy review",
+      "archive architecture-promotion rules",
+      "status-index evidence/spec semantics",
+      "epic-reorganization path/tool audit",
+      "context-audit scope/threshold/routing corrections",
+      "graphify build delegation/metrics",
+      "operationalize-audit automatic deletion/build review"
+    ]
+  },
+  "updates": [
+    {
+      "date": "2026-10-27",
+      "change": "Added shared bmad router; original 2026-10-26 validation retained above as historical evidence.",
+      "bmad_discovery": {
+        "klever": 1,
+        "neutral_directory": 1,
+        "errors": []
+      },
+      "evidence": "Klever project-management sessions/active/warm-stork/reports/codex-discovery.json"
+    }
+  ]
+}

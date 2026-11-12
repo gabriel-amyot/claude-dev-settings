@@ -1,0 +1,177 @@
+run_id: run-2026-11-02-GH-560-run2
+ticket: GH-560
+source: github
+issue_url: https://github.com/gabriel-amyot/klever-project-management/issues/560
+parent_map: 557
+jira_mapping: "KTP-1384 (1 of 2 points, disk-only draft, no Jira writes)"
+previous_run: run-2026-11-02-GH-560
+title: >
+  Targeting permission component in app-user-management. Liquibase changeset 026 inserts
+  the Targeting component row once. No grant backfill. Belt java. Second run after the
+  run 1 HALT_TDD_GATE.
+date: 2026-11-02
+terminal_status: HALT_PRESHIP
+halt_phase: QA (preShipBlockers)
+ticket_folder: /Users/gamyot/Developer/grp-beklever-com/project-management/tickets/wayfinder/map-557/issue-560
+repo: app-user-management
+branch: GH-560-targeting-permission-component
+
+phases:
+  - phase: concierge
+    status: PASS
+    confidence: 80
+  - phase: design
+    status: pass
+    confidence: 84
+  - phase: grill
+    status: pass
+    confidence: 80
+  - phase: implement
+    status: pass
+    confidence: 84
+  - phase: review
+    status: "blocking:0"
+    confidence: 85
+  - phase: qa
+    status: PARTIAL
+    confidence: 86
+
+tdd_gate:
+  mode: halt
+  warn_mode_violations: []
+  trustworthy_config: true
+  note: >
+    Halt mode, no warn-mode violations. The run 1 TDD halt is cleared. Grill G7 told Implement
+    to ledger AC-4 as a doc_claims exemption with ac_kind logic, and the gate accepted it.
+
+halt_cause:
+  verified_against: "qa/result.yaml + dark-factory.workflow.js classifyQaGap/isMetNonCodeGate (lines 633-646)"
+  blockers_payload_available_to_retro: false
+  reconstruction: >
+    QA returned AC-1, AC-2, AC-3 PASS with test_ref and red_verified true. AC-4 returned PARTIAL,
+    red_verified exempt, visual_pending false, code_ref "tdd/AC-4.md (evidence ledger); no code
+    surface". isMetNonCodeGate() needs code_ref to start with "n/a", so AC-4 counts as nonPass.
+    It is not visual_pending, so classifyQaGap returns real_gap and preShipBlockers emits
+    HALT_PRESHIP. AC-4b (deployed dev row and authorized grant on advertiser 826) was declared
+    as a deferred_sub_acs entry in analyst/acs.json at the concierge gate. The gate ignores that
+    field. The halt was predestined from the front gate.
+
+evidence_summary:
+  head: "fdb6f50 GH-560: edge-case tests for the Targeting component"
+  pushed: true
+  pushed_verified_by: "git ls-remote origin returns fdb6f502 for refs/heads/GH-560-targeting-permission-component"
+  it_result: "TargetingComponentIT 15/15 green on JDK 17 with Testcontainers MySQL 8.4 (qa/tip-fdb6f50.out)"
+  red_reverified: "AC-1 f817d0a, AC-2 10d0e09, AC-3 bdb5808, each test-only and failing (qa/red-AC-*.out)"
+  regression: "tip 254 tests / 16 fail vs origin/dev 239 / 16 fail, identical failure sets (qa/base.set == qa/tip.set)"
+  boot_idempotency: "boot 2 ran 0 changesets, targeting_rows 1, targeting_grants 0 (qa/post-boot2-db.out)"
+  review: "0 criticals, 2 LOW (IT excluded from CI by surefire **/*IT.java; portal name not cross-checkable until #561)"
+  pmd: "not run, pmd not installed"
+  toolchain: "declared 17; host OpenJDK 27 breaks Lombok 1.18.42; review used a temurin-17 container, QA used ~/.cache/dark-factory-jdks Temurin 17.0.21"
+  leftover_worktrees: >
+    wf_aea06fd7-137-4 (holds the branch name), wf_f7d5c82a-c20-4, wf_f7d5c82a-c20-5,
+    wf_f7d5c82a-c20-6, all at fdb6f50 under app-user-management/.claude/worktrees/.
+    QA had to use a detached checkout because the branch name was held.
+
+scores:
+  task_confidence: 62
+  factory_fitness: 56
+
+deductions:
+  task_confidence:
+    - points: 8
+      reason: "Terminal HALT_PRESHIP, not READY_TO_SHIP. No MR, no ship notes."
+    - points: 7
+      reason: "AC-4 PARTIAL. AC-4b deployed dev verification is not done and stays with post-merge validate."
+    - points: 5
+      reason: "Grill P1 (ScriptUtils changeset re-run in an IT, first of its kind) still needs a human decision before merge."
+    - points: 5
+      reason: "TargetingComponentIT does not run in CI (surefire excludes **/*IT.java, no failsafe). The idempotency proof is not a pipeline guard."
+    - points: 3
+      reason: "AC-2 and AC-3 REDs fail on the missing-component precondition, not on the scoping or no-auto-grant assertion."
+    - points: 3
+      reason: "Sibling ITs (InternalComponentIT, AccountComponentsIT) are fully red on origin/dev, so regression parity proves less for Internal auto-grant and Client Preview."
+    - points: 2
+      reason: "PMD java quality gate not run (tool missing)."
+    - points: 2
+      reason: "Exact name Targeting cannot be cross-checked against the portal constant until #561 lands."
+    - points: 3
+      reason: "Phase confidences 80 to 86 (mean 83), no phase above 86."
+  factory_fitness:
+    - points: 12
+      reason: >
+        Predestined HALT_PRESHIP. Concierge recorded AC-4b in deferred_sub_acs, but classifyQaGap
+        has no deferred or post-merge category. A full Review and QA ran to reach a halt known at the front gate.
+    - points: 6
+      reason: >
+        isMetNonCodeGate() keys on a code_ref string prefix "n/a". QA wrote a truthful code_ref
+        (tdd/AC-4.md) and the AC flipped to real_gap. Free-text coupling decides the gate.
+    - points: 8
+      reason: >
+        Second full pipeline run for the ticket. Run 1 improvement 2 (ac_kind evidence) is not in the
+        workflow, so grill had to design a workaround (G7) by reading gate source.
+    - points: 5
+      reason: >
+        Toolchain re-solved per phase. Host JDK 27 breaks Lombok. Review used a docker container and QA
+        used a cached JDK. No belt-level JDK resolution.
+    - points: 3
+      reason: "PMD missing again. Repeat red flag from run 1, no preflight added."
+    - points: 4
+      reason: "Four workflow worktrees left at fdb6f50. One holds the branch name and forced QA into a detached checkout."
+    - points: 3
+      reason: "Grill parked item P1 is still prose only, not a gate input. Repeat from run 1."
+    - points: 3
+      reason: "Retro prompt again lacks the terminal payload (blockers, qa_gap). The halt cause had to be reconstructed from workflow source."
+
+red_flags:
+  - "AC-4b was declared deferred at the concierge gate (acs.json deferred_sub_acs), yet the run still ended HALT_PRESHIP."
+  - "isMetNonCodeGate decides on a code_ref string starting with n/a. An honest code_ref value turned a met gate into real_gap."
+  - "The Retro prompt carries only the phase trace. blockers, qa_gap and qa_capped are not passed, for the second run in a row."
+  - "Grill had to read dark-factory.workflow.js to tell Implement how to satisfy the gate (G7). Gate rules leak into prompts."
+  - "Grill P1 (first-of-kind ScriptUtils re-run test) has no human answer and no gate. It goes to the MR as prose."
+  - "Four worktrees at fdb6f50 remain. wf_aea06fd7-137-4 holds the branch, so QA ran detached."
+  - "Host JDK 27 breaks the Lombok compile. Each phase picked its own JDK 17 path (container vs cache)."
+  - "PMD not installed. Java quality gate recorded as not run for the second time."
+  - "The new IT is excluded from CI by surefire config. Review flagged it LOW. No phase proposed a CI path."
+  - "The active session folder (sessions/active/state.yaml) is stale and malformed. The handoff fell back to the ticket reports/ folder."
+
+improvements:
+  - title: "Add a deferred_post_merge verdict class to classifyQaGap"
+    detail: >
+      When an AC has deferred_sub_acs in analyst/acs.json and QA proves every non-deferred part,
+      QA returns verdict DEFERRED (or PARTIAL with deferred: true and a deferred_to: post_merge_validate).
+      classifyQaGap treats it like visual_only. The terminal state becomes READY_TO_SHIP with a
+      post_merge_checks array that the main loop runs in contract 8. Add a GH-560 AC-4 case to tests.
+  - title: "Replace the n/a code_ref prefix test with a structured field"
+    detail: >
+      QA_SCHEMA gets per_ac.no_code_surface (boolean). isMetNonCodeGate reads that field, not
+      /^n\/a/ on code_ref. Contract 6 states the rule. Add a regression test where code_ref names a ledger file.
+  - title: "Pass the terminal payload to Retro"
+    detail: >
+      The workflow passes status, blockers, qa_gap, qa_capped and tdd_violations into the Retro prompt.
+      Contract 9 requires a halt_cause block that quotes them. This repeats run 1 improvement 1. Promote it.
+  - title: "Ship the ac_kind evidence class from run 1"
+    detail: >
+      Add evidence to the concierge ac_kind enum. tddViolations accepts evidence ACs with doc_claims and
+      a .md deliverable. This removes grill G7 style workarounds that read gate source.
+  - title: "Java belt toolchain and PMD preflight"
+    detail: >
+      Concierge resolves the pom maven.compiler release/source, finds a matching JDK once, and passes JAVA_HOME
+      to every phase. It checks for pmd and fails fast or records blocked(pmd_missing) at the front gate.
+  - title: "Clean up workflow worktrees at terminal state"
+    detail: >
+      On any terminal status, remove every worktree the run created except the one that owns the pushed branch,
+      or release the branch name with git worktree remove before QA. QA never needs a detached checkout.
+  - title: "Make grill parked items a gate input"
+    detail: >
+      Each parked item has a signature. If the diff matches and args.accepted_parked has no entry, the run
+      returns BLOCKED_NEEDS_HUMAN at the end of grill, not after QA. Repeat from run 1.
+  - title: "Flag IT-excluded-from-CI at design"
+    detail: >
+      Java belt design checks surefire excludes and failsafe presence. When a new *IT.java will not run in CI,
+      the plan must state it and propose a follow-up ticket. Review then has nothing new to flag.
+
+next_steps_for_ticket:
+  - "Human decides P1 (keep the ScriptUtils re-run test or apply the fallback)."
+  - "Main loop creates the MR from fdb6f50 with P1 and the CI-excluded IT noted in the description."
+  - "Post-merge validate runs AC-4b on dev after the coordinated deploy with #561."
+  - "Remove leftover worktrees wf_f7d5c82a-c20-4/5/6."

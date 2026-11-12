@@ -1,0 +1,364 @@
+map: 366
+map_title: Proxi on the dev VM (Hermes) — overnight 2026-10-20
+map_state: OPEN
+harvested: '2026-10-24T09:11:21+00:00'
+telemetry_epoch: '2026-09-10'
+runs:
+- run_id: '65759561'
+  spec_version: 0.4.0
+  mode: resolve
+  map: 366
+  date: '2026-10-24'
+  outcome: resolved
+  tickets_created: 0
+  fog_graduated: 0
+  friction: []
+  ticket: 480
+  ticket_type: research
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/480#issuecomment-6382369516
+gaps:
+- issue: 465
+  title: '[EMAIL E2] Email inside Proxi: on-demand client email reading + daily extract
+    ingested into memory'
+  type: task
+  closed_at: '2026-10-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 464
+  title: '[R5 B1] Backup before the daily ingest + nightly sqlite .backup unit (DAC,
+    one apply)'
+  type: task
+  closed_at: '2026-10-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 459
+  title: '[R5 C1] Close round 4: harness baseline, ingest growing, first scheduled
+    snapshot, liveness lines'
+  type: task
+  closed_at: '2026-10-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 458
+  title: '[R5] Narrow group-mngt to named operators (DAC MR, IAM human gate) and draft
+    the org IAM finding'
+  type: task
+  closed_at: '2026-10-23'
+  reason: closed with no run trailer — this run was never traced
+- issue: 455
+  title: '[R5 P3] Library hygiene: ''Proxi as of 2026-10-22'' page, stale-doc pointers,
+    decisions checklist'
+  type: task
+  closed_at: '2026-10-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 454
+  title: '[R5 P2] DAC batch MR: alert email, dead-man + watchdog alerts, OnFailure,
+    retention 30 days'
+  type: task
+  closed_at: '2026-10-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 453
+  title: '[R5 P1] Build the Proxi MCP read server (account_snapshot, salesforce_account,
+    who_is), MR only'
+  type: task
+  closed_at: '2026-10-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 446
+  title: Who in the org can read Proxi's secret or restore its snapshots, in dev and
+    prod?
+  type: research
+  closed_at: '2026-10-23'
+  reason: closed with no run trailer — this run was never traced
+- issue: 444
+  title: 'Alerting: who reads the ''Proxi is dead'' email?'
+  type: grilling
+  closed_at: '2026-10-23'
+  reason: closed with no run trailer — this run was never traced
+- issue: 434
+  title: Does Proxi store client data? Write the data-classification answer (new ADR
+    or one paragraph)
+  type: grilling
+  closed_at: '2026-10-23'
+  reason: closed with no run trailer — this run was never traced
+- issue: 433
+  title: 'Security floor for Proxi''s Slack surface: config floor now, MCP read server,
+    then remove the terminal?'
+  type: grilling
+  closed_at: '2026-10-23'
+  reason: closed with no run trailer — this run was never traced
+- issue: 429
+  title: '[R3 C11] Port the Slack glue (watchdog, pairing-sentinel, daily ingest)
+    to the DAC runtime'
+  type: task
+  closed_at: '2026-10-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 428
+  title: '[R4 D1] Vertex thought-summary leak fixed in image 0.1.2 (per-audience display
+    NOT built, see #460)'
+  type: task
+  closed_at: '2026-10-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 416
+  title: 'R2 unblock: Bar 1: three pre-registered memory questions answered correctly
+    against the Mac data, with a negative control'
+  type: unknown
+  closed_at: '2026-10-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 415
+  title: Run the behavioural harness once, on the durable DAC runtime (not on the
+    hand-run)
+  type: task
+  closed_at: '2026-10-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 414
+  title: 'Slack cutover today on the DAC runtime (same app, attended 15 min): go or
+    no-go?'
+  type: grilling
+  closed_at: '2026-10-21'
+  reason: closed with no run trailer — this run was never traced
+- issue: 411
+  title: 'Which registry does the DAC runtime pull from: fleet cmm-images approved
+    (+ sa-reader membership) or the in-project proxi repo?'
+  type: grilling
+  closed_at: '2026-10-21'
+  reason: closed with no run trailer — this run was never traced
+- issue: 410
+  title: '[R2 A9j] Blind harness judge'
+  type: task
+  closed_at: '2026-10-21'
+  reason: closed with no run trailer — this run was never traced
+- issue: 409
+  title: '[R2 A9b] Harness improvement loop'
+  type: task
+  closed_at: '2026-10-21'
+  reason: closed with no run trailer — this run was never traced
+- issue: 408
+  title: '[R2 B3] MR-S: Secret Manager secret + accessor'
+  type: task
+  closed_at: '2026-10-21'
+  reason: closed with no run trailer — this run was never traced
+- issue: 407
+  title: '[R2 B2] Interim image route'
+  type: task
+  closed_at: '2026-10-21'
+  reason: closed with no run trailer — this run was never traced
+- issue: 406
+  title: '[R2 R0] Re-verify A4 with the Mac back: RestartCount baseline and fingerprint
+    delta Mac vs VM'
+  type: task
+  closed_at: '2026-10-21'
+  reason: closed with no run trailer — this run was never traced
+- issue: 404
+  title: 'Which LLM does Hermes on the VM use: confirm Gemini 3.1 Flash Lite on Vertex?'
+  type: grilling
+  closed_at: '2026-10-21'
+  reason: closed with no run trailer — this run was never traced
+- issue: 403
+  title: '[A9j] Bar 3 score: blind judge of the final harness transcripts by a fresh
+    agent'
+  type: task
+  closed_at: '2026-10-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 402
+  title: '[A9b] Harness improvement loop (only if provisional < 7/8), max 2 rounds'
+  type: task
+  closed_at: '2026-10-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 401
+  title: '[B3] MR-S: secrets-only DAC MR (secret + accessor), strict plan gate, merge
+    to dev, verify secret exists and VM not recreated'
+  type: task
+  closed_at: '2026-10-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 400
+  title: '[B2] Interim image route: rights matrix, decision, push only to a VM-pullable
+    writable registry'
+  type: task
+  closed_at: '2026-10-21'
+  reason: closed with no run trailer — this run was never traced
+- issue: 399
+  title: 'Unblock: Push the state to the PD, pristine copy, pause crons, install gate
+    tools'
+  type: task
+  closed_at: '2026-10-21'
+  reason: closed with no run trailer — this run was never traced
+- issue: 398
+  title: '[S1] GBrain feasibility (stretch, time-boxed 60 minutes)'
+  type: task
+  closed_at: '2026-10-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 397
+  title: '[B10] MR-B: snapshot policy attachment on the data disk (attachment only,
+    no template change)'
+  type: task
+  closed_at: '2026-10-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 396
+  title: '[B9b] MR-D draft: Slack flag + allowlist keys + glue timers, pushed, NOT
+    merged'
+  type: task
+  closed_at: '2026-10-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 395
+  title: '[B9a] Slack cutover runbook for Gabriel (Secret Manager shape)'
+  type: task
+  closed_at: '2026-10-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 394
+  title: '[B8] Behavioural harness against the DAC-run VM'
+  type: task
+  closed_at: '2026-10-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 393
+  title: '[B7] Re-prove on the DAC runtime: API answer, Salesforce, memory, restart,
+    reboot'
+  type: task
+  closed_at: '2026-10-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 392
+  title: '[B6] Load the secret by pipe, first systemd start with the SLACK GATE, smoke'
+  type: task
+  closed_at: '2026-10-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 391
+  title: '[B5] Stop the hand-run, re-snapshot, re-check the stateful policy, merge
+    MR-A, verify recreate, rollback if not applied'
+  type: task
+  closed_at: '2026-10-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 390
+  title: '[B4] MR-A: Hermes-only runtime with Secret Manager env, Docker Hub digest
+    for dev, opened as an MR'
+  type: task
+  closed_at: '2026-10-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 389
+  title: '[B1] cfg-app MR: app-proxi-hermes access token + multi-project pipeline
+    to dac-gcp-back-proxi (push + MR, never merge)'
+  type: task
+  closed_at: '2026-10-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 388
+  title: '[B0] Snapshot the data disk and verify READY (or stream a copy to the Mac)'
+  type: task
+  closed_at: '2026-10-21'
+  reason: closed with no run trailer — this run was never traced
+- issue: 387
+  title: '[A10] Container-level restart survival (hand-run)'
+  type: task
+  closed_at: '2026-10-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 386
+  title: '[A9] Behavioural harness against the hand-run VM (target >= 7/8), shim guard
+    first'
+  type: task
+  closed_at: '2026-10-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 385
+  title: '[A8] Memory recall: 3 questions answered from migrated memory'
+  type: task
+  closed_at: '2026-10-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 384
+  title: '[A7] Prove Salesforce read through the skill and through a Hermes turn'
+  type: task
+  closed_at: '2026-10-21'
+  reason: closed with no run trailer — this run was never traced
+- issue: 383
+  title: '[A6] Prove Hermes answers a real prompt through the API server, plus the
+    LLM smoke test'
+  type: task
+  closed_at: '2026-10-21'
+  reason: closed with no run trailer — this run was never traced
+- issue: 382
+  title: '[A5] Write the tmpfs runtime env by pipe and start Hermes by hand with the
+    SLACK GATE'
+  type: task
+  closed_at: '2026-10-21'
+  reason: closed with no run trailer — this run was never traced
+- issue: 381
+  title: '[A4/R0] Push the state to the PD; re-verify with the Mac back (RestartCount
+    baseline, fingerprint delta)'
+  type: task
+  closed_at: '2026-10-22'
+  reason: closed with no run trailer — this run was never traced
+- issue: 380
+  title: '[A3] Stage the Mac state (online SQLite backups, generated VM config, secret
+    gate)'
+  type: task
+  closed_at: '2026-10-21'
+  reason: closed with no run trailer — this run was never traced
+- issue: 379
+  title: '[A2] Build the wrapper image on the VM from the 2026-10-15 base, record
+    its image ID'
+  type: task
+  closed_at: '2026-10-21'
+  reason: closed with no run trailer — this run was never traced
+- issue: 378
+  title: '[A1] Stop and runtime-mask the three looping units'
+  type: task
+  closed_at: '2026-10-21'
+  reason: closed with no run trailer — this run was never traced
+- issue: 377
+  title: '[A0] Preflight, baseline fingerprint, gpt-6.1 re-probe, permission probes,
+    pinned image saved to the PD'
+  type: task
+  closed_at: '2026-10-21'
+  reason: closed with no run trailer — this run was never traced
+- issue: 376
+  title: '[P0] Patch the drafts per REVIEW (R1, R2, R5, R6, R7, R13) and prove each
+    patch'
+  type: task
+  closed_at: '2026-10-21'
+  reason: closed with no run trailer — this run was never traced
+- issue: 375
+  title: Can GBrain be containerised quickly (stretch), and what does Proxi lose without
+    it?
+  type: research
+  closed_at: '2026-10-21'
+  reason: closed with no run trailer — this run was never traced
+- issue: 374
+  title: How could Proxi read email (research only)?
+  type: research
+  closed_at: '2026-10-21'
+  reason: closed with no run trailer — this run was never traced
+- issue: 373
+  title: Which Mac host glue matters in the cloud, and how do we prove behavioural
+    parity?
+  type: research
+  closed_at: '2026-10-21'
+  reason: closed with no run trailer — this run was never traced
+- issue: 372
+  title: What does Proxi need to read Salesforce from the VM?
+  type: research
+  closed_at: '2026-10-21'
+  reason: closed with no run trailer — this run was never traced
+- issue: 371
+  title: How does Proxi on the VM take over Slack safely?
+  type: research
+  closed_at: '2026-10-21'
+  reason: closed with no run trailer — this run was never traced
+- issue: 370
+  title: What is the exact dac-gcp-back-proxi change set so the VM runs Hermes only?
+  type: research
+  closed_at: '2026-10-21'
+  reason: closed with no run trailer — this run was never traced
+- issue: 369
+  title: How do we copy the Mac Proxi state to the VM data disk without disturbing
+    the Mac?
+  type: research
+  closed_at: '2026-10-21'
+  reason: closed with no run trailer — this run was never traced
+- issue: 368
+  title: How do we produce the Hermes wrapper image, tonight on the VM and the fleet
+    way after 05:00 ET?
+  type: research
+  closed_at: '2026-10-21'
+  reason: closed with no run trailer — this run was never traced
+- issue: 367
+  title: What is the easiest working LLM for Hermes on the dev VM tonight (gpt-6.1
+    light first, never gpt-5.4)?
+  type: research
+  closed_at: '2026-10-21'
+  reason: closed with no run trailer — this run was never traced
+malformed_trailers: []
+missing_reflection: false
+pre_telemetry_closures: 0
+feedback: []

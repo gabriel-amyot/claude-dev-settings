@@ -257,6 +257,13 @@
       "source": "/Users/gamyot/.claude-shared-config/skills/bmad",
       "discovered_name": "bmad",
       "enabled": true
+    },
+    {
+      "alias": "architect-lens",
+      "group": "architecture",
+      "source": "/Users/gamyot/.claude-shared-config/skills/architect-lens",
+      "discovered_name": "architect-lens",
+      "enabled": true
     }
   ],
   "limits": {
@@ -285,6 +292,10 @@
         "errors": []
       },
       "evidence": "Klever project-management sessions/active/warm-stork/reports/codex-discovery.json"
+    },
+    {
+      "date": "2026-11-12",
+      "change": "Added architect-lens (FoSA Part 1 method; reads the local FoSA knowledge base by path, no book text in repo). GH-680."
     }
   ]
 }

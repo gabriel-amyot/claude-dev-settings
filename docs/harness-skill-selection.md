@@ -68,6 +68,7 @@ First rollout: 33 curated skill-folder symlinks. Exact targets and discovered na
 | Tickets/specifications (9) | create-tickets, ticket-init, leo-ac-scaffold, ticket-to-pr-analyst, to-issues, to-prd, triage, setup-matt-pocock-skills, spillover-scan |
 | Planning/investigation (4) | feedback-to-spec, investigate, sprint-estimation, sprint-close |
 | Companion workflows (2) | jira, post-comment |
+| Architecture (1) | architect-lens (added 2026-11-12, GH-680) |
 
 The former broken ~/.agents/skills link was preserved at ~/.agents/skills.broken-link-2026-10-26. A real skills directory now contains only the curated folder links. Codex system and project skills were preserved.
 

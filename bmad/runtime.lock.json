@@ -11,7 +11,8 @@
   "adaptations": [
     "Custom Atlas and Leo stored once in custom/ with relative runtime links",
     "Dexter source recovered 2026-11-02; runtime link uses preserved custom/debugger.md",
-    "Shared configuration defaults are neutral; local project config takes precedence during rendering"
+    "Shared configuration defaults are neutral; local project config takes precedence during rendering",
+    "Winston (bmm/agents/architect.md) edited in place 2026-11-12: FoSA knowledge-base principle and [AL] Architect Lens menu item (GH-680/GH-681). sha256 stays the preserved source hash."
   ],
   "source_files": [
     {

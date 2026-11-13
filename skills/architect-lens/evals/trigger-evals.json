@@ -1,0 +1,16 @@
+[
+  {"query": "what architecture characteristics does a ticketing system for 20k concurrent buyers need?", "should_trigger": true},
+  {"query": "help me find the least worst architecture for our booking platform", "should_trigger": true},
+  {"query": "how many architecture quanta does our system have? we have 6 services and one shared postgres", "should_trigger": true},
+  {"query": "monolith or distributed for a 3-person team building a donation app?", "should_trigger": true},
+  {"query": "design a fitness function to protect scalability in our order service", "should_trigger": true},
+  {"query": "think like an architect about this problem: a hospital bed tracking system", "should_trigger": true},
+  {"query": "which architecture style fits elasticity and fault tolerance best?", "should_trigger": true},
+  {"query": "coach me through identifying the -ilities for my side project", "should_trigger": true},
+  {"query": "refactor this Java class to remove the duplicated validation logic", "should_trigger": false},
+  {"query": "write unit tests for the payment adapter", "should_trigger": false},
+  {"query": "write the ADR for the decision we already made into agent-os", "should_trigger": false},
+  {"query": "what does this stack trace mean?", "should_trigger": false},
+  {"query": "rename the getUser method across the codebase", "should_trigger": false},
+  {"query": "create a jira ticket for the login bug", "should_trigger": false}
+]

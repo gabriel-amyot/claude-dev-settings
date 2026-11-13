@@ -1,0 +1,62 @@
+{
+  "skill_name": "architect-lens",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "architect lens, coach stance, characteristics step. I want to practice. Problem: a city bike-sharing app. 3,000 bikes, riders unlock bikes with their phone, peak use is 8-9 am on weekdays, the city pays per working bike, the team is four developers.",
+      "expected_output": "Coach stance: the skill asks the user the characteristics question with minimal context and stops. It does not reveal its own list of characteristics or a top three before the user answers.",
+      "files": [],
+      "expectations": [
+        "The response asks the user to name the architecture characteristics (or the drivers first) and waits for the answer",
+        "The response does NOT present its own list of characteristics or its own top three",
+        "The response keeps the turn short: one step, not the whole worksheet",
+        "The response mentions that the user can say skip, do it or deeper, or otherwise explains the coach loop briefly"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "architect lens, do stance, characteristics then styles, print the worksheet here instead of writing files. Problem: an online exam platform for a university. 12,000 students take timed exams in the same two-hour slots in December and May. Answers must never be lost. Professors upload exams the day before. Budget is moderate, team of three.",
+      "expected_output": "Do stance: a drafted worksheet with candidates traced to drivers, a justified list, a top three from that list, assumptions marked ASSUMPTION and non-book inferences marked MY INFERENCE, a style shortlist that uses the KB ratings, and open questions. Citations use Ch N §Section with KB paths.",
+      "files": [],
+      "expectations": [
+        "Candidates are traced to business drivers or requirements (for example the exam-slot burst maps to elasticity or scalability)",
+        "The output keeps a justified list and picks a top three from it; it does not delete the other justified characteristics",
+        "At least one implicit characteristic (for example availability, reliability or security) is identified as implicit",
+        "Assumptions are marked ASSUMPTION and inferences not in the book are marked MY INFERENCE",
+        "The style shortlist uses the book's star ratings (styles-ratings file or rank_styles.py) and states when a chosen characteristic has no star rating",
+        "At least two citations in the form Ch N §Section with a kb/ path",
+        "The output ends with open questions that would change the result"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "architect lens, review mode, do stance. Review this design through the FoSA lens: evals/files/design-ticketing.md",
+      "expected_output": "Review mode runs the checks of every step against the design. It flags the twelve 'critical' characteristics, the entity trap (one service per table), the shared database plus synchronous calls (one quantum in practice, not real microservices), a style chosen by fashion, and governance by code review only. It names the single highest-risk gap.",
+      "files": [
+        "evals/files/design-ticketing.md"
+      ],
+      "expectations": [
+        "Flags that twelve characteristics marked critical is over-specified and asks which few drive the design",
+        "Flags the entity trap: services mirror database tables instead of workflows",
+        "Flags that a shared database and synchronous calls make the services one architecture quantum in practice",
+        "Flags that the style was chosen because it is modern or fashionable, without trade-off analysis",
+        "Flags that governance relies on code review only and proposes at least one fitness function",
+        "Names the seat double-booking or the sales-opening burst as part of the highest-risk gap",
+        "Each finding cites its source: a chapter section (Ch N §Section) with a kb/ path, or a kb reference file that names the chapter behind it, or an explicit MY INFERENCE mark"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "architect lens, do stance, tradeoffs step. Decision: should our internal HR tool (300 users, one team) move from a layered monolith to service-based architecture? Print the analysis, do not write files. Use FOSA_KB=/nonexistent/path for this run.",
+      "expected_output": "The skill notices the knowledge base path is absent, says so once, and runs the method from references/method.md with claims marked uncited. It still produces at least two options with gains and losses, a least worst choice with a why, and an ADR stub.",
+      "files": [],
+      "expectations": [
+        "States once that the knowledge base is not available at the given path",
+        "Does not invent KB paths or Ch N §Section citations as if they were read; claims are marked uncited",
+        "Analyzes at least two options, including the status quo, with gains and losses for each",
+        "States the least worst choice and the reason in one or two sentences",
+        "Includes an ADR stub with Title, Status, Context, Decision, Consequences and Compliance"
+      ]
+    }
+  ]
+}

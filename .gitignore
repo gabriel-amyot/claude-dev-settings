@@ -33,3 +33,6 @@ harness/view/
 *.secret
 .env
 .env.*
+
+# live agent worktrees (never commit)
+.claude/worktrees/

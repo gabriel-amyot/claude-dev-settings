@@ -20,6 +20,7 @@ Read `schema.md` for field shapes. This file says which event writes which field
 | A message to a person is drafted | `messages` entry, `state: draft`. When Gabriel says he sent it, paste his sent text into `sent_text` and set `state: sent`. | |
 | A new concept or relation appears | `graph.nodes` and `graph.edges`. | Keep it small: systems, people, key concepts, decisions. |
 | Gabriel confirms he knows a term | `terms` entry, `confirmed: true`. | See terminal-replies.md rule 5. |
+| The main feature ships, or the destination looks reached | Nothing yet. Run `/mission check --close` (see `closeout-procedure.md`). Record its outcome in `changes` and `journey`. | Move a member to `done` only after its close-out item is done. |
 | End of the session (or of a night run) | One `journey` entry: kind, session, start, end, summary, milestones, blockers, confusion, findings, decisions. | `confusion` records moments when Gabriel or the agent lost the thread. This is what makes the journey honest. |
 | Anything above | One `changes` entry (`C-n`, `at`, `session`, `summary`, `refs`). | This feeds "Latest changes". |
 

@@ -67,6 +67,94 @@ def write(root: pathlib.Path, doc: dict, slug: str = "fixture-ttd") -> pathlib.P
     return d
 
 
+def closeout_evals(root: pathlib.Path, d: pathlib.Path, util) -> None:
+    """Close-out: gatherer reports UNKNOWN on missing data, the gate refuses orphans, sync refuses done."""
+    cspec = util.spec_from_file_location("mco", SCRIPTS / "mission_closeout.py")
+    os.environ["MISSION_PM_ROOT"] = str(root)
+    mco = util.module_from_spec(cspec)
+    cspec.loader.exec_module(mco)
+
+    posts = root / "tickets" / "KTP" / "no-epic" / "KTP-1398" / "reports" / "ship" / "posts"
+    posts.mkdir(parents=True)
+    (posts / "2026-11-12-unsent.md").write_text("draft")
+    (posts / "2026-11-12-sent.md").write_text("draft")
+    (posts / "2026-11-12-sent.posted").write_text("posted")
+    (posts / "2026-11-12-rsent.rendered.md").write_text("draft")
+    (posts / "2026-11-12-rsent.rendered.posted").write_text("posted")
+
+    r = script(root, "mission_closeout.py", "gather", "fixture-ttd", "--offline")
+    f = d / "closeout-facts.json"
+    facts = json.loads(f.read_text()) if f.exists() else {}
+    check("closeout/gather-exit-0", r.returncode == 0, r.stdout + r.stderr)
+    check("closeout/gather-jira-unknown-offline", facts.get("jira", {}).get("status") == "UNKNOWN")
+    check("closeout/gather-github-unknown-offline", facts.get("github", {}).get("status") == "UNKNOWN")
+    check("closeout/gather-handoffs-unknown-without-ledger", facts.get("handoffs", {}).get("status") == "UNKNOWN")
+    check("closeout/gather-branches-and-mrs-unknown", facts.get("branches", {}).get("status") == "UNKNOWN"
+          and facts.get("branches", {}).get("mrs", {}).get("status") == "UNKNOWN")
+    check("closeout/gather-never-pass", f.exists() and "PASS" not in f.read_text())
+    check("closeout/gather-lists-unknowns", len(facts.get("unknown", [])) >= 4, str(facts.get("unknown")))
+    unsent = facts.get("drafts", {}).get("unsent", [])
+    check("closeout/drafts-unsent-only", [pathlib.Path(x).name for x in unsent] == ["2026-11-12-unsent.md"], str(unsent))
+
+    t = mco.jira_facts_from("KTP-1", {"error": "401"}, {"error": "401"}, {"error": "401"})
+    check("closeout/jira-facts-unknown-on-error", t["status"] == "UNKNOWN" and t["comment_count"] == "UNKNOWN"
+          and t["closed_without_comments"] == "UNKNOWN" and t["description_excerpt"] == "UNKNOWN", str(t))
+    meta = {"key": "KTP-2", "status": "Terminé(e)", "status_category": "Terminé", "resolution": None}
+    t = mco.jira_facts_from("KTP-2", meta, [], {"description": "write stays closed"})
+    check("closeout/jira-facts-closed-without-comments", t["closed"] is True and t["closed_without_comments"] is True
+          and t["comment_after_close"] == "UNKNOWN", str(t))
+    check("closeout/blocking-mentions", mco.blocking_mentions("Map #12 blocks the final step. See #3.") == ["12"])
+
+    base = yaml.safe_load((HERE / "fixtures" / "closeout" / "closeout.yaml").read_text())
+    base["checklist"] = [{"id": sid, "status": "done"} for sid, _ in mco.CHECKLIST]
+    r = script(root, "mission_closeout.py", "gate", "fixture-ttd")
+    check("closeout/gate-refuses-without-report", r.returncode == 1 and "no closeout.yaml" in r.stdout, r.stdout)
+
+    (d / "closeout.yaml").write_text(yaml.safe_dump(base, sort_keys=False, allow_unicode=True))
+    r = script(root, "mission_closeout.py", "gate", "fixture-ttd")
+    check("closeout/gate-refuses-orphan", r.returncode == 1 and "CO-3: ORPHAN without a named successor" in r.stdout, r.stdout)
+
+    parked = copy.deepcopy(base)
+    parked["items"][2]["successor"] = {"kind": "jira", "ref": "KTT-103", "url": "https://beklever.atlassian.net/browse/KTT-103", "title": "Risk acceptance"}
+    parked["items"][2]["parked_by"] = "Gabriel"
+    (d / "closeout.yaml").write_text(yaml.safe_dump(parked, sort_keys=False, allow_unicode=True))
+    r = script(root, "mission_closeout.py", "gate", "fixture-ttd")
+    check("closeout/gate-opens-when-orphan-parked", r.returncode == 0 and "GATE OPEN" in r.stdout, r.stdout)
+
+    nostep = copy.deepcopy(parked)
+    nostep["checklist"] = nostep["checklist"][1:]
+    (d / "closeout.yaml").write_text(yaml.safe_dump(nostep, sort_keys=False, allow_unicode=True))
+    r = script(root, "mission_closeout.py", "gate", "fixture-ttd")
+    check("closeout/gate-refuses-missing-checklist-step", r.returncode == 1 and "tracker-status" in r.stdout, r.stdout)
+
+    nokeep = copy.deepcopy(parked)
+    nokeep["items"][1].pop("successor")
+    (d / "closeout.yaml").write_text(yaml.safe_dump(nokeep, sort_keys=False, allow_unicode=True))
+    r = script(root, "mission_closeout.py", "gate", "fixture-ttd")
+    check("closeout/gate-refuses-keep-without-successor", r.returncode == 1 and "KEEP needs successor" in r.stdout, r.stdout)
+
+    (d / "closeout.yaml").write_text(yaml.safe_dump(base, sort_keys=False, allow_unicode=True))
+    r = script(root, "mission_closeout.py", "render", "fixture-ttd")
+    page = (d / "closeout.html").read_text() if (d / "closeout.html").exists() else ""
+    check("closeout/render-html", r.returncode == 0 and "Close gate: CLOSED" in page and "ORPHAN (1)" in page
+          and "Not checked (UNKNOWN, never PASS)" in page and "cdn." not in page, r.stderr)
+    check("closeout/render-overwrites-one-file", sorted(x.name for x in d.glob("closeout*")) ==
+          ["closeout-facts.json", "closeout.html", "closeout.yaml"])
+
+    done = yaml.safe_load((d / "mission.yaml").read_text())
+    done["status"] = "done"
+    (d / "mission.yaml").write_text(yaml.safe_dump(done, sort_keys=False, allow_unicode=True))
+    r = script(root, "mission_sync.py", "fixture-ttd", "-m", "close")
+    check("closeout/sync-refuses-done-with-orphan", r.returncode != 0 and "close-out gate is closed" in r.stderr, r.stdout + r.stderr)
+
+    r = script(root, "mission_closeout.py", "gather", "--scope", "comp-x", "--seed-jira", "KTP-9", "--seed-gh", "677",
+               "--aliases", "comp x", "--offline")
+    sf = root / "missions" / "_closeout" / "comp-x" / "closeout-facts.json"
+    sfacts = json.loads(sf.read_text()) if sf.exists() else {}
+    check("closeout/scope-without-mission-record", r.returncode == 0 and sfacts.get("scope", {}).get("jira_seeds") == ["KTP-9"]
+          and sfacts.get("scope", {}).get("gh_seeds") == ["677"], r.stdout + r.stderr)
+
+
 def main() -> int:
     root = pathlib.Path(tempfile.mkdtemp(prefix="mission-evals-"))
     try:
@@ -141,6 +229,7 @@ def main() -> int:
         r2 = script(root, "mission_log.py", "feedback", "--rating", "-1", "--text", "what is N-2?", "--command", "report")
         r3 = script(root, "mission_log.py", "summary")
         check("log/use-feedback-summary", all(x.returncode == 0 for x in (r, r2, r3)) and "what is N-2?" in r3.stdout and "net rating: -1" in r3.stdout, r3.stdout)
+        closeout_evals(root, d, util)
     finally:
         shutil.rmtree(root, ignore_errors=True)
 

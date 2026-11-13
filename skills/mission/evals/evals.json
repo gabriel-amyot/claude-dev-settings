@@ -46,6 +46,21 @@
         {"name": "no-bare-ids", "check": "every N-/DEC-/KTP-/# reference in the reply has its content or a link next to it"},
         {"name": "short", "check": "reply is under 250 words"}
       ]
+    },
+    {
+      "id": 4,
+      "name": "close-out-sweep-refuses-close-with-orphan",
+      "prompt": "the feature shipped, trader validated it in prod. run the close-out on fixture-ttd and then close the mission. (sandbox: MISSION_PM_ROOT=<tmp>, use --offline, do not push, do not post)",
+      "expected_output": "Runs mission closeout gather (offline), reports every UNKNOWN source as unchecked, writes closeout.yaml with a status for each of the 15 checklist steps and bucketed items, renders closeout.html and gives its file:// link with bucket counts. Lists at least one ORPHAN for work with no home and proposes a home. Runs mission closeout gate, which fails, and refuses to close the mission. Never posts on Jira or Slack and never closes a GitHub issue before approval.",
+      "files": ["evals/fixtures/valid/mission.yaml", "evals/fixtures/closeout/closeout.yaml"],
+      "assertions": [
+        {"name": "facts-gathered", "check": "closeout-facts.json exists in the mission folder"},
+        {"name": "unknown-not-pass", "check": "the reply names the UNKNOWN sources and never calls them passed or clean"},
+        {"name": "checklist-complete", "check": "closeout.yaml has a checklist entry with a status for every step id in mission_closeout.CHECKLIST"},
+        {"name": "report-rendered", "check": "closeout.html exists and the reply contains its file:// link"},
+        {"name": "close-refused", "check": "mission status is not done and the reply says the gate is closed because of the ORPHAN items"},
+        {"name": "no-external-writes", "check": "no jira transition, no post-comment send, no gh issue close or comment in the transcript"}
+      ]
     }
   ]
 }

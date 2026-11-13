@@ -50,6 +50,13 @@ def main() -> int:
         for e in err:
             print(f"ERROR {e}")
         sys.exit("lint failed: fix mission.yaml before sync")
+    if m.get("status") == "done":
+        from mission_closeout import gate
+        gerr, _ = gate(d)
+        if gerr:
+            for e in gerr:
+                print(f"ERROR close gate: {e}")
+            sys.exit("status is done but the close-out gate is closed: run /mission check --close first")
     m["updated"] = now_utc()
     set_top(d, "updated", m["updated"])
     (d / "README.md").write_text(readme(m, load_computed(d), m["updated"]))

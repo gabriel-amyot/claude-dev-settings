@@ -1,19 +1,22 @@
-"""Post-mission close-out: gather facts, render the close-out report, gate the mission close.
+"""Post-mission close-out: gather facts, render the decision-first report, bind approval, gate the close.
 
 Usage:
-  mission_closeout.py gather [<slug>] [--scope NAME] [--seed-jira K1,K2] [--seed-gh N1,N2]
-                             [--aliases "a,b"] [--repo PATH ...] [--depth 4] [--offline]
-  mission_closeout.py render [<slug>] [--scope NAME] [--open]
-  mission_closeout.py gate   [<slug>] [--scope NAME]
+  mission_closeout.py gather   [<slug>] [--scope NAME] [--seed-jira K1,K2] [--seed-gh N1,N2] [--aliases "a,b"]
+                               [--repo PATH ...] [--since DATE] [--exclude "t1,t2"] [--sweep-cap 50] [--depth 4] [--offline]
+  mission_closeout.py coverage [<slug>] [--scope NAME]
+  mission_closeout.py render   [<slug>] [--scope NAME] [--open]
+  mission_closeout.py approve  [<slug>] [--scope NAME] --items A-1,A-2 --by NAME --link URL [--hash H]
+  mission_closeout.py record   [<slug>] [--scope NAME] --action A-1 (--before S --after S | --skip REASON)
+  mission_closeout.py gate     [<slug>] [--scope NAME]
+  mission_closeout.py log      [<slug>] [--scope NAME]
+  mission_closeout.py review-checks
 
-gather collects FACTS only. It never classifies, closes or posts anything. It writes
-closeout-facts.json to the mission folder (or missions/_closeout/<scope>/ when there is no
-mission record). Every fact it could not read is UNKNOWN with a reason. Nothing is ever PASS.
-
-The agent then writes closeout.yaml (the bucket list, see references/closeout-procedure.md).
-render turns closeout.yaml + closeout-facts.json into closeout.html (overwritten, never dated).
-gate exits 1 unless closeout.yaml exists, every checklist step has a status, and every ORPHAN
-item is parked with a named successor. /mission close and mission_sync (status: done) call it.
+gather collects FACTS only (the tree, a sweep outside it, twins, evidence per AC, security obligations,
+record internals). It never classifies, closes or posts anything. Every fact it could not read is
+UNKNOWN with a reason. Nothing is ever PASS. The agent writes closeout.yaml (v2: items, manifest,
+UNKNOWN dispositions; see references/closeout-procedure.md). approve binds a human's yes to the hash
+of an exact batch; record writes the read-back of each action. gate exits 1 until the close is real.
+/mission close and mission_sync (status: done) call it.
 """
 from __future__ import annotations
 
@@ -28,7 +31,7 @@ import re
 import subprocess
 import sys
 
-from mission_lib import (GH_REPO, JIRA_BROWSE, JIRA_ORG, JIRA_SKILL, MISSIONS_DIR, MR_UNKNOWN_REASON, PM_ROOT,
+from mission_lib import (GH_REPO, JIRA_BROWSE, JIRA_KEY_PATTERN, JIRA_ORG, JIRA_SKILL, MISSIONS_DIR, MR_UNKNOWN_REASON, PM_ROOT,
                          config_problem, load, now_utc, run)
 
 JIRA = str(JIRA_SKILL)
@@ -126,11 +129,13 @@ def jira_children(keys: list[str]) -> tuple[list[str], list[str], list[str]]:
         return found, errors, legacy
     keyset = ", ".join(keys)
     for jql, sink in ((f"parent in ({keyset})", errors), (f'"Epic Link" in ({keyset})', legacy)):
-        data = jira_call("search", jql, "--max", "200")
+        data = jira_call("search", jql, "--max", str(JIRA_CHILD_CAP + 1))
         if isinstance(data, dict):
             sink.append(f"{jql}: {data.get('error')}")
             continue
-        found += [row["key"] for row in data if row.get("key")]
+        if len(data) > JIRA_CHILD_CAP:
+            sink.append(f"{jql}: truncated at {JIRA_CHILD_CAP} results")
+        found += [row["key"] for row in data[:JIRA_CHILD_CAP] if row.get("key")]
     return found, errors, legacy
 
 
@@ -152,10 +157,25 @@ def jira_facts_from(key: str, meta, comments, desc) -> dict:
         f["last_comment_author"] = max(comments, key=lambda c: str(c.get("created", ""))).get("author") if comments else None
     else:
         f.update({"comment_count": UNKNOWN, "last_comment_at": UNKNOWN, "last_comment_author": UNKNOWN})
-    if isinstance(desc, dict) and "description" in desc:
-        f["description_excerpt"] = (desc.get("description") or "")[:1500]
+    text = (desc.get("description") or "") if isinstance(desc, dict) and "description" in desc else None
+    if text is not None:
+        f["description_excerpt"] = text[:1500]
+        f["description"] = text[:TEXT_BUDGET]
     else:
-        f["description_excerpt"] = UNKNOWN
+        f["description_excerpt"] = f["description"] = UNKNOWN
+    if ok_comments:
+        budget, kept = TEXT_BUDGET, []
+        for c in sorted(comments, key=lambda c: str(c.get("created", ""))):
+            body = str(c.get("body") or "")
+            kept.append({"author": c.get("author"), "created": str(c.get("created", "")), "body": body[:max(budget, 0)]})
+            budget -= len(body)
+        f["comments"] = kept
+    else:
+        f["comments"] = UNKNOWN
+    f["text_truncated"] = (text is not None and len(text) > TEXT_BUDGET) or (ok_comments and budget < 0)
+    ac = ac_evidence(text, comments) if text is not None else {"items": UNKNOWN, "evidence": {}, "without_evidence": UNKNOWN}
+    f["ac_items"], f["ac_evidence"], f["ac_without_evidence"] = ac["items"], ac["evidence"], ac["without_evidence"]
+    f["security"] = is_security(meta.get("summary") if ok_meta else "", text)
     closed = ok_meta and (bool(meta.get("resolution")) or bool(DONE_WORDS.search(
         f"{meta.get('status_category') or ''} {meta.get('status') or ''}")))
     f["closed"] = closed if ok_meta else UNKNOWN
@@ -170,6 +190,8 @@ def jira_facts_from(key: str, meta, comments, desc) -> dict:
     else:
         f["comment_after_close"] = any(str(c.get("created", ""))[:16] >= rd[:16] for c in comments)
     f["closed_without_comments"] = UNKNOWN if not (ok_meta and ok_comments) else (closed and not comments)
+    awe = f["ac_without_evidence"]
+    f["done_without_evidence"] = UNKNOWN if f["closed"] == UNKNOWN or (closed and awe == UNKNOWN) else bool(closed and awe)
     return f
 
 
@@ -191,6 +213,8 @@ def gather_jira(seeds: list[str], offline: bool) -> dict:
         keys += frontier
         if not frontier:
             break
+    if frontier:
+        errors.append(f"depth exhausted after 2 levels: children of {frontier[:10]} not read")
     with cf.ThreadPoolExecutor(6) as ex:
         tickets = list(ex.map(jira_ticket, keys))
     bad = [t["key"] for t in tickets if t["status"] == UNKNOWN]
@@ -202,21 +226,64 @@ def gather_jira(seeds: list[str], offline: bool) -> dict:
 
 def field_unknowns(jira: dict) -> list[str]:
     """Ticket fields the gatherer could not settle. An UNKNOWN field is never a pass."""
-    keys = [t["key"] for t in jira.get("tickets", []) if t.get("closed") is True and t.get("comment_after_close") == UNKNOWN]
-    if not keys:
-        return []
-    return [f"jira-fields: comment_after_close UNKNOWN on {len(keys)} closed ticket(s) {keys}: "
-            "no resolution date; read the status history before calling a closing comment present or missing"]
+    ts = jira.get("tickets", [])
+    out = []
+    keys = [t["key"] for t in ts if t.get("closed") is True and t.get("comment_after_close") == UNKNOWN]
+    if keys:
+        out.append(f"jira-fields: comment_after_close UNKNOWN on {len(keys)} closed ticket(s) {keys}: "
+                   "no resolution date; read the status history before calling a closing comment present or missing")
+    keys = [t["key"] for t in ts if t.get("text_truncated") is True]
+    if keys:
+        out.append(f"jira-text: description or comments over the {TEXT_BUDGET}-character budget on {keys}; read them in full by hand")
+    keys = [t["key"] for t in ts if t.get("status") != UNKNOWN and t.get("ac_items") == UNKNOWN]
+    if keys:
+        out.append(f"jira-ac: no AC list found on {len(keys)} ticket(s) {keys}; evidence per AC cannot be checked")
+    return out
 
 
 # ---------------------------------------------------------------- github
 
+NODE = "number repository{nameWithOwner}"
 GH_Q = """query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){issue(number:$n){
-number title state stateReason url closedAt updatedAt body labels(first:20){nodes{name}}
-parent{number repository{nameWithOwner}}
-blockedBy(first:50){nodes{number repository{nameWithOwner}}}
-blocking(first:50){nodes{number repository{nameWithOwner}}}
-subIssues(first:100){totalCount nodes{number repository{nameWithOwner}}}}}}"""
+number title state stateReason url closedAt updatedAt body labels(first:100){nodes{name}}
+parent{%(node)s}
+blockedBy(first:100){totalCount nodes{%(node)s}}
+blocking(first:100){totalCount nodes{%(node)s}}
+subIssues(first:100){totalCount pageInfo{hasNextPage endCursor} nodes{%(node)s}}
+comments(first:100){totalCount pageInfo{hasNextPage endCursor} nodes{body createdAt author{login}}}}}}""" % {"node": NODE}
+GH_PAGE_Q = """query($o:String!,$r:String!,$n:Int!,$after:String){repository(owner:$o,name:$r){issue(number:$n){
+%s(first:100, after:$after){totalCount pageInfo{hasNextPage endCursor} nodes{%s}}}}}"""
+PAGE_FIELDS = {"subIssues": NODE, "comments": "body createdAt author{login}"}
+
+
+def gh_graphql(query: str, **vars) -> dict:
+    args = ["gh", "api", "graphql", "-f", f"query={query}"]
+    for k, v in vars.items():
+        if v is not None:
+            args += ["-F" if isinstance(v, int) else "-f", f"{k}={v}"]
+    r = run(args, check=False)
+    if r.returncode != 0:
+        return {"error": r.stderr.strip()[:200] or f"exit {r.returncode}"}
+    try:
+        return json.loads(r.stdout)["data"]
+    except (KeyError, TypeError, json.JSONDecodeError):
+        return {"error": "unexpected GraphQL response"}
+
+
+def paginate(fetch_page, first=None) -> dict:
+    """Follow pageInfo cursors. fetch_page(after) returns one connection. truncated when pages run out first."""
+    page = first if first is not None else fetch_page(None)
+    if not isinstance(page, dict) or "nodes" not in page:
+        return {"nodes": [], "total": UNKNOWN, "truncated": True, "error": (page or {}).get("error") if isinstance(page, dict) else "no page"}
+    nodes, n = list(page.get("nodes") or []), 1
+    while (page.get("pageInfo") or {}).get("hasNextPage") and n < MAX_PAGES:
+        page = fetch_page(page["pageInfo"]["endCursor"])
+        if not isinstance(page, dict) or "nodes" not in page:
+            return {"nodes": nodes, "total": UNKNOWN, "truncated": True, "error": "a later page failed"}
+        nodes += page.get("nodes") or []
+        n += 1
+    return {"nodes": nodes, "total": page.get("totalCount", len(nodes)),
+            "truncated": bool((page.get("pageInfo") or {}).get("hasNextPage"))}
 
 
 def gh_ref(ref: str) -> tuple[str, int]:
@@ -242,30 +309,40 @@ def gh_issue(repo: str, n: int) -> dict:
     if not repo or "/" not in repo:
         return {"error": "no gh_repo in the mission config and no owner/repo in the ref"}
     owner, name = repo.split("/")
-    r = run(["gh", "api", "graphql", "-f", f"query={GH_Q}", "-F", f"o={owner}", "-F", f"r={name}", "-F", f"n={n}"], check=False)
-    if r.returncode != 0:
-        return {"error": r.stderr.strip()[:200]}
-    try:
-        i = json.loads(r.stdout)["data"]["repository"]["issue"]
-    except (KeyError, TypeError, json.JSONDecodeError):
-        return {"error": "unexpected GraphQL response"}
+    data = gh_graphql(GH_Q, o=owner, r=name, n=n)
+    if "error" in data:
+        return data
+    i = (data.get("repository") or {}).get("issue")
     if not i:
         return {"error": "issue not found"}
-    subs = i["subIssues"]
-    ref = lambda n: f"{n['repository']['nameWithOwner']}#{n['number']}"
-    refs = lambda nodes: [ref(n) for n in nodes if n]
+
+    def more(field):
+        def fetch(after):
+            d = gh_graphql(GH_PAGE_Q % (field, PAGE_FIELDS[field]), o=owner, r=name, n=n, after=after)
+            return d if "error" in d else ((d.get("repository") or {}).get("issue") or {}).get(field)
+        return fetch
+
+    subs = paginate(more("subIssues"), i["subIssues"])
+    coms = paginate(more("comments"), i["comments"])
+    ref = lambda x: f"{x['repository']['nameWithOwner']}#{x['number']}"
+    refs = lambda conn: [ref(x) for x in conn["nodes"] if x]
     body = i.get("body") or ""
+    budget, comments = TEXT_BUDGET - len(body), []
+    for c in coms["nodes"]:
+        b = str(c.get("body") or "")
+        comments.append({"author": (c.get("author") or {}).get("login"), "created": c.get("createdAt"), "body": b[:max(budget, 0)]})
+        budget -= len(b)
+    edges_trunc = any(i[k]["totalCount"] > len(i[k]["nodes"]) for k in ("blockedBy", "blocking"))
     return {"repo": repo, "number": i["number"], "title": i["title"], "state": i["state"].lower(),
             "state_reason": i.get("stateReason"), "url": i["url"], "closed_at": i.get("closedAt"),
             "updated_at": i.get("updatedAt"), "labels": [x["name"] for x in i["labels"]["nodes"]],
-            "body_excerpt": body[:1500],
+            "body": body[:TEXT_BUDGET], "body_excerpt": body[:1500], "comments": comments, "comment_count": coms["total"],
+            "comments_truncated": coms["truncated"], "text_truncated": budget < 0,
             "tracker_parent": ref(i["parent"]) if i.get("parent") else None,
-            "blocked_by": refs(i["blockedBy"]["nodes"]),
-            "blocking": refs(i["blocking"]["nodes"]),
+            "blocked_by": refs(i["blockedBy"]), "blocking": refs(i["blocking"]), "edges_truncated": edges_trunc,
             "blocking_mentions": blocking_mentions(body),
-            "sub_issues_total": subs["totalCount"],
-            "sub_issues_truncated": subs["totalCount"] > len([n for n in subs["nodes"] if n]),
-            "children": refs(subs["nodes"])}
+            "sub_issues_total": subs["total"], "sub_issues_truncated": subs["truncated"],
+            "children": refs(subs)}
 
 
 def wayfinder_runs_dir() -> pathlib.Path:
@@ -299,6 +376,7 @@ def gather_gh(roots: list[str], depth: int, offline: bool) -> dict:
     if offline:
         return {"status": UNKNOWN, "reason": "offline", "roots": roots, "issues": []}
     seen: dict[str, dict] = {}
+    unread: list[str] = []
     frontier = []
     for r in roots:
         repo, n = gh_ref(r)
@@ -315,6 +393,8 @@ def gather_gh(roots: list[str], depth: int, offline: bool) -> dict:
             seen[ref] = info
             if lvl < depth:
                 nxt += [(c, ref, lvl + 1) for c in info.get("children", [])]
+            else:
+                unread += [c for c in info.get("children", []) if c not in seen]
         frontier = nxt
     issues = list(seen.values())
     by_ref = {i["ref"]: i for i in issues}
@@ -334,14 +414,350 @@ def gather_gh(roots: list[str], depth: int, offline: bool) -> dict:
         if missing:
             unenforced.append({"ref": i["ref"], "state": i.get("state"), "mentioned_without_edge": missing})
     bad = [i["ref"] for i in issues if i.get("error")]
-    trunc = [i["ref"] for i in issues if i.get("sub_issues_truncated")]
-    status = "OK" if not bad and not trunc else ("PARTIAL" if len(bad) < len(issues) else UNKNOWN)
-    return {"status": status, "reason": None if status == "OK" else f"unreadable {bad}, truncated {trunc}",
+    trunc = [i["ref"] for i in issues if i.get("sub_issues_truncated") or i.get("comments_truncated")
+             or i.get("edges_truncated") or i.get("text_truncated")]
+    unread = sorted(set(unread) - set(seen))
+    status = "OK" if not bad and not trunc and not unread else ("PARTIAL" if len(bad) < len(issues) else UNKNOWN)
+    reason = None if status == "OK" else "; ".join(x for x in (f"unreadable {bad}" if bad else "", f"truncated {trunc}" if trunc else "",
+                                                                f"depth {depth} exhausted: {len(unread)} child issue(s) not read" if unread else "") if x)
+    return {"status": status, "reason": reason, "unread_children": unread,
             "roots": roots, "open": sum(1 for i in issues if i.get("state") == "open"),
             "closed": sum(1 for i in issues if i.get("state") == "closed"),
             "wayfinder_maps": maps, "reflections": reflections, "reflections_off_map": off_map,
             "wayfinder_untraced_closes": untraced_closes(maps),
             "blocking_mentions_without_edge": unenforced, "issues": issues}
+
+
+# ---------------------------------------------------------------- text, AC evidence, security
+
+TEXT_BUDGET = 40000
+SWEEP_CAP = 50
+JIRA_CHILD_CAP = 200
+MAX_PAGES = 20
+SECURITY_RE = re.compile(r"\b(auth\w*|security|access[- ]control|permission\w*|tokens?|secrets?|credential\w*|header|gateway|iam|"
+                         r"oauth|encrypt\w*|bypass|probe|vulnerab\w*|privilege\w*|authz|authn)\b", re.I)
+AC_LINE = re.compile(r"^\s*(?:[-*#]+\s*)?\**\s*(AC[-\s]?(\d+))\s*\**\s*[:.)\-]\s*(.+)$", re.I | re.M)
+AC_HEADING = re.compile(r"^\s*(?:h\d\.\s*|#+\s*|\*+)?\s*acceptance criteria\b.*$", re.I | re.M)
+BULLET = re.compile(r"^\s*(?:[-*]+|#+(?!\w)|\d+[.)])\s+(.+)$")
+LINK_RE = re.compile(r"https?://[^\s)\]|>\"']+")
+ALL_ACS = re.compile(r"\ball (?:the )?(?:acs|acceptance criteria)\b", re.I)
+
+
+def ac_items(text: str):
+    """AC items from a description: 'AC1: ...' lines, or the bullets under an 'Acceptance criteria' heading. UNKNOWN when none."""
+    labelled = [{"id": f"AC{m.group(2)}", "text": m.group(3).strip()} for m in AC_LINE.finditer(text or "")]
+    if labelled:
+        return list({a["id"]: a for a in labelled}.values())
+    h = AC_HEADING.search(text or "")
+    if not h:
+        return UNKNOWN
+    items = []
+    for line in (text or "")[h.end():].splitlines():
+        if not line.strip():
+            if items:
+                break
+            continue
+        m = BULLET.match(line)
+        if not m:
+            break
+        items.append({"id": f"AC{len(items) + 1}", "text": m.group(1).strip()})
+    return items or UNKNOWN
+
+
+def ac_evidence(description: str, comments: list) -> dict:
+    """Evidence links per AC item, read from the comment bodies. without_evidence = AC items with no link."""
+    items = ac_items(description)
+    if items == UNKNOWN or not isinstance(comments, list):
+        return {"items": items, "evidence": {}, "without_evidence": UNKNOWN}
+    ev = {a["id"]: [] for a in items}
+    for c in comments:
+        body = str((c or {}).get("body") or "")
+        links = LINK_RE.findall(body)
+        if not links:
+            continue
+        hit = [a["id"] for a in items if re.search(rf"\bAC[-\s]?{a['id'][2:]}\b", body, re.I)]
+        for aid in (list(ev) if ALL_ACS.search(body) else hit):
+            ev[aid] += [x for x in links if x not in ev[aid]]
+    return {"items": items, "evidence": ev, "without_evidence": [k for k, v in ev.items() if not v]}
+
+
+def is_security(*texts) -> bool:
+    return any(SECURITY_RE.search(str(t or "")) for t in texts)
+
+
+def security_obligations(tickets: list[dict], issues: list[dict]) -> list[dict]:
+    """Security obligations live without proof, in every state (Done included). Each one is investigated, never skipped."""
+    out = []
+    for t in tickets:
+        if not t.get("security"):
+            continue
+        missing = t.get("ac_without_evidence")
+        if missing == UNKNOWN or missing:
+            out.append({"ref": t["key"], "status": t.get("status"), "reason": "no AC list found" if missing == UNKNOWN
+                        else f"AC without an evidence link: {missing}"})
+    for i in issues:
+        if not is_security(i.get("title"), i.get("body")):
+            continue
+        n = i.get("comment_count", len(i.get("comments") or []) if isinstance(i.get("comments"), list) else UNKNOWN)
+        if n == 0 or n == UNKNOWN:
+            out.append({"ref": i["ref"], "status": i.get("state"),
+                        "reason": "no comment: the check or probe may never have run" if n == 0 else "comments unread"})
+    return out
+
+
+# ---------------------------------------------------------------- twins
+
+def jira_keys_in(text: str) -> list[str]:
+    return sorted(set(re.findall(rf"\b({JIRA_KEY_PATTERN})\b", str(text or ""))))
+
+
+def gh_refs_in(text: str, known: set[str]) -> list[str]:
+    s = str(text or "")
+    refs = {f"{m.group(1)}#{m.group(2)}" for m in re.finditer(r"github\.com/([\w.-]+/[\w.-]+)/issues/(\d+)", s)}
+    refs |= {f"{m.group(1)}#{m.group(2)}" for m in re.finditer(r"\b([\w.-]+/[\w.-]+)#(\d+)\b", s)}
+    refs |= {r for r in known for m in re.finditer(r"(?<![\w/])#(\d+)\b", s) if r.endswith(f"#{m.group(1)}")}
+    return sorted(refs)
+
+
+def _text_of(x: dict, *fields) -> str:
+    parts = [str(x.get(f) or "") for f in fields]
+    cs = x.get("comments")
+    if isinstance(cs, list):
+        parts += [str((c or {}).get("body") or "") for c in cs]
+    return "\n".join(parts)
+
+
+def twin_pairs(tickets: list[dict], issues: list[dict]) -> list[dict]:
+    """Jira tickets and GitHub issues that cite each other. Review each pair together; a Done twin is never evidence for the open side."""
+    tk = {t["key"]: t for t in tickets}
+    iss = {i["ref"]: i for i in issues}
+    pairs: dict[tuple, set] = {}
+    for ref, i in iss.items():
+        for k in jira_keys_in(_text_of(i, "title", "body", "body_excerpt")):
+            pairs.setdefault((k, ref), set()).add("gh text")
+    for key, t in tk.items():
+        for ref in gh_refs_in(_text_of(t, "summary", "description", "description_excerpt"), set(iss)):
+            pairs.setdefault((key, ref), set()).add("jira text")
+    out = []
+    for (k, ref), via in sorted(pairs.items()):
+        jt, gi = tk.get(k), iss.get(ref)
+        js = jt.get("closed") if jt else UNKNOWN
+        gs = (gi.get("state") == "closed") if gi else UNKNOWN
+        out.append({"jira": k, "gh": ref, "via": sorted(via), "jira_state": jt.get("status") if jt else UNKNOWN,
+                    "gh_state": gi.get("state") if gi else UNKNOWN,
+                    "states_differ": UNKNOWN if UNKNOWN in (js, gs) else js != gs})
+    return out
+
+
+# ---------------------------------------------------------------- successor coverage
+
+OUT_OF_SCOPE = re.compile(r"out of scope|not in scope|non-goals?|excluded|exclusions?|will not|won't|not covered|left out|deferred", re.I)
+STOP = {"the", "a", "an", "and", "or", "of", "to", "for", "in", "on", "with", "is", "be", "it", "this", "that", "from", "by"}
+
+
+def _words(s: str) -> set[str]:
+    return {w for w in re.findall(r"[a-z0-9]+", str(s or "").lower()) if w not in STOP and len(w) > 2}
+
+
+def coverage_of(item: dict, successor_text) -> dict:
+    """Does the successor cover the item? Reads its explicit out-of-scope lines. UNKNOWN when the text is unread."""
+    ref = str(((item.get("ref") or {}) if isinstance(item.get("ref"), dict) else {}).get("ref") or "")
+    base = {"item": item.get("id"), "excluded_by": [], "mentioned": UNKNOWN}
+    if successor_text is None or successor_text == UNKNOWN:
+        return {**base, "status": UNKNOWN}
+    words = _words(item.get("title") or item.get("finding"))
+
+    def names_item(line: str) -> bool:
+        lw = _words(line)
+        return bool(ref and ref in line) or (bool(words) and len(words & lw) / len(words) >= 0.6)
+
+    lines = [ln.strip() for ln in str(successor_text).splitlines() if ln.strip()]
+    excluded = [ln for ln in lines if OUT_OF_SCOPE.search(ln) and names_item(ln)]
+    mentioned = any(names_item(ln) for ln in lines)
+    return {**base, "excluded_by": excluded, "mentioned": mentioned,
+            "status": "excluded" if excluded else ("mentioned" if mentioned else "not-mentioned")}
+
+
+# ---------------------------------------------------------------- sweep outside the tree
+
+def _gh_search(term: str, since: str, cap: int):
+    if not GH_REPO:
+        return {"error": "no gh_repo in the mission config"}
+    r = run(["gh", "search", "issues", term, "--repo", GH_REPO, "--updated", f">={since}", "--limit", str(cap + 1),
+             "--json", "number,title,state,url,updatedAt"], check=False)
+    if r.returncode != 0:
+        return {"error": (r.stderr or r.stdout).strip()[:200] or f"exit {r.returncode}"}
+    try:
+        return json.loads(r.stdout or "[]")
+    except json.JSONDecodeError:
+        return {"error": "gh search returned no JSON"}
+
+
+def _merge_hit(sink: dict, ref: str, term: str, extra: dict) -> None:
+    h = sink.setdefault(ref, {"ref": ref, "matched_on": [], **extra})
+    if term not in h["matched_on"]:
+        h["matched_on"].append(term)
+
+
+def _status(errors: list, total: int) -> str:
+    return "OK" if not errors else ("PARTIAL" if len(errors) < total else UNKNOWN)
+
+
+def _sweep_git(repos: list[str], terms: list[str], since: str | None) -> tuple[dict, dict]:
+    if not repos:
+        return ({"status": UNKNOWN, "reason": "no --repo given; git history not searched", "hits": []},
+                {"status": UNKNOWN, "reason": "no --repo given; MR exclusions not read", "exclusions": []})
+    if not since:
+        return ({"status": UNKNOWN, "reason": "no start date (mission.created or --since)", "hits": []},
+                {"status": UNKNOWN, "reason": "no start date", "exclusions": []})
+    pat = re.compile("|".join(re.escape(t) for t in terms), re.I) if terms else None
+    hits, errors, per_repo, mrs = [], [], {}, {}
+    for repo in repos:
+        r = run(["git", "-C", repo, "log", "--all", f"--since={since}", "--format=%H%x1f%s%x1f%b%x1e"], check=False)
+        if r.returncode != 0:
+            errors.append(repo)
+            per_repo[repo] = {"status": UNKNOWN, "reason": r.stderr.strip()[:160]}
+        else:
+            per_repo[repo] = {"status": "OK"}
+            for rec in r.stdout.split("\x1e"):
+                parts = rec.strip("\n").split("\x1f")
+                if len(parts) < 2 or not pat:
+                    continue
+                found = sorted({m.group(0).lower() for m in pat.finditer(parts[1] + "\n" + (parts[2] if len(parts) > 2 else ""))})
+                if found:
+                    hits.append({"repo": repo, "sha": parts[0][:12], "subject": parts[1], "matched_on": found})
+        rem = run(["git", "-C", repo, "remote", "get-url", "origin"], check=False)
+        url = rem.stdout.strip() if rem.returncode == 0 else ""
+        m = re.search(r"github\.com[:/]([\w.-]+/[\w.-]+?)(?:\.git)?$", url)
+        if not m:
+            mrs[repo] = {"status": UNKNOWN, "reason": MR_UNKNOWN_REASON}
+            continue
+        pr = run(["gh", "pr", "list", "-R", m.group(1), "--state", "all", "--search", f"updated:>={since}", "--limit", "100",
+                  "--json", "number,title,body,state,url"], check=False)
+        if pr.returncode != 0:
+            mrs[repo] = {"status": UNKNOWN, "reason": pr.stderr.strip()[:160]}
+            continue
+        lines = [{"pr": p.get("url"), "line": ln.strip()} for p in json.loads(pr.stdout or "[]")
+                 for ln in str(p.get("body") or "").splitlines() if OUT_OF_SCOPE.search(ln)]
+        mrs[repo] = {"status": "OK" if len(json.loads(pr.stdout or "[]")) < 100 else "PARTIAL", "exclusions": lines}
+    mr_bad = [k for k, v in mrs.items() if v["status"] != "OK"]
+    return ({"status": _status(errors, len(repos)), "reason": f"git log failed in {errors}" if errors else None,
+             "since": since, "repos": per_repo, "hits": hits},
+            {"status": _status(mr_bad, len(repos)), "reason": "; ".join(f"{k}: {mrs[k].get('reason') or 'over 100 PRs'}" for k in mr_bad) or None,
+             "repos": mrs, "exclusions": [x for v in mrs.values() for x in v.get("exclusions") or []]})
+
+
+def gather_sweep(aliases: list[str], keys: list[str], since: str | None, repos: list[str], exclusions: list[str],
+                 tree_refs: set, offline: bool, cap: int = SWEEP_CAP) -> dict:
+    """Search outside the tree: Jira text per alias and key (all states), GitHub since the start, git and MR history.
+    Hits already in the tree are dropped. Results are deduped by ref; a capped search is truncated, which is UNKNOWN."""
+    terms = list(dict.fromkeys([t for t in aliases + keys if t]))
+    if offline:
+        return {"status": UNKNOWN, "reason": "offline", "terms": terms, "excluded": []}
+    if not terms:
+        return {"status": UNKNOWN, "reason": "no aliases or keys to search", "terms": [], "excluded": []}
+    ex = re.compile("|".join(re.escape(x) for x in exclusions), re.I) if exclusions else None
+    jhits, jerr = {}, []
+    for t in terms:
+        data = jira_call("search", f'text ~ "{t}" ORDER BY updated DESC', "--max", str(cap + 1))
+        if isinstance(data, dict):
+            jerr.append(f"{t}: {data.get('error')}")
+            continue
+        if len(data) > cap:
+            jerr.append(f"{t}: truncated at {cap}")
+        for row in data[:cap]:
+            if row.get("key") and row["key"] not in tree_refs:
+                _merge_hit(jhits, row["key"], t, {"summary": row.get("summary"), "status": row.get("status")})
+    ghits, gerr = {}, []
+    if not since:
+        gerr = ["no start date (mission.created or --since)"]
+    else:
+        for t in terms:
+            data = _gh_search(t, since, cap)
+            if isinstance(data, dict):
+                gerr.append(f"{t}: {data.get('error')}")
+                continue
+            if len(data) > cap:
+                gerr.append(f"{t}: truncated at {cap}")
+            for row in data[:cap]:
+                ref = f"{GH_REPO}#{row.get('number')}"
+                if ref not in tree_refs:
+                    _merge_hit(ghits, ref, t, {"title": row.get("title"), "state": str(row.get("state") or "").lower(), "url": row.get("url")})
+    excluded = []
+    for sink in (jhits, ghits):
+        for ref in list(sink):
+            h = sink[ref]
+            if ex and ex.search(f"{h.get('summary') or ''} {h.get('title') or ''}"):
+                excluded.append({**sink.pop(ref), "excluded_by": ex.pattern})
+    git, mrs = _sweep_git(repos, terms, since)
+    jira = {"status": _status(jerr, len(terms)), "reason": "; ".join(jerr)[:600] or None, "hits": list(jhits.values())}
+    github = {"status": _status(gerr, len(terms)) if since else UNKNOWN, "reason": "; ".join(gerr)[:600] or None,
+              "hits": list(ghits.values())}
+    parts = [jira["status"], github["status"], git["status"], mrs["status"]]
+    status = "OK" if all(p == "OK" for p in parts) else (UNKNOWN if all(p == UNKNOWN for p in parts) else "PARTIAL")
+    return {"status": status, "reason": None if status == "OK" else "see jira/github/git/mrs", "terms": terms, "since": since,
+            "jira": jira, "github": github, "git": git, "mrs": mrs, "excluded": excluded}
+
+
+def scope_exclusions(m: dict) -> list[str]:
+    """scope_constraints entries written as 'exclude: <term>' or 'out of scope: <term>' are sweep exclusions."""
+    out = []
+    for s in m.get("scope_constraints") or []:
+        mm = re.match(r"\s*(?:exclude|out of scope)\s*:\s*(.+)$", str(s), re.I)
+        if mm:
+            out.append(mm.group(1).strip())
+    return out
+
+
+def obligations(facts: dict) -> list[list[str]]:
+    """Sweep hits deduplicated by obligation: twin refs (a ticket and the issue that cites it) count once."""
+    sw = facts.get("sweep") or {}
+    refs = [h["ref"] for k in ("jira", "github") for h in (sw.get(k) or {}).get("hits") or []]
+    parent = {r: r for r in refs}
+
+    def find(x):
+        while parent[x] != x:
+            x = parent[x]
+        return x
+    for p in facts.get("twins") or []:
+        if p["jira"] in parent and p["gh"] in parent:
+            parent[find(p["jira"])] = find(p["gh"])
+    groups: dict[str, list[str]] = {}
+    for r in refs:
+        groups.setdefault(find(r), []).append(r)
+    return sorted(groups.values())
+
+
+# ---------------------------------------------------------------- record internals and UNKNOWN aggregation
+
+DECISION_WORDS = re.compile(r"\b(decision|decided|resolved|resolution|destination reached|we chose|chosen)\b", re.I)
+
+
+def record_internals(m: dict, gh: dict) -> dict:
+    maps = [i for i in gh.get("issues") or [] if "wayfinder:map" in (i.get("labels") or []) and i.get("state") == "closed"]
+    unknown = [i["ref"] for i in maps if not isinstance(i.get("comments"), list)]
+    without = [i["ref"] for i in maps if isinstance(i.get("comments"), list)
+               and not any(DECISION_WORDS.search(str((c or {}).get("body") or "")) for c in i["comments"])]
+    return {"unratified_decisions": [d.get("id") for d in m.get("decisions") or [] if d.get("state") == "proposed"],
+            "maps_closed_without_decision": without, "maps_decision_unknown": unknown,
+            "orderings_without_edge": [x["ref"] for x in gh.get("blocking_mentions_without_edge") or []]}
+
+
+def aggregate_unknowns(facts: dict) -> list[str]:
+    """Every source, at any depth, whose status is UNKNOWN or PARTIAL. An UNKNOWN nested in a section is not a pass."""
+    out = []
+
+    def walk(node, path):
+        if isinstance(node, dict):
+            if node.get("status") in (UNKNOWN, "PARTIAL") and path:
+                name = ("mrs" if path == ["branches", "mrs"] else f"wayfinder-telemetry {path[-1]}"
+                        if path[:2] == ["github", "wayfinder_untraced_closes"] else ".".join(path))
+                out.append(f"{name}: {node.get('reason') or node.get('status')}")
+            for k, v in node.items():
+                if isinstance(v, dict):
+                    walk(v, path + [str(k)])
+    walk({k: v for k, v in facts.items() if k not in ("scope", "unknown")}, [])
+    return out
 
 
 # ---------------------------------------------------------------- ledger handoffs
@@ -472,21 +888,23 @@ def cmd_gather(a) -> int:
         "drafts": gather_drafts(ticket_folders(all_keys, folders)),
         "branches": gather_branches(a.repo or [], all_keys),
     }
-    facts["unknown"] = [f"{k}: {v.get('reason')}" for k, v in facts.items()
-                        if isinstance(v, dict) and v.get("status") in (UNKNOWN, "PARTIAL")]
-    if facts["branches"]["mrs"]["status"] == UNKNOWN:
-        facts["unknown"].append(f"mrs: {facts['branches']['mrs']['reason']}")
+    gh = facts["github"]
+    since = str(m.get("created") or a.since or "")[:10] or None
+    tree_refs = set(all_keys) | {i["ref"] for i in gh.get("issues") or []}
+    facts["sweep"] = gather_sweep(aliases, all_keys, since, a.repo or [], scope_exclusions(m) + split(a.exclude),
+                                  tree_refs, a.offline, a.sweep_cap)
+    facts["twins"] = twin_pairs(jira.get("tickets") or [], gh.get("issues") or [])
+    facts["obligations"] = obligations(facts)
+    facts["security_obligations"] = security_obligations(jira.get("tickets") or [], gh.get("issues") or [])
+    facts["record"] = record_internals(m, gh)
+    facts["unknown"] = aggregate_unknowns(facts)
     facts["unknown"] += field_unknowns(jira)
     unmarked = facts["drafts"].get("no_posted_marker") or []
     if unmarked:
         facts["unknown"].append(f"drafts: {len(unmarked)} draft(s) with no posted record; remote state not checked, "
                                 "verify the target before calling any of them unsent")
-    for m, u in (facts["github"].get("wayfinder_untraced_closes") or {}).items():
-        if u.get("status") == UNKNOWN:
-            facts["unknown"].append(f"wayfinder-telemetry {m}: {u.get('reason')}")
     out = d / "closeout-facts.json"
     out.write_text(json.dumps(facts, indent=2, ensure_ascii=False, default=str))
-    j, g = facts["jira"], facts["github"]
     print(f"facts -> {out}")
     for k, st, reason in fact_sources(facts):
         print(f"  source {k}: {st}" + (f" ({reason})" if st != "OK" and reason else ""))
@@ -652,6 +1070,7 @@ def gate(d: pathlib.Path) -> tuple[list[str], list[str]]:
             warn.append(f"checklist step '{sid}' is {s['status']}")
     items = co.get("items") or []
     err += item_errors(items, warn)
+    err += coverage_errors(items, load_coverage(d))
     err += manifest_errors(co)
     err += unknown_errors(co, facts, items)
     return err, warn
@@ -686,6 +1105,63 @@ def item_errors(items: list[dict], warn: list[str]) -> list[str]:
         if it.get("state", "proposed") == "proposed":
             warn.append(f"{where}: {b} still proposed")
     return err
+
+
+def load_coverage(d: pathlib.Path) -> dict:
+    f = d / "closeout-coverage.json"
+    return (json.loads(f.read_text()).get("items") or {}) if f.exists() else {}
+
+
+def coverage_errors(items: list[dict], cov: dict) -> list[str]:
+    """A successor covers an item only if it was read and its out-of-scope lines do not name the item."""
+    err = []
+    for it in items:
+        s = it.get("successor") or {}
+        if it.get("bucket") not in ("KEEP", "ORPHAN") or not named_successor(s):
+            continue
+        c = cov.get(it.get("id"))
+        if not c:
+            err.append(f"{it.get('id')}: no coverage check of its successor; run mission closeout coverage")
+        elif c.get("status") == UNKNOWN:
+            err.append(f"{it.get('id')}: successor text unread (coverage UNKNOWN); read it before calling the item covered")
+        elif c.get("status") == "excluded" and not has_link(s.get("exclusion_resolved")):
+            err.append(f"{it.get('id')}: the successor excludes it ({'; '.join(c.get('excluded_by') or [])[:160]}). "
+                       "Find another home, or link where the successor owner took it back in (exclusion_resolved)")
+    return err
+
+
+def successor_text(s: dict):
+    """Description or body plus every comment of a successor, or UNKNOWN."""
+    ref = str(s.get("ref") or "")
+    if s.get("kind") == "jira" or re.fullmatch(JIRA_KEY_PATTERN, ref):
+        desc, coms = jira_call("description", ref), jira_call("comments", ref)
+        if not (isinstance(desc, dict) and "description" in desc) or not isinstance(coms, list):
+            return UNKNOWN
+        return "\n".join([str(desc.get("description") or "")] + [str(c.get("body") or "") for c in coms])
+    try:
+        repo, n = gh_ref(ref)
+    except ValueError:
+        return UNKNOWN
+    i = gh_issue(repo, n)
+    if i.get("error") or i.get("comments_truncated"):
+        return UNKNOWN
+    return "\n".join([i.get("title") or "", i.get("body") or ""] + [c.get("body") or "" for c in i.get("comments") or []])
+
+
+def cmd_coverage(a) -> int:
+    d, _ = closeout_dir(a.mission, a.scope)
+    co = load_closeout(d) or {}
+    out = {}
+    for it in co.get("items") or []:
+        s = it.get("successor") or {}
+        if named_successor(s):
+            out[it["id"]] = {**coverage_of(it, successor_text(s)), "successor": s.get("ref") or s.get("url")}
+    f = d / "closeout-coverage.json"
+    f.write_text(json.dumps({"fetched_at": now_utc(), "items": out}, indent=2, ensure_ascii=False))
+    for k, v in out.items():
+        print(f"  {k} -> {v['successor']}: {v['status']}" + (f" ({v['excluded_by'][0][:100]})" if v["excluded_by"] else ""))
+    print(f"coverage -> {f}")
+    return 0
 
 
 def manifest_errors(co: dict) -> list[str]:
@@ -890,7 +1366,12 @@ def fact_counts(facts: dict) -> list[tuple[str, object]]:
     dr, br = facts.get("drafts") or {}, facts.get("branches") or {}
     return [("Jira tickets", len(j.get("tickets") or [])), ("GitHub issues open", g.get("open", 0)),
             ("GitHub issues closed", g.get("closed", 0)), ("pending handoffs", len(h.get("pending") or [])),
-            ("drafts with no posted record", len(dr.get("no_posted_marker") or [])), ("branches", len(br.get("branches") or []))]
+            ("drafts with no posted record", len(dr.get("no_posted_marker") or [])), ("branches", len(br.get("branches") or [])),
+            ("obligations found outside the tree", len(facts.get("obligations") or [])),
+            ("twin pairs", len(facts.get("twins") or [])),
+            ("security obligations without proof", len(facts.get("security_obligations") or [])),
+            ("unratified decisions", len((facts.get("record") or {}).get("unratified_decisions") or [])),
+            ("maps closed without a decision", len((facts.get("record") or {}).get("maps_closed_without_decision") or []))]
 
 
 def fact_sources(facts: dict) -> list[tuple[str, str, str]]:
@@ -945,6 +1426,10 @@ def render_coverage(facts: dict, co: dict) -> list[str]:
          f"These gaps remain: <b>{esc(', '.join(s for s, _, _ in gaps) or 'none')}</b>. "
          "The claim is coverage of these sources, not completeness.</p>",
          "<ul>" + "".join(f"<li>{esc(lbl)}: {esc(n)}</li>" for lbl, n in fact_counts(facts)) + "</ul>"]
+    sec = facts.get("security_obligations") or []
+    if sec:
+        h.append("<p><b>Security obligations without proof (always investigated, Done included):</b></p><ul>"
+                 + "".join(f"<li>{esc(s['ref'])} ({esc(s.get('status'))}): {esc(s.get('reason'))}</li>" for s in sec) + "</ul>")
     if facts.get("unknown"):
         h.append('<div class="unknown"><b>Not checked (UNKNOWN, never PASS):</b><ul>' + "".join(
             f"<li>{esc(u)} <span class=muted>[disposition: "
@@ -1053,7 +1538,7 @@ def cmd_render(a) -> int:
 def main() -> int:
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for name in ("gather", "render", "gate", "approve", "record", "log"):
+    for name in ("gather", "render", "gate", "approve", "record", "log", "coverage"):
         p = sub.add_parser(name)
         p.add_argument("mission", nargs="?")
         p.add_argument("--scope")
@@ -1063,6 +1548,9 @@ def main() -> int:
             p.add_argument("--aliases")
             p.add_argument("--repo", action="append")
             p.add_argument("--depth", type=int, default=4)
+            p.add_argument("--since", help="start date for the GitHub and git sweep when there is no mission record")
+            p.add_argument("--exclude", help="comma-separated terms: sweep hits that match are listed as excluded")
+            p.add_argument("--sweep-cap", type=int, default=SWEEP_CAP)
             p.add_argument("--offline", action="store_true")
         if name == "render":
             p.add_argument("--open", action="store_true")
@@ -1080,7 +1568,7 @@ def main() -> int:
     sub.add_parser("review-checks")
     a = ap.parse_args()
     return {"gather": cmd_gather, "render": cmd_render, "gate": cmd_gate, "approve": cmd_approve, "record": cmd_record,
-            "log": cmd_log, "review-checks": cmd_review_checks}[a.cmd](a)
+            "log": cmd_log, "review-checks": cmd_review_checks, "coverage": cmd_coverage}[a.cmd](a)
 
 
 if __name__ == "__main__":

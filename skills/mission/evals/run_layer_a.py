@@ -161,6 +161,7 @@ def closeout_evals(root: pathlib.Path, d: pathlib.Path, util) -> None:
     check("closeout/scope-without-mission-record", r.returncode == 0 and sfacts.get("scope", {}).get("jira_seeds") == ["PRJ-9"]
           and sfacts.get("scope", {}).get("gh_seeds") == ["677"], r.stdout + r.stderr)
     gatherer_ground_truth_evals(mco)
+    phase2_discovery_evals(root, mco)
 
 
 LINK = {"kind": "url", "url": "https://forge.example.invalid/acme/planning/issues/1#c9", "title": "said in the thread"}
@@ -190,6 +191,11 @@ def phase1_control_evals(root: pathlib.Path, d: pathlib.Path, mco, base: dict, f
     staged["items"][2]["parked_by"] = "Gabriel"
     staged["unknowns"] = [{"source": k, "consequential": True, "disposition": "accepted", "by": "Gabriel", "link": LINK} for k in keys]
     save(staged)
+    covf = d / "closeout-coverage.json"
+    cov_ok = {"fetched_at": "2026-11-13T00:00:00Z", "items": {
+        "CO-2": {"item": "CO-2", "status": "mentioned", "excluded_by": [], "mentioned": True},
+        "CO-3": {"item": "CO-3", "status": "not-mentioned", "excluded_by": [], "mentioned": False}}}
+    covf.write_text(json.dumps(cov_ok))
     r = cli("approve", "fixture-vendor", "--items", "A-1,A-2", "--by", "Gabriel", "--link", LINK["url"])
     check("p1/approve-batch-ok", r.returncode == 0 and "hash" in r.stdout, r.stdout + r.stderr)
     approved = load_co()
@@ -204,6 +210,22 @@ def phase1_control_evals(root: pathlib.Path, d: pathlib.Path, mco, base: dict, f
           and all(a.get("state") == "done" and (a.get("readback") or {}).get("after") for a in closed["manifest"]), r1.stdout + r1.stderr)
     r = gate_out(closed)
     check("p1/gate-opens-when-everything-closed", r.returncode == 0 and "GATE OPEN" in r.stdout, r.stdout)
+
+    covf.unlink()
+    r = gate_out(closed)
+    check("p2/gate-refuses-successor-without-coverage-check", r.returncode == 1 and "CO-2" in r.stdout and "coverage" in r.stdout, r.stdout)
+    bad = copy.deepcopy(cov_ok); bad["items"]["CO-2"].update(status="excluded", excluded_by=["Out of scope: declined permission prompt"])
+    covf.write_text(json.dumps(bad))
+    r = gate_out(closed)
+    check("p2/gate-refuses-successor-that-excludes", r.returncode == 1 and "CO-2" in r.stdout and "excludes" in r.stdout, r.stdout)
+    co = copy.deepcopy(closed); co["items"][1]["successor"]["exclusion_resolved"] = LINK
+    r = gate_out(co)
+    check("p2/calibration-exclusion-resolved-by-link-ok", r.returncode == 0, r.stdout)
+    bad["items"]["CO-2"] = {"item": "CO-2", "status": "UNKNOWN", "excluded_by": [], "mentioned": "UNKNOWN"}
+    covf.write_text(json.dumps(bad))
+    r = gate_out(closed)
+    check("p2/gate-refuses-unread-successor", r.returncode == 1 and "CO-2" in r.stdout, r.stdout)
+    covf.write_text(json.dumps(cov_ok))
 
     co = copy.deepcopy(closed); co["approvals"] = []
     r = gate_out(co)
@@ -323,6 +345,8 @@ def phase1_control_evals(root: pathlib.Path, d: pathlib.Path, mco, base: dict, f
     r = gate_out(co)
     check("p1/gate-refuses-human-found-big-miss-without-check-and-eval", r.returncode == 1 and "CO-5: found by the human" in r.stdout, r.stdout)
     co["items"][-1].update(new_check="successor-coverage", eval_case="closeout-full-real-scenario G6")
+    cov5 = copy.deepcopy(cov_ok); cov5["items"]["CO-5"] = {"item": "CO-5", "status": "mentioned", "excluded_by": [], "mentioned": True}
+    covf.write_text(json.dumps(cov5))
     r = gate_out(co)
     check("p1/calibration-human-found-miss-with-check-and-eval-ok", r.returncode == 0, r.stdout)
 
@@ -382,6 +406,7 @@ def phase1_control_evals(root: pathlib.Path, d: pathlib.Path, mco, base: dict, f
     check("p1/review-checks-flags-never-fired", "infra-tails" in r.stdout and "review for removal" in r.stdout
           and "orphans: review for removal" not in r.stdout, r.stdout)
     logf.unlink()
+    covf.unlink()
     save(base)
 
 
@@ -452,6 +477,157 @@ def gatherer_ground_truth_evals(mco) -> None:
     untraced = g.get("wayfinder_untraced_closes") or {}
     check("gather/G12-raw-closes-from-run-telemetry", (untraced.get("acme/planning#710") or {}).get("issues") == [711, 712], str(untraced))
     check("gather/G12-missing-telemetry-is-unknown", (untraced.get("acme/planning#720") or {}).get("status") == "UNKNOWN", str(untraced))
+
+
+def phase2_discovery_evals(root: pathlib.Path, mco) -> None:
+    """Discovery: sweep outside the tree, twin join, evidence per AC, successor coverage, pagination and UNKNOWN."""
+    calls = []
+
+    def fake_run(responses):
+        def fake(cmd, check=False, cwd=None):
+            calls.append(cmd)
+            text = " ".join(map(str, cmd))
+            for needle, rc, out in responses:
+                if needle in text:
+                    return subprocess.CompletedProcess(cmd, rc, out if isinstance(out, str) else json.dumps(out), "boom" if rc else "")
+            return subprocess.CompletedProcess(cmd, 0, "[]", "")
+        return fake
+
+    real_run = mco.run
+    try:
+        calls.clear()
+        mco.run = fake_run([
+            ('text ~ \"vendor tool\"', 0, [{"key": "PRJ-869", "summary": "Legible failures", "status": "In review"},
+                                            {"key": "PRJ-1", "summary": "tree member", "status": "Done"}]),
+            ('text ~ \"PRJ-1\"', 0, [{"key": "PRJ-869", "summary": "Legible failures", "status": "In review"},
+                                      {"key": "PRJ-878", "summary": "Old reporting export", "status": "To Do"}]),
+            ("search issues", 0, [{"number": 950, "title": "Vendor tool install notes", "state": "OPEN", "url": "u950", "updatedAt": "2026-10-01"}]),
+        ])
+        sw = mco.gather_sweep(["vendor tool"], ["PRJ-1"], "2026-09-01", [], ["reporting export"], {"PRJ-1"}, False, cap=10)
+    finally:
+        mco.run = real_run
+    jql = [c[c.index("search") + 1] for c in calls if "search" in c and "--org" in c]
+    check("p2/sweep-jira-text-per-alias-and-key", 'text ~ "vendor tool" ORDER BY updated DESC' in jql and 'text ~ "PRJ-1" ORDER BY updated DESC' in jql
+          and not any("status" in q.lower() for q in jql), str(jql))
+    hits = {h["ref"]: h for h in sw.get("jira", {}).get("hits", [])}
+    check("p2/sweep-finds-outside-the-tree-and-dedupes", set(hits) == {"PRJ-869"} and sorted(hits["PRJ-869"]["matched_on"]) == ["PRJ-1", "vendor tool"], str(hits))
+    check("p2/sweep-respects-scope-exclusions", [h["ref"] for h in sw.get("excluded", [])] == ["PRJ-878"], str(sw.get("excluded")))
+    gh_call = next((c for c in calls if "search" in c and "issues" in c and c[0] == "gh"), [])
+    check("p2/sweep-github-since-mission-start", any(">=2026-09-01" in str(x) for x in gh_call) and "acme/planning" in gh_call, str(gh_call))
+    check("p2/sweep-github-hit", [h["ref"] for h in sw.get("github", {}).get("hits", [])] == ["acme/planning#950"], str(sw.get("github")))
+
+    try:
+        mco.run = fake_run([("text ~", 0, [{"key": f"PRJ-{i}", "summary": "x", "status": "Done"} for i in range(100, 112)])])
+        sw2 = mco.gather_sweep(["vendor tool"], [], "2026-09-01", [], [], set(), False, cap=10)
+        mco.run = fake_run([("text ~", 1, "401 Unauthorized")])
+        sw3 = mco.gather_sweep(["vendor tool"], [], "2026-09-01", [], [], set(), False, cap=10)
+    finally:
+        mco.run = real_run
+    check("p2/sweep-cap-truncated-is-unknown", sw2["jira"]["status"] != "OK" and "truncated" in str(sw2["jira"].get("reason")), str(sw2["jira"].get("reason")))
+    check("p2/sweep-failed-search-is-unknown", sw3["jira"]["status"] == "UNKNOWN", str(sw3["jira"]))
+    sw4 = mco.gather_sweep(["vendor tool"], [], None, [], [], set(), True, cap=10)
+    check("p2/sweep-offline-is-unknown", sw4["status"] == "UNKNOWN")
+    sw5 = mco.gather_sweep(["vendor tool"], [], None, ["/nonexistent"], [], set(), False, cap=10) if False else None
+
+    repo = root / "repo-a"
+    repo.mkdir()
+    git = lambda *a: subprocess.run(["git", "-C", str(repo), *a], capture_output=True, text=True)
+    git("init", "-q"); git("config", "user.email", "t@example.invalid"); git("config", "user.name", "t")
+    (repo / "f.txt").write_text("1"); git("add", "f.txt"); git("commit", "-q", "-m", "Vendor tool: add the retry guard")
+    (repo / "g.txt").write_text("2"); git("add", "g.txt"); git("commit", "-q", "-m", "Unrelated cleanup")
+    try:
+        mco.run = fake_run([("text ~", 0, [])])
+        mco_real_git = real_run
+        def mixed(cmd, check=False, cwd=None):
+            return real_run(cmd, check=False, cwd=cwd) if cmd[0] == "git" else mco_fake(cmd, check, cwd)
+        mco_fake = fake_run([("text ~", 0, [])])
+        mco.run = mixed
+        sw6 = mco.gather_sweep(["vendor tool"], [], "2000-01-01", [str(repo)], [], set(), False, cap=10)
+    finally:
+        mco.run = real_run
+    commits = sw6.get("git", {}).get("hits", [])
+    check("p2/sweep-git-log-since-start", [c["subject"] for c in commits] == ["Vendor tool: add the retry guard"], str(sw6.get("git")))
+    check("p2/sweep-mr-exclusions-unknown-when-unreadable", sw6.get("mrs", {}).get("status") == "UNKNOWN", str(sw6.get("mrs")))
+
+    # twin join
+    tickets = [{"key": "PRJ-1296", "status": "Done", "closed": True, "description": "Tracks acme/planning#830.", "comments": []},
+               {"key": "PRJ-1300", "status": "To Do", "closed": False, "description": "nothing", "comments": []}]
+    issues = [{"ref": "acme/planning#830", "state": "open", "body": "Twin of PRJ-1296.", "comments": []},
+              {"ref": "acme/planning#831", "state": "open", "body": "See PRJ-1300 and PRJ-9999.", "comments": [{"body": "x"}]},
+              {"ref": "acme/planning#832", "state": "closed", "body": "no keys here", "comments": []}]
+    tw = mco.twin_pairs(tickets, issues)
+    pairs = {(x["jira"], x["gh"]): x for x in tw}
+    check("p2/twins-joined-both-directions", ("PRJ-1296", "acme/planning#830") in pairs
+          and sorted(pairs[("PRJ-1296", "acme/planning#830")]["via"]) == ["gh text", "jira text"], str(tw))
+    check("p2/twins-flag-state-mismatch", pairs.get(("PRJ-1296", "acme/planning#830"), {}).get("states_differ") is True, str(tw))
+    check("p2/twins-outside-the-tree-has-unknown-side", pairs.get(("PRJ-9999", "acme/planning#831"), {}).get("jira_state") == "UNKNOWN", str(tw))
+    check("p2/calibration-twins-no-false-pair", not any(x["gh"] == "acme/planning#832" for x in tw), str(tw))
+
+    # evidence per AC
+    desc = "Goal.\n\nh3. Acceptance criteria\n* AC1: reads return the live book\n* AC2: writes are refused without the header\n\nNotes."
+    ev = mco.ac_evidence(desc, [{"body": "AC1 verified on prod: https://example.invalid/run/1"}])
+    check("p2/ac-items-extracted", [a["id"] for a in ev["items"]] == ["AC1", "AC2"], str(ev))
+    check("p2/ac-evidence-linked-per-ac", ev["evidence"].get("AC1") == ["https://example.invalid/run/1"] and ev["without_evidence"] == ["AC2"], str(ev))
+    ev2 = mco.ac_evidence("Just do the thing.", [{"body": "done"}])
+    check("p2/ac-no-list-is-unknown", ev2["items"] == "UNKNOWN" and ev2["without_evidence"] == "UNKNOWN", str(ev2))
+    ev3 = mco.ac_evidence("h3. Acceptance criteria\n# The export runs nightly\n# The export is idempotent", [{"body": "All ACs verified: https://example.invalid/a"}])
+    check("p2/ac-numbered-under-heading-and-all-acs-comment", [a["id"] for a in ev3["items"]] == ["AC1", "AC2"] and ev3["without_evidence"] == [], str(ev3))
+    long = "h3. Acceptance criteria\n* AC1: x\n" + "y" * 5000
+    meta = {"key": "PRJ-5", "status": "Done", "status_category": "Done", "resolution": "Done", "resolution_date": "2026-11-01T00:00", "summary": "Gateway header auth"}
+    t5 = mco.jira_facts_from("PRJ-5", meta, [{"created": "2026-10-01", "author": "a", "body": "AC1 checked"}], {"description": long})
+    check("p2/full-description-not-excerpt", len(t5.get("description", "")) > 1500 and t5.get("ac_without_evidence") == ["AC1"], str({k: t5.get(k) for k in ("ac_items", "ac_without_evidence")}))
+    check("p2/security-ticket-flagged", t5.get("security") is True)
+    huge = "h3. Acceptance criteria\n* AC1: x\n" + "y" * (mco.TEXT_BUDGET + 10)
+    t6 = mco.jira_facts_from("PRJ-6", meta, [], {"description": huge})
+    check("p2/text-over-budget-is-unknown", t6.get("text_truncated") is True and "description" in str(mco.field_unknowns({"tickets": [t6]})), str(mco.field_unknowns({"tickets": [t6]})))
+    sec = mco.security_obligations([t5, dict(t5, key="PRJ-7", security=False)],
+                                   [{"ref": "acme/planning#196", "title": "Run the gateway-bypass probe", "state": "open", "body": "auth probe", "comments": [], "comment_count": 0}])
+    refs = {s["ref"]: s for s in sec}
+    check("p2/security-done-without-proof-investigated", "PRJ-5" in refs and "PRJ-7" not in refs, str(sec))
+    check("p2/security-probe-never-run-investigated", "acme/planning#196" in refs, str(sec))
+
+    # successor coverage
+    cov = mco.coverage_of({"id": "CO-5", "title": "Advertiser read authorization", "ref": {"ref": "acme/planning#850"}},
+                          "Multi-seat PRD.\nOut of scope: advertiser read authorization (separate decision).\nIn scope: seat routing.")
+    check("p2/coverage-out-of-scope-line-excludes", cov["excluded_by"] and cov["status"] == "excluded", str(cov))
+    cov2 = mco.coverage_of({"id": "CO-6", "title": "Seat routing table", "ref": None}, "In scope: seat routing table and its tests.")
+    check("p2/calibration-coverage-mentioned-not-excluded", cov2["status"] == "mentioned" and not cov2["excluded_by"], str(cov2))
+    cov3 = mco.coverage_of({"id": "CO-7", "title": "Seat routing table", "ref": None}, None)
+    check("p2/coverage-unreadable-is-unknown", cov3["status"] == "UNKNOWN", str(cov3))
+
+    # pagination, depth, recursive UNKNOWN, record internals
+    pages = {None: {"nodes": [{"number": 1, "repository": {"nameWithOwner": "acme/planning"}}], "pageInfo": {"hasNextPage": True, "endCursor": "c1"}, "totalCount": 2},
+             "c1": {"nodes": [{"number": 2, "repository": {"nameWithOwner": "acme/planning"}}], "pageInfo": {"hasNextPage": False, "endCursor": None}, "totalCount": 2}}
+    got = mco.paginate(lambda after: pages[after])
+    check("p2/pagination-follows-cursor", [n["number"] for n in got["nodes"]] == [1, 2] and got["truncated"] is False, str(got))
+    tree = {"acme/planning#1": ["acme/planning#2"], "acme/planning#2": ["acme/planning#3"], "acme/planning#3": ["acme/planning#4"]}
+    real_issue = mco.gh_issue
+    mco.gh_issue = lambda repo, n: {"repo": repo, "number": n, "title": "t", "state": "open", "labels": [], "body": "", "comments": [],
+                                    "children": tree.get(f"{repo}#{n}", []), "blocked_by": [], "blocking": [], "blocking_mentions": [],
+                                    "sub_issues_truncated": False, "comments_truncated": False}
+    try:
+        g = mco.gather_gh(["acme/planning#1"], 1, False)
+    finally:
+        mco.gh_issue = real_issue
+    check("p2/depth-exhaustion-is-unknown", g["status"] != "OK" and "depth" in str(g.get("reason")) and "acme/planning#3" in str(g.get("unread_children")), str(g.get("reason")))
+    try:
+        mco.run = fake_run([("parent in", 0, [{"key": f"PRJ-{i}"} for i in range(500, 702)])])
+        j = mco.gather_jira(["PRJ-1"], False)
+    finally:
+        mco.run = real_run
+    check("p2/jira-children-truncated-is-unknown", j["status"] != "OK" and "truncated" in str(j.get("reason")), str(j.get("reason")))
+    nested = {"jira": {"status": "OK"}, "sweep": {"status": "PARTIAL", "reason": "r", "git": {"status": "OK", "repos": {"/r": {"status": "UNKNOWN", "reason": "git failed"}}}}}
+    agg = mco.aggregate_unknowns(nested)
+    check("p2/recursive-unknown-aggregation", any(x.startswith("sweep.git.repos./r") for x in agg) and any(x.startswith("sweep:") for x in agg), str(agg))
+    rec = mco.record_internals({"decisions": [{"id": "DEC-1", "state": "ratified"}, {"id": "DEC-2", "state": "proposed"}]},
+                               {"issues": [{"ref": "acme/planning#710", "state": "closed", "labels": ["wayfinder:map"], "comments": [{"body": "closing, see #711"}]},
+                                           {"ref": "acme/planning#720", "state": "closed", "labels": ["wayfinder:map"], "comments": [{"body": "Decision: ship B."}]},
+                                           {"ref": "acme/planning#730", "state": "closed", "labels": ["wayfinder:map"], "comments": "UNKNOWN"}],
+                                "blocking_mentions_without_edge": [{"ref": "acme/planning#710"}]})
+    check("p2/record-unratified-decisions", rec["unratified_decisions"] == ["DEC-2"], str(rec))
+    check("p2/record-maps-closed-without-decision", rec["maps_closed_without_decision"] == ["acme/planning#710"]
+          and rec["maps_decision_unknown"] == ["acme/planning#730"], str(rec))
+    check("p2/record-orderings-without-edge-kept", rec["orderings_without_edge"] == ["acme/planning#710"], str(rec))
 
 
 # Private-term denylist, stored as hashes so the harness itself names no org, vendor or person.

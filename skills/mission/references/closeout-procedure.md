@@ -18,25 +18,32 @@ The script gathers facts. You make the judgements. The human approves before any
 ## Step 1. Gather the facts
 
 ```bash
-mission closeout gather <slug> [--repo /abs/path/to/member-repo ...]
+mission closeout gather <slug> [--repo /abs/path/to/member-repo ...] [--exclude "term,term"] [--sweep-cap 50]
 ```
 
 The scope has no mission record (for example, a component that shipped without one)? Give seeds:
 
 ```bash
-mission closeout gather --scope <name> --seed-jira KEY1,KEY2 --seed-gh N1,N2 --aliases "alias one,alias two"
+mission closeout gather --scope <name> --seed-jira KEY1,KEY2 --seed-gh N1,N2 --aliases "alias one,alias two" --since YYYY-MM-DD
 ```
+
+Pass every member repo with `--repo`: the git and MR sweep reads only those. Without a start date (`mission.created` or `--since`), the GitHub and git sweeps are UNKNOWN.
 
 The output goes to the mission folder, or to `missions/_closeout/<name>/`. It holds:
 
 | Section | Facts |
 |---|---|
-| `jira.tickets` | Members, seeds and their children (2 levels): status, status category, resolution, comment count, last comment date, `closed_without_comments`, `comment_after_close`, a description excerpt. A failed `parent in (...)` child query makes the source `PARTIAL` or `UNKNOWN`: an empty list from a failed query is not "no children". |
-| `github` | The sub-issue tree under the root issue, the parent issue and the seeds: state, state reason, labels, tracker parent, `blocked_by`, `blocking`, a body excerpt. Also `wayfinder_maps`, `reflections` (with `parent_is_map`), `reflections_off_map` (open reflections not under their map), `wayfinder_untraced_closes` (map children closed without the wayfinder tool, from the run telemetry; `UNKNOWN` when the map has no telemetry file) and `blocking_mentions_without_edge` (open and closed issues whose text states an ordering with no `blockedBy` edge). |
+| `jira.tickets` | Members, seeds and their children (2 levels): status, resolution, the full description and every comment body (within a 40,000-character budget; over budget is `text_truncated` and UNKNOWN), `ac_items`, `ac_evidence` (links per AC), `ac_without_evidence`, `done_without_evidence`, `security`, `closed_without_comments`, `comment_after_close`. A failed or capped `parent in (...)` query, or children left past depth 2, makes the source `PARTIAL` or `UNKNOWN`. |
+| `github` | The sub-issue tree under the root issue, the parent issue and the seeds, with every page of sub-issues and comments: state, state reason, labels, tracker parent, `blocked_by`, `blocking`, the body and every comment. `unread_children` lists issues past `--depth`: the source is then `PARTIAL`, never OK. Also `wayfinder_maps`, `reflections` (with `parent_is_map`), `reflections_off_map` (open reflections not under their map), `wayfinder_untraced_closes` (map children closed without the wayfinder tool, from the run telemetry; `UNKNOWN` when the map has no telemetry file) and `blocking_mentions_without_edge` (open and closed issues whose text states an ordering with no `blockedBy` edge). |
 | `handoffs` | Pending ledger handoffs (`awaiting_initiation`, `initiated`) whose metadata or text matches a key or alias. Read-only. |
 | `drafts` | `no_posted_marker`: `*.md` files under `reports/ship/posts/` in member ticket folders with no sibling `.posted` file and no `posted-as:` line. Each one has `remote_state: UNKNOWN`. The script never confirms a draft as unsent. |
 | `branches` | Local branches named after member keys in each `--repo`. Open MRs are always `UNKNOWN` when the forge needs extra auth. |
-| `unknown` | Every source the script could not read, with the reason. Also closed tickets whose `comment_after_close` is `UNKNOWN`, drafts whose remote state is not checked, and maps with no wayfinder telemetry. |
+| `sweep` | Search outside the tree. `jira`: `text ~ "<term>"` for every alias and every member key, all states. `github`: issue search since the mission start. `git`: `git log --all --since` in each `--repo`, commits that name a term. `mrs`: out-of-scope lines in the PR bodies of a GitHub-hosted repo; UNKNOWN elsewhere. Hits already in the tree are dropped. Hits that match a `scope_constraints` entry written `exclude: <term>` (or `--exclude`) go to `excluded`. A search that hits `--sweep-cap` is truncated: UNKNOWN. |
+| `twins` | Jira tickets and GitHub issues that cite each other (keys in issue text, issue refs in ticket text), with both states and `states_differ`. A side outside the tree is UNKNOWN. |
+| `obligations` | Sweep hits deduplicated by obligation: a ticket and the issue that cites it count once. |
+| `security_obligations` | Security, access or auth tickets and issues, in any state, with an AC that has no evidence link, no AC list, or no comment at all (a probe that never ran). |
+| `record` | `unratified_decisions` (proposed decisions in the mission), `maps_closed_without_decision`, `maps_decision_unknown`, `orderings_without_edge`. |
+| `unknown` | Every source the script could not read, at any depth, with the reason. Also closed tickets whose `comment_after_close` is `UNKNOWN`, drafts whose remote state is not checked, and maps with no wayfinder telemetry. |
 
 Read the `unknown` list first. Check each gap by hand, or carry it into the report as `unknown`.
 
@@ -44,9 +51,12 @@ Read the `unknown` list first. Check each gap by hand, or carry it into the repo
 
 Fan out subagents. Give each one the facts file and the mission record, and ask for a bucket list in return (1 to 2k tokens):
 
-- **Jira reviewer**: the `jira` section.
-- **GitHub reviewer**: the `github` section, one subagent per root if the tree is large.
-- **Local reviewer**: `handoffs`, `drafts`, `branches`, plus the mission's `parked`, `needs_you`, `messages` and `asks`.
+- **Pair reviewers**: one per twin pair in `twins`, not one per tracker. The reviewer reads both sides together. A Done twin is never evidence for the open side: each side needs its own evidence, or the open side stays open.
+- **Jira reviewer**: the `jira` tickets that have no twin.
+- **GitHub reviewer**: the `github` issues that have no twin, one subagent per root if the tree is large.
+- **Sweep reviewer**: `sweep` and `obligations`. Each hit outside the tree is in scope, out of scope (say why), or a new item.
+- **Security reviewer**: every entry in `security_obligations`, always, including Done tickets and probes that never ran. A security obligation that is live without proof is a big miss until evidence or a named risk decision exists.
+- **Local reviewer**: `handoffs`, `drafts`, `branches`, `record`, plus the mission's `parked`, `needs_you`, `messages` and `asks`.
 
 Each reviewer reads the evidence (closing comments, linked MRs, the mission's `decisions` and `disproven`), not only the status. Pass the mission's ratified decisions and disproven claims to every reviewer. They win over any ticket text.
 
@@ -57,16 +67,16 @@ Each step gets a status in `closeout.yaml`: `done`, `na`, `open` or `unknown`.
 1. **tracker-status.** Compare the live status of every ticket with the evidence. Typical finds: a ticket still in review that the evidence satisfies; a To-do ticket that is done in fact.
 2. **parent-closing-comments.** Every closed parent needs a closing comment that links the evidence (what shipped, where it was verified, by whom). A parent closed by a human with no comment still needs one.
 3. **description-vs-reality.** On each closed parent, read the description and summary. If they assert the opposite of what shipped (for example "X stays disabled" when X is live), list a `FALSE-PREMISE` item with the exact text to correct.
-4. **done-without-evidence.** A ticket that is Done with `closed_without_comments: true`, or with no AC evidence, is a finding. Check security and access-control tickets first. A risky capability that went live without AC evidence is a `HUMAN-ONLY` item.
+4. **done-without-evidence.** "Done without evidence" means one AC item with no evidence link (`ac_without_evidence`), not a low comment count. A Done ticket with no AC list (`ac_items: UNKNOWN`) is unchecked, not clean. Check `security_obligations` first. A risky capability that went live without AC evidence is a `HUMAN-ONLY` item with `control`, `live` and `evidence_state` set.
 5. **obsolete-items.** A later removal or a scope change can make tickets obsolete. Propose Won't Do, or a rescope with the new text.
 6. **github-tree.** Review every open sub-issue. Bucket it: satisfied, superseded, still needed, or premise now false.
 7. **false-premises.** Collect every record text (ticket descriptions, issue bodies, library pages, the mission record) that is no longer true. One `FALSE-PREMISE` item each, with the text and the correction.
-8. **orphans.** Anything open that has no ticket and no successor issue is an `ORPHAN`. Propose a home. It stays an orphan until the human approves the home.
+8. **orphans.** Anything open that has no ticket and no successor issue is an `ORPHAN`. Propose a home. It stays an orphan until the successor accepts it. Then run `mission closeout coverage <slug>`: it reads each successor in full and its explicit out-of-scope lines. A successor that excludes the item does not cover it; the gate refuses until another home accepts it or the successor owner takes it back in (`exclusion_resolved: <link>`).
 9. **wayfinder-closes.** For each map in `wayfinder_maps`, close its children through the `wayfinder` skill. If children were already closed with raw `gh issue close`, record a finding.
 10. **dependencies.** A stated ordering ("map B blocks the final step of map A") must exist as a `blockedBy` edge. Check `blocking_mentions_without_edge` and the text of the maps. Each missing edge is a finding: add the edge, or record why the ordering is gone.
 11. **reflections.** Write every reflection the work requires (for wayfinder maps, the map's reflection ticket). A reflection stays under its map until it is written. Do not move a reflection ticket to a carry-forward issue first: the reflect tool then reports "no reflection ticket". Write it, then move the survivors. Check `reflections[].parent_is_map`.
 12. **risk-acceptance.** For each capability that went live with a known gap, a named human decider records the acceptance in a durable place (a ticket comment or a decision record). An agent never accepts risk. Without a record, it is a `HUMAN-ONLY` item.
-13. **handoffs.** A pending handoff whose intent is already complete gets closed through the session tools (`session:pickup` triage, or the `ledger` helper). Never edit `sessions/ledger.yaml` by hand.
+13. **handoffs.** A pending handoff whose intent is already complete gets closed through the session tools (`session:pickup` triage, or the `ledger` helper). Never edit `sessions/ledger.yaml` by hand. Before you call work lost (a branch gone from git), search the session transcripts: a transcript can still hold the diffs.
 14. **drafts.** For each draft in `no_posted_marker`, check its target first (the issue body, the ticket description or the comments). Published already: add a `posted-as: <where> (<date>)` record next to it (a `.posted` file). Not published: it is unsent; post it through `/post-comment`, mark it superseded, or delete it with the human's agreement.
 15. **infra-tails.** Cleanup MRs left as draft, unapplied infrastructure changes, stale branches, and temporary access grants. Each one is finished or gets an owner and a date.
 

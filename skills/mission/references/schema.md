@@ -29,6 +29,7 @@ Every item that Gabriel may refer to gets a stable short ID when it is created. 
 | `ART-` | artifact (kit, file, SHA) |
 | `J-` | journey entry (one session or run) |
 | `C-` | change (latest-changes log) |
+| `T-` | thread (every intent, rabbit hole, open door, handoff, nugget, ask and finding; feeds the Closure tab) |
 
 ## Links
 
@@ -151,7 +152,45 @@ terms:                                # STABLE: terms Gabriel confirmed he knows
 
 changes:                              # LOG: feeds the "Latest changes" view
   - {id: C-1, at: 2026-11-10T22:30:00Z, session: clear-wren, summary: "Mission created.", refs: []}
+
+threads:                              # LOG with LIVE state: written by `mission thread add|set|resolve`, never by hand
+  - id: T-14                          # stable, never renumbered
+    title: "Prove nobody can bypass the production bid-write gateway"   # human, max 70 characters, refs allowed
+    kind: open_door                   # big_intent | intent | rabbit_hole | open_door | handoff | nugget | ask | finding
+    parent: T-3                       # tree: big_intent > intent > rabbit_hole / open_door / handoff
+    origin: {at: 2026-11-12T19:04:00Z, session: clear-wren, event: open_door_noticed, source: null, link: null}
+    # event: what captured it. "imported" = seeded by `mission threads import` (not live-captured),
+    # "closeout_sweep" = found only at close (a capture miss). Anything else is a live capture.
+    state: open                       # open | needs_you | ready | parked | resolved | dropped
+    refs: [{kind: gh, ref: "#196", url: ..., title: ...}]     # what it is about
+    lives_in: {kind: jira, ref: PTR-103, url: ..., title: ...} # tracker home, if any
+    finding: "1 to 3 sentences: what is going on"
+    reasons: [live_assurance_gap]     # live_assurance_gap | uncovered_obligation | false_record | control_failure | your_call | approval
+    control: security                 # security | access | safety | contract (optional)
+    live: true                        # true | false | UNKNOWN
+    evidence_state: missing           # present | missing | UNKNOWN
+    evidence: [links]
+    do_now:                           # only when Gabriel must act (state needs_you)
+      actor: Gabriel
+      verb: "Decide + run probe"      # the chip text
+      question: "..."                 # required on needs_you
+      options: [{label, consequence}]
+      recommendation: "label"         # one option label; the lint warns when it is missing
+      commands: [{label, cmd}]        # copyable, read-only or an approval
+      after_answer: "..."
+      answer: null                    # {text, by, at, link} once answered
+    home: {link, owner, accepted: {by, link} | null, excludes: false}   # parked needs home.link
+    snapshot: {at, watched: [{ref, kind, state, comments, digest}]}    # written by mission fetch
+    drift: null                       # {at, text}: a watched ref changed after the snapshot (set by mission fetch)
+    closeout: {bucket, co_id, judged_at, found_by, actions: [A-n], class, batch, decision}   # written by the close-out
+    resolution: null                  # {at, by, how: evidence|superseded|ticket|answered|dropped, link, note}
+    needs_you_id: N-4                 # back-reference when it is also a Mission-tab blocker
+    ask_id: A-2                       # back-reference for an ask thread
+    imported_from: ["needs_you:N-4", "closeout:CO-1"]   # source keys; makes the import idempotent
+    history: [{at, session, event, note}]   # append-only
 ```
+
+Derived at render time, never stored: the block a thread renders in, its glyph, the counts, the "↑ in" cross-references, the capture rate, and `parked_unaccepted` (state parked, home not accepted).
 
 ## Rules the lint enforces
 
@@ -164,4 +203,6 @@ changes:                              # LOG: feeds the "Latest changes" view
 7. Every `needs_you` item has a question and either options or `free: true`.
 8. An `answered` or `done` ask has an `answer`.
 9. `journey` entries are in time order.
-10. Warnings (not errors): a body text over 400 characters in a list item, a `needs_you` item older than 14 days, a parked `tomorrow` item past its `recheck` date.
+10. Warnings (not errors): a body text over 400 characters in a list item, a `needs_you` item older than 14 days, a parked `tomorrow` item past its `recheck` date, a `needs_you` item with no `recommendation`.
+11. `threads` is optional: a record without it lints and renders. When present, each thread has a `T-n` id, a title, a valid `kind` and `state`, and `origin.at` plus `origin.event`. A `parent` points at an existing thread.
+12. Thread states carry their proof: `needs_you` has `do_now.question` (a missing `recommendation` is a warning); `parked` has `home.link`; `resolved` has `resolution.how`, `at`, and a link or a note; `dropped` has `resolution.by` (a named person) and `resolution.note` (the reason). `home.accepted` names a person and links to where they said it. A `drift` has text.

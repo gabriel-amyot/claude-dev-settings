@@ -9,6 +9,7 @@ import re
 import sys
 
 from mission_lib import load, mission_dir
+from mission_thread import lint_threads
 
 STATUS = {"active", "parked", "done", "abandoned"}
 DEC_STATE = {"proposed", "ratified", "superseded", "reversed"}
@@ -20,7 +21,7 @@ JOURNEY_KIND = {"session", "night_run", "commit_only", "gap"}
 MSG_STATE = {"draft", "approved", "sent", "answered"}
 PREFIX = {"deliverables": "D-", "decisions": "DEC-", "disproven": "X-", "needs_you": "N-",
           "asks": "A-", "parked": "P-", "messages": "M-", "artifacts": "ART-", "journey": "J-",
-          "changes": "C-"}
+          "changes": "C-", "threads": "T-"}
 RELITIGATE = re.compile(r"re-?litigat", re.I)
 
 
@@ -129,6 +130,8 @@ def lint(m: dict) -> tuple[list[str], list[str]]:
         for o in n.get("options") or []:
             if not isinstance(o, dict) or not o.get("label"):
                 err.append(f"{nid}: each option needs a label")
+        if not n.get("recommendation") and not n.get("free"):
+            warn.append(f"{nid}: no recommendation; give one option as the recommendation")
         since = _date(n.get("since"))
         if since and (dt.datetime.now(dt.timezone.utc).replace(tzinfo=None) - since).days > 14:
             warn.append(f"{nid}: waiting on Gabriel for {(dt.datetime.now(dt.timezone.utc).replace(tzinfo=None) - since).days} days")
@@ -181,7 +184,8 @@ def lint(m: dict) -> tuple[list[str], list[str]]:
     for d in m.get("decisions") or []:
         if d.get("state") == "proposed" and d.get("id") not in asked:
             warn.append(f"{d.get('id')}: proposed but no needs_you item asks Gabriel to ratify it")
-    return err, warn
+    terr, twarn = lint_threads(m)
+    return err + terr, warn + twarn
 
 
 def main() -> int:

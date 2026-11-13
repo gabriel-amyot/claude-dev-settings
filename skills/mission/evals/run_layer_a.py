@@ -167,6 +167,117 @@ def closeout_evals(root: pathlib.Path, d: pathlib.Path, util) -> None:
 LINK = {"kind": "url", "url": "https://forge.example.invalid/acme/planning/issues/1#c9", "title": "said in the thread"}
 
 
+def thread(tid: str, **kw) -> dict:
+    t = {"id": tid, "title": f"Thread {tid}", "kind": "intent", "origin": {"at": "2026-11-12T10:00:00Z", "session": "brave-otter", "event": "session_init"},
+         "state": "open"}
+    t.update(kw)
+    return t
+
+
+def threads_phase1_evals(root: pathlib.Path) -> None:
+    """Phase 1: the threads data model (lint, backward compatibility) and the import from an existing record."""
+    base = copy.deepcopy(VALID)
+    base["threads"] = [
+        thread("T-1", kind="big_intent", title="Vendor tool writes in prod"),
+        thread("T-2", parent="T-1", state="needs_you", reasons=["live_assurance_gap"], control="security", live=True,
+               do_now={"actor": "Gabriel", "verb": "Decide", "question": "Probe the gateway now?", "options": [{"label": "Probe now", "consequence": "a fact in 15 min"}],
+                       "recommendation": "Probe now"}),
+        thread("T-3", parent="T-1", kind="open_door", state="parked",
+               home={"link": LINK, "owner": "Gabriel", "accepted": {"by": "Gabriel", "link": LINK}}),
+        thread("T-4", parent="T-1", kind="rabbit_hole", state="resolved", resolution={"at": "2026-11-12T11:00:00Z", "how": "evidence", "link": LINK}),
+        thread("T-5", parent="T-1", kind="nugget", state="dropped", resolution={"at": "2026-11-12T11:00:00Z", "how": "dropped", "by": "Gabriel", "note": "not worth a page"}),
+    ]
+    d = write(root, base, "fixture-threads")
+    r = script(root, "mission_lint.py", str(d))
+    check("threads/lint-valid-threads-pass", r.returncode == 0, r.stdout + r.stderr)
+    bad_cases = {
+        "bad-kind": (("threads.1.kind", "tangent"), "kind 'tangent'"),
+        "bad-state": (("threads.1.state", "waiting"), "state 'waiting'"),
+        "no-origin": (("threads.1.origin", None), "origin needs at and event"),
+        "needs-you-without-question": (("threads.1.do_now", None), "needs do_now.question"),
+        "resolved-without-resolution": (("threads.3.resolution", None), "needs resolution.how"),
+        "dropped-without-reason": (("threads.4.resolution.note", None), "dropped needs resolution.by"),
+        "parked-without-home": (("threads.2.home", None), "parked needs home.link"),
+        "unknown-parent": (("threads.1.parent", "T-99"), "parent 'T-99'"),
+        "wrong-prefix": (("threads.1.id", "X-2"), "id must be T-<number>"),
+        "bad-reason": (("threads.1.reasons", ["scary"]), "reasons ['scary']"),
+        "accepted-by-agent": (("threads.2.home.accepted.by", "agent"), "home.accepted needs a named person"),
+    }
+    for name, ((path, value), expect) in bad_cases.items():
+        dd = write(root, patch(base, path, value), "case-thread-" + name)
+        r = script(root, "mission_lint.py", str(dd))
+        check(f"threads/lint-rejects-{name}", r.returncode == 1 and expect in r.stdout, r.stdout.strip()[-300:])
+        shutil.rmtree(dd)
+    dd = write(root, patch(base, "threads.1.do_now.recommendation", None), "case-thread-norec")
+    r = script(root, "mission_lint.py", str(dd))
+    check("threads/lint-missing-recommendation-warns-not-errors", r.returncode == 0 and "T-2: needs_you without a recommendation" in r.stdout, r.stdout)
+    shutil.rmtree(dd)
+    r = script(root, "mission_lint.py", str(write(root, VALID, "case-no-threads")))
+    check("threads/lint-record-without-threads-passes", r.returncode == 0 and "no recommendation" not in r.stdout, r.stdout)
+    r = script(root, "mission_lint.py", str(write(root, patch(VALID, "needs_you.0.recommendation", None), "case-no-threads")))
+    check("threads/lint-needs-you-without-recommendation-warns-not-errors", r.returncode == 0 and "N-1: no recommendation" in r.stdout, r.stdout)
+    shutil.rmtree(root / "missions" / "case-no-threads")
+    shutil.rmtree(d)
+
+    # import: seed threads from an existing record and its close-out
+    d = write(root, VALID, "fixture-import")
+    co = yaml.safe_load((HERE / "fixtures" / "closeout" / "closeout.yaml").read_text())
+    (d / "closeout.yaml").write_text(yaml.safe_dump(co, sort_keys=False, allow_unicode=True))
+    original = (d / "mission.yaml").read_text()
+    r = script(root, "mission_threads.py", "import", "fixture-import", "--session", "eval-session")
+    m = yaml.safe_load((d / "mission.yaml").read_text())
+    ts = m.get("threads") or []
+    check("threads/import-exit-0", r.returncode == 0, r.stdout + r.stderr)
+    check("threads/import-marks-origin-imported", bool(ts) and all((t.get("origin") or {}).get("event") == "imported" for t in ts),
+          str([(t.get("id"), (t.get("origin") or {}).get("event")) for t in ts])[:300])
+    check("threads/import-ids-are-T-n", [t.get("id") for t in ts] == [f"T-{i}" for i in range(1, len(ts) + 1)], str([t.get("id") for t in ts]))
+    by_src = {s: t for t in ts for s in t.get("imported_from") or []}
+    check("threads/import-one-big-intent-root", sum(t.get("kind") == "big_intent" for t in ts) == 1
+          and all(t.get("parent") == "T-1" for t in ts if t.get("kind") != "big_intent"), str([(t["id"], t.get("parent")) for t in ts]))
+    n1 = by_src.get("needs_you:N-1")
+    check("threads/import-needs-you-merged-with-its-closeout-item", n1 is not None and n1 is by_src.get("closeout:CO-1")
+          and sum(t.get("needs_you_id") == "N-1" for t in ts) == 1, str(n1)[:300])
+    check("threads/import-merged-thread-keeps-recommendation", n1 is not None and (n1.get("do_now") or {}).get("recommendation") == "Send now"
+          and n1.get("state") == "needs_you", str((n1 or {}).get("do_now")))
+    co3 = by_src.get("closeout:CO-3") or {}
+    check("threads/import-orphan-needs-you-uncovered", co3.get("state") == "needs_you" and "uncovered_obligation" in (co3.get("reasons") or [])
+          and (co3.get("closeout") or {}).get("bucket") == "ORPHAN", str(co3)[:300])
+    co2 = by_src.get("closeout:CO-2") or {}
+    check("threads/import-accepted-keep-is-parked", co2.get("state") == "parked" and ((co2.get("home") or {}).get("accepted") or {}).get("by") == "Gabriel", str(co2)[:300])
+    batch = [t for t in ts if (t.get("closeout") or {}).get("batch")]
+    check("threads/import-batch-approval-thread", len(batch) == 1 and batch[0]["closeout"]["actions"] == ["A-1", "A-2"]
+          and batch[0].get("reasons") == ["approval"], str(batch)[:300])
+    asks = [t for t in ts if t.get("kind") == "ask"]
+    check("threads/import-asks", sorted(t.get("ask_id") for t in asks) == ["A-1", "A-2", "A-3"]
+          and {t["ask_id"]: t["state"] for t in asks} == {"A-1": "resolved", "A-2": "open", "A-3": "resolved"}, str([(t.get("ask_id"), t.get("state")) for t in asks]))
+    check("threads/import-parked-tracks", {t.get("parked_id") for t in ts if t.get("kind") == "open_door"} == {"P-1", "P-2"}, str([t.get("parked_id") for t in ts]))
+    jf = [s for s in by_src if s.startswith("journey:")]
+    check("threads/import-journey-findings-and-blockers", sorted(jf) == ["journey:J-1:findings:0", "journey:J-3:blockers:0"], str(jf))
+    check("threads/import-member-covered-by-closeout-not-duplicated", "member:PRJ-1398" not in by_src
+          and sum(1 for t in ts if any("PRJ-1398" in str(x.get("ref")) for x in t.get("refs") or [])) == 1, str([t.get("refs") for t in ts])[:300])
+    after = (d / "mission.yaml").read_text().splitlines()
+    check("threads/import-writes-only-the-threads-block", after[:len(original.splitlines())] == original.splitlines()
+          and "threads:" in after[len(original.splitlines()):][:2], "\n".join(after[len(original.splitlines()) - 2:][:5]))
+    lib = importlib.util.spec_from_file_location("ml2", SCRIPTS / "mission_lib.py")
+    ml2 = importlib.util.module_from_spec(lib)
+    lib.loader.exec_module(ml2)
+    before_text = (d / "mission.yaml").read_text()
+    m3 = yaml.safe_load(before_text)
+    if m3.get("threads") and hasattr(ml2, "set_section"):
+        m3["threads"][0]["title"] = "Renamed root"
+        ml2.set_section(d, "threads", m3["threads"])
+    changed = [ln for ln in (d / "mission.yaml").read_text().splitlines() if ln not in before_text.splitlines()]
+    check("threads/set-section-changes-only-what-changed", changed == ["  title: Renamed root"], str(changed))
+    r = script(root, "mission_lint.py", str(d))
+    check("threads/import-result-lints", r.returncode == 0, r.stdout[-400:])
+    r = script(root, "mission_threads.py", "import", "fixture-import", "--session", "eval-session")
+    m2 = yaml.safe_load((d / "mission.yaml").read_text())
+    check("threads/import-idempotent", r.returncode == 0 and len(m2.get("threads") or []) == len(ts) and "0 thread(s) imported" in r.stdout, r.stdout)
+    r = script(root, "mission_threads.py", "import", "fixture-vendor", "--dry-run")
+    check("threads/import-dry-run-writes-nothing", r.returncode == 0 and "threads" not in yaml.safe_load((root / "missions" / "fixture-vendor" / "mission.yaml").read_text()),
+          r.stdout + r.stderr)
+
+
 def phase1_control_evals(root: pathlib.Path, d: pathlib.Path, mco, base: dict, facts: dict) -> None:
     """Close control: manifest approval bound to a hash, read-backs, UNKNOWN dispositions, risk decisions,
     accepted successors, a decision-first report and the close-out log."""
@@ -835,6 +946,7 @@ def main() -> int:
         r2 = script(root, "mission_log.py", "feedback", "--rating", "-1", "--text", "what is N-2?", "--command", "report")
         r3 = script(root, "mission_log.py", "summary")
         check("log/use-feedback-summary", all(x.returncode == 0 for x in (r, r2, r3)) and "what is N-2?" in r3.stdout and "net rating: -1" in r3.stdout, r3.stdout)
+        threads_phase1_evals(root)
         closeout_evals(root, d, util)
         grader_calibration_evals()
     finally:

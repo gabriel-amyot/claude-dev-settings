@@ -4,7 +4,9 @@ Run every script with: uv run --quiet --with pyyaml python3 <script> ...
 """
 from __future__ import annotations
 
+import contextlib
 import datetime as dt
+import fcntl
 import json
 import os
 import pathlib
@@ -118,3 +120,45 @@ def gh_url(path: pathlib.Path) -> str:
         return GH_BLOB + str(path.resolve().relative_to(PM_ROOT))
     except ValueError:
         return path.resolve().as_uri()
+
+
+def set_section(d: pathlib.Path, key: str, value) -> None:
+    """Replace one top-level block (for example threads:) in place. Every other line of the file stays as it is.
+
+    The block runs from its 'key:' line to the next top-level key. A missing block is appended at the end.
+    Use it inside locked(d), because several sessions write the same record.
+    """
+    f = d / "mission.yaml"
+    lines = f.read_text().splitlines(keepends=True)
+    block = yaml.safe_dump({key: value}, sort_keys=False, allow_unicode=True, width=120, default_flow_style=False)
+    start = next((i for i, ln in enumerate(lines) if re.match(rf"^{re.escape(key)}:(\s|$)", ln)), None)
+    if start is None:
+        text = "".join(lines)
+        f.write_text(text.rstrip("\n") + "\n\n" + block)
+        return
+    end = start + 1
+    while end < len(lines) and (not lines[end].strip() or lines[end][0] in " -\t"):
+        end += 1
+    while end > start + 1 and not lines[end - 1].strip():
+        end -= 1
+    f.write_text("".join(lines[:start]) + block + "".join(lines[end:]))
+
+
+@contextlib.contextmanager
+def locked(d: pathlib.Path):
+    """An exclusive flock on mission.yaml for a read-modify-write (like the ledger helper)."""
+    with open(d / "mission.yaml", "r+") as fh:
+        fcntl.flock(fh, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(fh, fcntl.LOCK_UN)
+
+
+def closeout_home(d: pathlib.Path) -> pathlib.Path:
+    """Where a mission's close-out files live: the mission folder, or missions/_closeout/<slug>/ when the
+    sweep ran before the mission record existed."""
+    if (d / "closeout.yaml").exists():
+        return d
+    alt = MISSIONS_DIR / "_closeout" / d.name
+    return alt if (alt / "closeout.yaml").exists() else d

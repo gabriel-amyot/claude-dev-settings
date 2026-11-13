@@ -50,7 +50,7 @@ Prints `✓ team graph @ <sha>, pulled Nh ago` or `⚠ STALE TEAM GRAPH …` (ne
 ## Mode: down (downward sync)
 
 ```bash
-$CG down            # dry-run: fetch, show incoming commits, silver summary, promotions to confirm
+$CG down            # dry-run: fetch, show incoming commits, derived-views summary, promotions to confirm
 $CG down --apply    # ff-only merge, rebuild context-graph/{cards,graph-index.yaml,drift-report.md}, confirm promotions
 ```
 After `--apply`, read `documentation/bibliotheque/context-graph/drift-report.md`. A dangling id means a rename or removal upstream: list it for Gabriel, never delete the reference silently.

@@ -36,3 +36,7 @@ Selection and maintenance notes: [shared selection](../docs/harness-skill-select
 ## Retained priorities and review candidates
 
 See the selection record for dark-factory, technical documentation, agent-os, retained ticket workflows and unused cascades.
+
+## Proxi operations
+
+- [proxi-host-verification](proxi-host-verification/SKILL.md): host identity checks and durable deployment evidence.

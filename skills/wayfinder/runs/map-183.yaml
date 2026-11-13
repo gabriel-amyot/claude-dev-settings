@@ -1,0 +1,90 @@
+map: 183
+map_title: Otalia applies a real bid change on the live Powers book
+map_state: CLOSED
+harvested: '2026-11-13T03:01:47+00:00'
+telemetry_epoch: '2026-09-10'
+runs:
+- run_id: b8212bde
+  spec_version: 0.3.0
+  mode: chart
+  map: 183
+  date: '2026-09-22'
+  outcome: charted
+  tickets_created: 8
+  fog_graduated: 4
+  friction:
+  - tag: spec-missing
+    note: charting a successor map when the predecessor is being closed and its children
+      re-parented has no guidance; the skill covers closing a map but not splitting
+      its survivors across two new ones
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/183#issuecomment-5778487051
+- run_id: b25f5f3c
+  spec_version: 0.3.0
+  mode: report
+  map: 38
+  date: '2026-09-13'
+  outcome: partial
+  tickets_created: 0
+  fog_graduated: 0
+  friction: []
+  ticket: 46
+  ticket_type: unknown
+  source: map38-route-keeper route-hygiene session 2026-09-13
+  issue_state: CLOSED
+  comment_url: https://github.com/gabriel-amyot/klever-project-management/issues/46#issuecomment-5653361283
+gaps:
+- issue: 192
+  title: Get the desktop client logs from Otalia and settle the connection drops
+  type: task
+  closed_at: '2026-11-12'
+  reason: closed with no run trailer — this run was never traced
+- issue: 190
+  title: Close the read-surface defects Otalia listed
+  type: unknown
+  closed_at: '2026-11-12'
+  reason: closed with no run trailer — this run was never traced
+- issue: 189
+  title: Let a production bundle write, and tell the truth about it
+  type: unknown
+  closed_at: '2026-11-12'
+  reason: closed with no run trailer — this run was never traced
+- issue: 188
+  title: Make a failed write say what happened and whether the bid moved
+  type: unknown
+  closed_at: '2026-11-12'
+  reason: closed with no run trailer — this run was never traced
+- issue: 187
+  title: Realign the write client to the contract media-api actually serves
+  type: unknown
+  closed_at: '2026-11-12'
+  reason: closed with no run trailer — this run was never traced
+- issue: 186
+  title: Decide whether a local log failure may block a bid write
+  type: grilling
+  closed_at: '2026-11-12'
+  reason: closed with no run trailer — this run was never traced
+- issue: 185
+  title: 'Decide which side moves: the MCP''s write client or media-api''s contract'
+  type: grilling
+  closed_at: '2026-11-12'
+  reason: closed with no run trailer — this run was never traced
+- issue: 61
+  title: Ask about the whole seat in one call, not one advertiser at a time
+  type: unknown
+  closed_at: '2026-11-12'
+  reason: closed with no run trailer — this run was never traced
+- issue: 60
+  title: Filter campaigns by status, and stop returning finished ones by default
+  type: unknown
+  closed_at: '2026-11-12'
+  reason: closed with no run trailer — this run was never traced
+- issue: 52
+  title: Otalia applies one real bid change on prod and confirms it moved
+  type: task
+  closed_at: '2026-11-12'
+  reason: closed with no run trailer — this run was never traced
+malformed_trailers: []
+missing_reflection: true
+pre_telemetry_closures: 0
+feedback: []

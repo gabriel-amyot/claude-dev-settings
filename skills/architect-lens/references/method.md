@@ -121,4 +121,4 @@ Each step has: the **question** to ask (coach stance asks it first), the **moves
 
 ## Review mode
 
-Read the user's design or document. Run the checks of every step against it. Report per step: what holds, what is missing, what is wrong, each with a KB citation. Then name the single highest-risk gap.
+Read the user's design or document. Run the checks of every step against it. Report per step: what holds, what is missing, what is wrong. **Every finding carries its own citation** in the form `Ch N §Section (path)`, including findings that restate a law or a rule from this file. A reference file is a valid source when you name the chapter behind it, for example `reference/styles-ratings.md (Ch 17 ratings)`. A finding you cannot tie to a section is marked `MY INFERENCE`. Then name the single highest-risk gap.

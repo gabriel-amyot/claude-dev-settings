@@ -32,7 +32,9 @@
       "id": 3,
       "prompt": "architect lens, review mode, do stance. Review this design through the FoSA lens: evals/files/design-ticketing.md",
       "expected_output": "Review mode runs the checks of every step against the design. It flags the twelve 'critical' characteristics, the entity trap (one service per table), the shared database plus synchronous calls (one quantum in practice, not real microservices), a style chosen by fashion, and governance by code review only. It names the single highest-risk gap.",
-      "files": ["evals/files/design-ticketing.md"],
+      "files": [
+        "evals/files/design-ticketing.md"
+      ],
       "expectations": [
         "Flags that twelve characteristics marked critical is over-specified and asks which few drive the design",
         "Flags the entity trap: services mirror database tables instead of workflows",
@@ -40,7 +42,7 @@
         "Flags that the style was chosen because it is modern or fashionable, without trade-off analysis",
         "Flags that governance relies on code review only and proposes at least one fitness function",
         "Names the seat double-booking or the sales-opening burst as part of the highest-risk gap",
-        "Each finding cites a chapter section (Ch N §Section) with a kb/ path"
+        "Each finding cites its source: a chapter section (Ch N §Section) with a kb/ path, or a kb reference file that names the chapter behind it, or an explicit MY INFERENCE mark"
       ]
     },
     {

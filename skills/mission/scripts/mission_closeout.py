@@ -4,7 +4,8 @@ Usage:
   mission_closeout.py gather   [<slug>] [--scope NAME] [--seed-jira K1,K2] [--seed-gh N1,N2] [--aliases "a,b"]
                                [--repo PATH ...] [--since DATE] [--exclude "t1,t2"] [--sweep-cap 50] [--depth 4] [--offline]
   mission_closeout.py coverage [<slug>] [--scope NAME]
-  mission_closeout.py render   [<slug>] [--scope NAME] [--open]
+  mission_closeout.py render   [<slug>] [--scope NAME] [--open] [--session S]
+                               (a mission with a record: merge into its threads, write report.html; a scope: closeout.html)
   mission_closeout.py approve  [<slug>] [--scope NAME] --items A-1,A-2 --by NAME --link URL [--hash H]
   mission_closeout.py record   [<slug>] [--scope NAME] --action A-1 (--before S --after S | --skip REASON)
   mission_closeout.py gate     [<slug>] [--scope NAME]
@@ -1344,6 +1345,14 @@ def cmd_log(a) -> int:
             "human_found": [{"id": i.get("id"), "finding": i.get("finding") or i.get("title"), "weight": i.get("miss_weight", "consequential"),
                              "new_check": i.get("new_check"), "eval_case": i.get("eval_case")} for i in human],
             "checks_fired": sorted({i.get("found_by") for i in items if i.get("found_by") and i.get("found_by") != "human"})}
+    md = mission_record_dir(d)
+    if md is not None:
+        ts = [t for t in load(md).get("threads") or [] if not (t.get("kind") == "big_intent" and not t.get("parent"))]
+        ev = [(t.get("origin") or {}).get("event") for t in ts]
+        live = len(ts) - ev.count("imported") - ev.count("closeout_sweep")
+        line["capture"] = {"threads": len(ts), "live": live, "imported": ev.count("imported"),
+                           "misses": [t.get("id") for t in ts if (t.get("origin") or {}).get("event") == "closeout_sweep"],
+                           "live_rate": round(live / len(ts), 2) if ts else None}
     f = closeout_log_file()
     f.parent.mkdir(parents=True, exist_ok=True)
     with f.open("a") as fh:
@@ -1532,6 +1541,9 @@ def render_appendix(co: dict, items: list[dict], warn: list[str]) -> list[str]:
 
 def cmd_render(a) -> int:
     d, m = closeout_dir(a.mission, a.scope)
+    md = mission_record_dir(d)
+    if md is not None:
+        return render_into_record(md, d, a)
     co = load_closeout(d) or {}
     facts = json.loads((d / "closeout-facts.json").read_text()) if (d / "closeout-facts.json").exists() else {}
     err, warn = gate(d)
@@ -1539,6 +1551,9 @@ def cmd_render(a) -> int:
     title = m.get("title") or (co.get("scope") or {}).get("name") or a.scope
     slug_arg = a.mission or f"--scope {a.scope}"
     h = [f"<!doctype html><meta charset=utf-8><title>Close-out: {esc(title)}</title><style>{CSS}</style>",
+         '<div class="unknown"><b>This scope has no mission record.</b> The close-out lives only on this page. '
+         f'Start one with <code>/mission start</code> (slug <code>{esc((co.get("scope") or {}).get("name") or a.scope)}</code>): '
+         "its threads then carry each item, and the Closure tab of the mission report replaces this page.</div>",
          f"<h1>Close-out: {esc(title)}</h1>",
          f"<p class=muted>Facts fetched {esc(facts.get('fetched_at', 'never'))}. Report rendered {esc(now_utc())}.</p>",
          f'<div class="{"gate-ok" if not err else "gate-no"}"><b>Close gate: {"OPEN" if not err else "CLOSED"}.</b> '
@@ -1551,6 +1566,34 @@ def cmd_render(a) -> int:
     out = d / "closeout.html"
     out.write_text("\n".join(h))
     print(f"report -> {out.as_uri()}")
+    if a.open:
+        subprocess.run(["open", str(out)], check=False)
+    return 0
+
+
+def render_into_record(md: pathlib.Path, d: pathlib.Path, a) -> int:
+    """A mission with a record: merge closeout.yaml into its threads, write the closeout summary into the record,
+    and render report.html (the Closure tab). No separate closeout.html."""
+    import yaml
+    from mission_lib import locked, set_section, set_top
+    from mission_render import render
+    from mission_thread import merge_closeout
+    co = load_closeout(d)
+    if co is not None:
+        with locked(md):
+            m = load(md)
+            threads, log = merge_closeout(m, co, getattr(a, "session", None))
+            set_section(md, "threads", threads)
+            for line in log:
+                print(f"  {line}")
+    err, _ = gate(md)
+    rel = str(d.relative_to(PM_ROOT)) if str(d).startswith(str(PM_ROOT)) else str(d)
+    set_top(md, "closeout", {"at": now_utc(), "files": rel, "gate": "open" if not err else "closed", "conditions": len(err)})
+    out = render(md)
+    stale = d / "closeout.html"
+    print(f"report -> {out.as_uri()}#cl-needs (Closure tab)")
+    if stale.exists():
+        print(f"note: {stale} is from an earlier version; the Closure tab replaces it")
     if a.open:
         subprocess.run(["open", str(out)], check=False)
     return 0
@@ -1577,6 +1620,7 @@ def main() -> int:
             p.add_argument("--offline", action="store_true")
         if name == "render":
             p.add_argument("--open", action="store_true")
+            p.add_argument("--session", help="the session doing the close-out (recorded in each thread's history)")
         if name == "approve":
             p.add_argument("--items", required=True, help="comma-separated manifest ids ('' approves an empty manifest)")
             p.add_argument("--by", required=True)

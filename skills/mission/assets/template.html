@@ -44,8 +44,48 @@ pre.msg{white-space:pre-wrap;font:14px/1.55 var(--sans);margin:0;padding:12px 16
 .graph{height:520px}.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;padding:8px 16px}.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:-1px}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px}
 footer{font-size:12px;color:var(--mute);padding:20px 0 40px}.empty{padding:14px 16px;color:var(--mute);font-size:13px}
+/* Closure tab (ux-spec: missions/_meta/closure-ux) */
+#p-closure .phase{display:flex;margin:0 0 14px;font-size:12px}#p-closure .ph{padding:4px 12px;border:1px solid var(--line);background:var(--surface);color:var(--mute)}#p-closure .ph:first-child{border-radius:99px 0 0 99px}#p-closure .ph:last-child{border-radius:0 99px 99px 0}#p-closure .ph.done{color:var(--ink2)}#p-closure .ph.done::before{content:"✓ "}#p-closure .ph.on{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
+#p-closure .root{margin:-6px 0 12px;color:var(--ink2)}#p-closure .tile:hover{text-decoration:none;border-color:var(--accent)}
+#p-closure .mix{display:flex;height:22px;border-radius:6px;overflow:hidden;font:600 11px/22px var(--sans);margin-bottom:6px;background:var(--chip)}#p-closure .mix span{padding:0 8px;white-space:nowrap;overflow:hidden}
+.m-needs{background:var(--crit);color:#fff}.m-open{background:#e9c46a;color:#2b2000}.m-act{background:var(--warn);color:#2b2000}.m-home{background:var(--accent);color:#fff}.m-done{background:var(--good);color:#fff}.m-drop{background:var(--neutral);color:#fff}
+#p-closure .legend{display:flex;gap:14px;flex-wrap:wrap;color:var(--mute);margin:0 0 18px;padding:0}#p-closure .legend i{font-style:normal;margin-right:3px;display:inline;width:auto;height:auto;border-radius:0}
+#p-closure .sh{margin:22px 0 6px}#p-closure h3.grp{font-size:12.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink2);margin:14px 0 6px}#p-closure h3.grp .n{text-transform:none;letter-spacing:0;margin-left:6px;font:600 12px var(--mono);color:var(--mute)}
+#p-closure .stack{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+#p-closure details.th{border-bottom:1px solid var(--line2)}#p-closure details.th:last-child{border-bottom:0}
+#p-closure details.th>summary{list-style:none;display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;flex-wrap:wrap;color:var(--ink);font-size:14px}
+#p-closure details.th>summary::-webkit-details-marker,#p-closure details.bucket>summary::-webkit-details-marker{display:none}
+#p-closure details.th>summary::before,#p-closure details.bucket>summary::before{content:"▸";color:var(--mute);font-size:11px;width:10px}#p-closure details.th[open]>summary::before,#p-closure details.bucket[open]>summary::before{content:"▾"}
+#p-closure details.th[open]>summary,#p-closure details.th>summary:hover{background:var(--bg)}
+#p-closure .ttl{font-weight:600;flex:1 1 320px}#p-closure .ttl a{font-weight:600}
+#p-closure .glyph{font-style:normal;font-size:13px;width:16px;text-align:center;display:inline-block}.g-needs{color:var(--crit)}.g-open{color:#c99400}.g-act{color:#b07d00}.g-home{color:var(--accent)}.g-done{color:var(--good)}.g-drop{color:var(--neutral)}
+#p-closure .why{font:600 11px var(--sans);padding:1px 8px;border-radius:99px;white-space:nowrap;font-style:normal}#p-closure .why.crit{background:var(--crit-bg);color:var(--crit)}#p-closure .why.warn{background:var(--warn-bg);color:#8a5d00}#p-closure .why.neutral{background:var(--chip);color:var(--ink2)}#p-closure .why.drift{background:var(--serious-bg);color:#a3471f}
+@media (prefers-color-scheme:dark){#p-closure .why.warn{color:#f5c55a}#p-closure .why.drift{color:#f0a07e}#p-closure .why.crit{color:#ff8b8b}}
+:root[data-theme=dark] #p-closure .why.warn{color:#f5c55a}:root[data-theme=dark] #p-closure .why.drift{color:#f0a07e}:root[data-theme=dark] #p-closure .why.crit{color:#ff8b8b}
+#p-closure .do{font:600 11.5px var(--sans);color:var(--accent-ink);border:1px solid var(--accent);border-radius:6px;padding:0 7px;white-space:nowrap}#p-closure .kindw{font:600 11px var(--sans);background:var(--chip);border-radius:6px;padding:0 7px}
+#p-closure .sid{font:600 11px var(--mono);color:var(--mute);background:var(--chip);border-radius:4px;padding:0 5px}
+#p-closure .body{padding:4px 18px 14px 40px}#p-closure .body h4{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);margin:10px 0 3px}#p-closure .body p{margin:0 0 6px}
+#p-closure .two{display:grid;grid-template-columns:3fr 2fr;gap:20px}
+#p-closure .donow{border:1px solid var(--accent);border-left:4px solid var(--accent);border-radius:8px;padding:6px 14px 10px;margin:10px 0;background:var(--surface)}#p-closure .donow.soft{border-color:var(--line);border-left-color:var(--warn)}#p-closure .donow h4{color:var(--accent-ink)}#p-closure .q{font-weight:600}
+#p-closure ol.opts{margin:4px 0 6px;padding-left:22px}#p-closure ol.opts li{margin:3px 0}#p-closure ol.opts li.rec b{text-decoration:underline;text-decoration-color:var(--good)}#p-closure .cons{color:var(--ink2);font-size:13px;margin-left:6px}
+#p-closure .cmd{margin:6px 0}#p-closure .cmd pre{margin:3px 0;padding:8px 10px;background:var(--bg);border:1px solid var(--line2);border-radius:6px;white-space:pre-wrap;word-break:break-all;font:12px/1.45 var(--mono)}
+#p-closure .driftbox{background:var(--serious-bg);border-left:3px solid var(--serious);padding:6px 10px;border-radius:4px;font-size:13px;margin:8px 0}
+#p-closure .row{display:flex;gap:10px;margin:6px 0;font-size:13px;align-items:flex-start}#p-closure .lbl{flex:0 0 92px;font-size:12px;color:var(--mute);font-weight:600;padding-top:2px}
+#p-closure .chips{margin-top:0}#p-closure ul.acts{margin:0;padding-left:16px}#p-closure ul.acts li{margin:2px 0}
+#p-closure .hist{font-size:12px;color:var(--mute);margin-top:8px;border-top:1px dashed var(--line);padding-top:6px}
+code{font-family:var(--mono);font-size:.92em}code.nolink{border-bottom:1px dotted var(--mute)}sup.nl{font-size:9.5px;color:var(--mute);margin-left:2px}
+#p-closure details.bucket{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin:8px 0;overflow:hidden}
+#p-closure details.bucket>summary{list-style:none;display:flex;align-items:baseline;gap:10px;padding:11px 16px;cursor:pointer;flex-wrap:wrap;color:var(--ink)}
+#p-closure .bt{font-weight:650;font-size:14px}#p-closure .sub{color:var(--mute);font-size:12.5px}#p-closure .bin{border-top:1px solid var(--line2)}#p-closure .pad{padding:8px 16px 12px}
+#p-closure details.inner>summary{cursor:pointer;color:var(--ink2);font-size:13px;padding:6px 0}
+#p-closure ul.xref{margin:0;padding:10px 16px 10px 34px}#p-closure ul.xref li{margin:3px 0}#p-closure ul.tree{margin:0;padding:10px 16px 12px 30px}#p-closure ul.tree>li{margin:6px 0}#p-closure ul.tree ul{padding-left:18px;margin:2px 0;list-style:none}
+#p-closure .capbar{display:flex;height:22px;border-radius:6px;overflow:hidden;background:var(--chip);font:600 11px/22px var(--sans);margin:6px 0 8px}#p-closure .capbar span{padding:0 8px;white-space:nowrap;overflow:hidden}.cap-live{background:var(--good);color:#fff}.cap-imp{background:var(--neutral);color:#fff}.cap-sweep{background:var(--serious);color:#fff}
+#p-closure .good-note{background:var(--good-bg);border-left:3px solid var(--good);padding:8px 12px;border-radius:4px}#p-closure .gate-ok{background:var(--good-bg);border-left:3px solid var(--good);padding:8px 12px;border-radius:4px;margin:10px 0}
+@media (max-width:800px){#p-closure .two{grid-template-columns:1fr}#p-closure .body{padding-left:16px}}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+.tiles.five{grid-template-columns:repeat(5,1fr)}
 @media (max-width:800px){.tiles,.kanban{grid-template-columns:1fr 1fr}}
-@media print{nav,.btn{display:none}[role=tabpanel]{display:block!important}}
+@media print{nav,.btn{display:none}[role=tabpanel]{display:block!important}#p-closure[hidden]{display:block!important}}
 </style>
 </head>
 <body>
@@ -58,6 +98,7 @@ footer{font-size:12px;color:var(--mute);padding:20px 0 40px}.empty{padding:14px 
 </div></header>
 <nav aria-label="Views"><div class="wrap" role="tablist" id="tablist">
   <button role="tab" id="t-mission" aria-controls="p-mission" aria-selected="true">Mission <span class="ct hot" id="c-needs"></span></button>
+  <button role="tab" id="t-closure" aria-controls="p-closure" aria-selected="false" tabindex="-1">Closure <span class="ct hot" id="c-closure"></span></button>
   <button role="tab" id="t-journey" aria-controls="p-journey" aria-selected="false" tabindex="-1">Journey <span class="ct" id="c-journey"></span></button>
   <button role="tab" id="t-graph" aria-controls="p-graph" aria-selected="false" tabindex="-1">Context graph</button>
   <button role="tab" id="t-latest" aria-controls="p-latest" aria-selected="false" tabindex="-1">Latest changes <span class="ct" id="c-latest"></span></button>
@@ -65,6 +106,7 @@ footer{font-size:12px;color:var(--mute);padding:20px 0 40px}.empty{padding:14px 
 </div></nav>
 <main class="wrap">
   <div role="tabpanel" id="p-mission" aria-labelledby="t-mission"></div>
+  <div role="tabpanel" id="p-closure" aria-labelledby="t-closure" hidden><!--__CLOSURE__--></div>
   <div role="tabpanel" id="p-journey" aria-labelledby="t-journey" hidden></div>
   <div role="tabpanel" id="p-graph" aria-labelledby="t-graph" hidden></div>
   <div role="tabpanel" id="p-latest" aria-labelledby="t-latest" hidden></div>
@@ -78,6 +120,8 @@ const M = DATA.mission, C = DATA.computed || {}, NOW = new Date();
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const arr = x => Array.isArray(x) ? x : [];
+const lk = s => (DATA.lk && DATA.lk[String(s ?? '')]) || esc(s);
+const CL = DATA.closure || {needs: 0, open: 0, threads: 0, phase: 'Live capture', gate: 'closed', counter: 0};
 const days = d => d ? Math.floor((NOW - new Date(d)) / 864e5) : null;
 const hours = d => d ? (NOW - new Date(d)) / 36e5 : null;
 const ageCls = n => n == null ? '' : n > 14 ? 'red' : n > 3 ? 'amber' : '';
@@ -113,36 +157,38 @@ $('alerts').innerHTML = alerts.map(([c,t]) => `<div class="alert ${c}">⚑ ${esc
 
 // mission tab
 function needCard(n){
-  const opts = arr(n.options).map(o => `<label class="opt${o.label===n.recommendation?' rec':''}"><b>${esc(o.label)}</b>${o.consequence?` <span class="muted small">→ ${esc(o.consequence)}</span>`:''}${o.source?`<span class="tag">${o.source==='drafted'?'drafted by the report':'quoted from source'}</span>`:''}${o.label===n.recommendation?'<span class="tag">recommended</span>':''}</label>`).join('');
+  const opts = arr(n.options).map(o => `<label class="opt${o.label===n.recommendation?' rec':''}"><b>${lk(o.label)}</b>${o.consequence?` <span class="muted small">→ ${lk(o.consequence)}</span>`:''}${o.source?`<span class="tag">${o.source==='drafted'?'drafted by the report':'quoted from source'}</span>`:''}${o.label===n.recommendation?'<span class="tag">recommended</span>':''}</label>`).join('');
   const d = days(n.since);
-  return `<div class="item"><div><span class="id">${esc(n.id)}</span>${d!=null?`<span class="age ${ageCls(d)}">${d}d</span>`:''}<b>${esc(n.question)}</b></div>
-    ${n.why?`<div class="muted small" style="margin:3px 0 6px">${esc(n.why)}</div>`:''}${opts}
-    ${n.after_answer?`<div class="small" style="margin-top:6px"><b>After your answer, I do:</b> ${esc(n.after_answer)}</div>`:''}${chips(n.links)}
+  return `<div class="item"><div><span class="id">${esc(n.id)}</span>${d!=null?`<span class="age ${ageCls(d)}">${d}d</span>`:''}<b>${lk(n.question)}</b></div>
+    ${n.why?`<div class="muted small" style="margin:3px 0 6px">${lk(n.why)}</div>`:''}${opts}
+    ${n.recommendation?'':'<div class="small muted">No recommendation recorded.</div>'}
+    ${n.after_answer?`<div class="small" style="margin-top:6px"><b>After your answer, I do:</b> ${lk(n.after_answer)}</div>`:''}${chips(n.links)}
     <div style="margin-top:8px"><button class="btn xs" data-answer="${esc(n.id)}">Copy "ANSWER ${esc(n.id)}:"</button></div></div>`;
 }
 function missionTab(){
   const nm = M.next_milestone;
   const oldest = blocking.reduce((a,n) => Math.max(a, days(n.since)||0), 0);
-  let h = `<div id="summary"><p class="verdict">${esc(M.verdict || M.destination)}</p>
-  <div class="tiles">
+  let h = `<div id="summary"><p class="verdict">${lk(M.verdict || M.destination)}</p>
+  <div class="tiles five">
     <a class="tile ${blocking.length?'hot':''}" href="#needs"><div class="v">${blocking.length}</div><div class="l">Needs you</div><div class="s">${blocking.length?'oldest '+oldest+'d':'nothing waiting on you'}</div></a>
     <a class="tile ${asksOpen.length?'warm':''}" href="#asks"><div class="v">${asksOpen.length} <span class="muted" style="font-size:14px">of ${arr(M.asks).length}</span></div><div class="l">Asks open</div><div class="s">questions and requests</div></a>
     <a class="tile ${C.mismatches?'warm':''}" href="#" data-goto="journey"><div class="v">${C.fetched_at && !C.offline ? C.mismatches : '?'}</div><div class="l">Tracker mismatches</div><div class="s">${C.offline?'not checked (offline fetch)':C.fetched_at?'fetched '+Math.round(fetchH)+'h ago':'not fetched'}</div></a>
-    <div class="tile"><div class="v" style="font-size:16px">${esc(nm ? nm.title : 'not set')}</div><div class="l">Next milestone</div><div class="s">${esc(nm && nm.done_when ? 'done when: ' + nm.done_when : '')}</div></div>
+    <a class="tile ${CL.counter?'hot':''}" href="#" data-goto="closure"><div class="v">${CL.open + CL.needs}</div><div class="l">Open threads · closure readiness</div><div class="s">${CL.threads ? `${CL.needs} need you · ${CL.open} open · ${esc(CL.phase)} · gate ${esc(CL.gate)}` : 'no threads captured yet'}</div></a>
+    <div class="tile"><div class="v" style="font-size:16px">${lk(nm ? nm.title : 'not set')}</div><div class="l">Next milestone</div><div class="s">${nm && nm.done_when ? 'done when: ' + lk(nm.done_when) : ''}</div></div>
   </div>`;
   h += sec('Needs you', blocking.length + ' · only you can clear these', blocking.length ? blocking.map(needCard).join('') : empty('Nothing is waiting on you.'), 'needs');
   if (fyi.length) h += `<details class="card"><summary>FYI: ${fyi.length} item(s) you own that block nothing</summary>${fyi.map(needCard).join('')}</details>`;
   h += `</div>`;
-  h += sec('Deliverables', arr(M.deliverables).length, arr(M.deliverables).map(d => `<div class="item"><span class="id">${esc(d.id)}</span><b>${esc(d.title)}</b><div class="small">${esc(d.status_line||'')}</div>${chips(arr(d.members).map(r => memberLink(r)).filter(Boolean))}</div>`).join('') || empty('No deliverables recorded yet.'));
+  h += sec('Deliverables', arr(M.deliverables).length, arr(M.deliverables).map(d => `<div class="item"><span class="id">${esc(d.id)}</span><b>${lk(d.title)}</b><div class="small">${lk(d.status_line||'')}</div>${chips(arr(d.members).map(r => memberLink(r)).filter(Boolean))}</div>`).join('') || empty('No deliverables recorded yet.'));
   const asks = arr(M.asks), open = asks.filter(a => !['answered','done','superseded'].includes(a.state)), closed = asks.filter(a => ['answered','done','superseded'].includes(a.state));
-  const askRow = a => `<tr><td class="mono">${esc(a.id)}</td><td>${esc(a.asker||'')}</td><td><b>${esc(a.text)}</b>${a.answer?`<div class="small muted">${esc(a.answer)}</div>`:''}</td><td>${st(a.state)}</td><td class="mono small">${esc(a.date||'')}</td></tr>`;
+  const askRow = a => `<tr><td class="mono">${esc(a.id)}</td><td>${esc(a.asker||'')}</td><td><b>${lk(a.text)}</b>${a.answer?`<div class="small muted">${lk(a.answer)}</div>`:''}</td><td>${st(a.state)}</td><td class="mono small">${esc(a.date||'')}</td></tr>`;
   h += sec('You asked', `${open.length} open · ${closed.length} resolved`, asks.length ? `<table><thead><tr><th>ID</th><th>Who</th><th>Ask and answer</th><th>State</th><th>Date</th></tr></thead><tbody>${open.map(askRow).join('')}</tbody></table>${closed.length?`<details><summary>${closed.length} resolved</summary><table><tbody>${closed.map(askRow).join('')}</tbody></table></details>`:''}` : empty('No asks recorded yet.'), 'asks');
   const msgs = arr(M.messages);
   if (msgs.length) h += sec('Messages to send', msgs.length, msgs.map(x => `<div class="item"><span class="id">${esc(x.id)}</span><b>To ${esc(x.to)}</b> <span class="muted small">${esc(x.channel||'')}</span> ${st(x.state==='answered'?'answered_msg':x.state, x.state)}
     <pre class="msg" id="msg-${esc(x.id)}" style="margin-top:8px">${esc(x.sent_text || x.draft)}</pre><div style="margin-top:6px"><button class="btn xs" data-copymsg="msg-${esc(x.id)}">Copy message</button></div></div>`).join(''));
   const arts = arr(M.artifacts);
   if (arts.length) h += sec('Artifacts', arts.length, `<table><tbody>${arts.map(a => `<tr><td class="mono">${esc(a.id)}</td><td><b>${esc(a.title)}</b><div class="mono small muted">${esc(a.path||a.url||'')}</div></td><td class="mono small">${esc((a.sha256||'').slice(0,12))}</td><td class="mono small">${esc(a.date||'')}</td></tr>`).join('')}</tbody></table>`);
-  if (arr(M.scope_constraints).length) h += sec('Scope constraints', null, `<ul style="margin:0;padding:10px 16px 10px 34px">${arr(M.scope_constraints).map(s => `<li>${esc(s)}</li>`).join('')}</ul>`);
+  if (arr(M.scope_constraints).length) h += sec('Scope constraints', null, `<ul style="margin:0;padding:10px 16px 10px 34px">${arr(M.scope_constraints).map(s => `<li>${lk(s)}</li>`).join('')}</ul>`);
   return h;
 }
 function memberLink(ref){const m = arr(M.members).find(x => x.ref === ref), J = DATA.jira || {};return m ? m : (J.browse && new RegExp('^(?:' + J.key_pattern + ')$').test(ref) ? {kind:'jira', ref, url:J.browse+ref, title:ref} : null)}
@@ -164,18 +210,18 @@ function timeline(){
   s += `<line x1="${x(NOW)}" x2="${x(NOW)}" y1="30" y2="70" stroke="var(--ink2)" stroke-dasharray="3 3"/><text x="${x(NOW)-14}" y="22" font-size="11">now</text></svg>`;
   return `<div class="lane" style="padding:10px 16px">${s}</div><div class="legend"><span><i style="background:var(--accent)"></i>session</span><span><i style="background:#7a5af5"></i>night run</span><span><i style="background:var(--crit);opacity:.6"></i>no session record (commit-only or gap)</span><span><i style="background:var(--good)"></i>decision</span></div>`;
 }
-const list = (label, xs) => arr(xs).length ? `<div class="small"><b>${label}:</b> ${arr(xs).map(esc).join(' · ')}</div>` : '';
+const list = (label, xs) => arr(xs).length ? `<div class="small"><b>${label}:</b> ${arr(xs).map(lk).join(' · ')}</div>` : '';
 function journeyTab(){
   let h = sec('Trajectory', arr(M.journey).length + ' entries', timeline());
   const js = [...arr(M.journey)].reverse();
-  h += sec('Sessions and runs', 'newest first', js.map(j => `<details class="item" id="${esc(j.id)}"><summary style="padding:0"><span class="id">${esc(j.id)}</span>${st(j.kind==='gap'?'blocked':j.kind==='night_run'?'parked':'current', j.kind)} <b>${esc(j.summary||'')}</b> <span class="muted small mono">${esc((j.start||'').slice(0,10))} ${esc(j.session||'')}</span></summary>
+  h += sec('Sessions and runs', 'newest first', js.map(j => `<details class="item" id="${esc(j.id)}"><summary style="padding:0"><span class="id">${esc(j.id)}</span>${st(j.kind==='gap'?'blocked':j.kind==='night_run'?'parked':'current', j.kind)} <b>${lk(j.summary||'')}</b> <span class="muted small mono">${esc((j.start||'').slice(0,10))} ${esc(j.session||'')}</span></summary>
     <div style="padding:8px 0 0 4px">${list('Milestones', j.milestones)}${list('Blockers', j.blockers)}${list('Confusion', j.confusion)}${list('Findings', j.findings)}${list('Decisions', j.decisions)}${chips(j.links)}</div></details>`).join('') || empty('No sessions recorded yet.'));
   const decs = arr(M.decisions), live = decs.filter(d => ['ratified','proposed'].includes(d.state)), dead = decs.filter(d => !['ratified','proposed'].includes(d.state));
   const decRow = d => {const shown = d.state === 'ratified' && !(d.ratified_by && d.ratified_by.link) ? 'proposed' : d.state;
-    return `<tr><td class="mono">${esc(d.id)}</td><td><b>${esc(d.statement)}</b>${d.supersedes?`<div class="small muted">replaces ${esc(d.supersedes)}</div>`:''}${arr(d.licenses).length?`<div class="small muted mono">built on it: ${arr(d.licenses).map(esc).join(', ')}</div>`:''}</td><td>${st(shown)}</td><td class="small">${d.ratified_by?esc(d.ratified_by.who||'')+(d.ratified_by.link?' '+chip(d.ratified_by.link):''):'<span class="muted">nobody yet</span>'}</td><td class="mono small">${esc(d.date||'')}</td></tr>`};
+    return `<tr><td class="mono">${esc(d.id)}</td><td><b>${lk(d.statement)}</b>${d.supersedes?`<div class="small muted">replaces ${esc(d.supersedes)}</div>`:''}${arr(d.licenses).length?`<div class="small muted mono">built on it: ${arr(d.licenses).map(esc).join(', ')}</div>`:''}</td><td>${st(shown)}</td><td class="small">${d.ratified_by?esc(d.ratified_by.who||'')+(d.ratified_by.link?' '+chip(d.ratified_by.link):''):'<span class="muted">nobody yet</span>'}</td><td class="mono small">${esc(d.date||'')}</td></tr>`};
   h += sec('Decisions', `${live.length} in force or proposed · ${dead.length} retired`, decs.length ? `<table><thead><tr><th>ID</th><th>Decision</th><th>State</th><th>Ratified by</th><th>Date</th></tr></thead><tbody>${live.map(decRow).join('')}</tbody></table>${dead.length?`<details><summary>${dead.length} superseded or reversed</summary><table><tbody>${dead.map(decRow).join('')}</tbody></table></details>`:''}` : empty('No decisions recorded yet.'));
-  h += sec('Disproven: do not reload', arr(M.disproven).length, arr(M.disproven).map(x => `<div class="item"><span class="id">${esc(x.id)}</span><b>False:</b> ${esc(x.claim)}${chips([x.evidence])}<div class="small muted mono">grep: ${esc(x.signature)}</div></div>`).join('') || empty('Nothing disproven yet.'));
-  const pk = arr(M.parked), col = b => pk.filter(p => p.bucket === b).map(p => `<div class="item"><span class="id">${esc(p.id)}</span><b>${esc(p.title)}</b><div class="small muted">${esc(p.owner||'')}${p.since?' · since '+esc(p.since)+' ('+days(p.since)+'d)':''}${p.recheck?' · recheck '+esc(p.recheck):''}</div>${p.reentry?`<div class="small">Re-entry: ${esc(p.reentry)}</div>`:''}${chips(p.links)}</div>`).join('') || empty('none');
+  h += sec('Disproven: do not reload', arr(M.disproven).length, arr(M.disproven).map(x => `<div class="item"><span class="id">${esc(x.id)}</span><b>False:</b> ${lk(x.claim)}${chips([x.evidence])}<div class="small muted mono">grep: ${esc(x.signature)}</div></div>`).join('') || empty('Nothing disproven yet.'));
+  const pk = arr(M.parked), col = b => pk.filter(p => p.bucket === b).map(p => `<div class="item"><span class="id">${esc(p.id)}</span><b>${lk(p.title)}</b><div class="small muted">${esc(p.owner||'')}${p.since?' · since '+esc(p.since)+' ('+days(p.since)+'d)':''}${p.recheck?' · recheck '+esc(p.recheck):''}</div>${p.reentry?`<div class="small">Re-entry: ${lk(p.reentry)}</div>`:''}${chips(p.links)}</div>`).join('') || empty('none');
   h += `<section class="sec"><div class="sh"><h2>Parked tracks</h2><span class="n">${pk.length}</span></div><div class="kanban"><div class="col"><h3>Horizon</h3><div class="card">${col('horizon')}</div></div><div class="col"><h3>Tomorrow</h3><div class="card">${col('tomorrow')}</div></div><div class="col"><h3>Blocked on a person</h3><div class="card">${col('blocked_on_person')}</div></div></div></section>`;
   const tr = arr(C.trackers);
   h += sec('Trackers', C.fetched_at ? `live from Jira and GitHub, fetched ${String(C.fetched_at).slice(0,16).replace('T',' ')}Z` : 'not fetched: run mission_fetch.py', tr.length ? `<table><thead><tr><th>Member</th><th>Mission says</th><th>Tracker says</th><th>Verdict</th></tr></thead><tbody>${tr.map(t => `<tr><td>${chip({kind:t.kind, ref:t.ref, url:t.url, title:t.title})}</td><td>${st(t.role)}</td><td>${esc(t.status || t.error || '')}</td><td>${t.mismatch?`<span class="st crit">${esc(t.mismatch)}</span>`:t.error?'<span class="st neutral">not checked</span>':'<span class="st good">agree</span>'}</td></tr>`).join('')}</tbody></table>` : empty('No Jira or GitHub members to check.'));
@@ -223,37 +269,45 @@ function latestTab(){
   const opt = (v,l) => `<option value="${v}"${win===v?' selected':''}>${l}</option>`;
   return `<p class="verdict">${ch.length} change(s) ${win==='report'?(since?'since the last report ('+esc(String(since).slice(0,16).replace('T',' '))+'Z)':'in the last 7 days (no earlier report)'):win==='all'?'in total':'in the last '+win}.</p>
     <p><label class="small">Window <select id="win">${opt('report','since last report')}${opt('24h','24 hours')}${opt('7d','7 days')}${opt('all','everything')}</select></label></p>`
-    + sec('Latest changes', 'newest first', ch.map(c => `<div class="item"><span class="id">${esc(c.id)}</span><span class="mono small muted">${esc(String(c.at).slice(0,16).replace('T',' '))}Z · ${esc(c.session||'')}</span><div><b>${esc(c.summary)}</b></div>${chips(c.refs)}</div>`).join('') || empty('Nothing changed in this window.'));
+    + sec('Latest changes', 'newest first', ch.map(c => `<div class="item"><span class="id">${esc(c.id)}</span><span class="mono small muted">${esc(String(c.at).slice(0,16).replace('T',' '))}Z · ${esc(c.session||'')}</span><div><b>${lk(c.summary)}</b></div>${chips(c.refs)}</div>`).join('') || empty('Nothing changed in this window.'));
 }
 
 // sources tab
 function sourcesTab(){
   const ms = arr(M.members), grp = r => ms.filter(m => m.role === r);
-  const row = m => `<tr><td>${chip(m.url ? m : {...m, url: '#'})}</td><td>${st(m.role)}</td><td class="small">${esc(m.note||'')}</td></tr>`;
+  const row = m => `<tr><td>${chip(m.url ? m : {...m, url: '#'})}</td><td>${st(m.role)}</td><td class="small">${lk(m.note||'')}</td></tr>`;
   return sec('Members', ms.length, ms.length ? `<table><thead><tr><th>Member</th><th>Role</th><th>Note</th></tr></thead><tbody>${['current','parked','done'].flatMap(grp).map(row).join('')}</tbody></table>${grp('superseded').length?`<details><summary>${grp('superseded').length} superseded (do not start from these)</summary><table><tbody>${grp('superseded').map(row).join('')}</tbody></table></details>`:''}` : empty('No members yet.'))
     + (arr(M.aliases).length ? sec('Aliases', null, `<div class="item mono small">${arr(M.aliases).map(esc).join(' · ')}</div>`) : '')
     + sec('This report', null, `<div class="item small">Record: ${chip({kind:'gh', ref:'mission.yaml', url: DATA.record_url, title: 'missions/'+M.slug+'/mission.yaml'})}<br>Rebuild: <span class="mono">/mission report ${esc(M.slug)}</span></div>`);
 }
 
-const RENDER = {mission: missionTab, journey: journeyTab, graph: graphTab, latest: latestTab, sources: sourcesTab};
+const CLOSURE_HTML = $('p-closure').innerHTML;
+const RENDER = {mission: missionTab, closure: () => CLOSURE_HTML, journey: journeyTab, graph: graphTab, latest: latestTab, sources: sourcesTab};
 const tabs = [...document.querySelectorAll('[role=tab]')];
-function show(id){tabs.forEach(t => {const on = t.id === 't-'+id; t.setAttribute('aria-selected', on); t.tabIndex = on ? 0 : -1; $(t.getAttribute('aria-controls')).hidden = !on});
-  const p = $('p-'+id); p.innerHTML = RENDER[id](); bind(p); history.replaceState(null, '', '#'+id)}
+function show(id, keepHash){tabs.forEach(t => {const on = t.id === 't-'+id; t.setAttribute('aria-selected', on); t.tabIndex = on ? 0 : -1; $(t.getAttribute('aria-controls')).hidden = !on});
+  const p = $('p-'+id); if (id !== 'closure' || !p.dataset.bound) {if (id !== 'closure') p.innerHTML = RENDER[id](); bind(p); p.dataset.bound = id === 'closure' ? '1' : ''} if (!keepHash) history.replaceState(null, '', '#'+id)}
+function openTarget(id){const el = id && document.getElementById(id); if (!el || !$('p-closure').contains(el)) return false; show('closure', true);
+  let q = el; while (q) {if (q.tagName === 'DETAILS') q.open = true; q = q.parentElement} el.scrollIntoView({block:'start'}); return true}
 function bind(p){
   p.querySelectorAll('[data-answer]').forEach(b => b.onclick = () => copyText(`ANSWER ${b.dataset.answer}: `, 'Copied. Paste in the terminal and add your answer.'));
   p.querySelectorAll('[data-copymsg]').forEach(b => b.onclick = () => copyRich($(b.dataset.copymsg), 'Message copied'));
   p.querySelectorAll('[data-goto]').forEach(a => a.onclick = e => {e.preventDefault(); show(a.dataset.goto)});
+  p.querySelectorAll('[data-copy]').forEach(b => b.onclick = e => {e.preventDefault(); e.stopPropagation(); copyText(b.dataset.copy, 'Copied')});
+  p.querySelectorAll('a[href^="#"]:not([data-goto])').forEach(a => {const id = a.getAttribute('href').slice(1); if (id && document.getElementById(id) && $('p-closure').contains(document.getElementById(id))) a.onclick = e => {e.preventDefault(); history.replaceState(null, '', '#'+id); openTarget(id)}});
   const w = p.querySelector('#win'); if (w) w.onchange = () => {p.innerHTML = latestTab(); bind(p)};
 }
 tabs.forEach((t,i) => {t.onclick = () => show(t.id.slice(2)); t.onkeydown = e => {const d = e.key==='ArrowRight'?1:e.key==='ArrowLeft'?-1:0; if (d) {const n = tabs[(i+d+tabs.length)%tabs.length]; n.focus(); n.click()}}});
-document.addEventListener('keydown', e => {if (e.target.matches('input,textarea,select')) return; if (e.key >= '1' && e.key <= '5') show(tabs[+e.key-1].id.slice(2)); if (e.key === 'c') $('copySummary').click()});
+document.addEventListener('keydown', e => {if (e.target.matches('input,textarea,select')) return; if (e.key >= '1' && e.key <= '6') show(tabs[+e.key-1].id.slice(2)); if (e.key === 'c') $('copySummary').click()});
 $('copySummary').onclick = () => {show('mission'); copyRich($('summary'), 'Summary copied as rich text')};
 $('theme').onclick = () => {const r = document.documentElement; r.dataset.theme = r.dataset.theme === 'dark' ? 'light' : 'dark'};
 $('c-needs').textContent = blocking.length || ''; if (!blocking.length) $('c-needs').remove();
+$('c-closure').textContent = CL.counter || ''; if (!CL.counter) $('c-closure').remove();
+window.addEventListener('beforeprint', () => document.querySelectorAll('#p-closure details').forEach(d => d.open = true));
+window.addEventListener('hashchange', () => openTarget(location.hash.slice(1)));
 $('c-journey').textContent = arr(M.journey).length; $('c-sources').textContent = arr(M.members).length;
 $('c-latest').textContent = arr(M.changes).filter(c => +new Date(c.at) >= (DATA.window_start ? +new Date(DATA.window_start) : NOW - 7*864e5)).length;
-$('footer').innerHTML = `Generated ${esc(DATA.generated_at)} by the mission skill from <a href="${esc(DATA.record_url)}">missions/${esc(M.slug)}/mission.yaml</a>. Trackers ${C.fetched_at ? 'fetched ' + esc(C.fetched_at) : 'not fetched'}. Keys: 1–5 views · c copy summary. Amber after 12 h, red after 72 h.`;
-const h0 = location.hash.slice(1); show(RENDER[h0] ? h0 : 'mission');
+$('footer').innerHTML = `Generated ${esc(DATA.generated_at)} by the mission skill from <a href="${esc(DATA.record_url)}">missions/${esc(M.slug)}/mission.yaml</a>. Trackers ${C.fetched_at ? 'fetched ' + esc(C.fetched_at) : 'not fetched'}. Keys: 1–6 views · c copy summary. Amber after 12 h, red after 72 h.`;
+const h0 = location.hash.slice(1); if (!openTarget(h0)) show(RENDER[h0] ? h0 : 'mission');
 </script>
 </body>
 </html>

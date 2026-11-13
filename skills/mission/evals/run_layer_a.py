@@ -35,7 +35,8 @@ SCRIPTS = HERE.parent / "scripts"
 VALID = yaml.safe_load((HERE / "fixtures" / "valid" / "mission.yaml").read_text())
 CASES = yaml.safe_load((HERE / "fixtures" / "invalid_cases.yaml").read_text())
 results: list[tuple[str, bool, str]] = []
-ORG_CONFIG = {"gh_repo": "acme/planning", "jira_browse": "https://tracker.example.invalid/browse/", "jira_org": "acme"}
+ORG_CONFIG = {"gh_repo": "acme/planning", "jira_browse": "https://tracker.example.invalid/browse/", "jira_org": "acme",
+              "repos": {"app-vendor-tool": {"url": "https://forge.example.invalid/acme/app-vendor-tool", "aliases": ["VT"]}}}
 
 
 def check(name: str, ok: bool, detail: str = "") -> None:
@@ -208,6 +209,142 @@ def gate_thread_evals(root: pathlib.Path, d: pathlib.Path) -> None:
     shutil.rmtree(nd)
 
 
+def _mod(name: str, alias: str):
+    spec = importlib.util.spec_from_file_location(alias, SCRIPTS / f"{name}.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _panel(page: str) -> str:
+    return page[page.find('id="p-closure"'):page.find('id="p-journey"')]
+
+
+def _data(page: str) -> dict:
+    try:
+        return json.loads(page.split("const DATA = ", 1)[1].split(";\nconst M = ", 1)[0])
+    except (IndexError, ValueError):
+        return {}
+
+
+def threads_phase3_evals(root: pathlib.Path) -> None:
+    """Phase 3: the Closure tab. Needs you first, one full card per thread, disclosure by <details>, every reference linked."""
+    ml = _mod("mission_links", "mlinks")
+    check("links/calibration-bare-refs-found", len(ml.bare_refs("<p>see #12, PRJ-4 and !7</p>")) == 3, str(ml.bare_refs("<p>see #12, PRJ-4 and !7</p>")))
+    check("links/calibration-linked-and-marked-refs-pass",
+          ml.bare_refs('<a href="x">#12</a><pre>PRJ-4</pre><code class="nolink">!7</code><script>"#9"</script>') == [])
+    h = ml.linkify("VT !45 merged as 0a08771; see #196, PRJ-1398 comment 41893, PRJ-129{2,5} and branch PRJ-1289-offline")
+    check("links/linkify-every-kind", all(x in h for x in ('href="https://forge.example.invalid/acme/app-vendor-tool/-/merge_requests/45"',
+                                                            'href="https://forge.example.invalid/acme/app-vendor-tool/-/commit/0a08771"',
+                                                            'href="https://github.com/acme/planning/issues/196"',
+                                                            'href="https://tracker.example.invalid/browse/PRJ-1398?focusedCommentId=41893"',
+                                                            'href="https://tracker.example.invalid/browse/PRJ-1295"', 'class="nolink"'))
+          and ml.bare_refs(h) == [], h)
+    check("links/unknown-repo-mr-is-marked-not-bare", "nolink" in ml.linkify("merged !12") and ml.bare_refs(ml.linkify("merged !12")) == [], ml.linkify("merged !12"))
+
+    # live phase: threads, no close-out yet
+    live = copy.deepcopy(VALID)
+    live["threads"] = [
+        thread("T-1", kind="big_intent", title="Vendor tool writes in prod"),
+        thread("T-2", parent="T-1", kind="open_door", title="Retry guard for PRJ-1398 writes", origin={"at": "2026-11-01T10:00:00Z", "session": "brave-otter", "event": "open_door_noticed"}),
+        thread("T-3", parent="T-1", kind="rabbit_hole", title="Why #588 shows two seats", drift={"at": "2026-11-12T10:00:00Z", "text": "#588 state open -> closed"}),
+        thread("T-4", parent="T-1", state="needs_you", title="Accept the VT !45 risk?", reasons=["live_assurance_gap"], control="security", live=True,
+               do_now={"actor": "Gabriel", "verb": "Decide", "question": "Who accepts the PRJ-1398 write risk?",
+                       "options": [{"label": "You", "consequence": "recorded on #677"}, {"label": "Nobody yet", "consequence": "writes stay live"}], "recommendation": "You"}),
+        thread("T-5", parent="T-1", state="needs_you", title="Close #59", do_now={"actor": "Gabriel", "question": "Close #59 now?"}),
+        thread("T-6", parent="T-1", kind="open_door", state="parked", title="Advertiser authorization", home={"link": LINK, "owner": "Gabriel", "accepted": None}),
+        thread("T-7", parent="T-1", kind="intent", state="parked", title="Multi-seat in PRJ-95", home={"link": LINK, "accepted": {"by": "Gabriel", "link": LINK}}),
+        thread("T-8", parent="T-1", kind="ask", state="resolved", title="Can TR write?", resolution={"at": "2026-11-12T11:00:00Z", "how": "answered", "note": "Yes, see PRJ-1398"}),
+        thread("T-9", parent="T-1", kind="nugget", state="dropped", title="Shelve the seat glossary", resolution={"at": "x", "how": "dropped", "by": "Gabriel", "note": "duplicate of #12"}),
+    ]
+    d = write(root, live, "fixture-closure")
+    r = script(root, "mission_render.py", str(d))
+    page = (d / "report.html").read_text() if (d / "report.html").exists() else ""
+    cl = _panel(page)
+    check("p3/render-exit-0", r.returncode == 0, r.stderr)
+    tabs = [page.find(f'id="t-{t}"') for t in ("mission", "closure", "journey", "graph", "latest", "sources")]
+    check("p3/tab-order-mission-closure-journey", all(x > 0 for x in tabs) and tabs == sorted(tabs), str(tabs))
+    check("p3/keys-select-six-views", "e.key <= '6'" in page)
+    check("p3/live-phase-is-current", '<span role="listitem" class="ph on" aria-current=step>Live capture</span>' in cl, cl[:600])
+    opn = cl.find(">Open threads <")
+    check("p3/live-phase-leads-with-open-threads-drift-then-oldest", 0 < opn < cl.find(">Big misses")
+          and cl.find('id="T-3"') < cl.find('id="T-2"'), str(opn))
+    check("p3/open-row-shows-kind-and-age", "Open door" in cl and "d ago in brave-otter" in cl)
+    check("p3/one-full-card-per-thread", all(cl.count(f'<details class="th" id="T-{i}"') == 1 for i in range(1, 10)),
+          str({i: cl.count(f'<details class="th" id="T-{i}"') for i in range(1, 10)}))
+    check("p3/parked-unaccepted-is-a-big-miss", cl.find('id="T-6"') < cl.find(">Smaller calls") and "No accepted home" in cl[cl.find('id="T-6"'):cl.find('id="T-6"') + 900])
+    check("p3/xref-line-not-a-second-card", "↑ in Needs you" in cl and 'href="#T-6"' in cl)
+    check("p3/drift-chip-and-box", "⚠ changed" in cl and "driftbox" in cl and 'href="https://github.com/acme/planning/issues/588"' in cl)
+    t4 = cl[cl.find('id="T-4"'):cl.find("</details>", cl.find('id="T-4"'))]
+    check("p3/do-now-box-with-options-recommendation-and-answer-copy", "Do now" in t4 and "→" in t4 and "Recommendation:" in t4
+          and 'data-copy="ANSWER T-4: "' in t4, t4[:600])
+    t5 = cl[cl.find('id="T-5"'):cl.find("</details>", cl.find('id="T-5"'))]
+    check("p3/missing-recommendation-says-so", "No recommendation recorded." in t5, t5[:400])
+    t7 = cl[cl.find('id="T-7"'):cl.find("</details>", cl.find('id="T-7"'))]
+    check("p3/do-now-only-on-needs-you-rows", "Do now" not in t7 and "accepted by Gabriel" in t7, t7[:400])
+    check("p3/reason-chip-and-fixed-why-sentence", "Live security gap" in t4 and "no named person accepted the risk" in t4)
+    check("p3/glyph-has-a-text-label", 'aria-label="Needs you"' in cl and 'aria-label="Open thread"' in cl and 'aria-label="Dropped"' in cl)
+    check("p3/buckets-collapsed-with-counts", '<details class="bucket"><summary><span class="bt">Resolved</span><span class="ct">1</span>' in cl
+          and '<span class="bt">Dropped</span>' in cl, "")
+    check("p3/empty-coverage-is-not-all-clear", "Not searched yet. Coverage appears after" in cl and "all clear" not in cl.lower())
+    check("p3/capture-health-counts-live", "8 of 8 live" in cl, cl[cl.find("How these threads"):][:300])
+    check("p3/every-reference-is-a-link", ml.bare_refs(cl) == [], str(ml.bare_refs(cl)))
+    data = _data(page)
+    check("p3/closure-summary-feeds-tab-and-tile", (data.get("closure") or {}).get("needs") == 3 and (data.get("closure") or {}).get("open") == 2,
+          str(data.get("closure")))
+    check("p3/mission-tab-tile-links-to-closure", 'Open threads · closure readiness' in page and 'data-goto="closure"' in page)
+    leaks = {k: ml.bare_refs(v) for k, v in (data.get("lk") or {}).items() if ml.bare_refs(v)}
+    check("p3/js-views-get-linked-text", bool(data.get("lk")) and not leaks and any("PRJ-1398" in k for k in data.get("lk") or {}), str(leaks)[:300])
+    tpl = (HERE.parent / "assets" / "template.html").read_text()
+    raw = [x for x in ("esc(n.question)", "esc(n.why)", "esc(a.text)", "esc(a.answer)", "esc(d.statement)", "esc(x.claim)", "esc(c.summary)", "esc(j.summary")
+           if x in tpl]
+    check("p3/js-text-fields-use-lk", not raw, str(raw))
+    check("p3/native-details-and-deep-link", "<details" in cl and "function openTarget" in page and "beforeprint" in page)
+
+    # review phase: the close-out fixture, imported into threads
+    co = yaml.safe_load((HERE / "fixtures" / "closeout" / "closeout.yaml").read_text())
+    co["items"].append({"id": "CO-4", "bucket": "SUPERSEDE", "ref": {"kind": "gh", "ref": "#109", "url": "https://forge.example.invalid/acme/planning/issues/109", "title": "old draft"},
+                        "finding": "Replaced by PRJ-103 AC4 and VT !45.", "action": "Close #109 as not planned.", "found_by": "obsolete-items", "state": "proposed"})
+    co["manifest"].append({"id": "A-3", "item": "CO-4", "target": co["items"][-1]["ref"], "expected_state": "open", "kind": "supersede",
+                           "action": "Close #109 as not planned with a pointer to PRJ-103.", "evidence": [LINK], "class": "cancellation", "state": "proposed"})
+    d2 = write(root, VALID, "fixture-review")
+    (d2 / "closeout.yaml").write_text(yaml.safe_dump(co, sort_keys=False, allow_unicode=True))
+    script(root, "mission_threads.py", "import", "fixture-review", "--session", "eval")
+    r = script(root, "mission_render.py", str(d2))
+    page2 = (d2 / "report.html").read_text() if (d2 / "report.html").exists() else ""
+    cl2 = _panel(page2)
+    check("p3/review-phase-is-current", '<span role="listitem" class="ph on" aria-current=step>Close-out review</span>' in cl2, r.stderr)
+    grp = [cl2.find(x) for x in (">Big misses", ">Approval", ">Smaller calls")]
+    check("p3/needs-you-groups-in-order", all(x > 0 for x in grp) and grp == sorted(grp), str(grp))
+    check("p3/verdict-counts-need-you", "Not ready to close." in cl2 and "item(s) need you" in cl2)
+    batch = _mod("mission_closeout", "mco3").plan_batches(co["manifest"])
+    routine = next(b for b in batch if len(b["items"]) > 1)
+    solo = next(b for b in batch if b["items"] == ["A-3"])
+    check("p3/batch-row-has-hash-command-and-l3-table", f"--items {','.join(routine['items'])} --hash {routine['hash']}" in cl2
+          and '<details class="inner"><summary>The 2 actions</summary>' in cl2, str(routine))
+    co4 = cl2[cl2.find('id="CO-4"') - 400:]
+    check("p3/cancellation-gets-its-own-approval-in-its-card", f"--items A-3 --hash {solo['hash']}" in cl2 and "cancellation" in co4[:4000], str(solo))
+    check("p3/co-id-is-a-deep-link-anchor", '<span id="CO-1"></span>' in cl2 and '<span class="sid" title="Close-out item ID">CO-1</span>' in cl2)
+    check("p3/replaced-bucket", '<span class="bt">Replaced or obsolete</span>' in cl2)
+    check("p3/imported-counted-apart-from-live", "imported</span>" in cl2 and "0 of" in cl2 and "not live captures" in cl2,
+          cl2[cl2.find("How these threads"):][:400])
+    check("p3/review-every-reference-is-a-link", ml.bare_refs(cl2) == [], str(ml.bare_refs(cl2)))
+    check("p3/gate-bucket-lists-conditions", '<span class="bt">Close gate</span>' in cl2 and 'thread <a class="ref in" href="#T-1">T-1</a> (open)' in cl2, cl2[cl2.find("Close gate"):][:600])
+
+    node = shutil.which("node")
+    for name, rep, hash_ in (("live", d / "report.html", ""), ("review", d2 / "report.html", "#CO-1")):
+        if not node:
+            check(f"p3/report-js-runs-{name}", False, "node is not installed: the report JS was not run (UNKNOWN is not a pass)")
+            continue
+        r = subprocess.run([node, str(HERE / "report_smoke.js"), str(rep), hash_], capture_output=True, text=True)
+        check(f"p3/report-js-runs-{name}", r.returncode == 0 and r.stdout.startswith("ok"), (r.stdout + r.stderr)[-400:])
+    empty = write(root, VALID, "fixture-empty")
+    script(root, "mission_render.py", str(empty))
+    check("p3/empty-state-nothing-captured", "Nothing captured yet. Threads appear when a session adds" in _panel((empty / "report.html").read_text()))
+    for x in (d, d2, empty):
+        shutil.rmtree(x)
+
+
 def closeout_evals(root: pathlib.Path, d: pathlib.Path, util) -> None:
     """Close-out: gatherer reports UNKNOWN on missing data, the gate refuses orphans, sync refuses done."""
     cspec = util.spec_from_file_location("mco", SCRIPTS / "mission_closeout.py")
@@ -277,12 +414,29 @@ def closeout_evals(root: pathlib.Path, d: pathlib.Path, util) -> None:
     phase1_control_evals(root, d, mco, base, facts)
 
     (d / "closeout.yaml").write_text(yaml.safe_dump(base, sort_keys=False, allow_unicode=True))
-    r = script(root, "mission_closeout.py", "render", "fixture-vendor")
-    page = (d / "closeout.html").read_text() if (d / "closeout.html").exists() else ""
+    sd = root / "missions" / "_closeout" / "fixture-scope2"
+    sd.mkdir(parents=True, exist_ok=True)
+    for f in ("closeout.yaml", "closeout-facts.json"):
+        (sd / f).write_text((d / f).read_text())
+    r = script(root, "mission_closeout.py", "render", "--scope", "fixture-scope2")
+    page = (sd / "closeout.html").read_text() if (sd / "closeout.html").exists() else ""
     check("closeout/render-html", r.returncode == 0 and "Close gate: CLOSED" in page and "ORPHAN (1)" in page
           and "Not checked (UNKNOWN, never PASS)" in page and "cdn." not in page, r.stderr)
-    check("closeout/render-overwrites-one-file", sorted(x.name for x in d.glob("closeout*")) ==
+    r = script(root, "mission_closeout.py", "render", "--scope", "fixture-scope2")
+    check("closeout/render-overwrites-one-file", sorted(x.name for x in sd.glob("closeout*")) ==
           ["closeout-facts.json", "closeout.html", "closeout.yaml"])
+    shutil.rmtree(sd)
+    r = script(root, "mission_closeout.py", "render", "fixture-vendor")
+    rep = (d / "report.html").read_text() if (d / "report.html").exists() else ""
+    cl = rep[rep.find('id="p-closure"'):rep.find('id="p-journey"')]
+    check("p3/closure-render-gate-orphan-unknown", r.returncode == 0 and "CLOSED" in cl and "ORPHAN" in cl and "UNKNOWN is never a pass" in cl
+          and "cdn." not in rep, r.stdout + r.stderr)
+    check("p3/closure-mission-keeps-one-report", sorted(x.name for x in d.glob("closeout*")) == ["closeout-facts.json", "closeout.yaml"]
+          and (d / "report.html").exists(), str(sorted(x.name for x in d.glob("*"))))
+    mrec = yaml.safe_load((d / "mission.yaml").read_text())
+    mrec.pop("threads", None)
+    mrec.pop("closeout", None)
+    (d / "mission.yaml").write_text(yaml.safe_dump(mrec, sort_keys=False, allow_unicode=True))
 
     done = yaml.safe_load((d / "mission.yaml").read_text())
     done["status"] = "done"
@@ -618,19 +772,52 @@ def phase1_control_evals(root: pathlib.Path, d: pathlib.Path, mco, base: dict, f
     rnd["items"].append(dict(risk, decision={"question": "Accept the live gap, or switch writes off?", "options": ["accept, signed by you", "switch writes off"]}))
     save(rnd)
     g = cli("gather", "fixture-vendor", "--offline")
-    r = cli("render", "fixture-vendor")
-    page = (d / "closeout.html").read_text() if (d / "closeout.html").exists() else ""
+    batch = mco.plan_batches(rnd["manifest"])
+    newf = json.loads((d / "closeout-facts.json").read_text())
+    counts = mco.fact_counts(newf)
+    # a scope without a mission record keeps the standalone page (same facts, same close-out)
+    sd = root / "missions" / "_closeout" / "fixture-scope"
+    sd.mkdir(parents=True, exist_ok=True)
+    for f in ("closeout.yaml", "closeout-facts.json"):
+        (sd / f).write_text((d / f).read_text())
+    r = cli("render", "--scope", "fixture-scope")
+    page = (sd / "closeout.html").read_text() if (sd / "closeout.html").exists() else ""
     pos = [page.find(h) for h in ("<h2>Needs you", "<h2>Coverage", "<h2>Proposed batch", "<h2>Appendix")]
     check("p1/render-decision-first-order", r.returncode == 0 and all(x >= 0 for x in pos) and pos == sorted(pos), str(pos))
     needs = page[pos[0]:pos[1]] if all(x >= 0 for x in pos) else ""
     check("p1/render-needs-you-has-big-miss-with-options", "CO-8" in needs and "switch writes off" in needs and "CO-1" not in needs, needs[:400])
-    batch = mco.plan_batches(rnd["manifest"])
     check("p1/render-shows-batch-hash", bool(batch) and batch[0]["hash"] in page, str(batch)[:200])
     check("p1/render-claims-coverage-not-completeness", "searched fully" in page and "nothing dropped" not in page.lower())
-    newf = json.loads((d / "closeout-facts.json").read_text())
-    counts = mco.fact_counts(newf)
     check("p1/counts-unified-gather-and-render", bool(counts) and all(f"{lbl}: {n}" in g.stdout and f"{lbl}: {n}" in page for lbl, n in counts),
           str(counts) + g.stdout[:300])
+    check("p3/standalone-page-points-to-mission-start", "has no mission record" in page and "/mission start" in page, page[:400])
+    shutil.rmtree(sd)
+    # a mission with a record: the same close-out lands in its threads and the Closure tab of report.html
+    r = cli("render", "fixture-vendor", "--session", "eval-session")
+    rep = (d / "report.html").read_text() if (d / "report.html").exists() else ""
+    cl = rep[rep.find('id="p-closure"'):rep.find('id="p-journey"')]
+    cpos = [cl.find(h) for h in ('id="cl-needs"', 'id="cl-else"', '<span class="bt">How we searched')]
+    check("p3/closure-decision-first-order", r.returncode == 0 and all(x >= 0 for x in cpos) and cpos == sorted(cpos), str(cpos) + r.stdout + r.stderr)
+    big = cl[cl.find(">Big misses"):cl.find('id="cl-else"')]
+    big = big[:min([x for x in (big.find(">Approval"), big.find(">Smaller calls"), big.find(">Open threads")) if x > 0] or [len(big)])]
+    check("p3/closure-big-misses-have-the-decision", "CO-8" in big and "switch writes off" in big and "CO-1<" not in big, big[:400])
+    check("p3/closure-shows-batch-hash-command", bool(batch) and f"--hash {batch[0]['hash']}" in cl, str(batch)[:200])
+    check("p3/closure-claims-coverage-not-completeness", "searched fully" in cl and "nothing dropped" not in cl.lower())
+    check("p3/closure-counts-match-gather", bool(counts) and all(f"{lbl}: {n}" in cl for lbl, n in counts), str(counts))
+    check("p3/closure-no-closeout-html-for-a-mission", r.returncode == 0 and (d / "report.html").exists() and not (d / "closeout.html").exists() and "closeout.html" not in r.stdout.split("note:")[0], r.stdout)
+    r = cli("log", "fixture-vendor")
+    logf = root / "missions" / "_meta" / "closeout-log.jsonl"
+    cap = json.loads(logf.read_text().splitlines()[-1]).get("capture", {}) if logf.exists() else {}
+    check("p3/log-records-capture-health", r.returncode == 0 and cap.get("imported", 0) > 0 and "misses" in cap and cap.get("live_rate") is not None, str(cap))
+    logf.unlink(missing_ok=True)
+    mrec = yaml.safe_load((d / "mission.yaml").read_text())
+    check("p3/check-close-writes-into-the-record", (mrec.get("closeout") or {}).get("gate") == "closed"
+          and any((t.get("closeout") or {}).get("co_id") == "CO-8" for t in mrec.get("threads") or []), str(mrec.get("closeout")))
+    mrec.pop("threads", None)
+    mrec.pop("closeout", None)
+    (d / "mission.yaml").write_text(yaml.safe_dump(mrec, sort_keys=False, allow_unicode=True))
+    for f in ("report.html",):
+        (d / f).unlink(missing_ok=True)
 
     # self-improvement: registry, log, check review
     reg = mco.CHECK_REGISTRY
@@ -1086,6 +1273,7 @@ def main() -> int:
         check("log/use-feedback-summary", all(x.returncode == 0 for x in (r, r2, r3)) and "what is N-2?" in r3.stdout and "net rating: -1" in r3.stdout, r3.stdout)
         threads_phase1_evals(root)
         threads_phase2_evals(root)
+        threads_phase3_evals(root)
         closeout_evals(root, d, util)
         grader_calibration_evals()
     finally:

@@ -13,7 +13,7 @@ The script gathers facts. You make the judgements. The human approves before any
 - **Wayfinder maps close through the wayfinder tool.** If an issue has the label `wayfinder:map`, close its children through the `wayfinder` skill, not with `gh issue close`. A raw close leaves gaps in the wayfinder telemetry.
 - **No orphans, and a home is not completion.** Every item that stays open gets a successor home that **accepted** it: `successor.accepted: {by: <name>, link}`. A link alone is not coverage. A successor that lists the item as out of scope does not cover it (`excludes: true`).
 - **Risk is a human decision.** Every live security, access, safety or contract item needs a residual-risk decision by a named person, or a successor with a named owner. An agent never accepts risk.
-- **One report.** `closeout.html` is overwritten on each run. Never write a dated copy.
+- **One report.** For a mission, the Closure tab of `report.html`; for a scope without a record, `closeout.html`. Each is overwritten on each run. Never write a dated copy.
 
 ## Step 1. Gather the facts
 
@@ -158,11 +158,9 @@ Every UNKNOWN source key in `closeout-facts.json` (the text before the first col
 
 ## Step 5. Render, approve, act
 
-1. `mission closeout render <slug> --open` (or `--scope <name>`). The report is decision-first:
-   1. **Needs you**: the big misses only, each with the decision asked and the options.
-   2. **Coverage**: the sources searched fully, and the UNKNOWNs that remain with their disposition.
-   3. **Proposed batch**: the exact routine actions, with the batch hash to approve.
-   4. **Appendix**: bucket counts, every action taken with its read-back, the items, the checklist, the human guide.
+1. `mission closeout render <slug> --session <s>` (or `--scope <name>`).
+   - **A mission with a record:** the items merge into the mission's threads, and the Closure tab of `report.html` is the report. Each item becomes (or updates) one thread with `closeout.bucket`, `co_id`, `actions` and `do_now`. An item that no thread held is a capture miss (`origin.event: closeout_sweep`). Write a `recommendation` on every Needs-you item (`mission thread set T-n --recommend "<label>"`). No `closeout.html` is written.
+   - **A scope without a record:** the standalone `closeout.html`, decision-first: Needs you (big misses with the decision and options), Coverage, the Proposed batch with its hash, the Appendix. A banner points to `/mission start`.
    In the terminal give the `file://` link, the "Needs you" count and the batch hashes.
 2. The human answers each "Needs you" decision, and approves a batch by its hash. Record it:
    `mission closeout approve <slug> --items A-1,A-2 --hash <hash they saw> --by <name> --link <where they said yes>`.

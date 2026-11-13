@@ -1,4 +1,4 @@
-"""Render a mission: report.html (rich view), README.md (GitHub view with mermaid), missions/INDEX.md.
+"""Render a mission: report.html (rich view, with the Closure tab), README.md (GitHub view with mermaid), missions/INDEX.md.
 
 Usage: mission_render.py <slug|path> [--open] [--no-mark]
 
@@ -15,7 +15,9 @@ import sys
 
 import datetime as dt
 
+from mission_closure import render_closure
 from mission_lib import JIRA_BROWSE, JIRA_KEY_PATTERN, MISSIONS_DIR, SKILL_DIR, gh_url, load, load_computed, mission_dir, now_utc, run, set_top
+from mission_links import e, linkify
 
 WINDOW_HOLD_HOURS = 2
 
@@ -96,30 +98,61 @@ def index() -> str:
                       "| Mission | Title | Status | Root issue | Updated |", "|---|---|---|---|---|", *rows, ""])
 
 
+def string_leaves(x, out: set) -> set:
+    if isinstance(x, str):
+        out.add(x)
+    elif isinstance(x, dict):
+        for v in x.values():
+            string_leaves(v, out)
+    elif isinstance(x, list):
+        for v in x:
+            string_leaves(v, out)
+    return out
+
+
+def link_map(m: dict) -> dict:
+    """text -> linkified HTML, for every text in the record that holds a reference. The JS views look it up (lk)."""
+    out = {}
+    for s in string_leaves({k: v for k, v in m.items() if k != "threads"}, set()):
+        h = linkify(s)
+        if h != e(s):
+            out[s] = h
+    return out
+
+
 def main() -> int:
     if len(sys.argv) < 2:
         print(__doc__)
         return 2
     d = mission_dir(sys.argv[1])
+    path = render(d, mark="--no-mark" not in sys.argv)
+    print(f"file://{path}")
+    if "--open" in sys.argv:
+        run(["open", str(path)], check=False)
+    return 0
+
+
+def render(d, mark: bool = True):
+    """Write report.html (with the Closure tab), README.md and missions/INDEX.md. Return the report path."""
     m, c, ts = load(d), load_computed(d), now_utc()
     last, start = m.get("last_report_at"), m.get("report_window_start")
     shift = last is None or _age_hours(last) > WINDOW_HOLD_HOURS
     window_start = last if shift else start
+    closure_html, closure = render_closure(m, d)
     data = {"mission": json.loads(json.dumps(m, default=str)), "computed": c, "generated_at": ts,
             "record_url": gh_url(d / "mission.yaml"), "window_start": _iso(window_start),
-            "jira": {"browse": JIRA_BROWSE, "key_pattern": JIRA_KEY_PATTERN}}
+            "jira": {"browse": JIRA_BROWSE, "key_pattern": JIRA_KEY_PATTERN}, "closure": closure,
+            "lk": link_map(json.loads(json.dumps(m, default=str)))}
     tpl = (SKILL_DIR / "assets" / "template.html").read_text()
     payload = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
-    (d / "report.html").write_text(tpl.replace("/*__DATA__*/null", payload))
+    page = tpl.replace("<!--__CLOSURE__-->", closure_html).replace("/*__DATA__*/null", payload)
+    (d / "report.html").write_text(page)
     (d / "README.md").write_text(readme(m, c, ts))
     (MISSIONS_DIR / "INDEX.md").write_text(index())
-    if "--no-mark" not in sys.argv and shift:
+    if mark and shift:
         set_top(d, "report_window_start", _iso(last))
         set_top(d, "last_report_at", ts)
-    print(f"file://{d / 'report.html'}")
-    if "--open" in sys.argv:
-        run(["open", str(d / "report.html")], check=False)
-    return 0
+    return d / "report.html"
 
 
 if __name__ == "__main__":

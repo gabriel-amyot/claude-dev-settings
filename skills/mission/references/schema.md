@@ -153,6 +153,9 @@ terms:                                # STABLE: terms Gabriel confirmed he knows
 changes:                              # LOG: feeds the "Latest changes" view
   - {id: C-1, at: 2026-11-10T22:30:00Z, session: clear-wren, summary: "Mission created.", refs: []}
 
+closeout: {at: 2026-11-13T16:00:00Z, files: missions/_closeout/vendor-trader-feedback, gate: closed, conditions: 24}
+                                      # LIVE, written by `mission closeout render`: where the close-out files live and the gate state
+
 threads:                              # LOG with LIVE state: written by `mission thread add|set|resolve`, never by hand
   - id: T-14                          # stable, never renumbered
     title: "Prove nobody can bypass the production bid-write gateway"   # human, max 70 characters, refs allowed

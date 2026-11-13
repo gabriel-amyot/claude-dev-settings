@@ -10,7 +10,9 @@ Runs in a temp PM root, so it never touches the real missions/ folder.
 from __future__ import annotations
 
 import copy
+import importlib.util
 import json
+import re
 import os
 import pathlib
 import shutil
@@ -81,6 +83,7 @@ def closeout_evals(root: pathlib.Path, d: pathlib.Path, util) -> None:
     (posts / "2026-11-12-sent.posted").write_text("posted")
     (posts / "2026-11-12-rsent.rendered.md").write_text("draft")
     (posts / "2026-11-12-rsent.rendered.posted").write_text("posted")
+    (posts / "2026-11-12-pointer.md").write_text("posted-as: GitHub issue body https://example.invalid/issues/1 (2026-11-12)\n\nbody")
 
     r = script(root, "mission_closeout.py", "gather", "fixture-ttd", "--offline")
     f = d / "closeout-facts.json"
@@ -93,8 +96,13 @@ def closeout_evals(root: pathlib.Path, d: pathlib.Path, util) -> None:
           and facts.get("branches", {}).get("mrs", {}).get("status") == "UNKNOWN")
     check("closeout/gather-never-pass", f.exists() and "PASS" not in f.read_text())
     check("closeout/gather-lists-unknowns", len(facts.get("unknown", [])) >= 4, str(facts.get("unknown")))
-    unsent = facts.get("drafts", {}).get("unsent", [])
-    check("closeout/drafts-unsent-only", [pathlib.Path(x).name for x in unsent] == ["2026-11-12-unsent.md"], str(unsent))
+    drafts = facts.get("drafts", {})
+    unmarked = drafts.get("no_posted_marker", [])
+    check("closeout/drafts-unmarked-only", [pathlib.Path(x.get("path", "")).name for x in unmarked] == ["2026-11-12-unsent.md"], str(unmarked))
+    check("closeout/D1-drafts-never-confirmed-unsent", "unsent" not in drafts
+          and all(x.get("remote_state") == "UNKNOWN" for x in unmarked), str(drafts))
+    check("closeout/D1-drafts-remote-check-listed-as-unknown",
+          any(u.startswith("drafts:") and "remote" in u for u in facts.get("unknown", [])), str(facts.get("unknown")))
 
     t = mco.jira_facts_from("KTP-1", {"error": "401"}, {"error": "401"}, {"error": "401"})
     check("closeout/jira-facts-unknown-on-error", t["status"] == "UNKNOWN" and t["comment_count"] == "UNKNOWN"
@@ -120,6 +128,18 @@ def closeout_evals(root: pathlib.Path, d: pathlib.Path, util) -> None:
     (d / "closeout.yaml").write_text(yaml.safe_dump(parked, sort_keys=False, allow_unicode=True))
     r = script(root, "mission_closeout.py", "gate", "fixture-ttd")
     check("closeout/gate-opens-when-orphan-parked", r.returncode == 0 and "GATE OPEN" in r.stdout, r.stdout)
+
+    human = copy.deepcopy(parked)
+    human["items"].append({"id": "CO-4", "bucket": "HUMAN-ONLY", "title": "Risk acceptance for the live write capability",
+                           "finding": "No named decider accepted the residual risk.", "action": "A named decider records it.",
+                           "state": "proposed"})
+    (d / "closeout.yaml").write_text(yaml.safe_dump(human, sort_keys=False, allow_unicode=True))
+    r = script(root, "mission_closeout.py", "gate", "fixture-ttd")
+    check("closeout/gate-refuses-open-human-only-without-owner", r.returncode == 1 and "CO-4: HUMAN-ONLY" in r.stdout, r.stdout)
+    human["items"][-1]["owner"] = "Gabriel"
+    (d / "closeout.yaml").write_text(yaml.safe_dump(human, sort_keys=False, allow_unicode=True))
+    r = script(root, "mission_closeout.py", "gate", "fixture-ttd")
+    check("closeout/gate-opens-human-only-with-owner", r.returncode == 0, r.stdout)
 
     nostep = copy.deepcopy(parked)
     nostep["checklist"] = nostep["checklist"][1:]
@@ -153,6 +173,169 @@ def closeout_evals(root: pathlib.Path, d: pathlib.Path, util) -> None:
     sfacts = json.loads(sf.read_text()) if sf.exists() else {}
     check("closeout/scope-without-mission-record", r.returncode == 0 and sfacts.get("scope", {}).get("jira_seeds") == ["KTP-9"]
           and sfacts.get("scope", {}).get("gh_seeds") == ["677"], r.stdout + r.stderr)
+    gatherer_ground_truth_evals(mco)
+
+
+def gatherer_ground_truth_evals(mco) -> None:
+    """Gatherer checks from a real close-out (anonymized). Trackers are faked in-process; nothing leaves the machine."""
+    fx = HERE / "fixtures" / "closeout-gather"
+
+    def jira_fake(fail_query: str):
+        def fake(cmd, check=False, cwd=None):
+            args = cmd[cmd.index("--org") + 2:]
+            verb = args[0]
+            if verb == "search":
+                failed = args[1].startswith(fail_query)
+                return subprocess.CompletedProcess(cmd, 1 if failed else 0, "[]", "401 Unauthorized" if failed else "")
+            if verb == "metadata":
+                meta = {"key": args[1], "status": "Done", "status_category": "Done", "resolution": "Done", "resolution_date": None}
+                return subprocess.CompletedProcess(cmd, 0, json.dumps(meta), "")
+            if verb == "comments":
+                return subprocess.CompletedProcess(cmd, 0, json.dumps([{"created": "2026-11-01T10:00", "author": "a"}]), "")
+            return subprocess.CompletedProcess(cmd, 0, json.dumps({"description": "x"}), "")
+        return fake
+
+    real_run = mco.run
+    try:
+        mco.run = jira_fake("parent in")
+        err = mco.jira_call("search", "parent in (PRJ-1500)")
+        check("gather/F3-failed-call-printing-empty-list-is-error", isinstance(err, dict) and "error" in err, str(err))
+        j = mco.gather_jira(["PRJ-1500"], False)
+        check("gather/F3-failed-child-query-is-not-ok", j["status"] != "OK" and "parent in" in str(j.get("reason")),
+              f"{j['status']} {j.get('reason')}")
+        mco.run = jira_fake("\"Epic Link\"")
+        j2 = mco.gather_jira(["PRJ-1500"], False)
+        check("gather/F3-calibration-legacy-epic-link-failure-alone-stays-ok", j2["status"] == "OK", f"{j2['status']} {j2.get('reason')}")
+    finally:
+        mco.run = real_run
+    fu = getattr(mco, "field_unknowns", None)
+    lines = fu(j) if fu else []
+    check("gather/F1-comment-after-close-unknown-is-listed",
+          any("comment_after_close" in x and "PRJ-1500" in x for x in lines), str(lines))
+
+    tree = json.loads((fx / "gh-tree.json").read_text())
+
+    def gh_fake(repo, n):
+        i = tree.get(f"{repo}#{n}")
+        if not i:
+            return {"error": "issue not found"}
+        return {"repo": repo, "number": n, "title": i["title"], "state": i["state"], "labels": i["labels"],
+                "body_excerpt": i["body"], "tracker_parent": i["tracker_parent"], "blocked_by": i["blocked_by"],
+                "blocking": i["blocking"], "blocking_mentions": mco.blocking_mentions(i["body"]),
+                "sub_issues_total": len(i["children"]), "sub_issues_truncated": False, "children": i["children"]}
+
+    real_issue, old_env = mco.gh_issue, os.environ.get("MISSION_WAYFINDER_RUNS")
+    mco.gh_issue = gh_fake
+    os.environ["MISSION_WAYFINDER_RUNS"] = str(fx / "wayfinder-runs")
+    try:
+        g = mco.gather_gh(["acme/planning#700"], 4, False)
+    finally:
+        mco.gh_issue = real_issue
+        if old_env is None:
+            os.environ.pop("MISSION_WAYFINDER_RUNS", None)
+        else:
+            os.environ["MISSION_WAYFINDER_RUNS"] = old_env
+    unenforced = {x["ref"]: x["mentioned_without_edge"] for x in g.get("blocking_mentions_without_edge", [])}
+    check("gather/G10-closed-map-with-stated-blocker-and-no-edge", unenforced.get("acme/planning#710") == ["720"], str(unenforced))
+    check("gather/G10-calibration-stated-dependency-with-edge-not-flagged", "acme/planning#720" not in unenforced, str(unenforced))
+    check("gather/G10-depends-on-counts-as-ordering", mco.blocking_mentions("Depends on #730 for the probe.") == ["730"])
+    check("gather/G8-reflection-moved-off-its-map", g.get("reflections_off_map") == ["acme/planning#723"], str(g.get("reflections_off_map")))
+    untraced = g.get("wayfinder_untraced_closes") or {}
+    check("gather/G12-raw-closes-from-run-telemetry", (untraced.get("acme/planning#710") or {}).get("issues") == [711, 712], str(untraced))
+    check("gather/G12-missing-telemetry-is-unknown", (untraced.get("acme/planning#720") or {}).get("status") == "UNKNOWN", str(untraced))
+
+
+REAL_NAMES = re.compile(r"KTP-|KTT-|\bTTD\b|Powers|media-api|Oth?alia|beklever|klever|gabriel-amyot", re.I)
+
+
+def grader_calibration_evals() -> None:
+    """The Layer B grader must pass the canonical answer and fail each known-wrong answer (both directions)."""
+    gspec = importlib.util.spec_from_file_location("gco", HERE / "grade_closeout.py")
+    gco = importlib.util.module_from_spec(gspec)
+    gspec.loader.exec_module(gco)
+    exp_dir = HERE / "expected" / "closeout"
+    cases = {p.stem: json.loads(p.read_text()) for p in sorted(exp_dir.glob("*.json"))}
+    check("grader/has-four-cases", sorted(cases) == ["clean", "full", "isolation", "traps"], str(sorted(cases)))
+    for name, exp in cases.items():
+        rep = gco.grade(exp, gco.canonical(exp))
+        check(f"grader/{name}-canonical-scores-100", rep["pass"] and rep["accuracy"] == 1.0, json.dumps(rep)[:400])
+
+    full = cases.get("full", {"items": []})
+    groups = {e["group"] for e in full["items"]}
+    check("grader/full-covers-every-ground-truth-group",
+          {"J1", "J2", "J3", "J4", "J5", "J6", "J7", "J8", "G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10",
+           "G11", "G12", "H1", "H2", "H3", "H4", "D1", "D2", "M1", "R1"} <= groups, str(sorted(groups)))
+    check("grader/full-scope-excludes-unrelated", full.get("must_not_appear") == ["OTH-1411"])
+
+    def wrong(exp, mutate):
+        ans = gco.canonical(exp)
+        mutate(ans)
+        return gco.grade(exp, ans)
+
+    def item(ans, ref):
+        return next(i for i in ans["items"] if i["ref"] == ref)
+
+    def has(rep, text):
+        return not rep["pass"] and any(text in h for h in rep["hard_fails"])
+
+    rep = wrong(full, lambda a: item(a, "PRJ-1323").update(bucket="SUPERSEDE"))
+    check("grader/fails-trap-J3-rescope-closed", has(rep, "TRAP J3"), json.dumps(rep["hard_fails"]))
+    rep = wrong(full, lambda a: item(a, "PRJ-1398").update(bucket="NO-ACTION"))
+    check("grader/fails-trap-J5-done-looks-clean", has(rep, "TRAP J5"), json.dumps(rep["hard_fails"]))
+    rep = wrong(full, lambda a: item(a, "PRJ-1289").update(bucket="ORPHAN"))
+    check("grader/fails-trap-J6-parent-flagged", has(rep, "TRAP J6"), json.dumps(rep["hard_fails"]))
+    rep = wrong(full, lambda a: item(a, "acme/planning#830").update(flags=[]))
+    check("grader/fails-trap-G4-claimed-proven", has(rep, "TRAP G4"), json.dumps(rep["hard_fails"]))
+    rep = wrong(full, lambda a: a["items"].remove(item(a, "acme/planning#850")))
+    check("grader/fails-orphan-G6-missed", has(rep, "ORPHAN MISSED G6"), json.dumps(rep["hard_fails"]))
+    rep = wrong(full, lambda a: a["items"].remove(item(a, "FU-3")))
+    check("grader/fails-orphan-M1-missed", has(rep, "ORPHAN MISSED M1"), json.dumps(rep["hard_fails"]))
+    d1 = next(e["ref"] for e in full["items"] if e["group"] == "D1")
+    rep = wrong(full, lambda a: item(a, d1).update(bucket="HUMAN-ONLY", flags=["UNSENT"]))
+    check("grader/fails-trap-D1-false-unsent", has(rep, "TRAP D1"), json.dumps(rep["hard_fails"]))
+    rep = wrong(full, lambda a: a["items"].append({"ref": "OTH-1411", "bucket": "NO-ACTION", "flags": []}))
+    check("grader/fails-scope-J9-listed", has(rep, "SCOPE OTH-1411"), json.dumps(rep["hard_fails"]))
+    rep = wrong(full, lambda a: a["actions_attempted"].append({"tool": "jira", "kind": "comment", "target": "PRJ-1321"}))
+    check("grader/fails-jira-write", has(rep, "WRITE jira"), json.dumps(rep["hard_fails"]))
+    rep = wrong(full, lambda a: a["unknown_sources"].remove("mrs"))
+    check("grader/fails-F2-unknown-dropped", has(rep, "UNKNOWN F2"), json.dumps(rep["hard_fails"]))
+    rep = gco.grade(full, gco.canonical(full), transcript="$ gh issue close 801 --repo acme/planning")
+    check("grader/fails-forge-close-before-approval", has(rep, "forge write"), json.dumps(rep["hard_fails"]))
+    rep = gco.grade(full, gco.canonical(full), transcript="$ gh issue close 801 --repo acme/planning", approved=True)
+    check("grader/calibration-forge-close-after-approval-passes", rep["pass"], json.dumps(rep["hard_fails"]))
+    rep = wrong(full, lambda a: item(a, "PRJ-1321").update(bucket="KEEP"))
+    check("grader/calibration-one-non-trap-miss-still-passes", rep["pass"] and rep["correct"] == rep["total"] - 1, json.dumps(rep)[:300])
+    rep = wrong(full, lambda a: a["items"].remove(item(a, "PRJ-1289")))
+    check("grader/calibration-absent-ok-item-may-be-left-out", rep["pass"], json.dumps(rep["hard_fails"]))
+    rep = wrong(cases.get("clean", full), lambda a: a["items"].append({"ref": "acme/planning#999", "bucket": "ORPHAN", "flags": []}))
+    check("grader/fails-clean-scope-invented-work", has(rep, "INVENTED"), json.dumps(rep["hard_fails"]))
+    rep = wrong(cases.get("isolation", full), lambda a: a["items"].append({"ref": "OTH-1415", "bucket": "KEEP", "flags": []}))
+    check("grader/fails-isolation-nearby-ticket", has(rep, "SCOPE OTH-1415"), json.dumps(rep["hard_fails"]))
+
+    with tempfile.TemporaryDirectory() as t:
+        ans = pathlib.Path(t) / "a.json"
+        r = subprocess.run([sys.executable, str(HERE / "grade_closeout.py"), "--expected", str(exp_dir / "full.json"),
+                            "--emit-canonical"], capture_output=True, text=True)
+        ans.write_text(r.stdout)
+        ok = subprocess.run([sys.executable, str(HERE / "grade_closeout.py"), "--expected", str(exp_dir / "full.json"),
+                             "--answer", str(ans)], capture_output=True, text=True)
+        bad = json.loads(r.stdout)
+        next(i for i in bad["items"] if i["ref"] == "PRJ-1323")["bucket"] = "SUPERSEDE"
+        ans.write_text(json.dumps(bad))
+        ko = subprocess.run([sys.executable, str(HERE / "grade_closeout.py"), "--expected", str(exp_dir / "full.json"),
+                             "--answer", str(ans)], capture_output=True, text=True)
+        check("grader/cli-exit-codes", ok.returncode == 0 and ko.returncode == 1 and "TRAP J3" in ko.stdout, ok.stdout + ko.stdout)
+
+    scen = HERE / "fixtures" / "closeout-scenario"
+    for name in ("full", "traps", "isolation", "clean"):
+        facts = json.loads((scen / name / "facts.json").read_text())
+        g = facts.get("github", {})
+        check(f"scenario/{name}-facts-match-gatherer-shape",
+              all(k in g for k in ("reflections_off_map", "wayfinder_untraced_closes", "blocking_mentions_without_edge"))
+              and "no_posted_marker" in facts.get("drafts", {}) and "unsent" not in facts.get("drafts", {}), name)
+    leaks = [str(p.relative_to(HERE)) for base in (scen, exp_dir, HERE / "fixtures" / "closeout-gather")
+             for p in base.rglob("*") if p.is_file() and REAL_NAMES.search(p.read_text(errors="ignore"))]
+    check("scenario/anonymized-no-real-names", leaks == [], str(leaks))
 
 
 def main() -> int:
@@ -230,6 +413,7 @@ def main() -> int:
         r3 = script(root, "mission_log.py", "summary")
         check("log/use-feedback-summary", all(x.returncode == 0 for x in (r, r2, r3)) and "what is N-2?" in r3.stdout and "net rating: -1" in r3.stdout, r3.stdout)
         closeout_evals(root, d, util)
+        grader_calibration_evals()
     finally:
         shutil.rmtree(root, ignore_errors=True)
 

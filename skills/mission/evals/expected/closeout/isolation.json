@@ -1,0 +1,106 @@
+{
+  "case": "isolation",
+  "pass_accuracy": 1.0,
+  "extra_items": "ignore",
+  "must_not_appear": [
+    "OTH-1411",
+    "OTH-1415",
+    "handoff:2026-11-11-heatmap-vendor-colours.md"
+  ],
+  "required_unknowns": [
+    {
+      "id": "F1",
+      "any_of": [
+        "comment_after_close",
+        "comment after close"
+      ]
+    },
+    {
+      "id": "F2",
+      "any_of": [
+        "mrs",
+        "merge request"
+      ]
+    },
+    {
+      "id": "F3",
+      "any_of": [
+        "parent in",
+        "children unknown",
+        "PTR-100 children"
+      ]
+    }
+  ],
+  "items": [
+    {
+      "ref": "PRJ-1321",
+      "group": "J1",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "PRJ-1324",
+      "group": "J4",
+      "bucket": "SUPERSEDE",
+      "accept": [
+        "SUPERSEDE"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#841",
+      "group": "G5",
+      "bucket": "ORPHAN",
+      "accept": [
+        "ORPHAN"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": true,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#842",
+      "group": "G5",
+      "bucket": "ORPHAN",
+      "accept": [
+        "ORPHAN"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": true,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#843",
+      "group": "G5",
+      "bucket": "ORPHAN",
+      "accept": [
+        "ORPHAN"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": true,
+      "absent_ok": false
+    }
+  ]
+}

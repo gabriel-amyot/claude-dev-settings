@@ -86,27 +86,33 @@ def parse_json(out: str):
 
 
 def jira_call(*args: str):
+    """A non-zero exit is an error even when stdout holds JSON: an auth failure can print an empty list."""
     r = run(["python3", JIRA, "--org", "klever", *args], check=False)
+    if r.returncode != 0:
+        return {"error": (r.stderr or r.stdout).strip()[-200:] or f"exit {r.returncode}"}
     try:
         data = parse_json(r.stdout)
     except (ValueError, json.JSONDecodeError):
-        return {"error": (r.stderr or r.stdout).strip()[-200:] or f"exit {r.returncode}"}
+        return {"error": (r.stderr or r.stdout).strip()[-200:] or "no JSON in output"}
     return data
 
 
-def jira_children(keys: list[str]) -> tuple[list[str], list[str]]:
-    """Return (child keys, errors). Two JQL forms: parent and Epic Link."""
-    found, errors = [], []
+def jira_children(keys: list[str]) -> tuple[list[str], list[str], list[str]]:
+    """Return (child keys, required-query errors, legacy-query errors).
+
+    'parent in' works for every project type, so its failure means the children are unknown.
+    'Epic Link' is a legacy field that some projects do not have, so its failure alone is tolerated."""
+    found, errors, legacy = [], [], []
     if not keys:
-        return found, errors
+        return found, errors, legacy
     keyset = ", ".join(keys)
-    for jql in (f"parent in ({keyset})", f'"Epic Link" in ({keyset})'):
+    for jql, sink in ((f"parent in ({keyset})", errors), (f'"Epic Link" in ({keyset})', legacy)):
         data = jira_call("search", jql, "--max", "200")
         if isinstance(data, dict):
-            errors.append(f"{jql}: {data.get('error')}")
+            sink.append(f"{jql}: {data.get('error')}")
             continue
         found += [row["key"] for row in data if row.get("key")]
-    return found, errors
+    return found, errors, legacy
 
 
 def jira_facts_from(key: str, meta, comments, desc) -> dict:
@@ -157,10 +163,11 @@ def gather_jira(seeds: list[str], offline: bool) -> dict:
         return {"status": UNKNOWN, "reason": "no Jira seeds or members", "tickets": []}
     if offline:
         return {"status": UNKNOWN, "reason": "offline", "seeds": seeds, "tickets": []}
-    keys, errors, frontier = list(dict.fromkeys(seeds)), [], list(seeds)
+    keys, errors, legacy, frontier = list(dict.fromkeys(seeds)), [], [], list(seeds)
     for _ in range(2):
-        kids, errs = jira_children(frontier)
+        kids, errs, legs = jira_children(frontier)
         errors += errs
+        legacy += legs
         frontier = [k for k in dict.fromkeys(kids) if k not in keys]
         keys += frontier
         if not frontier:
@@ -168,9 +175,19 @@ def gather_jira(seeds: list[str], offline: bool) -> dict:
     with cf.ThreadPoolExecutor(6) as ex:
         tickets = list(ex.map(jira_ticket, keys))
     bad = [t["key"] for t in tickets if t["status"] == UNKNOWN]
-    status = "OK" if not bad and len(errors) < 2 else ("PARTIAL" if len(bad) < len(tickets) else UNKNOWN)
-    return {"status": status, "reason": "; ".join(errors[:3]) or None, "seeds": seeds,
-            "unreadable": bad, "tickets": tickets}
+    status = "OK" if not bad and not errors else ("PARTIAL" if len(bad) < len(tickets) else UNKNOWN)
+    reason = "; ".join(([f"children unknown, {e}" for e in errors] + [f"unreadable {bad}"] * bool(bad))[:3]) or None
+    return {"status": status, "reason": reason, "seeds": seeds, "unreadable": bad,
+            "legacy_query_errors": legacy, "tickets": tickets}
+
+
+def field_unknowns(jira: dict) -> list[str]:
+    """Ticket fields the gatherer could not settle. An UNKNOWN field is never a pass."""
+    keys = [t["key"] for t in jira.get("tickets", []) if t.get("closed") is True and t.get("comment_after_close") == UNKNOWN]
+    if not keys:
+        return []
+    return [f"jira-fields: comment_after_close UNKNOWN on {len(keys)} closed ticket(s) {keys}: "
+            "no resolution date; read the status history before calling a closing comment present or missing"]
 
 
 # ---------------------------------------------------------------- github
@@ -190,11 +207,12 @@ def gh_ref(ref: str) -> tuple[str, int]:
     return m.group(1) or GH_REPO, int(m.group(2))
 
 
-BLOCK_SENTENCE = re.compile(r"[^.\n]*\bblock(?:s|ed|ing)?\b[^.\n]*", re.I)
+BLOCK_SENTENCE = re.compile(r"[^.\n]*\b(?:block(?:s|ed|ing)?|depend(?:s|ed|ing)?\s+on|wait(?:s|ing)?\s+(?:for|on))\b[^.\n]*", re.I)
 
 
 def blocking_mentions(body: str) -> list[str]:
-    """Issue refs named in a sentence that says 'block'. A hint for the agent, not a verdict."""
+    """Issue refs named in a sentence that states an ordering (blocks, depends on, waits for).
+    A hint for the agent, not a verdict."""
     refs = []
     for s in BLOCK_SENTENCE.findall(body or ""):
         refs += re.findall(r"#(\d+)", s)
@@ -214,18 +232,44 @@ def gh_issue(repo: str, n: int) -> dict:
         return {"error": "issue not found"}
     subs = i["subIssues"]
     ref = lambda n: f"{n['repository']['nameWithOwner']}#{n['number']}"
+    refs = lambda nodes: [ref(n) for n in nodes if n]
     body = i.get("body") or ""
     return {"repo": repo, "number": i["number"], "title": i["title"], "state": i["state"].lower(),
             "state_reason": i.get("stateReason"), "url": i["url"], "closed_at": i.get("closedAt"),
             "updated_at": i.get("updatedAt"), "labels": [x["name"] for x in i["labels"]["nodes"]],
             "body_excerpt": body[:1500],
             "tracker_parent": ref(i["parent"]) if i.get("parent") else None,
-            "blocked_by": [ref(n) for n in i["blockedBy"]["nodes"]],
-            "blocking": [ref(n) for n in i["blocking"]["nodes"]],
+            "blocked_by": refs(i["blockedBy"]["nodes"]),
+            "blocking": refs(i["blocking"]["nodes"]),
             "blocking_mentions": blocking_mentions(body),
             "sub_issues_total": subs["totalCount"],
-            "sub_issues_truncated": subs["totalCount"] > len(subs["nodes"]),
-            "children": [f"{s['repository']['nameWithOwner']}#{s['number']}" for s in subs["nodes"]]}
+            "sub_issues_truncated": subs["totalCount"] > len([n for n in subs["nodes"] if n]),
+            "children": refs(subs["nodes"])}
+
+
+def wayfinder_runs_dir() -> pathlib.Path:
+    import os
+    return pathlib.Path(os.environ.get("MISSION_WAYFINDER_RUNS")
+                        or pathlib.Path.home() / ".claude-shared-config" / "skills" / "wayfinder" / "runs")
+
+
+def untraced_closes(map_refs: list[str]) -> dict:
+    """Map children closed without the wayfinder tool, read from the harvested run telemetry (gaps)."""
+    import yaml
+    out = {}
+    for m in map_refs:
+        f = wayfinder_runs_dir() / f"map-{m.split('#')[-1]}.yaml"
+        if not f.exists():
+            out[m] = {"status": UNKNOWN, "reason": f"no run telemetry at {f}; run wayfinder harvest"}
+            continue
+        try:
+            data = yaml.safe_load(f.read_text()) or {}
+        except yaml.YAMLError as e:
+            out[m] = {"status": UNKNOWN, "reason": f"telemetry does not parse: {str(e)[:120]}"}
+            continue
+        out[m] = {"status": "OK", "harvested": str(data.get("harvested")),
+                  "issues": sorted(int(g["issue"]) for g in data.get("gaps") or [] if g.get("issue"))}
+    return out
 
 
 def gather_gh(roots: list[str], depth: int, offline: bool) -> dict:
@@ -260,20 +304,22 @@ def gather_gh(roots: list[str], depth: int, offline: bool) -> dict:
             par = by_ref.get(i.get("tracker_parent") or "")
             reflections.append({"ref": i["ref"], "state": i.get("state"), "tracker_parent": i.get("tracker_parent"),
                                 "parent_is_map": UNKNOWN if par is None else "wayfinder:map" in (par.get("labels") or [])})
+    off_map = [r["ref"] for r in reflections if r["state"] == "open" and r["parent_is_map"] is not True]
     unenforced = []
     for i in issues:
         num = i["ref"].split("#")[-1]
         edges = {x.split("#")[-1] for x in (i.get("blocked_by") or []) + (i.get("blocking") or [])}
         missing = [m for m in i.get("blocking_mentions") or [] if m not in edges and m != num]
-        if missing and i.get("state") == "open":
-            unenforced.append({"ref": i["ref"], "mentioned_without_edge": missing})
+        if missing:
+            unenforced.append({"ref": i["ref"], "state": i.get("state"), "mentioned_without_edge": missing})
     bad = [i["ref"] for i in issues if i.get("error")]
     trunc = [i["ref"] for i in issues if i.get("sub_issues_truncated")]
     status = "OK" if not bad and not trunc else ("PARTIAL" if len(bad) < len(issues) else UNKNOWN)
     return {"status": status, "reason": None if status == "OK" else f"unreadable {bad}, truncated {trunc}",
             "roots": roots, "open": sum(1 for i in issues if i.get("state") == "open"),
             "closed": sum(1 for i in issues if i.get("state") == "closed"),
-            "wayfinder_maps": maps, "reflections": reflections,
+            "wayfinder_maps": maps, "reflections": reflections, "reflections_off_map": off_map,
+            "wayfinder_untraced_closes": untraced_closes(maps),
             "blocking_mentions_without_edge": unenforced, "issues": issues}
 
 
@@ -321,25 +367,36 @@ def ticket_folders(keys: list[str], extra: list[pathlib.Path]) -> list[pathlib.P
     return list(dict.fromkeys(p.resolve() for p in found if p.exists()))
 
 
+POSTED_AS = re.compile(r"^posted[-_]as:\s*\S", re.I | re.M)
+
+
 def is_posted(draft: pathlib.Path) -> bool:
+    """A sibling .posted file, or a 'posted-as: <where>' line in the draft itself."""
     stem = draft.name[:-3]
     stem = stem[:-len(".rendered")] if stem.endswith(".rendered") else stem
-    return any((draft.parent / f"{stem}{suffix}").exists() for suffix in (".posted", ".rendered.posted", ".md.posted"))
+    if any((draft.parent / f"{stem}{suffix}").exists() for suffix in (".posted", ".rendered.posted", ".md.posted")):
+        return True
+    return bool(POSTED_AS.search(draft.read_text(errors="ignore")[:4000]))
+
+
+REMOTE_HINT = ("no local posted record; the draft may still be published (as a comment, an issue body or a ticket "
+               "description). Check the target before calling it unsent; if published, add a posted-as record")
 
 
 def gather_drafts(folders: list[pathlib.Path]) -> dict:
+    """Local records only. A draft with no posted record is never confirmed unsent: its remote state is UNKNOWN."""
     if not folders:
-        return {"status": UNKNOWN, "reason": "no ticket folders found for the members", "unsent": []}
-    unsent, scanned = [], 0
+        return {"status": UNKNOWN, "reason": "no ticket folders found for the members", "no_posted_marker": []}
+    unmarked, scanned = [], 0
     for f in folders:
         for d in f.rglob("reports/ship/posts/*.md"):
             scanned += 1
             if d.name.endswith(".rendered.md") and (d.parent / d.name.replace(".rendered.md", ".md")).exists():
                 continue
             if not is_posted(d):
-                unsent.append(str(d))
+                unmarked.append({"path": str(d), "remote_state": UNKNOWN, "hint": REMOTE_HINT})
     return {"status": "OK", "reason": None, "folders": [str(f) for f in folders], "scanned": scanned,
-            "unsent": sorted(unsent)}
+            "no_posted_marker": sorted(unmarked, key=lambda x: x["path"])}
 
 
 # ---------------------------------------------------------------- branches and MRs
@@ -398,6 +455,14 @@ def cmd_gather(a) -> int:
                         if isinstance(v, dict) and v.get("status") in (UNKNOWN, "PARTIAL")]
     if facts["branches"]["mrs"]["status"] == UNKNOWN:
         facts["unknown"].append(f"mrs: {facts['branches']['mrs']['reason']}")
+    facts["unknown"] += field_unknowns(jira)
+    unmarked = facts["drafts"].get("no_posted_marker") or []
+    if unmarked:
+        facts["unknown"].append(f"drafts: {len(unmarked)} draft(s) with no posted record; remote state not checked, "
+                                "verify the target before calling any of them unsent")
+    for m, u in (facts["github"].get("wayfinder_untraced_closes") or {}).items():
+        if u.get("status") == UNKNOWN:
+            facts["unknown"].append(f"wayfinder-telemetry {m}: {u.get('reason')}")
     out = d / "closeout-facts.json"
     out.write_text(json.dumps(facts, indent=2, ensure_ascii=False, default=str))
     j, g = facts["jira"], facts["github"]
@@ -405,7 +470,7 @@ def cmd_gather(a) -> int:
     print(f"  jira: {j['status']}, {len(j.get('tickets', []))} ticket(s)")
     print(f"  github: {g['status']}, {g.get('open', 0)} open, {g.get('closed', 0)} closed")
     print(f"  handoffs: {facts['handoffs']['status']}, {len(facts['handoffs'].get('pending', []))} pending match(es)")
-    print(f"  drafts: {facts['drafts']['status']}, {len(facts['drafts'].get('unsent', []))} unsent")
+    print(f"  drafts: {facts['drafts']['status']}, {len(unmarked)} with no posted record (remote UNKNOWN)")
     print(f"  branches: {facts['branches']['status']}, mrs: UNKNOWN")
     for u in facts["unknown"]:
         print(f"  UNKNOWN {u}")
@@ -451,6 +516,8 @@ def gate(d: pathlib.Path) -> tuple[list[str], list[str]]:
             err.append(f"{where}: ORPHAN without a named successor and parked_by. Give it a home before close.")
         if b in NEEDS_SUCCESSOR and not named:
             err.append(f"{where}: KEEP needs successor with url and title")
+        if b == "HUMAN-ONLY" and it.get("state") != "done" and not (named or str(it.get("owner") or "").strip()):
+            err.append(f"{where}: HUMAN-ONLY item still open without a named owner or successor. Give it a home before close.")
         if it.get("state", "proposed") == "proposed":
             warn.append(f"{where}: {b} action still proposed")
     return err, warn

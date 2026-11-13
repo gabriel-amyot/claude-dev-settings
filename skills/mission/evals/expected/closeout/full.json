@@ -1,0 +1,1193 @@
+{
+  "case": "full",
+  "pass_accuracy": 0.9,
+  "extra_items": "ignore",
+  "must_not_appear": [
+    "OTH-1411"
+  ],
+  "required_unknowns": [
+    {
+      "id": "F1",
+      "any_of": [
+        "comment_after_close",
+        "comment after close"
+      ]
+    },
+    {
+      "id": "F2",
+      "any_of": [
+        "mrs",
+        "merge request"
+      ]
+    },
+    {
+      "id": "F3",
+      "any_of": [
+        "parent in",
+        "children unknown",
+        "PTR-100 children"
+      ]
+    }
+  ],
+  "items": [
+    {
+      "ref": "PRJ-1321",
+      "group": "J1",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "PRJ-1322",
+      "group": "J2",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "PRJ-1323",
+      "group": "J3",
+      "bucket": "KEEP",
+      "accept": [
+        "KEEP"
+      ],
+      "require_flags": [
+        "RESCOPE"
+      ],
+      "forbid_flags": [],
+      "trap": true,
+      "trap_note": "Half obsolete: closing it or marking it Won't Do drops the valid token-cache half.",
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "PRJ-1324",
+      "group": "J4",
+      "bucket": "SUPERSEDE",
+      "accept": [
+        "SUPERSEDE"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "PRJ-1398",
+      "group": "J5",
+      "bucket": "FALSE-PREMISE",
+      "accept": [
+        "FALSE-PREMISE"
+      ],
+      "require_flags": [
+        "MISSING-CLOSING-COMMENT"
+      ],
+      "forbid_flags": [],
+      "trap": true,
+      "trap_note": "Status Done looks clean, but the description says write stays closed while writes are live, and no comment carries the closing evidence.",
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "PRJ-1289",
+      "group": "J6",
+      "bucket": "NO-ACTION",
+      "accept": [
+        "NO-ACTION"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": true,
+      "trap_note": "A parent with zero comments whose children all carry evidence is fine. Do not flag it as an orphan or ask to reopen it.",
+      "orphan": false,
+      "absent_ok": true
+    },
+    {
+      "ref": "PRJ-1290",
+      "group": "J6",
+      "bucket": "NO-ACTION",
+      "accept": [
+        "NO-ACTION"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": true
+    },
+    {
+      "ref": "PRJ-1291",
+      "group": "J6",
+      "bucket": "NO-ACTION",
+      "accept": [
+        "NO-ACTION"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": true
+    },
+    {
+      "ref": "PRJ-1292",
+      "group": "J6",
+      "bucket": "NO-ACTION",
+      "accept": [
+        "NO-ACTION"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": true
+    },
+    {
+      "ref": "PRJ-1065",
+      "group": "J7",
+      "bucket": "HUMAN-ONLY",
+      "accept": [
+        "HUMAN-ONLY"
+      ],
+      "require_flags": [
+        "DONE-WITHOUT-EVIDENCE"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "PTR-95",
+      "group": "J8",
+      "bucket": "KEEP",
+      "accept": [
+        "KEEP"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": true,
+      "trap_note": "Owned by the active successor mission. Do not close them because the parent feature shipped.",
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "PTR-96",
+      "group": "J8",
+      "bucket": "KEEP",
+      "accept": [
+        "KEEP"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": true,
+      "trap_note": "Owned by the active successor mission. Do not close them because the parent feature shipped.",
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "PTR-97",
+      "group": "J8",
+      "bucket": "KEEP",
+      "accept": [
+        "KEEP"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": true,
+      "trap_note": "Owned by the active successor mission. Do not close them because the parent feature shipped.",
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "PTR-98",
+      "group": "J8",
+      "bucket": "KEEP",
+      "accept": [
+        "KEEP"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": true,
+      "trap_note": "Owned by the active successor mission. Do not close them because the parent feature shipped.",
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#801",
+      "group": "G1",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#802",
+      "group": "G1",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#803",
+      "group": "G1",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#804",
+      "group": "G1",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#805",
+      "group": "G1",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#811",
+      "group": "G2",
+      "bucket": "SUPERSEDE",
+      "accept": [
+        "SUPERSEDE"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#812",
+      "group": "G2",
+      "bucket": "SUPERSEDE",
+      "accept": [
+        "SUPERSEDE"
+      ],
+      "require_flags": [
+        "FALSE-PREMISE"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#821",
+      "group": "G3",
+      "bucket": "SUPERSEDE",
+      "accept": [
+        "SUPERSEDE"
+      ],
+      "require_flags": [
+        "FALSE-PREMISE"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#822",
+      "group": "G3",
+      "bucket": "SUPERSEDE",
+      "accept": [
+        "SUPERSEDE"
+      ],
+      "require_flags": [
+        "FALSE-PREMISE"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#823",
+      "group": "G3",
+      "bucket": "SUPERSEDE",
+      "accept": [
+        "SUPERSEDE"
+      ],
+      "require_flags": [
+        "FALSE-PREMISE"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#830",
+      "group": "G4",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE"
+      ],
+      "require_flags": [
+        "WEAK-EVIDENCE"
+      ],
+      "forbid_flags": [
+        "PROVEN"
+      ],
+      "trap": true,
+      "trap_note": "Evidence is weak: no drops in one session, logs never read. Close only with an explicit reopen caveat; do not claim it was proven.",
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#841",
+      "group": "G5",
+      "bucket": "ORPHAN",
+      "accept": [
+        "ORPHAN"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": true,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#842",
+      "group": "G5",
+      "bucket": "ORPHAN",
+      "accept": [
+        "ORPHAN"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": true,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#843",
+      "group": "G5",
+      "bucket": "ORPHAN",
+      "accept": [
+        "ORPHAN"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": true,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#850",
+      "group": "G6",
+      "bucket": "ORPHAN",
+      "accept": [
+        "ORPHAN"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": true,
+      "trap_note": "It looks covered by the successor mission, but the successor PRD lists it as out of scope.",
+      "orphan": true,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#870",
+      "group": "G7",
+      "bucket": "ORPHAN",
+      "accept": [
+        "ORPHAN",
+        "HUMAN-ONLY"
+      ],
+      "require_flags": [
+        "SECURITY"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": true,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#881",
+      "group": "G8",
+      "bucket": "KEEP",
+      "accept": [
+        "KEEP",
+        "HUMAN-ONLY"
+      ],
+      "require_flags": [
+        "REFLECTION-REQUIRED"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#891",
+      "group": "G8",
+      "bucket": "KEEP",
+      "accept": [
+        "KEEP",
+        "HUMAN-ONLY"
+      ],
+      "require_flags": [
+        "REFLECTION-REQUIRED"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#900",
+      "group": "G9",
+      "bucket": "KEEP",
+      "accept": [
+        "KEEP"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#901",
+      "group": "G9",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#902",
+      "group": "G9",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#903",
+      "group": "G9",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#904",
+      "group": "G9",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#905",
+      "group": "G9",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#906",
+      "group": "G9",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#907",
+      "group": "G9",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#908",
+      "group": "G9",
+      "bucket": "KEEP",
+      "accept": [
+        "KEEP",
+        "HUMAN-ONLY"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#909",
+      "group": "G9",
+      "bucket": "NO-ACTION",
+      "accept": [
+        "NO-ACTION"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": true
+    },
+    {
+      "ref": "acme/planning#880",
+      "group": "G10",
+      "bucket": "FALSE-PREMISE",
+      "accept": [
+        "FALSE-PREMISE",
+        "HUMAN-ONLY",
+        "NO-ACTION"
+      ],
+      "require_flags": [
+        "UNENFORCED-DEPENDENCY"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#910",
+      "group": "G11",
+      "bucket": "HUMAN-ONLY",
+      "accept": [
+        "HUMAN-ONLY",
+        "KEEP"
+      ],
+      "require_flags": [
+        "FALSE-PREMISE"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#884",
+      "group": "G12",
+      "bucket": "NO-ACTION",
+      "accept": [
+        "NO-ACTION",
+        "FALSE-PREMISE",
+        "HUMAN-ONLY"
+      ],
+      "require_flags": [
+        "PROCESS-VIOLATION"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "acme/planning#885",
+      "group": "G12",
+      "bucket": "NO-ACTION",
+      "accept": [
+        "NO-ACTION",
+        "FALSE-PREMISE",
+        "HUMAN-ONLY"
+      ],
+      "require_flags": [
+        "PROCESS-VIOLATION"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "handoff:2026-10-10-prod-read-smoke.md",
+      "group": "H1",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE"
+      ],
+      "require_flags": [
+        "DANGLING-HANDOFF"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "handoff:2026-10-11-bundle-signing.md",
+      "group": "H1",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE"
+      ],
+      "require_flags": [
+        "DANGLING-HANDOFF"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "handoff:2026-10-12-seat-map-prod.md",
+      "group": "H1",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE"
+      ],
+      "require_flags": [
+        "DANGLING-HANDOFF"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "handoff:2026-10-13-refusal-text.md",
+      "group": "H1",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE"
+      ],
+      "require_flags": [
+        "DANGLING-HANDOFF"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "handoff:2026-10-14-install-guide.md",
+      "group": "H1",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE"
+      ],
+      "require_flags": [
+        "DANGLING-HANDOFF"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "handoff:2026-10-15-trader-session-prep.md",
+      "group": "H1",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE"
+      ],
+      "require_flags": [
+        "DANGLING-HANDOFF"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "handoff:2026-10-16-read-defects-batch.md",
+      "group": "H1",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE"
+      ],
+      "require_flags": [
+        "DANGLING-HANDOFF"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "handoff:2026-10-17-write-client-contract.md",
+      "group": "H1",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE"
+      ],
+      "require_flags": [
+        "DANGLING-HANDOFF"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "handoff:2026-10-18-prod-bundle-write.md",
+      "group": "H1",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE"
+      ],
+      "require_flags": [
+        "DANGLING-HANDOFF"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "handoff:2026-10-19-windows-writes.md",
+      "group": "H1",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE"
+      ],
+      "require_flags": [
+        "DANGLING-HANDOFF"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "handoff:2026-10-20-changelog-0-15.md",
+      "group": "H1",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE"
+      ],
+      "require_flags": [
+        "DANGLING-HANDOFF"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "handoff:2026-10-21-evidence-pack.md",
+      "group": "H1",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE"
+      ],
+      "require_flags": [
+        "DANGLING-HANDOFF"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "handoff:2026-09-20-nonce-store-design.md",
+      "group": "H1",
+      "bucket": "SUPERSEDE",
+      "accept": [
+        "SUPERSEDE"
+      ],
+      "require_flags": [
+        "DANGLING-HANDOFF"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "handoff:2026-09-21-signed-plan-v2.md",
+      "group": "H1",
+      "bucket": "SUPERSEDE",
+      "accept": [
+        "SUPERSEDE"
+      ],
+      "require_flags": [
+        "DANGLING-HANDOFF"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "handoff:2026-09-22-status-filter-query.md",
+      "group": "H1",
+      "bucket": "SUPERSEDE",
+      "accept": [
+        "SUPERSEDE"
+      ],
+      "require_flags": [
+        "DANGLING-HANDOFF"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "handoff:2026-09-23-interim-risk-memo.md",
+      "group": "H1",
+      "bucket": "SUPERSEDE",
+      "accept": [
+        "SUPERSEDE"
+      ],
+      "require_flags": [
+        "DANGLING-HANDOFF"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "LE-1",
+      "group": "H2",
+      "bucket": "KEEP",
+      "accept": [
+        "KEEP",
+        "NO-ACTION"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": true
+    },
+    {
+      "ref": "LE-2",
+      "group": "H2",
+      "bucket": "ORPHAN",
+      "accept": [
+        "ORPHAN"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": true,
+      "absent_ok": false
+    },
+    {
+      "ref": "LE-3",
+      "group": "H2",
+      "bucket": "ORPHAN",
+      "accept": [
+        "ORPHAN"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": true,
+      "absent_ok": false
+    },
+    {
+      "ref": "LE-4",
+      "group": "H2",
+      "bucket": "ORPHAN",
+      "accept": [
+        "ORPHAN"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": true,
+      "absent_ok": false
+    },
+    {
+      "ref": "handoff:2026-10-20-rotate-test-fixtures.md",
+      "group": "H3",
+      "bucket": "ORPHAN",
+      "accept": [
+        "ORPHAN",
+        "HUMAN-ONLY"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": true,
+      "absent_ok": false
+    },
+    {
+      "ref": "handoff:2026-11-10-exec-signs-write-contract.md",
+      "group": "H4",
+      "bucket": "KEEP",
+      "accept": [
+        "KEEP"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": true,
+      "trap_note": "The intent is still live and has a home. Do not close it as done.",
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "draft:tickets/PRJ/PRJ-3/PRJ-1398/reports/ship/posts/2026-11-12-gh-carry-forward-body.md",
+      "group": "D1",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE",
+        "FALSE-PREMISE",
+        "NO-ACTION"
+      ],
+      "require_flags": [
+        "PUBLISHED-UNRECORDED"
+      ],
+      "forbid_flags": [
+        "UNSENT"
+      ],
+      "trap": true,
+      "trap_note": "No .posted record, but it was published. Verify the remote target first; fix the record, do not call it unsent.",
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "draft:tickets/PRJ/no-epic/PRJ-1065/reports/ship/posts/2026-11-12-new-ptr-gateway-security.md",
+      "group": "D1",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE",
+        "FALSE-PREMISE",
+        "NO-ACTION"
+      ],
+      "require_flags": [
+        "PUBLISHED-UNRECORDED"
+      ],
+      "forbid_flags": [
+        "UNSENT"
+      ],
+      "trap": true,
+      "trap_note": "No .posted record, but it was published. Verify the remote target first; fix the record, do not call it unsent.",
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "draft:tickets/PRJ/no-epic/PRJ-1289/reports/ship/posts/2026-11-08-trader-thanks.md",
+      "group": "D2",
+      "bucket": "HUMAN-ONLY",
+      "accept": [
+        "HUMAN-ONLY"
+      ],
+      "require_flags": [
+        "UNSENT"
+      ],
+      "forbid_flags": [
+        "PUBLISHED-UNRECORDED"
+      ],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    },
+    {
+      "ref": "FU-1",
+      "group": "M1",
+      "bucket": "ORPHAN",
+      "accept": [
+        "ORPHAN"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": true,
+      "absent_ok": false
+    },
+    {
+      "ref": "FU-2",
+      "group": "M1",
+      "bucket": "ORPHAN",
+      "accept": [
+        "ORPHAN"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": true,
+      "absent_ok": false
+    },
+    {
+      "ref": "FU-3",
+      "group": "M1",
+      "bucket": "ORPHAN",
+      "accept": [
+        "ORPHAN"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": true,
+      "absent_ok": false
+    },
+    {
+      "ref": "FU-4",
+      "group": "M1",
+      "bucket": "ORPHAN",
+      "accept": [
+        "ORPHAN"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": true,
+      "absent_ok": false
+    },
+    {
+      "ref": "GAP-1",
+      "group": "R1",
+      "bucket": "HUMAN-ONLY",
+      "accept": [
+        "HUMAN-ONLY"
+      ],
+      "require_flags": [
+        "RISK-ACCEPTANCE"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
+    }
+  ]
+}

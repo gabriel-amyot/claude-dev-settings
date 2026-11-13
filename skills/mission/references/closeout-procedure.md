@@ -9,7 +9,7 @@ The script gathers facts. You make the judgements. The human approves before any
 - **Facts are not verdicts.** `closeout-facts.json` holds what the trackers say. An `UNKNOWN` fact is a gap to check by hand. It is never a pass.
 - **No silent closes.** Never close a Jira ticket, never transition it, and never post on Jira or Slack yourself. Draft the text, then use `/post-comment`. You can post GitHub closing comments and close GitHub issues, but only after the human approves the bucket list (`approval` in `closeout.yaml`).
 - **Wayfinder maps close through the wayfinder tool.** If an issue has the label `wayfinder:map`, close its children through the `wayfinder` skill, not with `gh issue close`. A raw close leaves gaps in the wayfinder telemetry.
-- **No orphans.** Every item that stays open gets a successor home: a ticket, an issue or a parked entry with a named owner. `/mission close` refuses while an `ORPHAN` has no successor.
+- **No orphans.** Every item that stays open gets a successor home: a ticket, an issue or a parked entry with a named owner. `/mission close` refuses while an `ORPHAN` has no successor, or an open `HUMAN-ONLY` item has no named owner or successor.
 - **One report.** `closeout.html` is overwritten on each run. Never write a dated copy.
 
 ## Step 1. Gather the facts
@@ -28,12 +28,12 @@ The output goes to the mission folder, or to `missions/_closeout/<name>/`. It ho
 
 | Section | Facts |
 |---|---|
-| `jira.tickets` | Members, seeds and their children (2 levels): status, status category, resolution, comment count, last comment date, `closed_without_comments`, `comment_after_close`, a description excerpt. |
-| `github` | The sub-issue tree under the root issue, the parent issue and the seeds: state, state reason, labels, tracker parent, `blocked_by`, `blocking`, a body excerpt. Also `wayfinder_maps`, `reflections` (with `parent_is_map`) and `blocking_mentions_without_edge`. |
+| `jira.tickets` | Members, seeds and their children (2 levels): status, status category, resolution, comment count, last comment date, `closed_without_comments`, `comment_after_close`, a description excerpt. A failed `parent in (...)` child query makes the source `PARTIAL` or `UNKNOWN`: an empty list from a failed query is not "no children". |
+| `github` | The sub-issue tree under the root issue, the parent issue and the seeds: state, state reason, labels, tracker parent, `blocked_by`, `blocking`, a body excerpt. Also `wayfinder_maps`, `reflections` (with `parent_is_map`), `reflections_off_map` (open reflections not under their map), `wayfinder_untraced_closes` (map children closed without the wayfinder tool, from the run telemetry; `UNKNOWN` when the map has no telemetry file) and `blocking_mentions_without_edge` (open and closed issues whose text states an ordering with no `blockedBy` edge). |
 | `handoffs` | Pending ledger handoffs (`awaiting_initiation`, `initiated`) whose metadata or text matches a key or alias. Read-only. |
-| `drafts` | `*.md` files under `reports/ship/posts/` in member ticket folders without a sibling `.posted` file. |
+| `drafts` | `no_posted_marker`: `*.md` files under `reports/ship/posts/` in member ticket folders with no sibling `.posted` file and no `posted-as:` line. Each one has `remote_state: UNKNOWN`. The script never confirms a draft as unsent. |
 | `branches` | Local branches named after member keys in each `--repo`. Open MRs are always `UNKNOWN` when the forge needs extra auth. |
-| `unknown` | Every source the script could not read, with the reason. |
+| `unknown` | Every source the script could not read, with the reason. Also closed tickets whose `comment_after_close` is `UNKNOWN`, drafts whose remote state is not checked, and maps with no wayfinder telemetry. |
 
 Read the `unknown` list first. Check each gap by hand, or carry it into the report as `unknown`.
 
@@ -64,7 +64,7 @@ Each step gets a status in `closeout.yaml`: `done`, `na`, `open` or `unknown`.
 11. **reflections.** Write every reflection the work requires (for wayfinder maps, the map's reflection ticket). A reflection stays under its map until it is written. Do not move a reflection ticket to a carry-forward issue first: the reflect tool then reports "no reflection ticket". Write it, then move the survivors. Check `reflections[].parent_is_map`.
 12. **risk-acceptance.** For each capability that went live with a known gap, a named human decider records the acceptance in a durable place (a ticket comment or a decision record). An agent never accepts risk. Without a record, it is a `HUMAN-ONLY` item.
 13. **handoffs.** A pending handoff whose intent is already complete gets closed through the session tools (`session:pickup` triage, or the `ledger` helper). Never edit `sessions/ledger.yaml` by hand.
-14. **drafts.** Each unsent draft is sent through `/post-comment`, marked superseded, or deleted with the human's agreement.
+14. **drafts.** For each draft in `no_posted_marker`, check its target first (the issue body, the ticket description or the comments). Published already: add a `posted-as: <where> (<date>)` record next to it (a `.posted` file). Not published: it is unsent; post it through `/post-comment`, mark it superseded, or delete it with the human's agreement.
 15. **infra-tails.** Cleanup MRs left as draft, unapplied infrastructure changes, stale branches, and temporary access grants. Each one is finished or gets an owner and a date.
 
 Also check a stale tracking issue: an open umbrella issue whose sub-issues all shipped long ago is a `CLOSE-WITH-EVIDENCE` item.
@@ -89,6 +89,7 @@ items:
     action: "One sentence: the proposed action."
     successor: {kind: gh, ref: "#N", url: ..., title: ...}  # required for KEEP; for a parked ORPHAN
     parked_by: Gabriel             # required to park an ORPHAN
+    owner: Gabriel                 # required on a HUMAN-ONLY item that is not done (or give a successor)
     state: proposed                # proposed | approved | done
 human_guide:
   - {step: "Approve the bucket list."}
@@ -104,7 +105,7 @@ Bucket meanings:
 | `KEEP` | Still needed. It has a successor home. | The successor owner. |
 | `ORPHAN` | Still needed, no home. Blocks the close until it gets one. | The human picks the home. |
 | `FALSE-PREMISE` | Record text that is now false. Give the text and the correction. | Agent drafts the correction. |
-| `HUMAN-ONLY` | Decisions, approvals, risk acceptance, production actions. | The human. |
+| `HUMAN-ONLY` | Decisions, approvals, risk acceptance, production actions. Needs a named `owner` or a successor until it is done. | The named human. |
 
 ## Step 5. Render, approve, act
 
@@ -117,4 +118,4 @@ Bucket meanings:
 
 ## Read-only health check (`/mission check`)
 
-Run Step 1 and a short Step 2 at any time, without `closeout.yaml`. Report in the terminal: tracker drift against the record (`mission fetch`), orphans, false premises, unsent drafts, dangling handoffs and `UNKNOWN` sources. Change nothing. Record findings in the mission with `/mission update` only if the human asks.
+Run Step 1 and a short Step 2 at any time, without `closeout.yaml`. Report in the terminal: tracker drift against the record (`mission fetch`), orphans, false premises, drafts with no posted record (remote not checked), dangling handoffs and `UNKNOWN` sources. Change nothing. Record findings in the mission with `/mission update` only if the human asks.

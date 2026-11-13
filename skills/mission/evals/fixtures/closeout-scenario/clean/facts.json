@@ -1,0 +1,187 @@
+{
+  "schema": "mission-closeout-facts/v1",
+  "fetched_at": "2026-11-12T21:30:00Z",
+  "scope": {
+    "mission": null,
+    "name": "vendor-tool",
+    "jira_seeds": [
+      "PRJ-3",
+      "PTR-100"
+    ],
+    "gh_seeds": [
+      "acme/planning#700"
+    ],
+    "aliases": [
+      "vendor tool",
+      "trading tool"
+    ],
+    "repos": []
+  },
+  "jira": {
+    "status": "OK",
+    "reason": null,
+    "seeds": [
+      "PRJ-3",
+      "PTR-100"
+    ],
+    "unreadable": [],
+    "legacy_query_errors": [],
+    "tickets": [
+      {
+        "key": "PRJ-3",
+        "url": "https://tracker.example.invalid/browse/PRJ-3",
+        "summary": "Vendor trading tool",
+        "status": "Done",
+        "status_category": "Done",
+        "type": "Epic",
+        "resolution": "Done",
+        "resolution_date": null,
+        "parent_key": null,
+        "epic_key": null,
+        "updated": "2026-11-12",
+        "assignee": "dev-a",
+        "comment_count": 1,
+        "last_comment_at": "2026-11-12T18:00",
+        "last_comment_author": "lead",
+        "description_excerpt": "",
+        "closed": true,
+        "comment_after_close": "UNKNOWN",
+        "comment_after_close_reason": "no resolution date on the ticket; compare last_comment_at with the status history",
+        "closed_without_comments": false
+      },
+      {
+        "key": "PRJ-1501",
+        "url": "https://tracker.example.invalid/browse/PRJ-1501",
+        "summary": "Show the seat name on results",
+        "status": "Done",
+        "status_category": "Done",
+        "type": "Story",
+        "resolution": "Done",
+        "resolution_date": null,
+        "parent_key": "PRJ-3",
+        "epic_key": null,
+        "updated": "2026-11-12",
+        "assignee": "dev-a",
+        "comment_count": 1,
+        "last_comment_at": "2026-11-10T10:00",
+        "last_comment_author": "dev-a",
+        "description_excerpt": "",
+        "closed": true,
+        "comment_after_close": "UNKNOWN",
+        "comment_after_close_reason": "no resolution date on the ticket; compare last_comment_at with the status history",
+        "closed_without_comments": false
+      },
+      {
+        "key": "PRJ-1502",
+        "url": "https://tracker.example.invalid/browse/PRJ-1502",
+        "summary": "Legible refusal text",
+        "status": "Done",
+        "status_category": "Done",
+        "type": "Story",
+        "resolution": "Done",
+        "resolution_date": null,
+        "parent_key": "PRJ-3",
+        "epic_key": null,
+        "updated": "2026-11-12",
+        "assignee": "dev-a",
+        "comment_count": 1,
+        "last_comment_at": "2026-11-11T10:00",
+        "last_comment_author": "dev-a",
+        "description_excerpt": "",
+        "closed": true,
+        "comment_after_close": "UNKNOWN",
+        "comment_after_close_reason": "no resolution date on the ticket; compare last_comment_at with the status history",
+        "closed_without_comments": false
+      }
+    ]
+  },
+  "github": {
+    "status": "OK",
+    "reason": null,
+    "roots": [
+      "acme/planning#700"
+    ],
+    "open": 0,
+    "closed": 2,
+    "wayfinder_maps": [],
+    "reflections": [],
+    "reflections_off_map": [],
+    "wayfinder_untraced_closes": {},
+    "blocking_mentions_without_edge": [],
+    "issues": [
+      {
+        "ref": "acme/planning#700",
+        "repo": "acme/planning",
+        "number": 700,
+        "title": "Component: vendor trading tool",
+        "state": "closed",
+        "state_reason": "completed",
+        "url": "https://forge.example.invalid/acme/planning/issues/700",
+        "created_at": "2026-09-22",
+        "closed_at": "2026-11-12",
+        "labels": [],
+        "body_excerpt": "",
+        "tracker_parent": null,
+        "blocked_by": [],
+        "blocking": [],
+        "blocking_mentions": [],
+        "sub_issues_total": 1,
+        "sub_issues_truncated": false,
+        "children": [
+          "acme/planning#960"
+        ]
+      },
+      {
+        "ref": "acme/planning#960",
+        "repo": "acme/planning",
+        "number": 960,
+        "title": "Ship the read surface",
+        "state": "closed",
+        "state_reason": "completed",
+        "url": "https://forge.example.invalid/acme/planning/issues/960",
+        "created_at": "2026-09-22",
+        "closed_at": "2026-11-12",
+        "labels": [],
+        "body_excerpt": "",
+        "tracker_parent": "acme/planning#700",
+        "blocked_by": [],
+        "blocking": [],
+        "blocking_mentions": [],
+        "sub_issues_total": 0,
+        "sub_issues_truncated": false,
+        "children": []
+      }
+    ]
+  },
+  "handoffs": {
+    "status": "OK",
+    "reason": null,
+    "terms": [
+      "vendor tool",
+      "PRJ-3",
+      "PTR-100"
+    ],
+    "pending": []
+  },
+  "drafts": {
+    "status": "OK",
+    "reason": null,
+    "folders": [],
+    "scanned": 3,
+    "no_posted_marker": []
+  },
+  "branches": {
+    "status": "UNKNOWN",
+    "reason": "no --repo given; branches not checked",
+    "branches": [],
+    "mrs": {
+      "status": "UNKNOWN",
+      "reason": "the forge is behind an auth proxy; check open MRs by hand"
+    }
+  },
+  "unknown": [
+    "mrs: the forge is behind an auth proxy; check open MRs by hand",
+    "branches: no --repo given; branches not checked",
+    "jira-fields: comment_after_close UNKNOWN on 3 closed ticket(s) ['PRJ-3', 'PRJ-1501', 'PRJ-1502']: no resolution date; read the status history before calling a closing comment present or missing"
+  ]
+}

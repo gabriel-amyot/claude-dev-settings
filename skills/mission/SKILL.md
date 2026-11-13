@@ -105,7 +105,7 @@ A report never creates a new analysis file. If the record is thin, update it fir
 
 Read-only. Use it at any time, not only at the end.
 1. `mission fetch <slug>` and `mission closeout gather <slug>`.
-2. Report in the terminal: tracker status against the record, orphans, false premises, unsent drafts, dangling handoffs, and every `UNKNOWN` source. `UNKNOWN` is never a pass.
+2. Report in the terminal: tracker status against the record, orphans, false premises, drafts with no posted record, dangling handoffs, and every `UNKNOWN` source. `UNKNOWN` is never a pass. A draft with no posted record is not unsent until you check its target: it may be published already.
 3. Change nothing in Jira, GitHub or the record. Offer `/mission update` for the findings.
 
 ### `/mission check --close [<slug>]`: the close-out sweep
@@ -121,7 +121,7 @@ Run it when the main feature has shipped. It makes sure nothing small stays undo
 ### `/mission close <slug>`
 
 This needs Gabriel.
-1. `mission closeout gate <slug>` must exit 0. If it fails, stop and run `/mission check --close`. The gate refuses when `closeout.yaml` is missing, a checklist step has no status, or an ORPHAN has no named successor and `parked_by`. `mission sync` also refuses `status: done` while the gate is closed.
+1. `mission closeout gate <slug>` must exit 0. If it fails, stop and run `/mission check --close`. The gate refuses when `closeout.yaml` is missing, a checklist step has no status, an ORPHAN has no named successor and `parked_by`, or an open HUMAN-ONLY item has no named `owner` or successor. `mission sync` also refuses `status: done` while the gate is closed.
 2. Every member must be done, superseded, or moved to a named successor. Copy the parked `horizon` items into the next mission or a new issue.
 3. Set `status: done`, then sync. Close the root issue with a comment that links the record and `closeout.html`. A phase ending is not a mission ending.
 
@@ -156,5 +156,6 @@ Read `references/terminal-replies.md` once per session. In short:
 
 ## Evals
 
-- `evals/run_layer_a.py` (`uv run --quiet --with pyyaml python3 ~/.claude/skills/mission/evals/run_layer_a.py`): deterministic checks on the lint, render, fetch and close-out (gather UNKNOWN handling, gate, sync refusal), using fixtures. Run it after any change to this skill. It is registered in `~/.claude-shared-config/evals/manifest.yaml`.
-- `evals/evals.json`: behavioral cases for skill-creator.
+- `evals/run_layer_a.py` (`uv run --quiet --with pyyaml python3 ~/.claude/skills/mission/evals/run_layer_a.py`): deterministic checks on the lint, render, fetch and close-out (gather UNKNOWN handling, gate, sync refusal), using fixtures. It also runs the gatherer checks from a real close-out (failed child query, unresolved comment-after-close, drafts with no posted record, ordering without a `blockedBy` edge, reflection moved off its map, untraced map closes) and calibrates the close-out grader in both directions. Run it after any change to this skill. It is registered in `~/.claude-shared-config/evals/manifest.yaml`.
+- `evals/evals.json`: behavioral cases for skill-creator. Cases 5 to 8 replay an anonymized real close-out (`evals/fixtures/closeout-scenario/<case>/`): the full scenario, the traps alone, a clean scope that must not invent work, and scope isolation.
+- `evals/grade_closeout.py`: scores an agent's close-out answer against `evals/expected/closeout/<case>.json`. Per-item accuracy, plus hard fails for a wrong trap item, a missed ORPHAN, an out-of-scope item, an unreported UNKNOWN source, or any Jira or Slack write. Never copy `evals/expected/` into a sandbox.

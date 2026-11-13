@@ -25,6 +25,12 @@ suites:
     owner_skill: mission
     last_green: null
 
+  - target: mission/closeout-behavioral
+    layer: B
+    runner: skill-creator benchmark on evals.json cases 5-8 (anonymized real close-out, fixtures at ~/.claude-shared-config/skills/mission/evals/fixtures/closeout-scenario/), then python3 ~/.claude-shared-config/skills/mission/evals/grade_closeout.py --expected ~/.claude-shared-config/skills/mission/evals/expected/closeout/<case>.json --answer <answer.json> --transcript <transcript>. Grader calibration runs in mission/layer-a.
+    owner_skill: mission
+    last_green: null
+
   - target: post-comment/verify-causal-claims
     layer: A
     runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/skills/post-comment/evals/run_causal_evals.py

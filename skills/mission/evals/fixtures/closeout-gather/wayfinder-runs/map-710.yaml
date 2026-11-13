@@ -1,0 +1,20 @@
+map: 710
+map_title: 'Map A: a trader applies a real change on the live book'
+map_state: CLOSED
+harvested: '2026-11-13T03:01:47+00:00'
+telemetry_epoch: '2026-09-10'
+runs:
+- run_id: aaaa0001
+  mode: chart
+  map: 710
+  date: '2026-09-22'
+  outcome: charted
+gaps:
+- issue: 711
+  title: Realign the write client
+  closed_at: '2026-11-12'
+  reason: closed with no run trailer — this run was never traced
+- issue: 712
+  title: Let a production bundle write
+  closed_at: '2026-11-12'
+  reason: closed with no run trailer — this run was never traced

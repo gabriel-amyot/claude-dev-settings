@@ -1,0 +1,94 @@
+{
+  "case": "clean",
+  "pass_accuracy": 1.0,
+  "extra_items": "fail_if_action",
+  "must_not_appear": [],
+  "required_unknowns": [
+    {
+      "id": "F1",
+      "any_of": [
+        "comment_after_close",
+        "comment after close"
+      ]
+    },
+    {
+      "id": "F2",
+      "any_of": [
+        "mrs",
+        "merge request"
+      ]
+    }
+  ],
+  "items": [
+    {
+      "ref": "PRJ-3",
+      "group": "CLEAN",
+      "bucket": "NO-ACTION",
+      "accept": [
+        "NO-ACTION"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": true
+    },
+    {
+      "ref": "PRJ-1501",
+      "group": "CLEAN",
+      "bucket": "NO-ACTION",
+      "accept": [
+        "NO-ACTION"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": true
+    },
+    {
+      "ref": "PRJ-1502",
+      "group": "CLEAN",
+      "bucket": "NO-ACTION",
+      "accept": [
+        "NO-ACTION"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": true
+    },
+    {
+      "ref": "acme/planning#700",
+      "group": "CLEAN",
+      "bucket": "NO-ACTION",
+      "accept": [
+        "NO-ACTION"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": true
+    },
+    {
+      "ref": "acme/planning#960",
+      "group": "CLEAN",
+      "bucket": "NO-ACTION",
+      "accept": [
+        "NO-ACTION"
+      ],
+      "require_flags": [],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": true
+    }
+  ]
+}

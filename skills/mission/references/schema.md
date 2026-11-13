@@ -1,6 +1,6 @@
 # mission.yaml schema (mission/v1)
 
-`missions/<slug>/mission.yaml` is the main record of a mission. It is committed and pushed in the project-management repo (`gabriel-amyot/klever-project-management`). The GitHub root issue links to it. Everything else (README.md, report.html, computed.json) is generated from it.
+`missions/<slug>/mission.yaml` is the main record of a mission. It is committed and pushed in the project-management repo (`acme/planning`). The GitHub root issue links to it. Everything else (README.md, report.html, computed.json) is generated from it.
 
 `scripts/mission_lint.py` enforces this schema. Run it after every edit.
 
@@ -35,7 +35,7 @@ Every item that Gabriel may refer to gets a stable short ID when it is created. 
 A link is always typed and titled, never a bare number:
 
 ```yaml
-- {kind: jira, ref: KTP-1398, url: https://beklever.atlassian.net/browse/KTP-1398, title: "Part 2 - Powers MCP: deploy read and write to prod"}
+- {kind: jira, ref: PRJ-1398, url: https://tracker.example.invalid/browse/PRJ-1398, title: "Part 2 - Vendor tool: deploy read and write to prod"}
 ```
 
 `kind` is one of `jira`, `gh`, `mr`, `file`, `folder`, `session`, `url`, `slack`.
@@ -44,59 +44,59 @@ A link is always typed and titled, never a bare number:
 
 ```yaml
 schema: mission/v1
-slug: ttd-ot-feedback                 # STABLE, folder name
-title: "TTD MCP: address OT feedback" # STABLE
+slug: vendor-trader-feedback                 # STABLE, folder name
+title: "Vendor tool: address TR feedback" # STABLE
 status: active                        # LIVE: active | parked | done | abandoned
 created: 2026-11-10T22:30:00Z         # from `date -u`, never guessed
 updated: 2026-11-10T22:30:00Z         # set by mission_sync.py
 last_report_at: null                  # set by mission_render.py; start of the "Latest changes" window
 
-root_issue: {number: 671, url: https://github.com/gabriel-amyot/klever-project-management/issues/671}
-parent_issue: {number: 594, url: ..., title: "Component: TTD trading MCP"}   # optional
+root_issue: {number: 671, url: https://forge.example.invalid/acme/planning/issues/671}
+parent_issue: {number: 594, url: ..., title: "Component: vendor trading tool"}   # optional
 
 destination: >                        # STABLE: what done looks like, 1-2 lines
-  OT reads her live Powers book and writes bids from Claude Desktop on Windows, in production.
+  TR reads her live book and writes bids from Claude Desktop on Windows, in production.
 why: >                                # STABLE: 2-5 lines
-  OT feedback (KTP-1289) said reads were poor and writes did not work.
+  TR feedback (PRJ-1289) said reads were poor and writes did not work.
 scope_constraints:                    # STABLE: agreed boundaries ("build the flow, wait on execution")
   - "Write stays closed until DEC-2 is ratified."
 
 verdict: "One sentence, max 20 words: where the mission stands now."   # LIVE, top of the report
 
 next_milestone:                       # LIVE
-  title: "Writes verified on prod by OT"
-  done_when: "OT places one bid from Windows and it shows in the Powers book."
+  title: "Writes verified on prod by TR"
+  done_when: "TR places one bid from Windows and it shows in the book."
   owner: Gabriel
   deliverable: D-B
 
-aliases: ["Powers MCP", "TTD trading MCP", "KTP-1289", "app-ttd-trading-mcp"]   # STABLE
+aliases: ["Vendor tool", "vendor trading tool", "PRJ-1289", "app-vendor-tool"]   # STABLE
 
 members:                              # STABLE list, role is LIVE
-  - {kind: jira, ref: KTP-1398, url: ..., title: ..., role: current, note: "Part 2 deploy"}
+  - {kind: jira, ref: PRJ-1398, url: ..., title: ..., role: current, note: "Part 2 deploy"}
   - {kind: gh, ref: "#659", url: ..., title: ..., role: current}
-  - {kind: folder, ref: tickets/KTP/KTP-3/KTP-1398, url: "file:///Users/...", title: "KTP-1398 ticket folder", role: current}
-  - {kind: session, ref: clear-wren, url: "https://github.com/gabriel-amyot/klever-project-management/tree/main/sessions/active/clear-wren", title: ..., role: done}
+  - {kind: folder, ref: tickets/PRJ/PRJ-3/PRJ-1398, url: "file:///Users/...", title: "PRJ-1398 ticket folder", role: current}
+  - {kind: session, ref: clear-wren, url: "https://forge.example.invalid/acme/planning/tree/main/sessions/active/clear-wren", title: ..., role: done}
   # role: current | done | superseded | parked
 
 deliverables:                         # LIVE status_line
-  - {id: D-A, title: "Story A: read path", members: [KTP-1289], status_line: "Done, verified by Gabriel 2026-11-09"}
-  - {id: D-B, title: "Story B: write path", members: [KTP-1398], status_line: "Shipped to prod, not verified live"}
+  - {id: D-A, title: "Story A: read path", members: [PRJ-1289], status_line: "Done, verified by Gabriel 2026-11-09"}
+  - {id: D-B, title: "Story B: write path", members: [PRJ-1398], status_line: "Shipped to prod, not verified live"}
 
 decisions:                            # LOG
   - id: DEC-1
     date: 2026-11-09
-    statement: "Seat-wide discovery replaces name guessing for OT's campaign list."
+    statement: "Seat-wide discovery replaces name guessing for TR's campaign list."
     state: ratified                   # proposed | ratified | superseded | reversed
     ratified_by: {who: Gabriel, link: {kind: url, url: "...", title: "terminal turn 2026-11-09"}}
     supersedes: null                  # DEC-id this one replaces
-    licenses: ["app-ttd-trading-mcp:src/discovery.py#list_campaigns"]   # code built on it = unwind checklist
+    licenses: ["app-vendor-tool:src/discovery.py#list_campaigns"]   # code built on it = unwind checklist
     session: brave-otter
 
 disproven:                            # LOG
   - id: X-1
     date: 2026-11-07
     claim: "Prod today has none of the surface the MCP calls."
-    evidence: {kind: jira, ref: KTP-1398, url: ..., title: "prod-prep README: live since 2026-09-16"}
+    evidence: {kind: jira, ref: PRJ-1398, url: ..., title: "prod-prep README: live since 2026-09-16"}
     signature: "none of the surface the MCP calls"      # literal grep string that finds stale copies
 
 parked:                               # LIVE
@@ -106,10 +106,10 @@ parked:                               # LIVE
 needs_you:                            # LIVE: delete the item when it is resolved and add a journey/changes entry
   - id: N-1
     since: 2026-11-09
-    question: "Send the 0.15.7 kit to OT?"
+    question: "Send the 0.15.7 kit to TR?"
     why: "She cannot test native Windows without it."
     options:
-      - {label: "Send now", consequence: "OT tests tonight", source: drafted}
+      - {label: "Send now", consequence: "TR tests tonight", source: drafted}
       - {label: "Wait for writes fix", consequence: "One message instead of two", source: drafted}
     recommendation: "Send now"
     after_answer: "I mark M-1 sent and watch for her reply."
@@ -126,28 +126,28 @@ journey:                              # LOG: one entry per session, night run, o
     session: brave-otter
     start: 2026-11-09T14:00:00Z
     end: 2026-11-09T23:00:00Z
-    summary: "Shipped 0.15.7, verified 5 of 9 OT asks on prod."
+    summary: "Shipped 0.15.7, verified 5 of 9 TR asks on prod."
     milestones: ["0.15.7 on prod"]
     blockers: ["Native Windows untested"]
     confusion: ["Which kit file was sent"]       # moments where Gabriel or the agent lost the thread
-    findings: ["Seat-wide discovery works for all of OT's campaigns"]
+    findings: ["Seat-wide discovery works for all of TR's campaigns"]
     decisions: [DEC-1]
     links: [...]
 
 artifacts:                            # LOG
-  - {id: ART-1, title: "Windows test kit 0.15.7", path: "/Users/gamyot/Desktop/ttd-production-windows-test-kit-0.15.7-0a08771.zip", sha256: "dffc92...", date: 2026-11-09}
+  - {id: ART-1, title: "Windows test kit 0.15.7", path: "/tmp/vendor-desktop-bundle-0.15.7.zip", sha256: "dffc92...", date: 2026-11-09}
 
 messages:                             # LIVE state
-  - {id: M-1, to: OT, channel: slack-dm, state: draft, draft: "Salut Othalia! ...", sent_text: null, date: 2026-11-09}
+  - {id: M-1, to: TR, channel: slack-dm, state: draft, draft: "Hi there! ...", sent_text: null, date: 2026-11-09}
   # state: draft | sent | answered
 
 graph:                                # STABLE-ish: the mission's context graph
-  nodes: [{id: mcp, label: "TTD trading MCP", kind: system}, {id: ot, label: "OT", kind: person}]
-  edges: [{from: ot, to: mcp, label: "uses from Claude Desktop"}]
+  nodes: [{id: mcp, label: "vendor trading tool", kind: system}, {id: tr, label: "TR", kind: person}]
+  edges: [{from: tr, to: mcp, label: "uses from Claude Desktop"}]
   # kind: system | person | concept | decision | ticket | repo | env
 
 terms:                                # STABLE: terms Gabriel confirmed he knows in this mission
-  - {term: "seat", meaning: "a TTD partner account", confirmed: true}
+  - {term: "seat", meaning: "a vendor partner account", confirmed: true}
 
 changes:                              # LOG: feeds the "Latest changes" view
   - {id: C-1, at: 2026-11-10T22:30:00Z, session: clear-wren, summary: "Mission created.", refs: []}

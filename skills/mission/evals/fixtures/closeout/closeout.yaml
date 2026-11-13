@@ -1,21 +1,21 @@
 # Close-out bucket list fixture. The eval adds a full checklist and patches items per case.
 schema: mission-closeout/v1
-scope: {mission: fixture-ttd, name: fixture-ttd}
+scope: {mission: fixture-vendor, name: fixture-vendor}
 approval: null
 items:
   - id: CO-1
     bucket: CLOSE-WITH-EVIDENCE
-    ref: {kind: jira, ref: KTP-1398, url: "https://beklever.atlassian.net/browse/KTP-1398", title: "Part 2 deploy"}
+    ref: {kind: jira, ref: PRJ-1398, url: "https://tracker.example.invalid/browse/PRJ-1398", title: "Part 2 deploy"}
     finding: "Validated in production by the trader; ticket still In review."
     evidence: [{kind: url, url: "https://example.invalid/evidence", title: "prod validation"}]
     action: "Draft an evidence comment and move to Done through post-comment."
     state: proposed
   - id: CO-2
     bucket: KEEP
-    ref: {kind: gh, ref: "#59", url: "https://github.com/gabriel-amyot/klever-project-management/issues/59", title: "Declined permission prompt"}
+    ref: {kind: gh, ref: "#59", url: "https://forge.example.invalid/acme/planning/issues/59", title: "Declined permission prompt"}
     finding: "Still open work."
     action: "Move under the carry-forward issue."
-    successor: {kind: gh, ref: "#677", url: "https://github.com/gabriel-amyot/klever-project-management/issues/677", title: "Carry-forward work"}
+    successor: {kind: gh, ref: "#677", url: "https://forge.example.invalid/acme/planning/issues/677", title: "Carry-forward work"}
     state: approved
   - id: CO-3
     bucket: ORPHAN

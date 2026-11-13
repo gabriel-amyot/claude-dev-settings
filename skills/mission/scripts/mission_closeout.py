@@ -27,9 +27,10 @@ import re
 import subprocess
 import sys
 
-from mission_lib import GH_REPO, JIRA_BROWSE, MISSIONS_DIR, PM_ROOT, load, now_utc, run
+from mission_lib import (GH_REPO, JIRA_BROWSE, JIRA_ORG, JIRA_SKILL, MISSIONS_DIR, MR_UNKNOWN_REASON, PM_ROOT,
+                         config_problem, load, now_utc, run)
 
-JIRA = "/Users/gamyot/.claude-shared-config/skills/jira/jira_skill.py"
+JIRA = str(JIRA_SKILL)
 UNKNOWN = "UNKNOWN"
 BUCKETS = ["CLOSE-WITH-EVIDENCE", "SUPERSEDE", "KEEP", "ORPHAN", "FALSE-PREMISE", "HUMAN-ONLY"]
 NEEDS_SUCCESSOR = {"KEEP"}
@@ -58,6 +59,8 @@ DONE_WORDS = re.compile(r"done|termin|closed|won't|wont|resolved|ferm|abandon", 
 # ---------------------------------------------------------------- location
 
 def closeout_dir(slug: str | None, scope: str | None) -> tuple[pathlib.Path, dict]:
+    if config_problem():
+        sys.exit(config_problem())
     if slug:
         d = MISSIONS_DIR / slug
         if not (d / "mission.yaml").exists():
@@ -87,7 +90,9 @@ def parse_json(out: str):
 
 def jira_call(*args: str):
     """A non-zero exit is an error even when stdout holds JSON: an auth failure can print an empty list."""
-    r = run(["python3", JIRA, "--org", "klever", *args], check=False)
+    if not JIRA_ORG:
+        return {"error": "no jira_org in the mission config"}
+    r = run(["python3", JIRA, "--org", JIRA_ORG, *args], check=False)
     if r.returncode != 0:
         return {"error": (r.stderr or r.stdout).strip()[-200:] or f"exit {r.returncode}"}
     try:
@@ -204,7 +209,7 @@ def gh_ref(ref: str) -> tuple[str, int]:
     m = re.fullmatch(r"(?:([\w.-]+/[\w.-]+))?#?(\d+)", str(ref).strip())
     if not m:
         raise ValueError(f"bad GitHub ref {ref}")
-    return m.group(1) or GH_REPO, int(m.group(2))
+    return m.group(1) or GH_REPO or "", int(m.group(2))
 
 
 BLOCK_SENTENCE = re.compile(r"[^.\n]*\b(?:block(?:s|ed|ing)?|depend(?:s|ed|ing)?\s+on|wait(?:s|ing)?\s+(?:for|on))\b[^.\n]*", re.I)
@@ -220,6 +225,8 @@ def blocking_mentions(body: str) -> list[str]:
 
 
 def gh_issue(repo: str, n: int) -> dict:
+    if not repo or "/" not in repo:
+        return {"error": "no gh_repo in the mission config and no owner/repo in the ref"}
     owner, name = repo.split("/")
     r = run(["gh", "api", "graphql", "-f", f"query={GH_Q}", "-F", f"o={owner}", "-F", f"r={name}", "-F", f"n={n}"], check=False)
     if r.returncode != 0:
@@ -402,7 +409,7 @@ def gather_drafts(folders: list[pathlib.Path]) -> dict:
 # ---------------------------------------------------------------- branches and MRs
 
 def gather_branches(repos: list[str], keys: list[str]) -> dict:
-    out = {"mrs": {"status": UNKNOWN, "reason": "Klever GitLab is behind IAP; check open MRs with the gitlab skill"}}
+    out = {"mrs": {"status": UNKNOWN, "reason": MR_UNKNOWN_REASON}}
     if not repos:
         out.update({"status": UNKNOWN, "reason": "no --repo given; branches not checked", "branches": []})
         return out

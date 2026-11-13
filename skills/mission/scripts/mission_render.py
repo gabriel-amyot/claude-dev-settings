@@ -15,7 +15,7 @@ import sys
 
 import datetime as dt
 
-from mission_lib import MISSIONS_DIR, SKILL_DIR, gh_url, load, load_computed, mission_dir, now_utc, run, set_top
+from mission_lib import JIRA_BROWSE, JIRA_KEY_PATTERN, MISSIONS_DIR, SKILL_DIR, gh_url, load, load_computed, mission_dir, now_utc, run, set_top
 
 WINDOW_HOLD_HOURS = 2
 
@@ -106,7 +106,8 @@ def main() -> int:
     shift = last is None or _age_hours(last) > WINDOW_HOLD_HOURS
     window_start = last if shift else start
     data = {"mission": json.loads(json.dumps(m, default=str)), "computed": c, "generated_at": ts,
-            "record_url": gh_url(d / "mission.yaml"), "window_start": _iso(window_start)}
+            "record_url": gh_url(d / "mission.yaml"), "window_start": _iso(window_start),
+            "jira": {"browse": JIRA_BROWSE, "key_pattern": JIRA_KEY_PATTERN}}
     tpl = (SKILL_DIR / "assets" / "template.html").read_text()
     payload = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
     (d / "report.html").write_text(tpl.replace("/*__DATA__*/null", payload))

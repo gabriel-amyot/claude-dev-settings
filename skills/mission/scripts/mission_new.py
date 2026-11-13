@@ -1,7 +1,7 @@
 """Create a mission: folder, mission.yaml, GitHub root issue (kind:mission), optional parent link.
 
 Usage:
-  mission_new.py --slug ttd-ot-feedback --title "TTD MCP: address OT feedback" \
+  mission_new.py --slug vendor-trader-feedback --title "Vendor tool: address trader feedback" \
       --destination "..." --why "..." [--parent 594] [--session clear-wren] [--no-issue]
 
 It does not commit. Run mission_sync.py next.
@@ -71,6 +71,8 @@ def main() -> int:
 
     m = load(d)
     if not a.no_issue:
+        if not GH_REPO:
+            sys.exit("no gh_repo in the mission config: run with --no-issue, or set gh_repo in missions/_meta/config.yaml")
         ensure_label()
         with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as f:
             f.write(issue_body(a.slug, a.destination, a.why or "TBD"))

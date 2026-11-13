@@ -13,16 +13,18 @@ import json
 import re
 import sys
 
-from mission_lib import GH_REPO, load, mission_dir, now_utc, run
+from mission_lib import GH_REPO, JIRA_ORG, JIRA_SKILL, load, mission_dir, now_utc, run
 
-JIRA = "/Users/gamyot/.claude-shared-config/skills/jira/jira_skill.py"
+JIRA = str(JIRA_SKILL)
 DONE_WORDS = re.compile(r"done|termin|closed|won't|wont|resolved|ferm", re.I)
 
 
 def jira_status(keys: list[str]) -> dict:
     if not keys:
         return {}
-    r = run(["python3", JIRA, "--org", "klever", "search", f"key in ({', '.join(keys)})"], check=False)
+    if not JIRA_ORG:
+        return {k: {"error": "no jira_org in the mission config"} for k in keys}
+    r = run(["python3", JIRA, "--org", JIRA_ORG, "search", f"key in ({', '.join(keys)})"], check=False)
     out = r.stdout
     start = out.find("[")
     if r.returncode != 0 or start < 0:
@@ -32,6 +34,8 @@ def jira_status(keys: list[str]) -> dict:
 
 def gh_state(ref: str) -> dict:
     n = ref.lstrip("#")
+    if not GH_REPO:
+        return {"error": "no gh_repo in the mission config"}
     r = run(["gh", "issue", "view", n, "-R", GH_REPO, "--json", "state,title,labels,updatedAt,url"], check=False)
     if r.returncode != 0:
         return {"error": r.stderr.strip()[:200]}

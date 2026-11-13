@@ -1,6 +1,6 @@
 ---
 name: mission
-description: 'Track a long-running, cross-session goal (a "mission") with one committed record and render it as a rich HTML report. Use whenever Gabriel says "mission", "start a mission", "open the mission", "update the mission", "mission report", "where are we on X", "big picture", "latest changes", "what is blocked", "what needs me", "what did the night run do", "check the mission", "close out", "post-mission cleanup", "did we drop anything", "the feature shipped, what is left", or when work spans several sessions, tickets or GitHub issues (TTD MCP, planning map, Salesforce media plan, harness work) and a new session must not reload stale or disproven context. Also governs how to reply in the terminal while a mission is active (detail dial: "left"/"more", "right"/"less", "refs").'
+description: 'Track a long-running, cross-session goal (a "mission") with one committed record and render it as a rich HTML report. Use whenever Gabriel says "mission", "start a mission", "open the mission", "update the mission", "mission report", "where are we on X", "big picture", "latest changes", "what is blocked", "what needs me", "what did the night run do", "check the mission", "close out", "post-mission cleanup", "did we drop anything", "the feature shipped, what is left", or when work spans several sessions, tickets or GitHub issues (a vendor integration, a planning map, a CRM sync, harness work) and a new session must not reload stale or disproven context. Also governs how to reply in the terminal while a mission is active (detail dial: "left"/"more", "right"/"less", "refs").'
 version: "0.2.0"
 nav:
   bay: plan
@@ -14,7 +14,7 @@ A **mission** is one cross-session outcome with a destination. It ends when the 
 
 The skill fixes two failures that cost Gabriel weeks:
 - **Lost thread.** He sees only the last screen of the terminal, so answers, blockers and decisions get buried. The fix is an HTML report on request, rendered from the record.
-- **Stale context.** Session 3 writes a new file, session 1's file and the ticket stay stale, and session 4 reloads an idea that was already disproven. The worst case was the first TTD MCP run: five security controls built on an unratified decision, then unwound. The fix is one record per mission. It holds decisions with authority, disproven claims, scope constraints and parked tracks, and every session reads it first and writes it back.
+- **Stale context.** Session 3 writes a new file, session 1's file and the ticket stay stale, and session 4 reloads an idea that was already disproven. The worst case was the first run of a vendor integration: five security controls built on an unratified decision, then unwound. The fix is one record per mission. It holds decisions with authority, disproven claims, scope constraints and parked tracks, and every session reads it first and writes it back.
 
 ## Where things live
 
@@ -34,11 +34,19 @@ project-management/missions/
     evidence/                   optional supporting files
 ```
 
-- **GitHub root issue** in `gabriel-amyot/klever-project-management` with the label `kind:mission`. Its body holds the destination and a link to `mission.yaml`. It can be a sub-issue of a component issue (for example #594 for the TTD trading MCP). Other issues are **linked** as members, not nested: a GitHub issue can have only one parent.
+- **GitHub root issue** in the PM repo (`gh_repo` in the mission config, see "Configuration") with the label `kind:mission`. Its body holds the destination and a link to `mission.yaml`. It can be a sub-issue of a component issue. Other issues are **linked** as members, not nested: a GitHub issue can have only one parent.
 - Members are links in `mission.yaml`: Jira URLs, GitHub URLs, ticket folders, session folders. GitHub's web view cannot follow a symlink, so a symlink is never the only record.
 - Tracker status is never written by hand. `mission_fetch.py` reads it live. Local status claims rot (12 of 13 lagged Jira in the 2026-11-09 audit).
 
 Schema: `references/schema.md`. Which event writes which field: `references/update-procedure.md`. Close-out sweep and `closeout.yaml` shape: `references/closeout-procedure.md`.
+
+## Configuration
+
+The harness holds no org names. Deployment values live outside it:
+- `~/.config/mission/config.yaml` (or `$MISSION_CONFIG`): `pm_root: <abs path to the project-management repo>`. `$MISSION_PM_ROOT` overrides it.
+- `<pm_root>/missions/_meta/config.yaml` (versioned in the PM repo): `gh_repo` (owner/name of the PM GitHub repo), `jira_browse` (Jira browse URL prefix), `jira_org` (the `--org` value for `jira_skill.py`), optional `jira_key_pattern` and `mr_unknown_reason`.
+
+A missing value is never guessed. The tracker calls that need it report `UNKNOWN`, and `mission new` needs `--no-issue`.
 
 ## Running the scripts
 
@@ -57,7 +65,7 @@ Log every command first: `mission log use --command <cmd> --mission <slug> --ses
 ### `/mission start <destination>` (alias `/mission init`): create a mission
 
 1. Search for an existing mission first: read `missions/INDEX.md` and grep the aliases in each `mission.yaml`. If one matches, offer to join it instead.
-   Then look for existing work on the same capability: the org bibliothèque (`INDEX.md`, `ALIASES.md`), open GitHub issues (`gh issue list -R gabriel-amyot/klever-project-management -S "<keywords>"`), and the named tickets' parents and links. Add what you find as members, or record it in `why`. A mission that ignores an existing reader or prior attempt starts stale.
+   Then look for existing work on the same capability: the org bibliothèque (`INDEX.md`, `ALIASES.md`), open GitHub issues (`gh issue list -R <gh_repo> -S "<keywords>"`), and the named tickets' parents and links. Add what you find as members, or record it in `why`. A mission that ignores an existing reader or prior attempt starts stale.
 2. Agree with Gabriel on four things: a slug, a title, a destination of 1 or 2 lines ("done looks like…"), and a parent component issue if there is one. Propose them, and do not interrogate.
 3. `mission new --slug <slug> --title "<title>" --destination "<…>" --why "<…>" [--parent <N>] --session <session>`. This creates the folder, `mission.yaml`, and the `kind:mission` root issue, then links the parent.
 4. Fill in `mission.yaml`: members (the tickets, issues and folders already known), aliases, next milestone, scope constraints, and a first graph. Use the Edit tool.
@@ -149,9 +157,9 @@ Read `references/terminal-replies.md` once per session. In short:
 
 ## Horizon (not in v1)
 
-- Session meshing: sessions on one mission talking to each other directly. Research in [#670](https://github.com/gabriel-amyot/klever-project-management/issues/670).
+- Session meshing: sessions on one mission talking to each other directly. Research tracked in the PM repo.
 - A hook that captures Gabriel's asks at turn time. A session-close gate that requires a mission update.
-- Integration with the Klever context graph (`context-graph-sync`).
+- Integration with the org context graph (`context-graph-sync`).
 - Cross-component missions with more than one parent.
 
 ## Evals

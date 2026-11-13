@@ -5,8 +5,8 @@
     {
       "id": 1,
       "name": "start-mission-from-loose-intent",
-      "prompt": "ok new mission: I need the media plan agent to pull Salesforce opportunities so Amal stops copy-pasting them. there's KTP-1333 that went live in oct and #294 on github, they're not linked. it's under no component yet. set it up. (sandbox: MISSION_PM_ROOT=<tmp>, use --no-issue, do not push)",
-      "expected_output": "Proposes a slug, title and a 1-2 line destination without interrogating. Runs mission new with --no-issue. Fills members with typed, titled links for KTP-1333 and #294 (linked, not nested), aliases, a next_milestone and a first graph. mission lint passes. Terminal reply names the slug and the record path, gives the destination, and asks at most one question with options shown.",
+      "prompt": "ok new mission: I need the media plan agent to pull CRM opportunities so the planner stops copy-pasting them. there's PRJ-1333 that went live in oct and #294 on github, they're not linked. it's under no component yet. set it up. (sandbox: MISSION_PM_ROOT=<tmp>, use --no-issue, do not push)",
+      "expected_output": "Proposes a slug, title and a 1-2 line destination without interrogating. Runs mission new with --no-issue. Fills members with typed, titled links for PRJ-1333 and #294 (linked, not nested), aliases, a next_milestone and a first graph. mission lint passes. Terminal reply names the slug and the record path, gives the destination, and asks at most one question with options shown.",
       "files": [],
       "assertions": [
         {
@@ -19,7 +19,7 @@
         },
         {
           "name": "members-typed-and-titled",
-          "check": "members contains KTP-1333 (kind jira, url, title) and #294 (kind gh, url, title)"
+          "check": "members contains PRJ-1333 (kind jira, url, title) and #294 (kind gh, url, title)"
         },
         {
           "name": "destination-short",
@@ -38,8 +38,8 @@
     {
       "id": 2,
       "name": "update-after-decision-and-disproof",
-      "prompt": "Mission fixture-ttd (sandbox at <tmp>/missions/fixture-ttd). In this session Gabriel said: 'N-1: send now. And forget the idea that writes need a new Auth0 tenant, we checked, the existing tenant has the write scope (see KTP-1398 comment 41901).' Then the agent shipped nothing else. Update the mission. Do not push.",
-      "expected_output": "N-1 removed from needs_you; a ratified decision for 'send now' with ratified_by Gabriel and a link; M-1 left as draft or marked per the answer; a disproven entry X-2 with claim, evidence link to KTP-1398 and a grep signature; a journey entry with kind session and this session; changes entries; lint passes; no other file created.",
+      "prompt": "Mission fixture-vendor (sandbox at <tmp>/missions/fixture-vendor). In this session Gabriel said: 'N-1: send now. And forget the idea that writes need a new Auth0 tenant, we checked, the existing tenant has the write scope (see PRJ-1398 comment 41901).' Then the agent shipped nothing else. Update the mission. Do not push.",
+      "expected_output": "N-1 removed from needs_you; a ratified decision for 'send now' with ratified_by Gabriel and a link; M-1 left as draft or marked per the answer; a disproven entry X-2 with claim, evidence link to PRJ-1398 and a grep signature; a journey entry with kind session and this session; changes entries; lint passes; no other file created.",
       "files": [
         "evals/fixtures/valid/mission.yaml"
       ],
@@ -54,7 +54,7 @@
         },
         {
           "name": "disproven-with-signature",
-          "check": "a new disproven entry with evidence.url containing KTP-1398 and a non-empty signature"
+          "check": "a new disproven entry with evidence.url containing PRJ-1398 and a non-empty signature"
         },
         {
           "name": "journey-appended",
@@ -77,7 +77,7 @@
     {
       "id": 3,
       "name": "big-picture-terminal-reply",
-      "prompt": "mission fixture-ttd (sandbox <tmp>). wait where are we on this, what needs me? I lost track",
+      "prompt": "mission fixture-vendor (sandbox <tmp>). wait where are we on this, what needs me? I lost track",
       "expected_output": "Renders the report (mission render) and prints the file:// link. The terminal reply answers first: the verdict, then each blocking needs-you item with its ID AND its question AND its options with consequences, then the next milestone. No 'see above' or 'see the report' as the only answer. Every reference has a link or a description. Dial level 3 length (short).",
       "files": [
         "evals/fixtures/valid/mission.yaml"
@@ -97,7 +97,7 @@
         },
         {
           "name": "no-bare-ids",
-          "check": "every N-/DEC-/KTP-/# reference in the reply has its content or a link next to it"
+          "check": "every N-/DEC-/PRJ-/# reference in the reply has its content or a link next to it"
         },
         {
           "name": "short",
@@ -108,7 +108,7 @@
     {
       "id": 4,
       "name": "close-out-sweep-refuses-close-with-orphan",
-      "prompt": "the feature shipped, trader validated it in prod. run the close-out on fixture-ttd and then close the mission. (sandbox: MISSION_PM_ROOT=<tmp>, use --offline, do not push, do not post)",
+      "prompt": "the feature shipped, trader validated it in prod. run the close-out on fixture-vendor and then close the mission. (sandbox: MISSION_PM_ROOT=<tmp>, use --offline, do not push, do not post)",
       "expected_output": "Runs mission closeout gather (offline), reports every UNKNOWN source as unchecked, writes closeout.yaml with a status for each of the 15 checklist steps and bucketed items, renders closeout.html and gives its file:// link with bucket counts. Lists at least one ORPHAN for work with no home and proposes a home. Runs mission closeout gate, which fails, and refuses to close the mission. Never posts on Jira or Slack and never closes a GitHub issue before approval.",
       "files": [
         "evals/fixtures/valid/mission.yaml",

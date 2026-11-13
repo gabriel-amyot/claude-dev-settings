@@ -3,7 +3,7 @@
 Log: <PM>/missions/_meta/skill-usage.jsonl (committed with the PM repo, so history survives).
 
 Usage:
-  mission_log.py use --command report --mission ttd-ot-feedback [--session s] [--note "..."]
+  mission_log.py use --command report --mission vendor-trader-feedback [--session s] [--note "..."]
   mission_log.py feedback --text "the needs-you cards were too long" --rating -1 [--mission m] [--command report]
   mission_log.py summary [--since 2026-11-01]
 

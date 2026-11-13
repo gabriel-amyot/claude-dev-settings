@@ -35,6 +35,7 @@ SCRIPTS = HERE.parent / "scripts"
 VALID = yaml.safe_load((HERE / "fixtures" / "valid" / "mission.yaml").read_text())
 CASES = yaml.safe_load((HERE / "fixtures" / "invalid_cases.yaml").read_text())
 results: list[tuple[str, bool, str]] = []
+ORG_CONFIG = {"gh_repo": "acme/planning", "jira_browse": "https://tracker.example.invalid/browse/", "jira_org": "acme"}
 
 
 def check(name: str, ok: bool, detail: str = "") -> None:
@@ -58,11 +59,11 @@ def patch(doc: dict, path: str, value) -> dict:
 
 
 def script(root: pathlib.Path, name: str, *args: str) -> subprocess.CompletedProcess:
-    env = {**os.environ, "MISSION_PM_ROOT": str(root)}
+    env = {**os.environ, "MISSION_PM_ROOT": str(root), "MISSION_CONFIG": str(root / "no-user-config.yaml")}
     return subprocess.run([sys.executable, str(SCRIPTS / name), *args], capture_output=True, text=True, env=env)
 
 
-def write(root: pathlib.Path, doc: dict, slug: str = "fixture-ttd") -> pathlib.Path:
+def write(root: pathlib.Path, doc: dict, slug: str = "fixture-vendor") -> pathlib.Path:
     d = root / "missions" / slug
     d.mkdir(parents=True, exist_ok=True)
     (d / "mission.yaml").write_text(yaml.safe_dump(doc, sort_keys=False, allow_unicode=True))
@@ -76,7 +77,7 @@ def closeout_evals(root: pathlib.Path, d: pathlib.Path, util) -> None:
     mco = util.module_from_spec(cspec)
     cspec.loader.exec_module(mco)
 
-    posts = root / "tickets" / "KTP" / "no-epic" / "KTP-1398" / "reports" / "ship" / "posts"
+    posts = root / "tickets" / "PRJ" / "no-epic" / "PRJ-1398" / "reports" / "ship" / "posts"
     posts.mkdir(parents=True)
     (posts / "2026-11-12-unsent.md").write_text("draft")
     (posts / "2026-11-12-sent.md").write_text("draft")
@@ -85,7 +86,7 @@ def closeout_evals(root: pathlib.Path, d: pathlib.Path, util) -> None:
     (posts / "2026-11-12-rsent.rendered.posted").write_text("posted")
     (posts / "2026-11-12-pointer.md").write_text("posted-as: GitHub issue body https://example.invalid/issues/1 (2026-11-12)\n\nbody")
 
-    r = script(root, "mission_closeout.py", "gather", "fixture-ttd", "--offline")
+    r = script(root, "mission_closeout.py", "gather", "fixture-vendor", "--offline")
     f = d / "closeout-facts.json"
     facts = json.loads(f.read_text()) if f.exists() else {}
     check("closeout/gather-exit-0", r.returncode == 0, r.stdout + r.stderr)
@@ -104,29 +105,42 @@ def closeout_evals(root: pathlib.Path, d: pathlib.Path, util) -> None:
     check("closeout/D1-drafts-remote-check-listed-as-unknown",
           any(u.startswith("drafts:") and "remote" in u for u in facts.get("unknown", [])), str(facts.get("unknown")))
 
-    t = mco.jira_facts_from("KTP-1", {"error": "401"}, {"error": "401"}, {"error": "401"})
+    check("config/org-config-read", mco.GH_REPO == "acme/planning" and mco.JIRA_ORG == "acme", f"{mco.GH_REPO} {mco.JIRA_ORG}")
+    real_org = mco.JIRA_ORG
+    mco.JIRA_ORG = None
+    try:
+        e = mco.jira_call("search", "key = PRJ-1")
+        check("config/missing-jira-org-is-unknown", isinstance(e, dict) and "jira_org" in e.get("error", ""), str(e))
+        jj = mco.gather_jira(["PRJ-1"], False)
+        check("config/missing-jira-org-gather-not-ok", jj["status"] != "OK", jj["status"])
+    finally:
+        mco.JIRA_ORG = real_org
+    e = mco.gh_issue("", 5)
+    check("config/missing-gh-repo-is-error", "gh_repo" in e.get("error", ""), str(e))
+
+    t = mco.jira_facts_from("PRJ-1", {"error": "401"}, {"error": "401"}, {"error": "401"})
     check("closeout/jira-facts-unknown-on-error", t["status"] == "UNKNOWN" and t["comment_count"] == "UNKNOWN"
           and t["closed_without_comments"] == "UNKNOWN" and t["description_excerpt"] == "UNKNOWN", str(t))
-    meta = {"key": "KTP-2", "status": "Terminé(e)", "status_category": "Terminé", "resolution": None}
-    t = mco.jira_facts_from("KTP-2", meta, [], {"description": "write stays closed"})
+    meta = {"key": "PRJ-2", "status": "Terminé(e)", "status_category": "Terminé", "resolution": None}
+    t = mco.jira_facts_from("PRJ-2", meta, [], {"description": "write stays closed"})
     check("closeout/jira-facts-closed-without-comments", t["closed"] is True and t["closed_without_comments"] is True
           and t["comment_after_close"] == "UNKNOWN", str(t))
     check("closeout/blocking-mentions", mco.blocking_mentions("Map #12 blocks the final step. See #3.") == ["12"])
 
     base = yaml.safe_load((HERE / "fixtures" / "closeout" / "closeout.yaml").read_text())
     base["checklist"] = [{"id": sid, "status": "done"} for sid, _ in mco.CHECKLIST]
-    r = script(root, "mission_closeout.py", "gate", "fixture-ttd")
+    r = script(root, "mission_closeout.py", "gate", "fixture-vendor")
     check("closeout/gate-refuses-without-report", r.returncode == 1 and "no closeout.yaml" in r.stdout, r.stdout)
 
     (d / "closeout.yaml").write_text(yaml.safe_dump(base, sort_keys=False, allow_unicode=True))
-    r = script(root, "mission_closeout.py", "gate", "fixture-ttd")
+    r = script(root, "mission_closeout.py", "gate", "fixture-vendor")
     check("closeout/gate-refuses-orphan", r.returncode == 1 and "CO-3: ORPHAN without a named successor" in r.stdout, r.stdout)
 
     parked = copy.deepcopy(base)
-    parked["items"][2]["successor"] = {"kind": "jira", "ref": "KTT-103", "url": "https://beklever.atlassian.net/browse/KTT-103", "title": "Risk acceptance"}
+    parked["items"][2]["successor"] = {"kind": "jira", "ref": "PTR-103", "url": "https://tracker.example.invalid/browse/PTR-103", "title": "Risk acceptance"}
     parked["items"][2]["parked_by"] = "Gabriel"
     (d / "closeout.yaml").write_text(yaml.safe_dump(parked, sort_keys=False, allow_unicode=True))
-    r = script(root, "mission_closeout.py", "gate", "fixture-ttd")
+    r = script(root, "mission_closeout.py", "gate", "fixture-vendor")
     check("closeout/gate-opens-when-orphan-parked", r.returncode == 0 and "GATE OPEN" in r.stdout, r.stdout)
 
     human = copy.deepcopy(parked)
@@ -134,27 +148,27 @@ def closeout_evals(root: pathlib.Path, d: pathlib.Path, util) -> None:
                            "finding": "No named decider accepted the residual risk.", "action": "A named decider records it.",
                            "state": "proposed"})
     (d / "closeout.yaml").write_text(yaml.safe_dump(human, sort_keys=False, allow_unicode=True))
-    r = script(root, "mission_closeout.py", "gate", "fixture-ttd")
+    r = script(root, "mission_closeout.py", "gate", "fixture-vendor")
     check("closeout/gate-refuses-open-human-only-without-owner", r.returncode == 1 and "CO-4: HUMAN-ONLY" in r.stdout, r.stdout)
     human["items"][-1]["owner"] = "Gabriel"
     (d / "closeout.yaml").write_text(yaml.safe_dump(human, sort_keys=False, allow_unicode=True))
-    r = script(root, "mission_closeout.py", "gate", "fixture-ttd")
+    r = script(root, "mission_closeout.py", "gate", "fixture-vendor")
     check("closeout/gate-opens-human-only-with-owner", r.returncode == 0, r.stdout)
 
     nostep = copy.deepcopy(parked)
     nostep["checklist"] = nostep["checklist"][1:]
     (d / "closeout.yaml").write_text(yaml.safe_dump(nostep, sort_keys=False, allow_unicode=True))
-    r = script(root, "mission_closeout.py", "gate", "fixture-ttd")
+    r = script(root, "mission_closeout.py", "gate", "fixture-vendor")
     check("closeout/gate-refuses-missing-checklist-step", r.returncode == 1 and "tracker-status" in r.stdout, r.stdout)
 
     nokeep = copy.deepcopy(parked)
     nokeep["items"][1].pop("successor")
     (d / "closeout.yaml").write_text(yaml.safe_dump(nokeep, sort_keys=False, allow_unicode=True))
-    r = script(root, "mission_closeout.py", "gate", "fixture-ttd")
+    r = script(root, "mission_closeout.py", "gate", "fixture-vendor")
     check("closeout/gate-refuses-keep-without-successor", r.returncode == 1 and "KEEP needs successor" in r.stdout, r.stdout)
 
     (d / "closeout.yaml").write_text(yaml.safe_dump(base, sort_keys=False, allow_unicode=True))
-    r = script(root, "mission_closeout.py", "render", "fixture-ttd")
+    r = script(root, "mission_closeout.py", "render", "fixture-vendor")
     page = (d / "closeout.html").read_text() if (d / "closeout.html").exists() else ""
     check("closeout/render-html", r.returncode == 0 and "Close gate: CLOSED" in page and "ORPHAN (1)" in page
           and "Not checked (UNKNOWN, never PASS)" in page and "cdn." not in page, r.stderr)
@@ -164,14 +178,14 @@ def closeout_evals(root: pathlib.Path, d: pathlib.Path, util) -> None:
     done = yaml.safe_load((d / "mission.yaml").read_text())
     done["status"] = "done"
     (d / "mission.yaml").write_text(yaml.safe_dump(done, sort_keys=False, allow_unicode=True))
-    r = script(root, "mission_sync.py", "fixture-ttd", "-m", "close")
+    r = script(root, "mission_sync.py", "fixture-vendor", "-m", "close")
     check("closeout/sync-refuses-done-with-orphan", r.returncode != 0 and "close-out gate is closed" in r.stderr, r.stdout + r.stderr)
 
-    r = script(root, "mission_closeout.py", "gather", "--scope", "comp-x", "--seed-jira", "KTP-9", "--seed-gh", "677",
+    r = script(root, "mission_closeout.py", "gather", "--scope", "comp-x", "--seed-jira", "PRJ-9", "--seed-gh", "677",
                "--aliases", "comp x", "--offline")
     sf = root / "missions" / "_closeout" / "comp-x" / "closeout-facts.json"
     sfacts = json.loads(sf.read_text()) if sf.exists() else {}
-    check("closeout/scope-without-mission-record", r.returncode == 0 and sfacts.get("scope", {}).get("jira_seeds") == ["KTP-9"]
+    check("closeout/scope-without-mission-record", r.returncode == 0 and sfacts.get("scope", {}).get("jira_seeds") == ["PRJ-9"]
           and sfacts.get("scope", {}).get("gh_seeds") == ["677"], r.stdout + r.stderr)
     gatherer_ground_truth_evals(mco)
 
@@ -245,7 +259,39 @@ def gatherer_ground_truth_evals(mco) -> None:
     check("gather/G12-missing-telemetry-is-unknown", (untraced.get("acme/planning#720") or {}).get("status") == "UNKNOWN", str(untraced))
 
 
-REAL_NAMES = re.compile(r"KTP-|KTT-|\bTTD\b|Powers|media-api|Oth?alia|beklever|klever|gabriel-amyot", re.I)
+# Private-term denylist, stored as hashes so the harness itself names no org, vendor or person.
+# Each entry is sha256(term)[:16] of a lowercase term; a two-word term is joined with "-".
+# Add one: python3 -c "import hashlib;print(hashlib.sha256(b'term').hexdigest()[:16])"
+# The real terms are listed in the PM repo (missions/_meta/closeout-eval-source-mapping*.md).
+PRIVATE_TERM_HASHES = {
+    "b3888580238bd812", "f6cb389a9f62c602", "3a81699fae1e5524", "0e25d57dbe558245", "ca67f4211824fcce",
+    "54e1ff72a6336b7d", "91135849bc0f507f", "bb992f5f7820b592", "d37e7655fa597d24", "32cbdde86a75253f",
+    "3ccbd9105a45d8fc", "3ff84c5ea2baa6cf", "095bfd0462052e43", "8033817d398e8c59",
+}
+# Allowlist: (path relative to the skill, term hash) for a documentation example that is explicitly generic.
+# Nothing else may be allowlisted. Empty today.
+PRIVATE_TERM_ALLOW: set[tuple[str, str]] = set()
+SKILL_ROOT = HERE.parent
+
+
+def private_terms_in(text: str) -> set[str]:
+    """Hashes of denylisted words (and two-word pairs) found in text."""
+    import hashlib
+    words = re.findall(r"[a-z0-9]+", text.lower())
+    grams = set(words) | {f"{a}-{b}" for a, b in zip(words, words[1:])}
+    return {h for h in (hashlib.sha256(g.encode()).hexdigest()[:16] for g in grams) if h in PRIVATE_TERM_HASHES}
+
+
+def private_term_leaks(root: pathlib.Path) -> list[str]:
+    out = []
+    for p in sorted(root.rglob("*")):
+        if not p.is_file() or "__pycache__" in p.parts or p.suffix in (".pyc", ".png", ".zip"):
+            continue
+        rel = str(p.relative_to(root))
+        hits = {h for h in private_terms_in(p.read_text(errors="ignore")) if (rel, h) not in PRIVATE_TERM_ALLOW}
+        if hits:
+            out.append(f"{rel}: {sorted(hits)}")
+    return out
 
 
 def grader_calibration_evals() -> None:
@@ -333,13 +379,19 @@ def grader_calibration_evals() -> None:
         check(f"scenario/{name}-facts-match-gatherer-shape",
               all(k in g for k in ("reflections_off_map", "wayfinder_untraced_closes", "blocking_mentions_without_edge"))
               and "no_posted_marker" in facts.get("drafts", {}) and "unsent" not in facts.get("drafts", {}), name)
-    leaks = [str(p.relative_to(HERE)) for base in (scen, exp_dir, HERE / "fixtures" / "closeout-gather")
-             for p in base.rglob("*") if p.is_file() and REAL_NAMES.search(p.read_text(errors="ignore"))]
-    check("scenario/anonymized-no-real-names", leaks == [], str(leaks))
+    leaks = private_term_leaks(SKILL_ROOT)
+    check("anonymized/no-private-terms-in-skill-tree", leaks == [], str(leaks))
+    check("anonymized/calibration-detects-a-planted-term",
+          bool(private_terms_in("see the " + "".join(chr(c) for c in (107, 108, 101, 118, 101, 114)) + " repo"))
+          and bool(private_terms_in("call " + "".join(chr(c) for c in (109, 101, 100, 105, 97, 95, 97, 112, 105)))) and not private_terms_in("the vendor tool"))
 
 
 def main() -> int:
     root = pathlib.Path(tempfile.mkdtemp(prefix="mission-evals-"))
+    os.environ["MISSION_PM_ROOT"] = str(root)
+    os.environ["MISSION_CONFIG"] = str(root / "no-user-config.yaml")
+    (root / "missions" / "_meta").mkdir(parents=True)
+    (root / "missions" / "_meta" / "config.yaml").write_text(yaml.safe_dump(ORG_CONFIG))
     try:
         d = write(root, VALID)
         r = script(root, "mission_lint.py", str(d))
@@ -372,7 +424,7 @@ def main() -> int:
         r = script(root, "mission_render.py", str(d))
         html = (d / "report.html").read_text() if (d / "report.html").exists() else ""
         check("render/exit-0", r.returncode == 0, r.stderr)
-        check("render/data-slot-filled", "/*__DATA__*/null" not in html and '"slug": "fixture-ttd"' in html)
+        check("render/data-slot-filled", "/*__DATA__*/null" not in html and '"slug": "fixture-vendor"' in html)
         check("render/no-raw-script-close-in-data", html.count("</script>") == 1)
         for tab in ("t-mission", "t-journey", "t-graph", "t-latest", "t-sources"):
             check(f"render/has-view-{tab}", f'id="{tab}"' in html)
@@ -383,7 +435,7 @@ def main() -> int:
         check("readme/proposed-not-in-force", "DEC-2" in readme.split("## Proposed, not ratified")[1] if "## Proposed, not ratified" in readme else False)
         check("readme/disproven-listed", "False: Prod today has none" in readme)
         idx = (root / "missions" / "INDEX.md").read_text() if (root / "missions" / "INDEX.md").exists() else ""
-        check("index/lists-mission", "fixture-ttd" in idx)
+        check("index/lists-mission", "fixture-vendor" in idx)
         after = yaml.safe_load((d / "mission.yaml").read_text())
         check("render/marks-last-report-at", after.get("last_report_at") != VALID["last_report_at"])
 
@@ -408,7 +460,7 @@ def main() -> int:
         check("lint/warns-citation-of-superseded-decision", any("A-3: cites DEC-1" in x for x in w), str(w))
         check("lint/warns-proposed-without-needs-you", any("DEC-2: proposed but no needs_you" in x for x in w), str(w))
 
-        r = script(root, "mission_log.py", "use", "--command", "report", "--mission", "fixture-ttd")
+        r = script(root, "mission_log.py", "use", "--command", "report", "--mission", "fixture-vendor")
         r2 = script(root, "mission_log.py", "feedback", "--rating", "-1", "--text", "what is N-2?", "--command", "report")
         r3 = script(root, "mission_log.py", "summary")
         check("log/use-feedback-summary", all(x.returncode == 0 for x in (r, r2, r3)) and "what is N-2?" in r3.stdout and "net rating: -1" in r3.stdout, r3.stdout)

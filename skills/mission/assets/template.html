@@ -145,7 +145,7 @@ function missionTab(){
   if (arr(M.scope_constraints).length) h += sec('Scope constraints', null, `<ul style="margin:0;padding:10px 16px 10px 34px">${arr(M.scope_constraints).map(s => `<li>${esc(s)}</li>`).join('')}</ul>`);
   return h;
 }
-function memberLink(ref){const m = arr(M.members).find(x => x.ref === ref);return m ? m : (/^KTP-\d+$/.test(ref) ? {kind:'jira', ref, url:'https://beklever.atlassian.net/browse/'+ref, title:ref} : null)}
+function memberLink(ref){const m = arr(M.members).find(x => x.ref === ref), J = DATA.jira || {};return m ? m : (J.browse && new RegExp('^(?:' + J.key_pattern + ')$').test(ref) ? {kind:'jira', ref, url:J.browse+ref, title:ref} : null)}
 
 // journey tab
 function timeline(){

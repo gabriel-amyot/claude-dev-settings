@@ -23,13 +23,42 @@ except ModuleNotFoundError:
     raise
 
 SKILL_DIR = pathlib.Path(__file__).resolve().parent.parent
-PM_ROOT = pathlib.Path(os.environ.get(
-    "MISSION_PM_ROOT",
-    "/Users/gamyot/Developer/grp-beklever-com/project-management")).resolve()
+JIRA_SKILL = SKILL_DIR.parent / "jira" / "jira_skill.py"
+NO_PM_ROOT = pathlib.Path("/nonexistent/mission-pm-root")
+
+
+def _yaml_file(p: pathlib.Path) -> dict:
+    try:
+        return (yaml.safe_load(p.read_text()) or {}) if p.is_file() else {}
+    except (OSError, yaml.YAMLError):
+        return {}
+
+
+# Deployment config lives outside the harness (no org names in this repo).
+# 1. User config: $MISSION_CONFIG or ~/.config/mission/config.yaml -> pm_root (and optional overrides).
+# 2. Org config, versioned in the PM repo: <pm_root>/missions/_meta/config.yaml ->
+#    gh_repo, jira_browse, jira_org, jira_key_pattern, mr_unknown_reason.
+# A missing value is never guessed: tracker calls then report UNKNOWN.
+USER_CONFIG_FILE = pathlib.Path(os.environ.get("MISSION_CONFIG") or pathlib.Path.home() / ".config" / "mission" / "config.yaml")
+_USER = _yaml_file(USER_CONFIG_FILE)
+PM_ROOT = pathlib.Path(os.environ.get("MISSION_PM_ROOT") or _USER.get("pm_root") or NO_PM_ROOT).expanduser().resolve()
 MISSIONS_DIR = PM_ROOT / "missions"
-GH_REPO = "gabriel-amyot/klever-project-management"
-GH_BLOB = f"https://github.com/{GH_REPO}/blob/main/"
-JIRA_BROWSE = "https://beklever.atlassian.net/browse/"
+ORG_CONFIG_FILE = MISSIONS_DIR / "_meta" / "config.yaml"
+CONFIG = {**_yaml_file(ORG_CONFIG_FILE), **{k: v for k, v in _USER.items() if k != "pm_root"}}
+GH_REPO = CONFIG.get("gh_repo")
+GH_BLOB = f"https://github.com/{GH_REPO}/blob/main/" if GH_REPO else None
+JIRA_BROWSE = CONFIG.get("jira_browse") or ""
+JIRA_ORG = CONFIG.get("jira_org")
+JIRA_KEY_PATTERN = CONFIG.get("jira_key_pattern") or r"[A-Z][A-Z0-9]+-\d+"
+MR_UNKNOWN_REASON = CONFIG.get("mr_unknown_reason") or "open MRs not checked: the forge needs extra auth; check them by hand"
+
+
+def config_problem() -> str | None:
+    if PM_ROOT == NO_PM_ROOT.resolve():
+        return f"no PM root: set MISSION_PM_ROOT or pm_root in {USER_CONFIG_FILE}"
+    if not PM_ROOT.is_dir():
+        return f"PM root {PM_ROOT} does not exist"
+    return None
 
 
 def now_utc() -> str:
@@ -42,6 +71,8 @@ def mission_dir(slug_or_path: str) -> pathlib.Path:
         return p.resolve()
     if p.name == "mission.yaml" and p.exists():
         return p.parent.resolve()
+    if config_problem():
+        sys.exit(config_problem())
     d = MISSIONS_DIR / slug_or_path
     if not (d / "mission.yaml").exists():
         sys.exit(f"mission not found: {slug_or_path} (looked in {d})")
@@ -81,6 +112,8 @@ def run(cmd: list[str], check: bool = True, cwd: pathlib.Path | None = None) -> 
 
 
 def gh_url(path: pathlib.Path) -> str:
+    if not GH_BLOB:
+        return path.resolve().as_uri()
     try:
         return GH_BLOB + str(path.resolve().relative_to(PM_ROOT))
     except ValueError:

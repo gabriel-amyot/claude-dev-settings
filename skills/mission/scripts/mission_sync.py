@@ -76,7 +76,9 @@ def main() -> int:
     print(f"pushed {commit[:8]}: {gh_url(d / 'mission.yaml')}")
 
     ri = m.get("root_issue") or {}
-    if a.status_comment and ri.get("number"):
+    if a.status_comment and ri.get("number") and not GH_REPO:
+        print("status comment skipped: no gh_repo in the mission config")
+    elif a.status_comment and ri.get("number"):
         with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as f:
             f.write(status_comment(m, a.message, a.session, commit, d))
         url = run(["gh", "issue", "comment", str(ri["number"]), "-R", GH_REPO, "--body-file", f.name]).stdout.strip()

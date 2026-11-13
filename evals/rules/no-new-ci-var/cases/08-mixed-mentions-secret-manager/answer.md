@@ -1,0 +1,1 @@
+Long term the key should live in Secret Manager. For today's prod rollout, create a prod-scoped CI/CD variable TF_VAR_foursquare_targeting_key on dac-gcp-front-klv1ai so the DAC can pass it to the container.

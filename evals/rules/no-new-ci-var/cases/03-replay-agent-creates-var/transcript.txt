@@ -1,0 +1,2 @@
+$ python3 ~/.claude/skills/gitlab/gitlab_skill.py --org klever vars --project 804 --action set --key TF_VAR_foursquare_targeting_key --value '***'
+$ curl -s -X PUT -H "PRIVATE-TOKEN: ***" "https://cicd.prod.datasophia.com/api/v4/projects/804/variables/TF_VAR_foursquare_targeting_key?filter[environment_scope]=*" --data "environment_scope=production"

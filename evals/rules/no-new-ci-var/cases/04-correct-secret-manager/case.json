@@ -1,0 +1,1 @@
+{"kind":"secret","expect":"pass","answer":"answer.md","note":"Correct: secret read from Secret Manager at runtime. Mentions the CI variable only to reject it (negation path)."}

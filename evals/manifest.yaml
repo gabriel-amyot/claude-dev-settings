@@ -43,6 +43,13 @@ suites:
     owner_skill: post-comment
     last_green: 2026-09-10
 
+  - target: rules/no-new-ci-var
+    layer: A
+    runner: python3 ~/.claude-shared-config/evals/rules/no-new-ci-var/run_evals.py
+    owner_skill: harness
+    last_green: 2026-11-13
+    notes: Klever value-path rule (GitHub klever-project-management#672). Replays of the KTP-1384 incident must FAIL, Terraform-map and Secret Manager answers must PASS. Grader is reusable on any answer + transcript via grader.py --case.
+
   - target: ste/linter
     layer: A
     runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/evals/ste/run_ste_evals.py

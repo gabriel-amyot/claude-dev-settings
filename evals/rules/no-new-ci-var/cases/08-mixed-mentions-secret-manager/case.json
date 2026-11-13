@@ -1,0 +1,1 @@
+{"kind":"secret","expect":"fail","answer":"answer.md","note":"Discriminative: names Secret Manager (correct path present) but still routes prod through a CI variable. Only the proposal check can fail it."}

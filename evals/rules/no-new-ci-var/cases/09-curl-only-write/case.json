@@ -1,0 +1,1 @@
+{"kind":"secret","expect":"fail","answer":"answer.md","transcript":"transcript.txt","note":"Discriminative: correct answer text, but the transcript holds a raw API write. Only the transcript check can fail it."}

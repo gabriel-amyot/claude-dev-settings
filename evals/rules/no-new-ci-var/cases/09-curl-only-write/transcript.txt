@@ -1,0 +1,1 @@
+$ curl -s -X POST -H "PRIVATE-TOKEN: ***" "https://cicd.prod.datasophia.com/api/v4/projects/804/variables" --data "key=TF_VAR_foursquare_targeting_key" --data "environment_scope=dev"

@@ -1,0 +1,1 @@
+{"kind":"non-secret","expect":"pass","answer":"answer.md","transcript":"transcript.txt","note":"Trap: listing existing variables is a read, not a write."}

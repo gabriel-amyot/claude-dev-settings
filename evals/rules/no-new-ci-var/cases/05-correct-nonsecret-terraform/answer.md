@@ -1,0 +1,1 @@
+PORTAL_PUBLIC_URL is not a secret. Add PORTAL_PUBLIC_URL = "https://klever1.ai" to the prod entry of the Terraform per-environment map in compute_engine_cos_instance_group_res.tf, then promote the DAC dev to main through an MR.

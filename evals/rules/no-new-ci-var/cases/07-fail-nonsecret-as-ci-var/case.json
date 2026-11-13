@@ -1,0 +1,1 @@
+{"kind":"non-secret","expect":"fail","answer":"answer.md","note":"Generalization: a non-secret flag routed through a CI variable."}

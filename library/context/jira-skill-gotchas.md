@@ -475,3 +475,12 @@ at `project-management/tools/md_to_jira.py` — keep the Markdown on disk as the
 post the generated output, so the text stays diffable and re-postable.
 
 **Source:** session `crisp-badger`, KTP-1257 scoping (2026-09-29).
+
+## `add-comment` flags, mentions and attachments (2026-11-13)
+
+- `add-comment KEY --comment "<text>"`. There is no `--body-file` and no `comment` command. For a file: `--comment "$(cat file)"`.
+- The body goes through `markdown_to_jira_wiki`, so Jira wiki markup works: mention with `[~accountid:<id>]` (find the id with the Atlassian MCP `lookupJiraAccountId`), table header row `|| A || B ||`.
+- `upload-attachment KEY <path>` attaches a file.
+- `create --description-file` left `description` null again (KTT-104). Set it with `update KEY --description "$(cat file)"` and read it back.
+
+Learned from: wary-heron, KTT-92 / KTP-1329 / KTT-104 posts.

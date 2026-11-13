@@ -1,7 +1,6 @@
-# Close-out bucket list fixture. The eval adds a full checklist and patches items per case.
-schema: mission-closeout/v1
+# Close-out fixture (v2). The eval adds a full checklist, approvals, read-backs and UNKNOWN dispositions per case.
+schema: mission-closeout/v2
 scope: {mission: fixture-vendor, name: fixture-vendor}
-approval: null
 items:
   - id: CO-1
     bucket: CLOSE-WITH-EVIDENCE
@@ -9,19 +8,44 @@ items:
     finding: "Validated in production by the trader; ticket still In review."
     evidence: [{kind: url, url: "https://example.invalid/evidence", title: "prod validation"}]
     action: "Draft an evidence comment and move to Done through post-comment."
+    found_by: tracker-status
     state: proposed
   - id: CO-2
     bucket: KEEP
     ref: {kind: gh, ref: "#59", url: "https://forge.example.invalid/acme/planning/issues/59", title: "Declined permission prompt"}
     finding: "Still open work."
     action: "Move under the carry-forward issue."
-    successor: {kind: gh, ref: "#677", url: "https://forge.example.invalid/acme/planning/issues/677", title: "Carry-forward work"}
-    state: approved
+    successor: {kind: gh, ref: "#677", url: "https://forge.example.invalid/acme/planning/issues/677", title: "Carry-forward work",
+                accepted: {by: Gabriel, link: {kind: url, url: "https://forge.example.invalid/acme/planning/issues/677#c1", title: "scope accepted"}}}
+    found_by: github-tree
+    state: proposed
   - id: CO-3
     bucket: ORPHAN
     title: "Record the bid-write risk acceptance"
     finding: "No ticket and no successor home."
     action: "Create a ticket, then park it here."
+    found_by: orphans
     state: proposed
+manifest:
+  - id: A-1
+    item: CO-1
+    target: {kind: jira, ref: PRJ-1398, url: "https://tracker.example.invalid/browse/PRJ-1398", title: "Part 2 deploy"}
+    expected_state: "In review"
+    kind: comment
+    action: "Post the evidence comment through post-comment, then move PRJ-1398 to Done."
+    evidence: [{kind: url, url: "https://example.invalid/evidence", title: "prod validation"}]
+    class: routine
+    state: proposed
+  - id: A-2
+    item: CO-2
+    target: {kind: gh, ref: "#59", url: "https://forge.example.invalid/acme/planning/issues/59", title: "Declined permission prompt"}
+    expected_state: "open, parent #700"
+    kind: move
+    action: "Re-parent #59 under #677."
+    successor: {kind: gh, ref: "#677", url: "https://forge.example.invalid/acme/planning/issues/677", title: "Carry-forward work"}
+    class: routine
+    state: proposed
+approvals: []
+unknowns: []
 human_guide:
-  - {step: "Approve the bucket list in the terminal."}
+  - {step: "Approve the proposed batch by its hash."}

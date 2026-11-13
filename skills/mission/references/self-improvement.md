@@ -19,4 +19,27 @@ Run it when Gabriel asks, or propose it after 10 new feedback entries.
 4. Show the proposals as a needs-you list (ID, problem with the quotes, change, eval). Apply only what Gabriel approves.
 5. Run `evals/run_layer_a.py`. Log the retro: `mission log use --command retro --note "<applied IDs>"`.
 
-Do not edit the skill based on one complaint unless Gabriel asks. One data point is a mood. Two is a pattern.
+Do not edit the skill based on one complaint unless Gabriel asks. One data point is a mood. Two is a pattern. The exception is a consequential close-out miss (next section): one incident is enough.
+
+## Close-out log
+
+Every close-out writes one line to `missions/_meta/closeout-log.jsonl`: `mission closeout log <slug>` (run it after the gate opens, or when the close-out stops). The line holds:
+- the item count per bucket;
+- the big misses the sweep found (item id, reasons, the check that found it);
+- the misses the human found and the sweep did not (`found_by: human`);
+- `checks_fired`: the check ids that found at least one item.
+
+### A miss the human found
+
+An item the human found and the sweep missed gets `found_by: human`, and produces three things:
+1. **A new check**, or a change to a check, in `CHECK_REGISTRY` (`scripts/mission_closeout.py`). Name it in the item's `new_check`.
+2. **An eval case** built from the real item, anonymized (generic names, no org or vendor names; the private mapping stays in the PM repo). Name it in `eval_case`.
+3. **A log line**, from `mission closeout log`.
+
+One incident is enough for a consequential miss: security, lost work, or approval overreach. The gate refuses until `new_check` and `eval_case` are named. Routine friction waits for a repeat: mark it `miss_weight: routine` and it is logged only.
+
+### Keep the checklist small
+
+- **Every check names the real case it catches.** `CHECK_REGISTRY[<id>].catches` holds the anonymized case group (for example `G6`). Layer A refuses a check with no case.
+- **A check that never fires is reviewed.** `mission closeout review-checks` reads the last 5 close-outs. A check with no find in all 5 is listed "review for removal". Fewer than 5 logged close-outs is UNKNOWN: keep every check.
+- **Capture during the mission.** Record asks and exclusions as they happen (`asks`, `scope_constraints`, MR exclusions), so a close-out checks a record instead of rebuilding it.

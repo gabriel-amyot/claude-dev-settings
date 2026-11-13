@@ -7,9 +7,12 @@ The script gathers facts. You make the judgements. The human approves before any
 ## Rules
 
 - **Facts are not verdicts.** `closeout-facts.json` holds what the trackers say. An `UNKNOWN` fact is a gap to check by hand. It is never a pass.
-- **No silent closes.** Never close a Jira ticket, never transition it, and never post on Jira or Slack yourself. Draft the text, then use `/post-comment`. You can post GitHub closing comments and close GitHub issues, but only after the human approves the bucket list (`approval` in `closeout.yaml`).
+- **The claim is coverage, not completeness.** The report says which sources were searched fully and which gaps remain. It never says that nothing was dropped.
+- **No silent closes.** Never close a Jira ticket, never transition it, and never post on Jira or Slack yourself. Draft the text, then use `/post-comment`. You can post GitHub closing comments and close GitHub issues, but only for manifest actions that a named human approved by hash (see Step 5).
+- **Approval binds to an exact list.** "Fix all that" is not an approval. The human approves a batch of manifest entries by its hash. An edit to an entry after approval makes the approval void for that entry.
 - **Wayfinder maps close through the wayfinder tool.** If an issue has the label `wayfinder:map`, close its children through the `wayfinder` skill, not with `gh issue close`. A raw close leaves gaps in the wayfinder telemetry.
-- **No orphans.** Every item that stays open gets a successor home: a ticket, an issue or a parked entry with a named owner. `/mission close` refuses while an `ORPHAN` has no successor, or an open `HUMAN-ONLY` item has no named owner or successor.
+- **No orphans, and a home is not completion.** Every item that stays open gets a successor home that **accepted** it: `successor.accepted: {by: <name>, link}`. A link alone is not coverage. A successor that lists the item as out of scope does not cover it (`excludes: true`).
+- **Risk is a human decision.** Every live security, access, safety or contract item needs a residual-risk decision by a named person, or a successor with a named owner. An agent never accepts risk.
 - **One report.** `closeout.html` is overwritten on each run. Never write a dated copy.
 
 ## Step 1. Gather the facts
@@ -72,14 +75,11 @@ Also check a stale tracking issue: an open umbrella issue whose sub-issues all s
 ## Step 4. Write `closeout.yaml`
 
 ```yaml
-schema: mission-closeout/v1
+schema: mission-closeout/v2
 scope: {mission: <slug or null>, name: <name>}
-approval: null                     # {by: Gabriel, at: <ISO>, link: {kind, url, title}} after approval
 checklist:
   - {id: tracker-status, status: done, note: "2 tickets moved after evidence"}
-  # one entry per step id: tracker-status, parent-closing-comments, description-vs-reality,
-  # done-without-evidence, obsolete-items, github-tree, false-premises, orphans, wayfinder-closes,
-  # dependencies, reflections, risk-acceptance, handoffs, drafts, infra-tails
+  # one entry per step id in CHECK_REGISTRY (the 15 steps of Step 3)
 items:
   - id: CO-1
     bucket: CLOSE-WITH-EVIDENCE    # CLOSE-WITH-EVIDENCE | SUPERSEDE | KEEP | ORPHAN | FALSE-PREMISE | HUMAN-ONLY
@@ -87,12 +87,37 @@ items:
     finding: "One sentence: what the facts show."
     evidence: [{kind: url, url: ..., title: ...}]
     action: "One sentence: the proposed action."
-    successor: {kind: gh, ref: "#N", url: ..., title: ...}  # required for KEEP; for a parked ORPHAN
+    found_by: tracker-status       # the check id that found it, or human (see self-improvement.md)
+    # big-miss fields (SYNTHESIS section 3), set them when they apply:
+    control: security              # security | access | safety | contract
+    live: true                     # true | false | UNKNOWN. Only false proves not-live.
+    evidence_state: missing        # present | missing | UNKNOWN
+    residual_risk: {decision: accepted, by: Gabriel, link: {...}}   # a named person, never an agent
+    affects: [authorization]       # for FALSE-PREMISE: production | authorization | scope | prerequisite
+    control_failure: approval-exceeded   # prerequisite-bypassed | unrelated-swept | approval-exceeded | repeat-failure
+    decision: {question: "...", options: [{label: ..., consequence: ...}], answer: null}
+    successor: {kind: gh, ref: "#N", url: ..., title: ..., owner: Gabriel,
+                accepted: {by: Gabriel, link: {...}}, excludes: false}
     parked_by: Gabriel             # required to park an ORPHAN
     owner: Gabriel                 # required on a HUMAN-ONLY item that is not done (or give a successor)
     state: proposed                # proposed | approved | done
+manifest:                          # the exact actions, one entry each
+  - id: A-1
+    item: CO-1
+    target: {kind: jira, ref: KEY-1, url: ..., title: ...}
+    expected_state: "In review"    # what the target must show before the action runs
+    kind: comment                  # comment | close | transition | supersede | edit | move | link | create
+    action: "Exact action text, for example the comment body or the transition name."
+    evidence: [{kind: url, url: ..., title: ...}]
+    successor: {...}               # when the action hands the item to a successor
+    class: routine                 # routine | security | cancellation | changed-commitment
+    state: proposed                # proposed | approved | done | skipped | unverified (set by the scripts)
+approvals: []                      # written by `mission closeout approve`, never by hand
+unknowns:                          # one disposition per UNKNOWN source key in closeout-facts.json
+  - {source: mrs, consequential: true, disposition: accepted, by: Gabriel, link: {...}}
+  - {source: drafts, consequential: true, disposition: tracked, successor: {url: ..., title: ...}}
+  - {source: handoffs, consequential: false, reason: "no ledger in this scope holds an obligation"}
 human_guide:
-  - {step: "Approve the bucket list."}
   - {step: "Move KEY-1 to Done after the comment is posted.", command: "<exact command, if scriptable>"}
 ```
 
@@ -102,19 +127,54 @@ Bucket meanings:
 |---|---|---|
 | `CLOSE-WITH-EVIDENCE` | Done in fact. Close it with a comment that links the evidence. | Agent drafts. Jira goes through `/post-comment`. GitHub after approval. |
 | `SUPERSEDE` | Obsolete or replaced. Won't Do, or close with a pointer to the replacement. | Same as above. |
-| `KEEP` | Still needed. It has a successor home. | The successor owner. |
-| `ORPHAN` | Still needed, no home. Blocks the close until it gets one. | The human picks the home. |
+| `KEEP` | Still needed. It has a successor home that accepted it. | The successor owner. |
+| `ORPHAN` | Still needed, no home. Blocks the close until a successor accepts it. | The human picks the home. |
 | `FALSE-PREMISE` | Record text that is now false. Give the text and the correction. | Agent drafts the correction. |
 | `HUMAN-ONLY` | Decisions, approvals, risk acceptance, production actions. Needs a named `owner` or a successor until it is done. | The named human. |
 
+### Big miss or routine
+
+A finding is a **big miss** if one of these is true (`big_miss_reasons()` in the script):
+- **Live assurance gap.** A live capability (`live` not `false`) has a `control` (security, access, safety, contract) without evidence, or without a residual-risk decision by a named person. An `UNKNOWN` on such a control counts.
+- **Valid obligation uncovered.** An `ORPHAN`, a `KEEP` whose successor has not accepted it, a successor that excludes it, or work that may be lost.
+- **Consequential false record.** A `FALSE-PREMISE` that `affects` production behavior, authorization, scope or a prerequisite.
+- **Control failure.** A prerequisite was bypassed, unrelated work was swept into a write, an action exceeded its approval, or a known process failure happened again.
+
+Everything else is routine. A big miss goes to "Needs you" with a `decision` (the question and the options). Routine work goes into the manifest.
+
+### UNKNOWN dispositions
+
+Every UNKNOWN source key in `closeout-facts.json` (the text before the first colon) needs one `unknowns` entry. A missing `consequential` field counts as `true`. A consequential UNKNOWN is `accepted` by a named human with a link, or `tracked` with a successor. `consequential: false` needs a `reason`, and is refused when an item with a `control` lists the key in its `unknowns`.
+
 ## Step 5. Render, approve, act
 
-1. `mission closeout render <slug> --open` (or `--scope <name>`). Give the `file://` link and the bucket counts in the terminal.
-2. The human approves the bucket list, or edits it. Record `approval` with a link to where they said it.
-3. Act on the approved items. GitHub closes and comments directly (maps through `wayfinder`). Jira and Slack through `/post-comment`. Set each item's `state` to `done`.
+1. `mission closeout render <slug> --open` (or `--scope <name>`). The report is decision-first:
+   1. **Needs you**: the big misses only, each with the decision asked and the options.
+   2. **Coverage**: the sources searched fully, and the UNKNOWNs that remain with their disposition.
+   3. **Proposed batch**: the exact routine actions, with the batch hash to approve.
+   4. **Appendix**: bucket counts, every action taken with its read-back, the items, the checklist, the human guide.
+   In the terminal give the `file://` link, the "Needs you" count and the batch hashes.
+2. The human answers each "Needs you" decision, and approves a batch by its hash. Record it:
+   `mission closeout approve <slug> --items A-1,A-2 --hash <hash they saw> --by <name> --link <where they said yes>`.
+   The script refuses an agent as the approver, a batch with more than 15 closes, and a security, cancellation or changed-commitment action in a batch of more than one. Those are approved per item. A changed entry makes `--hash` fail: show the new batch and ask again.
+3. Act on each approved action, one at a time:
+   1. Re-fetch the target. If it does not show `expected_state`, stop and report. Do not act on a target that moved.
+   2. Act: GitHub directly (maps through `wayfinder`), Jira and Slack through `/post-comment`.
+   3. Re-fetch the target and record the read-back: `mission closeout record <slug> --action A-1 --before "<state before>" --after "<state after>"`.
+   4. A mutation that printed nothing, or a read-back you cannot get: record it with an empty `--after`. The action becomes `unverified` and the script stops you. Check the remote state by hand before any retry. A retry on a silent mutation makes duplicates.
+   5. An action you do not run: `mission closeout record <slug> --action A-1 --skip "<reason>"`.
 4. Write the human-only guide. If a human step is scriptable (several Jira transitions, a batch of comments), write a small wizard script into the mission folder that runs each step after a confirmation prompt. The human runs it. You do not.
 5. Re-run `mission closeout gather` and `render`. The report shows what is left.
-6. `mission closeout gate <slug>`. When the gate is open, `/mission close` can run.
+6. `mission closeout gate <slug>`. It opens only when:
+   - every checklist step has a status;
+   - every manifest action is approved by hash (an edited entry voids its approval) and is `done` with a read-back, or `skipped` with a reason;
+   - every consequential UNKNOWN has a human disposition;
+   - every live security, access, safety or contract item has a residual-risk decision by a named person, or a successor with a named owner;
+   - every ORPHAN and KEEP has a successor that accepted it;
+   - every human-found big miss names its `new_check` and `eval_case`;
+   - every open HUMAN-ONLY item has a named owner or successor.
+   When the gate is open, `/mission close` can run. `mission sync` refuses `status: done` while it is closed.
+7. Log the close-out: `mission closeout log <slug>` (see `self-improvement.md`).
 
 ## Read-only health check (`/mission check`)
 

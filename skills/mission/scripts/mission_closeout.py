@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import concurrent.futures as cf
 import datetime as dt
+import hashlib
 import html
 import json
 import pathlib
@@ -34,23 +35,36 @@ JIRA = str(JIRA_SKILL)
 UNKNOWN = "UNKNOWN"
 BUCKETS = ["CLOSE-WITH-EVIDENCE", "SUPERSEDE", "KEEP", "ORPHAN", "FALSE-PREMISE", "HUMAN-ONLY"]
 NEEDS_SUCCESSOR = {"KEEP"}
-CHECKLIST = [
-    ("tracker-status", "Every member and child ticket: live status matches the evidence"),
-    ("parent-closing-comments", "Every closed parent has an evidence-backed closing comment"),
-    ("description-vs-reality", "Closed parents: description and summary match what shipped"),
-    ("done-without-evidence", "No ticket is Done without AC evidence, security tickets first"),
-    ("obsolete-items", "Items made obsolete by later changes are superseded or rescoped"),
-    ("github-tree", "Open GitHub sub-issues under the root, parent and seeds are reviewed"),
-    ("false-premises", "Record text that is no longer true is listed for correction"),
-    ("orphans", "Every remaining item has a successor home"),
-    ("wayfinder-closes", "Wayfinder map children are closed through the wayfinder tool, not raw gh close"),
-    ("dependencies", "Every stated ordering between maps or issues exists as a blockedBy edge"),
-    ("reflections", "Reflections are written, and stay under their map until written"),
-    ("risk-acceptance", "Every live known gap has a risk acceptance by a named decider"),
-    ("handoffs", "Pending session handoffs for this scope are completed or closed"),
-    ("drafts", "Unsent drafts are posted, superseded or deleted"),
-    ("infra-tails", "Cleanup MRs, branches and unapplied infra changes are finished or owned"),
-]
+# Every check names the real (anonymized) case it catches. A check that names no case is not added.
+# Group ids refer to the close-out eval ground truth (evals/expected/closeout/full.json "group").
+CHECK_REGISTRY = {
+    "tracker-status": {"label": "Every member and child ticket: live status matches the evidence", "catches": "J1, J2"},
+    "parent-closing-comments": {"label": "Every closed parent has an evidence-backed closing comment", "catches": "J5"},
+    "description-vs-reality": {"label": "Closed parents: description and summary match what shipped", "catches": "J5, G2, G3, G11"},
+    "done-without-evidence": {"label": "Every AC of a Done ticket has an evidence link, security tickets first", "catches": "J7"},
+    "obsolete-items": {"label": "Items made obsolete by later changes are superseded or rescoped", "catches": "J3, J4"},
+    "github-tree": {"label": "Open GitHub sub-issues under the root, parent and seeds are reviewed", "catches": "G1, G9"},
+    "false-premises": {"label": "Record text that is no longer true is listed for correction", "catches": "G2, G3, G11"},
+    "orphans": {"label": "Every remaining item has a successor home that accepted it", "catches": "G5, M1"},
+    "wayfinder-closes": {"label": "Wayfinder map children are closed through the wayfinder tool, not raw gh close", "catches": "G12"},
+    "dependencies": {"label": "Every stated ordering between maps or issues exists as a blockedBy edge", "catches": "G10"},
+    "reflections": {"label": "Reflections are written, and stay under their map until written", "catches": "G8"},
+    "risk-acceptance": {"label": "Every live known gap has a residual-risk decision by a named person", "catches": "H3, J7"},
+    "handoffs": {"label": "Pending session handoffs for this scope are completed or closed", "catches": "H1, H2, H4"},
+    "drafts": {"label": "Drafts with no posted record are checked against their target", "catches": "D1"},
+    "infra-tails": {"label": "Cleanup MRs, branches and unapplied infra changes are finished or owned", "catches": "M1"},
+}
+CHECKLIST_IDS = list(CHECK_REGISTRY)
+CHECKLIST = [(k, v["label"]) for k, v in CHECK_REGISTRY.items()]
+CONTROL_KINDS = {"security", "access", "safety", "contract"}
+CONSEQUENTIAL_AFFECTS = {"production", "authorization", "scope", "prerequisite"}
+PER_ITEM_CLASSES = {"security", "cancellation", "changed-commitment"}
+ACTION_CLASSES = {"routine"} | PER_ITEM_CLASSES
+CLOSE_KINDS = {"close", "transition", "supersede"}
+BATCH_CLOSE_CAP = 15
+HASHED_FIELDS = ("id", "item", "target", "expected_state", "kind", "action", "evidence", "successor", "class")
+NOT_A_NAME = {"", "agent", "claude", "assistant", "ai", "bot", "tbd", "unknown", "none", "n/a", "?", "someone"}
+REVIEW_WINDOW = 5
 STEP_STATES = {"done", "na", "open", "unknown"}
 PENDING_HANDOFF = {"awaiting_initiation", "initiated"}
 DONE_WORDS = re.compile(r"done|termin|closed|won't|wont|resolved|ferm|abandon", re.I)
@@ -474,17 +488,16 @@ def cmd_gather(a) -> int:
     out.write_text(json.dumps(facts, indent=2, ensure_ascii=False, default=str))
     j, g = facts["jira"], facts["github"]
     print(f"facts -> {out}")
-    print(f"  jira: {j['status']}, {len(j.get('tickets', []))} ticket(s)")
-    print(f"  github: {g['status']}, {g.get('open', 0)} open, {g.get('closed', 0)} closed")
-    print(f"  handoffs: {facts['handoffs']['status']}, {len(facts['handoffs'].get('pending', []))} pending match(es)")
-    print(f"  drafts: {facts['drafts']['status']}, {len(unmarked)} with no posted record (remote UNKNOWN)")
-    print(f"  branches: {facts['branches']['status']}, mrs: UNKNOWN")
+    for k, st, reason in fact_sources(facts):
+        print(f"  source {k}: {st}" + (f" ({reason})" if st != "OK" and reason else ""))
+    for lbl, n in fact_counts(facts):
+        print(f"  {lbl}: {n}")
     for u in facts["unknown"]:
         print(f"  UNKNOWN {u}")
     return 0
 
 
-# ---------------------------------------------------------------- gate
+# ---------------------------------------------------------------- close-out record helpers
 
 def load_closeout(d: pathlib.Path):
     import yaml
@@ -492,42 +505,250 @@ def load_closeout(d: pathlib.Path):
     return yaml.safe_load(f.read_text()) if f.exists() else None
 
 
+def save_closeout(d: pathlib.Path, co: dict) -> None:
+    import yaml
+    (d / "closeout.yaml").write_text(yaml.safe_dump(co, sort_keys=False, allow_unicode=True, width=120))
+
+
+def named(who) -> bool:
+    """A named human: not empty, not an agent or a placeholder."""
+    return str(who or "").strip().lower() not in NOT_A_NAME
+
+
+def has_link(x) -> bool:
+    return isinstance(x, dict) and bool(x.get("url"))
+
+
+def named_successor(s) -> bool:
+    return isinstance(s, dict) and bool(s.get("url")) and bool(s.get("title"))
+
+
+def accepted(s) -> bool:
+    """The successor accepted the obligation (not only linked): a named person and a link to where they said it."""
+    acc = (s or {}).get("accepted") if isinstance(s, dict) else None
+    return isinstance(acc, dict) and named(acc.get("by")) and has_link(acc.get("link")) and not s.get("excludes")
+
+
+def risk_decided(it: dict) -> bool:
+    rr = it.get("residual_risk") or {}
+    if isinstance(rr, dict) and named(rr.get("by")) and has_link(rr.get("link")) and str(rr.get("decision") or "").strip():
+        return True
+    s = it.get("successor") or {}
+    return named_successor(s) and named(s.get("owner"))
+
+
+def is_live(it: dict) -> bool:
+    """live: false is the only proof of not-live. Missing or UNKNOWN counts as live."""
+    return it.get("live") is not False
+
+
+def has_evidence(it: dict) -> bool:
+    return bool(it.get("evidence")) and str(it.get("evidence_state") or "present") not in ("missing", UNKNOWN)
+
+
+def big_miss_reasons(it: dict) -> list[str]:
+    """SYNTHESIS section 3, as predicates on a close-out item. Empty list = routine."""
+    out = []
+    if it.get("control") in CONTROL_KINDS and is_live(it) and (not has_evidence(it) or not risk_decided(it)):
+        out.append("live-assurance-gap")
+    s = it.get("successor") or {}
+    if it.get("bucket") == "ORPHAN" or it.get("obligation_lost") or (isinstance(s, dict) and s.get("excludes")) \
+            or (it.get("bucket") == "KEEP" and not accepted(s)):
+        out.append("valid-obligation-uncovered")
+    if it.get("bucket") == "FALSE-PREMISE" and set(it.get("affects") or []) & CONSEQUENTIAL_AFFECTS:
+        out.append("consequential-false-record")
+    if it.get("control_failure"):
+        out.append("control-failure")
+    return out
+
+
+def needs_decision(it: dict) -> bool:
+    return bool(big_miss_reasons(it)) and it.get("state") != "done" and not (it.get("decision") or {}).get("answer")
+
+
+def unknown_key(u: str) -> str:
+    return str(u).split(":", 1)[0].strip()
+
+
+def entry_hash(a: dict) -> str:
+    payload = json.dumps({k: a.get(k) for k in HASHED_FIELDS}, sort_keys=True, default=str, ensure_ascii=False)
+    return hashlib.sha256(payload.encode()).hexdigest()[:16]
+
+
+def batch_hash(entries: dict) -> str:
+    return hashlib.sha256("\n".join(f"{k}:{v}" for k, v in sorted(entries.items())).encode()).hexdigest()[:16]
+
+
+def batch_problems(actions: list[dict]) -> list[str]:
+    out = []
+    closes = [a["id"] for a in actions if a.get("kind") in CLOSE_KINDS]
+    if len(closes) > BATCH_CLOSE_CAP:
+        out.append(f"{len(closes)} closes in one batch; the cap is {BATCH_CLOSE_CAP}. Split the batch.")
+    solo = [a["id"] for a in actions if a.get("class", "routine") in PER_ITEM_CLASSES]
+    if solo and len(actions) > 1:
+        out.append(f"{solo} are security, cancellation or changed-commitment actions: per-item approval only, never in a batch")
+    bad = [a["id"] for a in actions if a.get("class", "routine") not in ACTION_CLASSES]
+    if bad:
+        out.append(f"{bad}: class must be one of {sorted(ACTION_CLASSES)}")
+    return out
+
+
+def plan_batches(manifest: list[dict]) -> list[dict]:
+    """Proposed actions, grouped for approval: per-item classes alone, routine actions in chunks of <= 15 closes."""
+    todo = [a for a in manifest or [] if a.get("state", "proposed") == "proposed"]
+    batches, cur = [], []
+    for a in todo:
+        if a.get("class", "routine") in PER_ITEM_CLASSES:
+            batches.append([a])
+            continue
+        if a.get("kind") in CLOSE_KINDS and sum(1 for x in cur if x.get("kind") in CLOSE_KINDS) >= BATCH_CLOSE_CAP:
+            batches.append(cur)
+            cur = []
+        cur.append(a)
+    if cur:
+        batches.append(cur)
+    return [{"items": [a["id"] for a in b], "hash": batch_hash({a["id"]: entry_hash(a) for a in b})} for b in batches]
+
+
+def approval_state(co: dict) -> dict:
+    """Per action id: approved, changed (edited after approval), or unapproved. The latest approval of an id wins."""
+    latest = {}
+    for ap in co.get("approvals") or []:
+        if not isinstance(ap, dict) or not named(ap.get("by")):
+            continue
+        hashes = ap.get("entry_hashes") or {}
+        if batch_hash(hashes) != ap.get("hash"):
+            continue
+        for i in ap.get("items") or []:
+            latest[i] = hashes.get(i)
+    out = {}
+    for a in co.get("manifest") or []:
+        h = latest.get(a.get("id"))
+        out[a.get("id")] = "unapproved" if h is None else ("approved" if h == entry_hash(a) else "changed")
+    return out
+
+
+# ---------------------------------------------------------------- gate
+
 def gate(d: pathlib.Path) -> tuple[list[str], list[str]]:
     """Return (errors, warnings). An empty error list means the mission may close."""
     err, warn = [], []
     co = load_closeout(d)
     if co is None:
         return [f"no closeout.yaml in {d}: run /mission check --close first"], warn
+    facts = {}
     if not (d / "closeout-facts.json").exists():
         err.append("no closeout-facts.json: run mission closeout gather")
     else:
         facts = json.loads((d / "closeout-facts.json").read_text())
-        for u in facts.get("unknown") or []:
-            warn.append(f"fact source UNKNOWN, review by hand: {u}")
+    if co.get("schema") != "mission-closeout/v2":
+        err.append("closeout.yaml is not mission-closeout/v2: rewrite it with a manifest (references/closeout-procedure.md)")
     steps = {s.get("id"): s for s in co.get("checklist") or [] if isinstance(s, dict)}
-    for sid, _ in CHECKLIST:
+    for sid in CHECKLIST_IDS:
         s = steps.get(sid)
         if not s or s.get("status") not in STEP_STATES:
             err.append(f"checklist step '{sid}' has no status ({'/'.join(sorted(STEP_STATES))})")
         elif s["status"] in ("open", "unknown"):
             warn.append(f"checklist step '{sid}' is {s['status']}")
-    for i, it in enumerate(co.get("items") or []):
+    items = co.get("items") or []
+    err += item_errors(items, warn)
+    err += manifest_errors(co)
+    err += unknown_errors(co, facts, items)
+    return err, warn
+
+
+def item_errors(items: list[dict], warn: list[str]) -> list[str]:
+    err = []
+    for i, it in enumerate(items):
         where = f"items[{i}] {it.get('id', '?')}"
         b = it.get("bucket")
         if b not in BUCKETS:
             err.append(f"{where}: bucket '{b}' not in {BUCKETS}")
             continue
         succ = it.get("successor") or {}
-        named = isinstance(succ, dict) and succ.get("url") and succ.get("title")
-        if b == "ORPHAN" and not (named and it.get("parked_by")):
+        if b == "ORPHAN" and not (named_successor(succ) and named(it.get("parked_by"))):
             err.append(f"{where}: ORPHAN without a named successor and parked_by. Give it a home before close.")
-        if b in NEEDS_SUCCESSOR and not named:
+        elif b == "ORPHAN" and not accepted(succ):
+            err.append(f"{where}: ORPHAN successor is linked but has not accepted it (successor.accepted: by + link)")
+        if b in NEEDS_SUCCESSOR and not named_successor(succ):
             err.append(f"{where}: KEEP needs successor with url and title")
-        if b == "HUMAN-ONLY" and it.get("state") != "done" and not (named or str(it.get("owner") or "").strip()):
+        elif b in NEEDS_SUCCESSOR and not accepted(succ):
+            err.append(f"{where}: KEEP successor has not accepted the obligation (successor.accepted: by + link)")
+        if b == "HUMAN-ONLY" and it.get("state") != "done" and not (named_successor(succ) or named(it.get("owner"))):
             err.append(f"{where}: HUMAN-ONLY item still open without a named owner or successor. Give it a home before close.")
+        if it.get("control") in CONTROL_KINDS and is_live(it) and not risk_decided(it):
+            err.append(f"{where}: live {it['control']} risk (live: {it.get('live', UNKNOWN)}) without a residual-risk decision "
+                       "by a named person (residual_risk: decision, by, link) or a successor with a named owner")
+        if it.get("found_by") == "human" and it.get("miss_weight") != "routine" \
+                and not (str(it.get("new_check") or "").strip() and str(it.get("eval_case") or "").strip()):
+            err.append(f"{where}: found by the human, not the sweep: name the new_check and the eval_case "
+                       "(or miss_weight: routine for friction that waits for a repeat)")
         if it.get("state", "proposed") == "proposed":
-            warn.append(f"{where}: {b} action still proposed")
-    return err, warn
+            warn.append(f"{where}: {b} still proposed")
+    return err
+
+
+def manifest_errors(co: dict) -> list[str]:
+    err = []
+    manifest = co.get("manifest")
+    if manifest is None:
+        return ["no action manifest: list every action (target, expected_state, action, evidence) under manifest"]
+    approvals = [a for a in co.get("approvals") or [] if isinstance(a, dict)]
+    if not manifest and not any(named(a.get("by")) and has_link(a.get("link")) for a in approvals):
+        err.append("empty manifest with no approval: a named person approves the empty list (mission closeout approve --items '')")
+    for ap in approvals:
+        if not named(ap.get("by")) or not has_link(ap.get("link")):
+            err.append(f"approval {ap.get('hash')}: needs a named person and a link to where they said it")
+        acts = [a for a in manifest if a.get("id") in (ap.get("items") or [])]
+        err += [f"approval {ap.get('hash')}: {p}" for p in batch_problems(acts)]
+    state = approval_state(co)
+    for a in manifest:
+        aid = a.get("id", "?")
+        st, s = state.get(aid), a.get("state", "proposed")
+        if s == "skipped":
+            if not str(a.get("skipped_reason") or "").strip():
+                err.append(f"{aid}: skipped without a reason")
+            continue
+        if st == "unapproved":
+            err.append(f"{aid}: not approved (approve the manifest entry by its hash)")
+            continue
+        if st == "changed":
+            err.append(f"{aid}: changed after approval; the approval no longer covers it. Re-approve the new text.")
+            continue
+        if s == "unverified":
+            err.append(f"{aid}: unverified: the action reported nothing. Verify the remote state before any retry, then record the read-back")
+        elif s != "done":
+            err.append(f"{aid}: approved, not done")
+        else:
+            rb = a.get("readback") or {}
+            if not (str(rb.get("before") or "").strip() and str(rb.get("after") or "").strip() and rb.get("at")):
+                err.append(f"{aid}: done without a read-back (before, after, at)")
+    return err
+
+
+def unknown_errors(co: dict, facts: dict, items: list[dict]) -> list[str]:
+    err = []
+    disp = {str(u.get("source")): u for u in co.get("unknowns") or [] if isinstance(u, dict)}
+    control_refs = {k for it in items if it.get("control") in CONTROL_KINDS for k in it.get("unknowns") or []}
+    for key in dict.fromkeys(unknown_key(u) for u in facts.get("unknown") or []):
+        u = disp.get(key)
+        if not u:
+            err.append(f"UNKNOWN '{key}' has no disposition (unknowns: accepted by a named human, tracked, or not consequential with a reason)")
+            continue
+        consequential = u.get("consequential", True) is not False or key in control_refs
+        if u.get("consequential") is False and key in control_refs:
+            err.append(f"UNKNOWN '{key}' touches a security, access, safety or contract control: it is consequential")
+        if not consequential:
+            if not str(u.get("reason") or "").strip():
+                err.append(f"UNKNOWN '{key}': not consequential needs a reason")
+            continue
+        if u.get("disposition") == "accepted" and named(u.get("by")) and has_link(u.get("link")):
+            continue
+        if u.get("disposition") == "tracked" and named_successor(u.get("successor")):
+            continue
+        err.append(f"UNKNOWN '{key}': consequential; needs disposition accepted by a named human with a link, "
+                   "or tracked with a successor (url, title)")
+    return err
 
 
 def cmd_gate(a) -> int:
@@ -539,6 +760,116 @@ def cmd_gate(a) -> int:
         print(f"ERROR {e}")
     print("GATE OPEN: the mission may close" if not err else "GATE CLOSED: the mission may not close")
     return 1 if err else 0
+
+
+# ---------------------------------------------------------------- approve and record (the executor's ledger)
+
+def cmd_approve(a) -> int:
+    d, _ = closeout_dir(a.mission, a.scope)
+    co = load_closeout(d)
+    if co is None:
+        sys.exit("no closeout.yaml")
+    if not named(a.by):
+        sys.exit(f"--by '{a.by}' is not a named human; an agent never approves")
+    if not a.link:
+        sys.exit("--link is required: where the human said yes")
+    ids = split(a.items)
+    manifest = co.get("manifest") or []
+    by_id = {x.get("id"): x for x in manifest}
+    missing = [i for i in ids if i not in by_id]
+    if missing:
+        sys.exit(f"not in the manifest: {missing}")
+    acts = [by_id[i] for i in ids]
+    probs = batch_problems(acts)
+    if probs:
+        sys.exit("refused: " + "; ".join(probs))
+    hashes = {i: entry_hash(by_id[i]) for i in ids}
+    h = batch_hash(hashes)
+    if a.hash and a.hash != h:
+        sys.exit(f"refused: the approved hash {a.hash} does not match the current batch {h}; an entry changed")
+    co.setdefault("approvals", [])
+    co["approvals"] = (co["approvals"] or []) + [{"hash": h, "items": ids, "entry_hashes": hashes, "by": a.by, "at": now_utc(),
+                                                   "link": {"kind": "url", "url": a.link, "title": a.link_title or "approval"}}]
+    for x in acts:
+        if x.get("state", "proposed") == "proposed":
+            x["state"] = "approved"
+    save_closeout(d, co)
+    print(f"approved {len(ids)} action(s), hash {h}, by {a.by}")
+    return 0
+
+
+def cmd_record(a) -> int:
+    d, _ = closeout_dir(a.mission, a.scope)
+    co = load_closeout(d)
+    if co is None:
+        sys.exit("no closeout.yaml")
+    act = next((x for x in co.get("manifest") or [] if x.get("id") == a.action), None)
+    if act is None:
+        sys.exit(f"{a.action} is not in the manifest")
+    if a.skip:
+        act.update(state="skipped", skipped_reason=a.skip)
+        save_closeout(d, co)
+        print(f"{a.action}: skipped ({a.skip})")
+        return 0
+    st = approval_state(co).get(a.action)
+    if st != "approved":
+        sys.exit(f"{a.action} is {st}, not approved: do not execute it")
+    act["readback"] = {"before": a.before, "after": a.after, "at": now_utc()}
+    if not str(a.after or "").strip():
+        act["state"] = "unverified"
+        save_closeout(d, co)
+        print(f"STOP {a.action}: no read-back after the action. Stop and verify the remote state before any retry; "
+              "a retry on a silent mutation makes duplicates.")
+        return 2
+    act["state"] = "done"
+    save_closeout(d, co)
+    print(f"{a.action}: done, read-back recorded")
+    return 0
+
+
+# ---------------------------------------------------------------- self-improvement log
+
+def closeout_log_file() -> pathlib.Path:
+    return MISSIONS_DIR / "_meta" / "closeout-log.jsonl"
+
+
+def cmd_log(a) -> int:
+    d, _ = closeout_dir(a.mission, a.scope)
+    co = load_closeout(d) or {}
+    items = co.get("items") or []
+    human = [i for i in items if i.get("found_by") == "human"]
+    line = {"at": now_utc(), "scope": a.mission or a.scope,
+            "buckets": {b: sum(1 for i in items if i.get("bucket") == b) for b in BUCKETS},
+            "big_misses_by_sweep": [{"id": i.get("id"), "reasons": big_miss_reasons(i), "found_by": i.get("found_by")}
+                                    for i in items if big_miss_reasons(i) and i.get("found_by") != "human"],
+            "human_found": [{"id": i.get("id"), "finding": i.get("finding") or i.get("title"), "weight": i.get("miss_weight", "consequential"),
+                             "new_check": i.get("new_check"), "eval_case": i.get("eval_case")} for i in human],
+            "checks_fired": sorted({i.get("found_by") for i in items if i.get("found_by") and i.get("found_by") != "human"})}
+    f = closeout_log_file()
+    f.parent.mkdir(parents=True, exist_ok=True)
+    with f.open("a") as fh:
+        fh.write(json.dumps(line, ensure_ascii=False) + "\n")
+    print(f"logged -> {f}")
+    for h in line["human_found"]:
+        if h["weight"] != "routine" and not (h["new_check"] and h["eval_case"]):
+            print(f"FOLLOW-UP {h['id']}: a human-found miss needs a new check and an eval case")
+    return 0
+
+
+def cmd_review_checks(a) -> int:
+    f = closeout_log_file()
+    lines = [json.loads(x) for x in f.read_text().splitlines() if x.strip()] if f.exists() else []
+    recent = lines[-REVIEW_WINDOW:]
+    if len(recent) < REVIEW_WINDOW:
+        print(f"{len(recent)} of {REVIEW_WINDOW} close-outs logged: not enough to judge any check (UNKNOWN, keep all)")
+        return 0
+    fired = {c for x in recent for c in x.get("checks_fired") or []}
+    for cid, spec in CHECK_REGISTRY.items():
+        if cid in fired:
+            print(f"{cid}: fired in the last {REVIEW_WINDOW}")
+        else:
+            print(f"{cid}: review for removal (no find in the last {REVIEW_WINDOW} close-outs; catches {spec['catches']})")
+    return 0
 
 
 # ---------------------------------------------------------------- render
@@ -553,11 +884,142 @@ def link(l) -> str:
     return f'<a href="{esc(l.get("url"))}">{esc(l.get("ref") or "")} {esc(l.get("title") or l.get("url"))}</a>'
 
 
+def fact_counts(facts: dict) -> list[tuple[str, object]]:
+    """One set of names and numbers for the gather output and the report."""
+    j, g, h = facts.get("jira") or {}, facts.get("github") or {}, facts.get("handoffs") or {}
+    dr, br = facts.get("drafts") or {}, facts.get("branches") or {}
+    return [("Jira tickets", len(j.get("tickets") or [])), ("GitHub issues open", g.get("open", 0)),
+            ("GitHub issues closed", g.get("closed", 0)), ("pending handoffs", len(h.get("pending") or [])),
+            ("drafts with no posted record", len(dr.get("no_posted_marker") or [])), ("branches", len(br.get("branches") or []))]
+
+
+def fact_sources(facts: dict) -> list[tuple[str, str, str]]:
+    out = []
+    for k in ("jira", "github", "sweep", "handoffs", "drafts", "branches"):
+        v = facts.get(k)
+        if isinstance(v, dict):
+            out.append((k, str(v.get("status")), str(v.get("reason") or "")))
+    mrs = (facts.get("branches") or {}).get("mrs") or {}
+    if mrs:
+        out.append(("mrs", str(mrs.get("status")), str(mrs.get("reason") or "")))
+    return out
+
+
 CSS = """body{font:15px/1.5 -apple-system,Segoe UI,sans-serif;max-width:1100px;margin:2rem auto;padding:0 1rem;color:#222}
 h1{margin-bottom:.2rem}.muted{color:#666}.unknown{background:#fff4d6;border-left:4px solid #e0a800;padding:.6rem 1rem}
 .gate-ok{background:#e5f6e8;border-left:4px solid #2e8b57;padding:.6rem 1rem}.gate-no{background:#fde8e8;border-left:4px solid #c0392b;padding:.6rem 1rem}
+.need{border:1px solid #c0392b;border-radius:6px;padding:.6rem 1rem;margin:.6rem 0}.need h3{margin:.1rem 0}
 table{border-collapse:collapse;width:100%;margin:.5rem 0 1.5rem}td,th{border-bottom:1px solid #ddd;padding:.35rem .5rem;text-align:left;vertical-align:top}
 th{background:#f5f5f5}.b{font-weight:600}section{margin-top:1.5rem}code{background:#f3f3f3;padding:0 .2rem}"""
+
+
+def item_label(i: dict) -> str:
+    return link(i.get("ref")) if i.get("ref") else esc(i.get("title"))
+
+
+def render_needs_you(items: list[dict]) -> list[str]:
+    needs = [i for i in items if needs_decision(i)]
+    h = [f"<section id=needs><h2>Needs you ({len(needs)})</h2>"]
+    if not needs:
+        h.append("<p>No big miss is open. The routine work is in the proposed batch below.</p>")
+    for i in needs:
+        dec = i.get("decision") or {}
+        opts = dec.get("options") or []
+        h.append(f"<div class=need><h3>{esc(i.get('id'))}: {item_label(i)}</h3>"
+                 f"<p class=muted>Why it is big: {esc(', '.join(big_miss_reasons(i)))}</p><p>{esc(i.get('finding'))}</p>"
+                 + (f"<p><b>Decision:</b> {esc(dec.get('question'))}</p>" if dec.get("question")
+                    else "<p><b>Decision:</b> not written yet. The close-out is not complete until it is.</p>")
+                 + ("<ol>" + "".join(f"<li>{esc(o if not isinstance(o, dict) else o.get('label', '') + ': ' + str(o.get('consequence', '')))}</li>" for o in opts) + "</ol>" if opts else "")
+                 + "</div>")
+    h.append("</section>")
+    return h
+
+
+def render_coverage(facts: dict, co: dict) -> list[str]:
+    src = fact_sources(facts)
+    full = [s for s, st, _ in src if st == "OK"]
+    gaps = [(s, st, r) for s, st, r in src if st != "OK"]
+    disp = {str(u.get("source")): u for u in co.get("unknowns") or [] if isinstance(u, dict)}
+    h = ["<section id=coverage><h2>Coverage</h2>",
+         f"<p>These sources were searched fully: <b>{esc(', '.join(full) or 'none')}</b>. "
+         f"These gaps remain: <b>{esc(', '.join(s for s, _, _ in gaps) or 'none')}</b>. "
+         "The claim is coverage of these sources, not completeness.</p>",
+         "<ul>" + "".join(f"<li>{esc(lbl)}: {esc(n)}</li>" for lbl, n in fact_counts(facts)) + "</ul>"]
+    if facts.get("unknown"):
+        h.append('<div class="unknown"><b>Not checked (UNKNOWN, never PASS):</b><ul>' + "".join(
+            f"<li>{esc(u)} <span class=muted>[disposition: "
+            f"{esc((disp.get(unknown_key(u)) or {}).get('disposition') or ('not consequential' if (disp.get(unknown_key(u)) or {}).get('consequential') is False else 'none yet'))}]</span></li>"
+            for u in facts["unknown"]) + "</ul></div>")
+    h.append("</section>")
+    return h
+
+
+def render_batches(co: dict, slug_arg: str) -> list[str]:
+    manifest = co.get("manifest") or []
+    by_id = {a.get("id"): a for a in manifest}
+    batches = plan_batches(manifest)
+    h = [f"<section id=batch><h2>Proposed batch ({sum(len(b['items']) for b in batches)} action(s))</h2>"]
+    if not batches:
+        h.append("<p>No proposed action is waiting for approval.</p>")
+    for n, b in enumerate(batches, 1):
+        h.append(f"<p><b>Batch {n}</b>, hash <code>{esc(b['hash'])}</code>. Approve: "
+                 f"<code>mission closeout approve {esc(slug_arg)} --items {esc(','.join(b['items']))} --hash {esc(b['hash'])} "
+                 "--by &lt;name&gt; --link &lt;where you said yes&gt;</code></p>")
+        h.append("<table><tr><th>ID</th><th>Target</th><th>Expected now</th><th>Exact action</th><th>Evidence</th><th>Class</th></tr>")
+        for i in b["items"]:
+            a = by_id[i]
+            h.append(f"<tr><td>{esc(i)}</td><td>{link(a.get('target'))}</td><td>{esc(a.get('expected_state'))}</td>"
+                     f"<td>{esc(a.get('action'))}</td><td>{' '.join(link(e) for e in a.get('evidence') or [])}</td>"
+                     f"<td>{esc(a.get('class', 'routine'))}</td></tr>")
+        h.append("</table>")
+    h.append("</section>")
+    return h
+
+
+def render_appendix(co: dict, items: list[dict], warn: list[str]) -> list[str]:
+    h = ["<section id=appendix><h2>Appendix</h2>"]
+    counts = {b: sum(1 for i in items if i.get("bucket") == b) for b in BUCKETS}
+    h.append("<table><tr>" + "".join(f"<th>{b}</th>" for b in BUCKETS) + "</tr><tr>"
+             + "".join(f"<td class=b>{counts[b]}</td>" for b in BUCKETS) + "</tr></table>")
+    state = approval_state(co)
+    acts = [a for a in co.get("manifest") or [] if a.get("state") in ("done", "skipped", "unverified", "approved")]
+    if acts:
+        h.append("<h3>Actions taken, with read-back</h3><table><tr><th>ID</th><th>Target</th><th>Action</th><th>Approval</th>"
+                 "<th>Before</th><th>After</th><th>State</th></tr>")
+        for a in acts:
+            rb = a.get("readback") or {}
+            h.append(f"<tr><td>{esc(a.get('id'))}</td><td>{link(a.get('target'))}</td><td>{esc(a.get('action'))}</td>"
+                     f"<td>{esc(state.get(a.get('id')))}</td><td>{esc(rb.get('before'))}</td><td>{esc(rb.get('after'))}</td>"
+                     f"<td>{esc(a.get('state'))} {esc(a.get('skipped_reason') or '')}</td></tr>")
+        h.append("</table>")
+    for b in BUCKETS:
+        rows = [i for i in items if i.get("bucket") == b]
+        if not rows:
+            continue
+        h.append(f"<h3 id='{b}'>{b} ({len(rows)})</h3><table><tr><th>ID</th><th>Item</th><th>Finding</th>"
+                 "<th>Proposed action</th><th>Successor</th><th>State</th></tr>")
+        for i in rows:
+            ev = " ".join(link(e) for e in i.get("evidence") or [])
+            h.append(f"<tr><td>{esc(i.get('id'))}</td><td>{item_label(i)}</td>"
+                     f"<td>{esc(i.get('finding'))} {ev}</td><td>{esc(i.get('action'))}</td>"
+                     f"<td>{link(i.get('successor')) if i.get('successor') else ''}</td><td>{esc(i.get('state', 'proposed'))}</td></tr>")
+        h.append("</table>")
+    steps = {s.get("id"): s for s in co.get("checklist") or [] if isinstance(s, dict)}
+    h.append("<h3>Checklist</h3><table><tr><th>Step</th><th>Status</th><th>Note</th></tr>")
+    for sid, label in CHECKLIST:
+        s = steps.get(sid) or {}
+        h.append(f"<tr><td>{esc(label)}</td><td class=b>{esc(s.get('status', 'missing'))}</td><td>{esc(s.get('note'))}</td></tr>")
+    h.append("</table>")
+    guide = co.get("human_guide") or []
+    if guide:
+        h.append("<h3>Human-only guide</h3><ol>" + "".join(
+            f"<li>{esc(g.get('step') if isinstance(g, dict) else g)}"
+            + (f" <code>{esc(g.get('command'))}</code>" if isinstance(g, dict) and g.get("command") else "") + "</li>"
+            for g in guide) + "</ol>")
+    if warn:
+        h.append("<h3>Warnings</h3><ul>" + "".join(f"<li>{esc(w)}</li>" for w in warn) + "</ul>")
+    h.append("</section>")
+    return h
 
 
 def cmd_render(a) -> int:
@@ -565,48 +1027,19 @@ def cmd_render(a) -> int:
     co = load_closeout(d) or {}
     facts = json.loads((d / "closeout-facts.json").read_text()) if (d / "closeout-facts.json").exists() else {}
     err, warn = gate(d)
-    title = m.get("title") or co.get("scope", {}).get("name") or a.scope
+    items = co.get("items") or []
+    title = m.get("title") or (co.get("scope") or {}).get("name") or a.scope
+    slug_arg = a.mission or f"--scope {a.scope}"
     h = [f"<!doctype html><meta charset=utf-8><title>Close-out: {esc(title)}</title><style>{CSS}</style>",
          f"<h1>Close-out: {esc(title)}</h1>",
-         f"<p class=muted>Facts fetched {esc(facts.get('fetched_at', 'never'))}. Report rendered {esc(now_utc())}.</p>"]
-    h.append(f'<div class="{"gate-ok" if not err else "gate-no"}"><b>Close gate: {"OPEN" if not err else "CLOSED"}.</b> '
-             + ("".join(f"<br>{esc(e)}" for e in err) or "The mission may close after the human approves.") + "</div>")
-    if facts.get("unknown"):
-        h.append('<div class="unknown"><b>Not checked (UNKNOWN, never PASS):</b><ul>'
-                 + "".join(f"<li>{esc(u)}</li>" for u in facts["unknown"]) + "</ul></div>")
-    appr = co.get("approval") or {}
-    h.append(f"<p><b>Bucket list approval:</b> {esc(appr.get('by') or 'not approved yet')} {esc(appr.get('at') or '')} "
-             f"{link(appr.get('link')) if appr.get('link') else ''}</p>")
-    items = co.get("items") or []
-    counts = {b: sum(1 for i in items if i.get("bucket") == b) for b in BUCKETS}
-    h.append("<table><tr>" + "".join(f"<th>{b}</th>" for b in BUCKETS) + "</tr><tr>"
-             + "".join(f"<td class=b>{counts[b]}</td>" for b in BUCKETS) + "</tr></table>")
-    for b in BUCKETS:
-        rows = [i for i in items if i.get("bucket") == b]
-        if not rows:
-            continue
-        h.append(f"<section id='{b}'><h2>{b} ({len(rows)})</h2><table><tr><th>ID</th><th>Item</th><th>Finding</th>"
-                 "<th>Proposed action</th><th>Successor</th><th>State</th></tr>")
-        for i in rows:
-            ev = " ".join(link(e) for e in i.get("evidence") or [])
-            h.append(f"<tr><td>{esc(i.get('id'))}</td><td>{link(i.get('ref')) if i.get('ref') else esc(i.get('title'))}</td>"
-                     f"<td>{esc(i.get('finding'))} {ev}</td><td>{esc(i.get('action'))}</td>"
-                     f"<td>{link(i.get('successor')) if i.get('successor') else ''}</td><td>{esc(i.get('state', 'proposed'))}</td></tr>")
-        h.append("</table></section>")
-    steps = {s.get("id"): s for s in co.get("checklist") or [] if isinstance(s, dict)}
-    h.append("<section><h2>Checklist</h2><table><tr><th>Step</th><th>Status</th><th>Note</th></tr>")
-    for sid, label in CHECKLIST:
-        s = steps.get(sid) or {}
-        h.append(f"<tr><td>{esc(label)}</td><td class=b>{esc(s.get('status', 'missing'))}</td><td>{esc(s.get('note'))}</td></tr>")
-    h.append("</table></section>")
-    guide = co.get("human_guide") or []
-    if guide:
-        h.append("<section><h2>Human-only guide</h2><ol>" + "".join(
-            f"<li>{esc(g.get('step') if isinstance(g, dict) else g)}"
-            + (f" <code>{esc(g.get('command'))}</code>" if isinstance(g, dict) and g.get("command") else "") + "</li>"
-            for g in guide) + "</ol></section>")
-    if warn:
-        h.append("<section><h2>Warnings</h2><ul>" + "".join(f"<li>{esc(w)}</li>" for w in warn) + "</ul></section>")
+         f"<p class=muted>Facts fetched {esc(facts.get('fetched_at', 'never'))}. Report rendered {esc(now_utc())}.</p>",
+         f'<div class="{"gate-ok" if not err else "gate-no"}"><b>Close gate: {"OPEN" if not err else "CLOSED"}.</b> '
+         + (f"{len(err)} open condition(s), listed under Warnings and in <code>mission closeout gate</code>." if err
+            else "The mission may close.") + "</div>"]
+    h += render_needs_you(items)
+    h += render_coverage(facts, co)
+    h += render_batches(co, slug_arg)
+    h += render_appendix(co, items, [f"gate: {e}" for e in err] + warn)
     out = d / "closeout.html"
     out.write_text("\n".join(h))
     print(f"report -> {out.as_uri()}")
@@ -620,7 +1053,7 @@ def cmd_render(a) -> int:
 def main() -> int:
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for name in ("gather", "render", "gate"):
+    for name in ("gather", "render", "gate", "approve", "record", "log"):
         p = sub.add_parser(name)
         p.add_argument("mission", nargs="?")
         p.add_argument("--scope")
@@ -633,8 +1066,21 @@ def main() -> int:
             p.add_argument("--offline", action="store_true")
         if name == "render":
             p.add_argument("--open", action="store_true")
+        if name == "approve":
+            p.add_argument("--items", required=True, help="comma-separated manifest ids ('' approves an empty manifest)")
+            p.add_argument("--by", required=True)
+            p.add_argument("--link")
+            p.add_argument("--link-title")
+            p.add_argument("--hash", help="the batch hash the human approved; refused if the batch changed")
+        if name == "record":
+            p.add_argument("--action", required=True)
+            p.add_argument("--before", default="")
+            p.add_argument("--after", default="")
+            p.add_argument("--skip", help="reason: the action is skipped, not run")
+    sub.add_parser("review-checks")
     a = ap.parse_args()
-    return {"gather": cmd_gather, "render": cmd_render, "gate": cmd_gate}[a.cmd](a)
+    return {"gather": cmd_gather, "render": cmd_render, "gate": cmd_gate, "approve": cmd_approve, "record": cmd_record,
+            "log": cmd_log, "review-checks": cmd_review_checks}[a.cmd](a)
 
 
 if __name__ == "__main__":

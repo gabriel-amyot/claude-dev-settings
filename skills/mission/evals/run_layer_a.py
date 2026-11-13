@@ -128,7 +128,7 @@ def closeout_evals(root: pathlib.Path, d: pathlib.Path, util) -> None:
     check("closeout/blocking-mentions", mco.blocking_mentions("Map #12 blocks the final step. See #3.") == ["12"])
 
     base = yaml.safe_load((HERE / "fixtures" / "closeout" / "closeout.yaml").read_text())
-    base["checklist"] = [{"id": sid, "status": "done"} for sid, _ in mco.CHECKLIST]
+    base["checklist"] = [{"id": sid, "status": "done"} for sid in mco.CHECKLIST_IDS]
     r = script(root, "mission_closeout.py", "gate", "fixture-vendor")
     check("closeout/gate-refuses-without-report", r.returncode == 1 and "no closeout.yaml" in r.stdout, r.stdout)
 
@@ -136,36 +136,7 @@ def closeout_evals(root: pathlib.Path, d: pathlib.Path, util) -> None:
     r = script(root, "mission_closeout.py", "gate", "fixture-vendor")
     check("closeout/gate-refuses-orphan", r.returncode == 1 and "CO-3: ORPHAN without a named successor" in r.stdout, r.stdout)
 
-    parked = copy.deepcopy(base)
-    parked["items"][2]["successor"] = {"kind": "jira", "ref": "PTR-103", "url": "https://tracker.example.invalid/browse/PTR-103", "title": "Risk acceptance"}
-    parked["items"][2]["parked_by"] = "Gabriel"
-    (d / "closeout.yaml").write_text(yaml.safe_dump(parked, sort_keys=False, allow_unicode=True))
-    r = script(root, "mission_closeout.py", "gate", "fixture-vendor")
-    check("closeout/gate-opens-when-orphan-parked", r.returncode == 0 and "GATE OPEN" in r.stdout, r.stdout)
-
-    human = copy.deepcopy(parked)
-    human["items"].append({"id": "CO-4", "bucket": "HUMAN-ONLY", "title": "Risk acceptance for the live write capability",
-                           "finding": "No named decider accepted the residual risk.", "action": "A named decider records it.",
-                           "state": "proposed"})
-    (d / "closeout.yaml").write_text(yaml.safe_dump(human, sort_keys=False, allow_unicode=True))
-    r = script(root, "mission_closeout.py", "gate", "fixture-vendor")
-    check("closeout/gate-refuses-open-human-only-without-owner", r.returncode == 1 and "CO-4: HUMAN-ONLY" in r.stdout, r.stdout)
-    human["items"][-1]["owner"] = "Gabriel"
-    (d / "closeout.yaml").write_text(yaml.safe_dump(human, sort_keys=False, allow_unicode=True))
-    r = script(root, "mission_closeout.py", "gate", "fixture-vendor")
-    check("closeout/gate-opens-human-only-with-owner", r.returncode == 0, r.stdout)
-
-    nostep = copy.deepcopy(parked)
-    nostep["checklist"] = nostep["checklist"][1:]
-    (d / "closeout.yaml").write_text(yaml.safe_dump(nostep, sort_keys=False, allow_unicode=True))
-    r = script(root, "mission_closeout.py", "gate", "fixture-vendor")
-    check("closeout/gate-refuses-missing-checklist-step", r.returncode == 1 and "tracker-status" in r.stdout, r.stdout)
-
-    nokeep = copy.deepcopy(parked)
-    nokeep["items"][1].pop("successor")
-    (d / "closeout.yaml").write_text(yaml.safe_dump(nokeep, sort_keys=False, allow_unicode=True))
-    r = script(root, "mission_closeout.py", "gate", "fixture-vendor")
-    check("closeout/gate-refuses-keep-without-successor", r.returncode == 1 and "KEEP needs successor" in r.stdout, r.stdout)
+    phase1_control_evals(root, d, mco, base, facts)
 
     (d / "closeout.yaml").write_text(yaml.safe_dump(base, sort_keys=False, allow_unicode=True))
     r = script(root, "mission_closeout.py", "render", "fixture-vendor")
@@ -180,6 +151,8 @@ def closeout_evals(root: pathlib.Path, d: pathlib.Path, util) -> None:
     (d / "mission.yaml").write_text(yaml.safe_dump(done, sort_keys=False, allow_unicode=True))
     r = script(root, "mission_sync.py", "fixture-vendor", "-m", "close")
     check("closeout/sync-refuses-done-with-orphan", r.returncode != 0 and "close-out gate is closed" in r.stderr, r.stdout + r.stderr)
+    done["status"] = "active"
+    (d / "mission.yaml").write_text(yaml.safe_dump(done, sort_keys=False, allow_unicode=True))
 
     r = script(root, "mission_closeout.py", "gather", "--scope", "comp-x", "--seed-jira", "PRJ-9", "--seed-gh", "677",
                "--aliases", "comp x", "--offline")
@@ -188,6 +161,228 @@ def closeout_evals(root: pathlib.Path, d: pathlib.Path, util) -> None:
     check("closeout/scope-without-mission-record", r.returncode == 0 and sfacts.get("scope", {}).get("jira_seeds") == ["PRJ-9"]
           and sfacts.get("scope", {}).get("gh_seeds") == ["677"], r.stdout + r.stderr)
     gatherer_ground_truth_evals(mco)
+
+
+LINK = {"kind": "url", "url": "https://forge.example.invalid/acme/planning/issues/1#c9", "title": "said in the thread"}
+
+
+def phase1_control_evals(root: pathlib.Path, d: pathlib.Path, mco, base: dict, facts: dict) -> None:
+    """Close control: manifest approval bound to a hash, read-backs, UNKNOWN dispositions, risk decisions,
+    accepted successors, a decision-first report and the close-out log."""
+    def save(co):
+        (d / "closeout.yaml").write_text(yaml.safe_dump(co, sort_keys=False, allow_unicode=True))
+
+    def load_co():
+        return yaml.safe_load((d / "closeout.yaml").read_text())
+
+    def gate_out(co):
+        save(co)
+        return script(root, "mission_closeout.py", "gate", "fixture-vendor")
+
+    def cli(*args):
+        return script(root, "mission_closeout.py", *args)
+
+    keys = sorted({mco.unknown_key(u) for u in facts.get("unknown", [])})
+    check("p1/offline-facts-have-unknowns", len(keys) >= 4, str(keys))
+    staged = copy.deepcopy(base)
+    staged["items"][2]["successor"] = {"kind": "jira", "ref": "PTR-103", "url": "https://tracker.example.invalid/browse/PTR-103",
+                                       "title": "Risk acceptance", "accepted": {"by": "Gabriel", "link": LINK}}
+    staged["items"][2]["parked_by"] = "Gabriel"
+    staged["unknowns"] = [{"source": k, "consequential": True, "disposition": "accepted", "by": "Gabriel", "link": LINK} for k in keys]
+    save(staged)
+    r = cli("approve", "fixture-vendor", "--items", "A-1,A-2", "--by", "Gabriel", "--link", LINK["url"])
+    check("p1/approve-batch-ok", r.returncode == 0 and "hash" in r.stdout, r.stdout + r.stderr)
+    approved = load_co()
+    check("p1/approve-records-hash-and-ids", len(approved.get("approvals") or []) == 1
+          and approved["approvals"][0].get("items") == ["A-1", "A-2"] and approved["approvals"][0].get("hash"), str(approved.get("approvals")))
+    r = gate_out(approved)
+    check("p1/gate-refuses-approved-not-executed", r.returncode == 1 and "A-1: approved, not done" in r.stdout, r.stdout)
+    r1 = cli("record", "fixture-vendor", "--action", "A-1", "--before", "In review", "--after", "Done, comment 1 posted")
+    r2 = cli("record", "fixture-vendor", "--action", "A-2", "--before", "open, parent #700", "--after", "open, parent #677")
+    closed = load_co()
+    check("p1/record-readback", r1.returncode == 0 and r2.returncode == 0
+          and all(a.get("state") == "done" and (a.get("readback") or {}).get("after") for a in closed["manifest"]), r1.stdout + r1.stderr)
+    r = gate_out(closed)
+    check("p1/gate-opens-when-everything-closed", r.returncode == 0 and "GATE OPEN" in r.stdout, r.stdout)
+
+    co = copy.deepcopy(closed); co["approvals"] = []
+    r = gate_out(co)
+    check("p1/gate-refuses-without-approval", r.returncode == 1 and "A-1: not approved" in r.stdout, r.stdout)
+    co = copy.deepcopy(closed); co["manifest"][0]["action"] += " Also close PRJ-1399."
+    r = gate_out(co)
+    check("p1/gate-refuses-entry-edited-after-approval", r.returncode == 1 and "A-1: changed after approval" in r.stdout
+          and "A-2: changed" not in r.stdout, r.stdout)
+    co = copy.deepcopy(closed); co["manifest"][0].pop("readback")
+    r = gate_out(co)
+    check("p1/gate-refuses-done-without-readback", r.returncode == 1 and "A-1" in r.stdout and "read-back" in r.stdout, r.stdout)
+    co = copy.deepcopy(closed); co["manifest"][1].update(state="skipped"); co["manifest"][1].pop("readback")
+    r = gate_out(co)
+    check("p1/gate-refuses-skipped-without-reason", r.returncode == 1 and "A-2: skipped without a reason" in r.stdout, r.stdout)
+    co["manifest"][1]["skipped_reason"] = "the human moved it by hand; read-back shows parent #677"
+    r = gate_out(co)
+    check("p1/gate-accepts-skipped-with-reason", r.returncode == 0, r.stdout)
+
+    save(approved)
+    r = cli("record", "fixture-vendor", "--action", "A-1", "--before", "In review", "--after", "")
+    co = load_co()
+    check("p1/record-silent-mutation-stops", r.returncode != 0 and "verify the remote state" in (r.stdout + r.stderr)
+          and co["manifest"][0].get("state") == "unverified", r.stdout + r.stderr)
+    r = gate_out(co)
+    check("p1/gate-refuses-unverified-action", r.returncode == 1 and "A-1: unverified" in r.stdout, r.stdout)
+    save(staged)
+    r = cli("record", "fixture-vendor", "--action", "A-1", "--before", "In review", "--after", "Done")
+    check("p1/record-refuses-unapproved-action", r.returncode != 0 and "not approved" in (r.stdout + r.stderr), r.stdout + r.stderr)
+
+    many = copy.deepcopy(staged)
+    many["manifest"] = [{"id": f"A-{i}", "item": "CO-1", "target": {"kind": "gh", "ref": f"#{900 + i}", "url": f"https://forge.example.invalid/acme/planning/issues/{900 + i}", "title": "t"},
+                         "expected_state": "open", "kind": "close", "action": f"Close #{900 + i} with the evidence comment.",
+                         "class": "routine", "state": "proposed"} for i in range(1, 17)]
+    save(many)
+    r = cli("approve", "fixture-vendor", "--items", ",".join(f"A-{i}" for i in range(1, 17)), "--by", "Gabriel", "--link", LINK["url"])
+    check("p1/approve-refuses-more-than-15-closes", r.returncode != 0 and "15" in (r.stdout + r.stderr) and not load_co().get("approvals"), r.stdout + r.stderr)
+    r = cli("approve", "fixture-vendor", "--items", ",".join(f"A-{i}" for i in range(1, 16)), "--by", "Gabriel", "--link", LINK["url"])
+    check("p1/calibration-approve-15-closes-ok", r.returncode == 0, r.stdout + r.stderr)
+    sec = copy.deepcopy(staged)
+    sec["manifest"][1]["class"] = "security"
+    save(sec)
+    r = cli("approve", "fixture-vendor", "--items", "A-1,A-2", "--by", "Gabriel", "--link", LINK["url"])
+    check("p1/approve-refuses-security-item-in-a-batch", r.returncode != 0 and "per-item" in (r.stdout + r.stderr), r.stdout + r.stderr)
+    r = cli("approve", "fixture-vendor", "--items", "A-2", "--by", "Gabriel", "--link", LINK["url"])
+    check("p1/calibration-security-item-alone-ok", r.returncode == 0, r.stdout + r.stderr)
+    for cls in ("cancellation", "changed-commitment"):
+        c2 = copy.deepcopy(staged); c2["manifest"][0]["class"] = cls; save(c2)
+        r = cli("approve", "fixture-vendor", "--items", "A-1,A-2", "--by", "Gabriel", "--link", LINK["url"])
+        check(f"p1/approve-refuses-{cls}-in-a-batch", r.returncode != 0, r.stdout + r.stderr)
+    save(staged)
+    r = cli("approve", "fixture-vendor", "--items", "A-1", "--by", "agent", "--link", LINK["url"])
+    check("p1/approve-refuses-agent-as-approver", r.returncode != 0 and not load_co().get("approvals"), r.stdout + r.stderr)
+    r = cli("approve", "fixture-vendor", "--items", "A-1", "--by", "Gabriel")
+    check("p1/approve-refuses-without-link", r.returncode != 0, r.stdout + r.stderr)
+
+    co = copy.deepcopy(closed); dropped = co["unknowns"].pop(0)["source"]
+    r = gate_out(co)
+    check("p1/gate-refuses-undispositioned-unknown", r.returncode == 1 and f"UNKNOWN '{dropped}' has no disposition" in r.stdout, r.stdout)
+    co = copy.deepcopy(closed); co["unknowns"][0]["by"] = "claude"
+    r = gate_out(co)
+    check("p1/gate-refuses-unknown-accepted-by-agent", r.returncode == 1 and "named human" in r.stdout, r.stdout)
+    co = copy.deepcopy(closed); co["unknowns"][0] = {"source": co["unknowns"][0]["source"], "consequential": True, "disposition": "tracked",
+                                                     "successor": {"kind": "gh", "ref": "#901", "url": "https://forge.example.invalid/acme/planning/issues/901", "title": "Check MRs", "owner": "Gabriel"}}
+    r = gate_out(co)
+    check("p1/gate-accepts-unknown-tracked-with-successor", r.returncode == 0, r.stdout)
+    co = copy.deepcopy(closed); co["unknowns"][0] = {"source": co["unknowns"][0]["source"], "consequential": False}
+    r = gate_out(co)
+    check("p1/gate-refuses-not-consequential-without-reason", r.returncode == 1 and "reason" in r.stdout, r.stdout)
+    co["unknowns"][0]["reason"] = "the source holds no obligation for this scope"
+    r = gate_out(co)
+    check("p1/calibration-not-consequential-with-reason-ok", r.returncode == 0, r.stdout)
+    co["items"].append({"id": "CO-9", "bucket": "HUMAN-ONLY", "title": "Gateway auth probe never ran", "control": "security", "live": True,
+                        "unknowns": [co["unknowns"][0]["source"]], "owner": "Gabriel", "state": "proposed",
+                        "residual_risk": {"decision": "accepted", "by": "Gabriel", "link": LINK}})
+    r = gate_out(co)
+    check("p1/gate-refuses-security-unknown-marked-not-consequential", r.returncode == 1 and "security" in r.stdout, r.stdout)
+
+    risk = {"id": "CO-8", "bucket": "HUMAN-ONLY", "title": "Write path live without the header-trust check", "control": "security",
+            "live": True, "owner": "Gabriel", "state": "proposed", "found_by": "risk-acceptance"}
+    co = copy.deepcopy(closed); co["items"].append(copy.deepcopy(risk))
+    r = gate_out(co)
+    check("p1/gate-refuses-live-risk-without-decision", r.returncode == 1 and "CO-8: live security risk" in r.stdout, r.stdout)
+    co["items"][-1]["live"] = "UNKNOWN"
+    r = gate_out(co)
+    check("p1/gate-refuses-live-unknown-risk-without-decision", r.returncode == 1 and "CO-8" in r.stdout, r.stdout)
+    co["items"][-1]["residual_risk"] = {"decision": "accepted", "by": "agent", "link": LINK}
+    r = gate_out(co)
+    check("p1/gate-refuses-risk-decided-by-agent", r.returncode == 1 and "CO-8" in r.stdout, r.stdout)
+    co["items"][-1]["residual_risk"] = {"decision": "accepted", "by": "Gabriel", "link": LINK}
+    r = gate_out(co)
+    check("p1/gate-accepts-risk-decided-by-named-person", r.returncode == 0, r.stdout)
+    co["items"][-1].pop("residual_risk")
+    co["items"][-1]["successor"] = {"kind": "jira", "ref": "PTR-103", "url": "https://tracker.example.invalid/browse/PTR-103", "title": "Risk decision", "owner": "Gabriel",
+                                    "accepted": {"by": "Gabriel", "link": LINK}}
+    r = gate_out(co)
+    check("p1/gate-accepts-risk-tracked-with-named-owner", r.returncode == 0, r.stdout)
+
+    co = copy.deepcopy(closed); co["items"][2]["successor"].pop("accepted")
+    r = gate_out(co)
+    check("p1/gate-refuses-orphan-linked-not-accepted", r.returncode == 1 and "CO-3" in r.stdout and "accepted" in r.stdout, r.stdout)
+    co = copy.deepcopy(closed); co["checklist"] = co["checklist"][1:]
+    r = gate_out(co)
+    check("closeout/gate-refuses-missing-checklist-step", r.returncode == 1 and "tracker-status" in r.stdout, r.stdout)
+    co = copy.deepcopy(closed); co["items"][1].pop("successor")
+    r = gate_out(co)
+    check("closeout/gate-refuses-keep-without-successor", r.returncode == 1 and "KEEP needs successor" in r.stdout, r.stdout)
+    co = copy.deepcopy(closed)
+    co["items"].append({"id": "CO-4", "bucket": "HUMAN-ONLY", "title": "Decide the retention window", "state": "proposed"})
+    r = gate_out(co)
+    check("closeout/gate-refuses-open-human-only-without-owner", r.returncode == 1 and "CO-4: HUMAN-ONLY" in r.stdout, r.stdout)
+    co["items"][-1]["owner"] = "Gabriel"
+    r = gate_out(co)
+    check("closeout/gate-opens-human-only-with-owner", r.returncode == 0, r.stdout)
+    co["items"].append({"id": "CO-5", "bucket": "ORPHAN", "title": "Advertiser read authorization", "found_by": "human",
+                        "finding": "The successor excludes it.", "parked_by": "Gabriel",
+                        "successor": {"kind": "gh", "ref": "#902", "url": "https://forge.example.invalid/acme/planning/issues/902", "title": "Authz", "accepted": {"by": "Gabriel", "link": LINK}}})
+    r = gate_out(co)
+    check("p1/gate-refuses-human-found-big-miss-without-check-and-eval", r.returncode == 1 and "CO-5: found by the human" in r.stdout, r.stdout)
+    co["items"][-1].update(new_check="successor-coverage", eval_case="closeout-full-real-scenario G6")
+    r = gate_out(co)
+    check("p1/calibration-human-found-miss-with-check-and-eval-ok", r.returncode == 0, r.stdout)
+
+    # big-miss predicates (SYNTHESIS section 3)
+    bm = mco.big_miss_reasons
+    check("p1/big-miss-live-assurance-gap", "live-assurance-gap" in bm({"bucket": "HUMAN-ONLY", "control": "access", "live": True}))
+    check("p1/big-miss-unknown-on-security-control", "live-assurance-gap" in bm({"bucket": "HUMAN-ONLY", "control": "security", "live": True, "evidence_state": "UNKNOWN",
+                                                                                 "residual_risk": {"by": "Gabriel", "decision": "accepted", "link": LINK}}))
+    check("p1/big-miss-live-unknown-counts", "live-assurance-gap" in bm({"bucket": "KEEP", "control": "contract", "live": "UNKNOWN"}))
+    check("p1/big-miss-orphan-is-uncovered-obligation", "valid-obligation-uncovered" in bm({"bucket": "ORPHAN"}))
+    check("p1/big-miss-successor-excludes", "valid-obligation-uncovered" in bm({"bucket": "KEEP", "successor": {"url": "u", "title": "t", "excludes": True}}))
+    check("p1/big-miss-consequential-false-record", "consequential-false-record" in bm({"bucket": "FALSE-PREMISE", "affects": ["authorization"]}))
+    check("p1/big-miss-control-failure", "control-failure" in bm({"bucket": "HUMAN-ONLY", "control_failure": "approval-exceeded"}))
+    check("p1/calibration-routine-close-is-not-big", bm({"bucket": "CLOSE-WITH-EVIDENCE", "evidence": [LINK]}) == [])
+    check("p1/calibration-plain-false-premise-is-routine", bm({"bucket": "FALSE-PREMISE", "affects": []}) == [])
+    check("p1/calibration-accepted-keep-is-routine", bm({"bucket": "KEEP", "successor": {"url": "u", "title": "t", "accepted": {"by": "Gabriel", "link": LINK}}}) == [])
+
+    # decision-first renderer
+    rnd = copy.deepcopy(staged)
+    rnd["items"].append(dict(risk, decision={"question": "Accept the live gap, or switch writes off?", "options": ["accept, signed by you", "switch writes off"]}))
+    save(rnd)
+    g = cli("gather", "fixture-vendor", "--offline")
+    r = cli("render", "fixture-vendor")
+    page = (d / "closeout.html").read_text() if (d / "closeout.html").exists() else ""
+    pos = [page.find(h) for h in ("<h2>Needs you", "<h2>Coverage", "<h2>Proposed batch", "<h2>Appendix")]
+    check("p1/render-decision-first-order", r.returncode == 0 and all(x >= 0 for x in pos) and pos == sorted(pos), str(pos))
+    needs = page[pos[0]:pos[1]] if all(x >= 0 for x in pos) else ""
+    check("p1/render-needs-you-has-big-miss-with-options", "CO-8" in needs and "switch writes off" in needs and "CO-1" not in needs, needs[:400])
+    batch = mco.plan_batches(rnd["manifest"])
+    check("p1/render-shows-batch-hash", bool(batch) and batch[0]["hash"] in page, str(batch)[:200])
+    check("p1/render-claims-coverage-not-completeness", "searched fully" in page and "nothing dropped" not in page.lower())
+    newf = json.loads((d / "closeout-facts.json").read_text())
+    counts = mco.fact_counts(newf)
+    check("p1/counts-unified-gather-and-render", bool(counts) and all(f"{lbl}: {n}" in g.stdout and f"{lbl}: {n}" in page for lbl, n in counts),
+          str(counts) + g.stdout[:300])
+
+    # self-improvement: registry, log, check review
+    reg = mco.CHECK_REGISTRY
+    check("p1/registry-every-check-names-its-real-case", bool(reg) and all(str(v.get("catches") or "").strip() for v in reg.values()),
+          str([k for k, v in reg.items() if not v.get("catches")]))
+    check("p1/registry-covers-checklist", set(mco.CHECKLIST_IDS) <= set(reg), str(set(mco.CHECKLIST_IDS) - set(reg)))
+    logco = copy.deepcopy(co)
+    save(logco)
+    r = cli("log", "fixture-vendor")
+    logf = root / "missions" / "_meta" / "closeout-log.jsonl"
+    last = json.loads(logf.read_text().splitlines()[-1]) if logf.exists() else {}
+    check("p1/log-writes-counts-and-misses", r.returncode == 0 and last.get("buckets", {}).get("ORPHAN") == 2
+          and [h["id"] for h in last.get("human_found", [])] == ["CO-5"] and "CO-3" in [b["id"] for b in last.get("big_misses_by_sweep", [])],
+          r.stdout + r.stderr + json.dumps(last)[:300])
+    check("p1/log-records-checks-fired", "orphans" in last.get("checks_fired", []), str(last.get("checks_fired")))
+    for _ in range(3):
+        cli("log", "fixture-vendor")
+    r = cli("review-checks")
+    check("p1/review-checks-unknown-before-5-closeouts", r.returncode == 0 and "4 of 5" in r.stdout and "review for removal" not in r.stdout, r.stdout)
+    cli("log", "fixture-vendor")
+    r = cli("review-checks")
+    check("p1/review-checks-flags-never-fired", "infra-tails" in r.stdout and "review for removal" in r.stdout
+          and "orphans: review for removal" not in r.stdout, r.stdout)
+    logf.unlink()
+    save(base)
 
 
 def gatherer_ground_truth_evals(mco) -> None:

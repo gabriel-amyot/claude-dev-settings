@@ -4,7 +4,7 @@ description: "Create Klever GitLab merge requests with mandatory pre-flight gate
 nav:
   bay: ship
   when: "Create Klever GitLab MRs. Enforces version bump, changelog, dev sync."
-  when_not: "GitHub PRs (use gh CLI). Supervisr shipping (use supervisr-ship agent)."
+  when_not: "GitHub PRs (use gh CLI). Supervisr shipping (supervisr-ship agent, archived in _archive/agents/)."
   org: [klever]
 ---
 

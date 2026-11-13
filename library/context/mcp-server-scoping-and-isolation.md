@@ -70,7 +70,7 @@ project, no `mcpServers` under any project in `~/.claude.json`, only one server 
 
 The config files said clean. The session's tool list did not.
 
-A second surface exists that **no Claude Code config controls**: the claude.ai **account
+A second surface exists that no project config controls: the claude.ai **account
 connector**, which appears as `mcp__claude_ai_<Name>__*` — 29 tools in the Notion case, in *every*
 session regardless of directory.
 
@@ -87,19 +87,29 @@ local-scope registration that was actually costing tokens.
 every `.mcp.json`, **then also read the session's own tool list** for `mcp__claude_ai_*` entries.
 The config files alone will tell you it is clean when it is not.
 
-## claude.ai Connectors Cannot Be Disabled From Claude Code Settings
+## Disabling claude.ai Connectors in Claude Code (corrected 2026-11-13)
 
-Verified: no connector- or MCP-related key exists in `~/.claude/settings.json` or
-`settings.local.json`, and the servers are absent from `enabledMcpjsonServers` and
-`disabledMcpjsonServers`.
+An earlier version of this page said Claude Code settings cannot disable claude.ai connectors. That
+was wrong: it checked for keys that were set, not for keys that exist. Two settings keys work in any
+settings file, user `~/.claude/settings.json` included
+([settings-reference](https://code.claude.com/docs/en/settings-reference.md#disableclaudeaiconnectors),
+[managed-mcp](https://code.claude.com/docs/en/managed-mcp.md#match-servers-by-url-command-or-name)):
 
-They are account-side. Disable at **claude.ai → Settings → Connectors → disconnect**.
+| Key | Effect |
+|---|---|
+| `"disableClaudeAiConnectors": true` | Claude Code does not fetch any claude.ai connector. |
+| `"deniedMcpServers": [{"serverUrl": "https://mcp.example.com/*"}]` | The matching server does not load, so its tools leave the context. Denylists merge from every scope. |
 
-**The trade-off is total.** Disconnecting removes the connector from claude.ai chats *and* from
-every Claude Code session. A project-scoped `.mcp.json` then becomes the only remaining path to that
-service.
+Use `serverUrl` (from `claude mcp list`) rather than `serverName`: a connector's display name
+(`claude.ai Slack`) can change or gain a ` (2)` suffix. `permissions.deny` is not a substitute: it
+blocks calls but leaves the tool names in context.
 
-**How to apply:** Before disconnecting a connector to cut tool-name bloat, list everything that
+These keys act on Claude Code only. Your claude.ai chats keep the connector.
+
+**Disconnecting at claude.ai → Settings → Connectors** is still the account-wide option. The trade-off
+is total: it removes the connector from claude.ai chats and from every Claude Code session.
+
+**How to apply:** Before disconnecting or blocking a connector to cut tool-name bloat, list everything that
 reaches that service through it. See the sequencing rule in
 [long-running-process-pattern.md](long-running-process-pattern.md): prove the dependent job works on
 its other credential path first.

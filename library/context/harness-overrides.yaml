@@ -33,15 +33,6 @@ overrides:
     personas: [amelia, quinn]
     org: [supervisr]
 
-  - id: dev-crawl
-    type: agent
-    invoke: "Agent: dev-crawl"
-    bay: build
-    when: "Deploy to GCP dev, verify via live Cloud Run endpoints, diagnose and fix failures"
-    when_not: "Local validation (use night-crawl). Standard ticket work (use sprint-crawl)."
-    personas: [amelia]
-    org: [supervisr]
-
   - id: dexter
     type: agent
     invoke: "Agent: dexter"
@@ -74,24 +65,6 @@ overrides:
     when_not: "Quick AC check only (use ticket-scan agent). Code review (use /adversarial-cascade)."
     personas: [leo, winston, amelia]
 
-  - id: supervisr-ship
-    type: agent
-    invoke: "Agent: supervisr-ship"
-    bay: ship
-    when: "Full Supervisr shipping pipeline: validate, review, release, deploy, Jira update"
-    when_not: "Klever repos (use /klever-mr). Individual steps (use /supervisr-validate etc)."
-    personas: [amelia, bob]
-    org: [supervisr]
-
-  - id: supervisr-autopilot
-    type: agent
-    invoke: "Agent: supervisr-autopilot"
-    bay: build
-    when: "Full autonomous lifecycle for Supervisr tickets: intake through deployment"
-    when_not: "Klever tickets (use sprint-crawl or /dark-factory)."
-    personas: [amelia, bob]
-    org: [supervisr]
-
   - id: post-comment
     type: agent
     invoke: "Agent: post-comment"
@@ -107,40 +80,6 @@ overrides:
     when: "Push architectural decisions to agent-os folders with cross-references"
     when_not: "Drafting an ADR (write it first, then push). Reading existing ADRs."
     personas: [winston]
-
-  - id: pr-response-sweep
-    type: agent
-    invoke: "Agent: pr-response-sweep"
-    bay: ship
-    when: "Scan all your open PRs for unanswered reviewer comments, draft evidence-backed responses"
-    when_not: "Reviewing someone else's PR (use /pr-review or colleague-review agent)."
-    personas: []
-
-  - id: colleague-review
-    type: agent
-    invoke: "Agent: colleague-review"
-    bay: review
-    when: "Review teammates' open PRs on GitHub. Auto-discovers, posts inline comments."
-    when_not: "Reviewing your own work (use /pr-review). GitLab MRs (not supported)."
-    personas: [quinn, winston]
-    org: [supervisr]
-
-  - id: review-responder
-    type: agent
-    invoke: "Agent: review-responder"
-    bay: ship
-    when: "Research-driven responses to PR review comments with ADR/SBE evidence"
-    when_not: "Quick ack or simple agreement (just reply directly)."
-    personas: []
-
-  - id: mother-base-housekeeper
-    type: agent
-    invoke: "Agent: mother-base-housekeeper"
-    bay: ops
-    when: "Detect repo drift, missing docs, infrastructure inconsistencies across Supervisr repos"
-    when_not: "Klever repos (use /mb-doc-housekeeping skill)."
-    personas: []
-    org: [supervisr]
 
   - id: bmad-party
     type: agent

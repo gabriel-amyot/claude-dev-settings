@@ -135,6 +135,15 @@ class BridgeTests(unittest.TestCase):
         refresh(self.store, self.root, self.home, project_root=self.project)
         self.assertEqual(len(self.store.rows('SELECT * FROM usage_events')), 1)
 
+    def test_native_slash_command_with_leading_command_message_counts(self):
+        self.transcript('claude', 'a', [self.claude_row('user',
+            '<command-message>example</command-message>\n<command-name>/example</command-name>\n'
+            '<command-args>x</command-args>', 'native-slash')])
+        refresh(self.store, self.root, self.home, project_root=self.project)
+        events = self.store.rows('SELECT * FROM usage_events')
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]['source_ref'], 'native-slash')
+
     def test_org_and_event_time_filter_not_file_mtime(self):
         old = self.claude_row('assistant', [{'type': 'tool_use', 'id': 'old',
                 'name': 'Skill', 'input': {'skill': 'example'}}], 'a')

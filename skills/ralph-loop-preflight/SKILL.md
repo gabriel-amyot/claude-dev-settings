@@ -24,9 +24,9 @@ Validates everything is in place before launching a ralph-loop. Catches missing 
 
 **Examples:**
 ```
-/ralph-loop-preflight dev-crawl SPV-85
+/ralph-loop-preflight sprint-crawl KTP-123
 /ralph-loop-preflight night-crawl SPV-3
-/ralph-loop-preflight dev-crawl SPV-85 --dry-run
+/ralph-loop-preflight sprint-crawl KTP-123 --dry-run
 ```
 
 ## Arguments

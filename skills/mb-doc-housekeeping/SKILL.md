@@ -4,7 +4,7 @@ description: Mother Base Documentation Housekeeping — checks CLAUDE.md coverag
 nav:
   bay: ops
   when: "Check CLAUDE.md coverage, staleness, infrastructure sync across DAC repos."
-  when_not: "Supervisr repos (use mother-base-housekeeper agent). Full harness audit (use /harness-audit)."
+  when_not: "Supervisr repos (mother-base-housekeeper agent, archived in _archive/agents/). Full harness audit (use /harness-audit)."
   org: [klever]
 ---
 
@@ -79,4 +79,4 @@ Checks temporal grounding in MEMORY.md files:
 
 ## Integration
 
-This skill is used by the **Mother Base Housekeeper** agent (`mother-base-housekeeper`) which combines this with `/validate-repo-links` for full workspace health checks.
+This skill was used by the **Mother Base Housekeeper** agent (`mother-base-housekeeper`, archived 2026-11-13) which combined this with `/validate-repo-links` for full workspace health checks.

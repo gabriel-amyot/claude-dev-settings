@@ -62,4 +62,4 @@ Scans all workspace scan paths for git repos missing `.repo-links.yaml` and scaf
 
 ## Integration
 
-This skill is used by the **Mother Base Housekeeper** agent (`mother-base-housekeeper`).
+This skill was used by the **Mother Base Housekeeper** agent (`mother-base-housekeeper`, archived 2026-11-13).

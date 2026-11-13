@@ -6,13 +6,13 @@ On-demand context: load when creating PRDs, tickets, contracts, changelogs, or A
 
 | Document Type | Skill/Command | Output Location |
 |---|---|---|
-| PRD | `/create-prd` | `tickets/{TICKET-ID}/reports/architecture/` |
+| PRD | `/to-prd` | `tickets/{TICKET-ID}/reports/architecture/` |
 | Jira tickets (epics, stories) | `/create-tickets` | Jira (remote) + local `tickets/{ID}/` |
 | ADR | `/push-adr` | `{repo}/agent-os/architecture/adr/` (repo-specific) or `documentation/architecture/adr/` (cross-cutting) |
 | Story quality review | `/story-quality-gate` agent | `tickets/{TICKET-ID}/reports/reviews/` |
 | Adversarial review | `/adversarial-review` | `tickets/{TICKET-ID}/reports/reviews/` |
 | Implementation estimate | `/estimate` | `tickets/{TICKET-ID}/reports/architecture/` |
-| Task breakdown | `/generate-tasks` | `tickets/{TICKET-ID}/` |
+| Task breakdown | `/to-issues` | `tickets/{TICKET-ID}/` |
 | STATUS_SNAPSHOT.yaml | `/status-index` | `tickets/{TICKET-ID}/STATUS_SNAPSHOT.yaml` |
 | Sprint close evidence | `/sprint-close` | `tickets/{EPIC}/reports/status/` |
 | Ticket scaffold | `/ticket-init` | `tickets/{TICKET-ID}/` (README, STATUS_SNAPSHOT, reports/) |

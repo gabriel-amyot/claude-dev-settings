@@ -371,8 +371,8 @@ def collect_activity(store, registry, home, org='klever', project_root=None, day
                                 found.extend((n, t, ref, r, 'invoked') for n, t, ref, r in pending)
                                 pending = []
                                 m = re.match(r'^\s*/([\w:-]+)(?:\s|$)', content)
-                                if not m and content.lstrip().startswith('<command-name>'):
-                                    m = re.match(r'^\s*<command-name>/?([\w:-]+)</command-name>', content)
+                                if not m and content.lstrip().startswith(('<command-name>', '<command-message>')):
+                                    m = re.search(r'<command-name>/?([\w:-]+)</command-name>', content)
                                 if m and m.group(1) in registry.aliases:
                                     pending.append((m.group(1), timestamp, source_ref, role))
                             if row.get('type') == 'assistant' and isinstance(content, list):

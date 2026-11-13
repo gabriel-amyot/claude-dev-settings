@@ -120,7 +120,7 @@ Three tools cover ticket-to-dev automation. They are **different modes, not thre
 
 **When NOT to use any of them:** Spikes, quick bug fixes, research tasks, tickets without clear ACs.
 
-**Legacy agents** (night-crawl, dev-crawl) remain for Supervisr-specific infra work (deploy+verify against GCP dev).
+**Legacy agent** night-crawl remains for local validation loops. The other Supervisr agents (dev-crawl, supervisr-autopilot, supervisr-ship and the GitHub review agents) are archived in `~/.claude-shared-config/_archive/agents/`.
 
 # Jira Skill
 - Always pass `--org {klever|supervisrai}` when running `jira_skill.py` from outside the org path. For gotchas (slug list, subcommand names, `[automated]` header rule, deadline mode), load `~/.claude/library/context/jira-skill-gotchas.md`.

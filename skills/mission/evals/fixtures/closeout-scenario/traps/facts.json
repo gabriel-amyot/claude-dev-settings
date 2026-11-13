@@ -180,6 +180,28 @@
         "closed_without_comments": false
       },
       {
+        "key": "PRJ-1293",
+        "url": "https://tracker.example.invalid/browse/PRJ-1293",
+        "summary": "Feedback: seat-wide campaign list",
+        "status": "Done",
+        "status_category": "Done",
+        "type": "Story",
+        "resolution": "Done",
+        "resolution_date": null,
+        "parent_key": "PRJ-1289",
+        "epic_key": null,
+        "updated": "2026-11-12",
+        "assignee": "dev-a",
+        "comment_count": 0,
+        "last_comment_at": null,
+        "last_comment_author": null,
+        "description_excerpt": "",
+        "closed": true,
+        "comment_after_close": "UNKNOWN",
+        "comment_after_close_reason": "no resolution date on the ticket; compare last_comment_at with the status history",
+        "closed_without_comments": true
+      },
+      {
         "key": "PTR-95",
         "url": "https://tracker.example.invalid/browse/PTR-95",
         "summary": "Partner ownership of client grants",
@@ -467,7 +489,7 @@
     "jira: children unknown, parent in (PTR-100): 401 Unauthorized",
     "branches: no --repo given; branches not checked",
     "mrs: the forge is behind an auth proxy; check open MRs by hand",
-    "jira-fields: comment_after_close UNKNOWN on 5 closed ticket(s) ['PRJ-1398', 'PRJ-1289', 'PRJ-1290', 'PRJ-1291', 'PRJ-1292']: no resolution date; read the status history before calling a closing comment present or missing",
-    "drafts: 2 draft(s) with no posted record; remote state not checked, verify the target before calling any of them unsent"
+    "drafts: 2 draft(s) with no posted record; remote state not checked, verify the target before calling any of them unsent",
+    "jira-fields: comment_after_close UNKNOWN on 6 closed ticket(s) ['PRJ-1398', 'PRJ-1289', 'PRJ-1290', 'PRJ-1291', 'PRJ-1292', 'PRJ-1293']: no resolution date; read the status history before calling a closing comment present or missing"
   ]
 }

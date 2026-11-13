@@ -47,7 +47,7 @@
       "absent_ok": false
     },
     {
-      "ref": "PRJ-1324",
+      "ref": "PTR-28",
       "group": "J4",
       "bucket": "SUPERSEDE",
       "accept": [

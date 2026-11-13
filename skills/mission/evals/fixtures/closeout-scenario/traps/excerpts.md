@@ -15,9 +15,10 @@ Anonymized from a real close-out. A feature reached production; a trader proved 
 ## Tracker excerpts
 - PRJ-1323 (To Do). Decision D-7 deleted the nonce mechanism on 2026-09-14. The token cache is still per instance; with two instances each one refetches vendor tokens and hits the vendor rate limit.
 - PRJ-1398 (Done, closed by the lead). Its only comment (2026-10-20) is a read-only status: 'read is live in prod, write stays closed'. The 2026-11-12 evidence of the real write is in the mission record and the trader's message, not on this ticket.
-- PRJ-1289 (Done, 0 comments). Each child (PRJ-1290, PRJ-1291, PRJ-1292) is Done and has an evidence comment with a screenshot from the trader's session.
+- PRJ-1289 (Done, 0 comments). Children PRJ-1290, PRJ-1291 and PRJ-1292 are Done and each has an evidence comment with a screenshot from the trader's session.
 - PTR-95, PTR-96, PTR-97, PTR-98 (Backlog) sit under epic PTR-100, the active successor mission 'multi-seat partner access'. Its owner planned them for next quarter.
-- acme/planning#830 (open). Its tracker twin PRJ-1330 is Done with no comments and no attached logs. In the 2026-11-12 session the trader reported no connection drops. Nobody read the client logs.
+- PRJ-1293 (Done, 0 comments), the fourth child of PRJ-1289. Its production evidence exists only as a comment on acme/planning#811 (the trader's session), not on the ticket.
+- acme/planning#830 (open). Its tracker twin PRJ-1330 is Done with one evidence comment: a synthetic 600-call sweep met AC3, AC1 and AC2 were not met, and the comment calls the result inconclusive. No client logs are attached. In the 2026-11-12 session the trader reported no connection drops. Nobody read the client logs.
 - acme/planning#850 (open, its parent map A is closed). The topic sounds like the successor mission's partner-access work.
 - Handoff 2026-11-10-exec-signs-write-contract.md: the exec signs the production write contract. Still live. Tracked by map B #890 and ticket PTR-103.
 - Draft 2026-11-12-gh-carry-forward-body.md starts: 'The vendor tool reached production read and write on 2026-11-12.' The body of acme/planning#899 starts with the same sentence.

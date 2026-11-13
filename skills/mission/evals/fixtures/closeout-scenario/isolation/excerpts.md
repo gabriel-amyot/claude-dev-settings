@@ -14,7 +14,7 @@ Anonymized from a real close-out. A feature reached production; a trader proved 
 
 ## Tracker excerpts
 - PRJ-1321 (In review/testing since 2026-10-14). The 2026-11-12 production evidence on PRJ-1398 shows env, seat and spend on each result, and a refused call that named its cause and said no bid moved.
-- PRJ-1324 (Backlog). The plan-signing secret was retired with D-7. No code reads it.
+- PTR-28 (Backlog). The plan-signing secret was retired with D-7. No code reads it.
 - acme/planning#841, #842, #843 (open, under the closed map A). No tracker ticket and no successor issue covers any of them.
 - OTH-1415 (In Progress, another product: the map heatmap) matched the alias 'vendor' in its summary. Its handoff 2026-11-11-heatmap-vendor-colours.md matched on the same word. Neither belongs to the vendor trading tool.
 

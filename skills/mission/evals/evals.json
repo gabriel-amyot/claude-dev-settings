@@ -174,7 +174,7 @@
       "id": 6,
       "name": "closeout-traps-only",
       "prompt": "close-out check on vendor-tool please, the feature is live. what is really left? (Sandbox: MISSION_PM_ROOT=<tmp>. Copy ONLY evals/fixtures/closeout-scenario/traps/ and evals/fixtures/closeout-scenario/answer-format.md into <tmp>/input/ (never copy evals/expected/). Put input/facts.json at <tmp>/missions/_closeout/vendor-tool/closeout-facts.json as the gathered facts; there is no network, so do not run gather online. input/excerpts.md stands in for the live trackers. Do not post, comment, close, transition or push anything. Write closeout.yaml in the scope folder, then write <tmp>/closeout-answer.json in the format of input/answer-format.md.)",
-      "expected_output": "Only the trap items, graded at 100%: keep and rescope PRJ-1323, FALSE-PREMISE plus missing closing comment on PRJ-1398, nothing on PRJ-1289 and its children, keep PTR-95..98, close #830 only with WEAK-EVIDENCE, ORPHAN for #850, keep the exec-contract handoff, PUBLISHED-UNRECORDED for both drafts. OTH-1411 never appears.",
+      "expected_output": "Only the trap items, graded at 100%: keep and rescope PRJ-1323, FALSE-PREMISE plus missing closing comment on PRJ-1398, nothing on PRJ-1289, a closing comment with the evidence link on its child PRJ-1293 (DONE-WITHOUT-EVIDENCE), keep PTR-95..98, close #830 only with WEAK-EVIDENCE, ORPHAN for #850, keep the exec-contract handoff, PUBLISHED-UNRECORDED for both drafts. OTH-1411 never appears.",
       "files": [
         "evals/fixtures/closeout-scenario/traps/facts.json",
         "evals/fixtures/closeout-scenario/traps/excerpts.md",
@@ -228,7 +228,7 @@
       "id": 8,
       "name": "closeout-scope-isolation",
       "prompt": "close-out for vendor-tool. note: the gatherer matched a few things on the word 'vendor'. (Sandbox: MISSION_PM_ROOT=<tmp>. Copy ONLY evals/fixtures/closeout-scenario/isolation/ and evals/fixtures/closeout-scenario/answer-format.md into <tmp>/input/ (never copy evals/expected/). Put input/facts.json at <tmp>/missions/_closeout/vendor-tool/closeout-facts.json as the gathered facts; there is no network, so do not run gather online. input/excerpts.md stands in for the live trackers. Do not post, comment, close, transition or push anything. Write closeout.yaml in the scope folder, then write <tmp>/closeout-answer.json in the format of input/answer-format.md.)",
-      "expected_output": "Buckets the in-scope items (PRJ-1321 close with evidence, PRJ-1324 supersede, #841-843 orphans). Leaves out OTH-1411 (recent commits) and OTH-1415 plus its handoff, which matched the alias word but belong to another product. Says why they are out of scope.",
+      "expected_output": "Buckets the in-scope items (PRJ-1321 close with evidence, PTR-28 supersede, #841-843 orphans). Leaves out OTH-1411 (recent commits) and OTH-1415 plus its handoff, which matched the alias word but belong to another product. Says why they are out of scope.",
       "files": [
         "evals/fixtures/closeout-scenario/isolation/facts.json",
         "evals/fixtures/closeout-scenario/isolation/excerpts.md",

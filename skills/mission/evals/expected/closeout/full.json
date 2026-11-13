@@ -75,7 +75,7 @@
       "absent_ok": false
     },
     {
-      "ref": "PRJ-1324",
+      "ref": "PTR-28",
       "group": "J4",
       "bucket": "SUPERSEDE",
       "accept": [
@@ -114,7 +114,7 @@
       "require_flags": [],
       "forbid_flags": [],
       "trap": true,
-      "trap_note": "A parent with zero comments whose children all carry evidence is fine. Do not flag it as an orphan or ask to reopen it.",
+      "trap_note": "A parent with zero comments is fine when the evidence sits on its children. Do not flag the parent. One child (PRJ-1293) is Done with no evidence comment: that child gets the closing comment that links its evidence.",
       "orphan": false,
       "absent_ok": true
     },
@@ -159,6 +159,22 @@
       "trap_note": null,
       "orphan": false,
       "absent_ok": true
+    },
+    {
+      "ref": "PRJ-1293",
+      "group": "J6",
+      "bucket": "CLOSE-WITH-EVIDENCE",
+      "accept": [
+        "CLOSE-WITH-EVIDENCE"
+      ],
+      "require_flags": [
+        "DONE-WITHOUT-EVIDENCE"
+      ],
+      "forbid_flags": [],
+      "trap": false,
+      "trap_note": null,
+      "orphan": false,
+      "absent_ok": false
     },
     {
       "ref": "PRJ-1065",
@@ -394,7 +410,7 @@
         "PROVEN"
       ],
       "trap": true,
-      "trap_note": "Evidence is weak: no drops in one session, logs never read. Close only with an explicit reopen caveat; do not claim it was proven.",
+      "trap_note": "The Done twin has partial evidence (AC3 only, the comment calls it inconclusive). Partial evidence on a Done twin is not proof for the open side. Close only with an explicit reopen caveat; do not claim it was proven.",
       "orphan": false,
       "absent_ok": false
     },
@@ -635,16 +651,16 @@
     {
       "ref": "acme/planning#909",
       "group": "G9",
-      "bucket": "NO-ACTION",
+      "bucket": "CLOSE-WITH-EVIDENCE",
       "accept": [
-        "NO-ACTION"
+        "CLOSE-WITH-EVIDENCE"
       ],
       "require_flags": [],
       "forbid_flags": [],
       "trap": false,
       "trap_note": null,
       "orphan": false,
-      "absent_ok": true
+      "absent_ok": false
     },
     {
       "ref": "acme/planning#880",
@@ -1043,7 +1059,8 @@
       "trap": false,
       "trap_note": null,
       "orphan": true,
-      "absent_ok": false
+      "absent_ok": false,
+      "note": "The work was written (2 commits) and is gone from git, but its diffs survive in a session transcript. Search transcripts before declaring work lost; the bucket stays ORPHAN or HUMAN-ONLY until a home accepts the recovery."
     },
     {
       "ref": "handoff:2026-11-10-exec-signs-write-contract.md",

@@ -70,15 +70,15 @@
         "closed_without_comments": false
       },
       {
-        "key": "PRJ-1324",
-        "url": "https://tracker.example.invalid/browse/PRJ-1324",
+        "key": "PTR-28",
+        "url": "https://tracker.example.invalid/browse/PTR-28",
         "summary": "Move the plan-signing secret to the secret manager",
         "status": "Backlog",
         "status_category": "To Do",
         "type": "Story",
         "resolution": null,
         "resolution_date": null,
-        "parent_key": "PRJ-3",
+        "parent_key": null,
         "epic_key": null,
         "updated": "2026-08-20",
         "assignee": "dev-a",

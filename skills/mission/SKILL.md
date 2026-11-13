@@ -1,7 +1,7 @@
 ---
 name: mission
 description: 'Track a long-running, cross-session goal (a "mission") with one committed record and render it as a rich HTML report. Use whenever Gabriel says "mission", "start a mission", "open the mission", "update the mission", "mission report", "where are we on X", "big picture", "latest changes", "what is blocked", "what needs me", "what did the night run do", "check the mission", "close out", "post-mission cleanup", "did we drop anything", "the feature shipped, what is left", or when work spans several sessions, tickets or GitHub issues (a vendor integration, a planning map, a CRM sync, harness work) and a new session must not reload stale or disproven context. Also governs how to reply in the terminal while a mission is active (detail dial: "left"/"more", "right"/"less", "refs").'
-version: "0.4.0"
+version: "0.5.0"
 nav:
   bay: plan
   when: "A goal that crosses sessions needs one source of truth (decisions, disproven claims, blockers, parked tracks, journey) and an on-demand HTML view of it. Also after the main feature ships: the close-out sweep (check --close) finds every small item left open and gives it an outcome or a home, with or without a mission record."

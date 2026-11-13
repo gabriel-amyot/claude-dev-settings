@@ -55,7 +55,7 @@ A missing value is never guessed. The tracker calls that need it report `UNKNOWN
 One dispatcher runs every script with its dependencies:
 
 ```bash
-~/.claude/skills/mission/scripts/mission <new|lint|fetch|render|sync|log|closeout> [args]
+~/.claude/skills/mission/scripts/mission <new|lint|fetch|render|sync|log|closeout|thread|threads> [args]
 ```
 
 Below, `mission <cmd>` means that full path. Never `cd` in Bash (a zsh override hangs). The scripts use absolute paths.
@@ -74,22 +74,36 @@ Log every command first: `mission log use --command <cmd> --mission <slug> --ses
 5. `mission sync <slug> -m "create mission" --session <session> --status-comment`.
 6. Tell Gabriel the slug, the root issue link and the record link.
 
+### Threads: capture each one when it opens (a skill duty in every session on a mission)
+
+A thread is one line of work or thought: an intent, a rabbit hole, an open door, a handoff, a nugget, an ask or a finding. Write it the moment it opens, with `mission thread add|set|resolve` (never by hand: the helper takes an flock and rewrites only the `threads:` block). At close, the sweep re-checks this list; it does not rebuild it. The full event map (which event writes which field, including `session:handoff`, `pickup`, `report-back` and the `session:check` reconciliation) is in `references/update-procedure.md`, section "Threads".
+
+The short version:
+- An aside starts ("wait, let me check…"): `thread add --kind rabbit_hole`. It converges: `thread resolve --how evidence --link …`.
+- Something is noticed and not pursued ("we should also…", "later"): `thread add --kind open_door`.
+- A handoff is written: `thread add --kind handoff --home "<prompt>" --child "<intent>"` (one child per intent). The report-back resolves them.
+- A needs-you item: the thread gets `--state needs_you` with a question, options and a **recommendation** (the lint warns when it is missing).
+- At every `session:check`: reconcile the session's threads (`thread list --session <s>`): DONE resolves with evidence, ABANDONED drops with a named person and a reason, TICKET parks with an accepted home.
+
+A record that predates threads: `mission threads import <slug> --session <s>` once. Imported threads are marked `origin.event: imported`, and the report counts them apart from live captures.
+
 ### `/mission` or `/mission <slug>`: resume
 
 Use this at the start of any session that touches the mission.
 1. Read `missions/<slug>/mission.yaml`. Its `decisions` (ratified), `disproven` and `scope_constraints` win over any other file, ticket or library page. If another file contradicts them, the other file is stale. Say so, and do not use it.
-2. `mission fetch <slug>` for live tracker status.
+2. `mission fetch <slug>` for live tracker status. It also compares each thread with its snapshot and marks drift.
 3. Give a terminal digest at the current dial level (see "Terminal replies"):
    - the destination;
    - the next milestone;
    - "needs you", with IDs and options;
    - mismatches;
+   - open threads and drifted threads (`mission thread list <slug> --state open,needs_you`);
    - the last journey entry.
 
 ### `/mission update`: write back
 
 Run it whenever mission truth changes, and always before the session ends.
-1. Apply the writes from `references/update-procedure.md` for what happened: decisions, disproven claims, needs-you items, asks, parked tracks, members, artifacts, messages, graph, terms, and one `journey` entry per session.
+1. Apply the writes from `references/update-procedure.md` for what happened: decisions, disproven claims, needs-you items, asks, parked tracks, members, artifacts, messages, graph, terms, the matching thread writes, and one `journey` entry per session.
 2. Add a `changes` entry for each meaningful change.
 3. `mission lint <slug>`. Fix every error.
 4. `mission sync <slug> -m "<what changed>" --session <session> --status-comment`. This commits and pushes, and posts a short status comment on the root issue.
@@ -132,7 +146,7 @@ Run it when the main feature has shipped. It makes sure nothing small stays undo
 ### `/mission close <slug>`
 
 This needs Gabriel.
-1. `mission closeout gate <slug>` must exit 0. If it fails, stop and run `/mission check --close`. The gate opens only with an approved manifest whose actions are done with a read-back (or skipped with a reason), a human disposition on every consequential UNKNOWN, a named residual-risk decision on every live risk item, and a successor that accepted every ORPHAN and KEEP. `mission sync` also refuses `status: done` while the gate is closed.
+1. `mission closeout gate <slug>` must exit 0. If it fails, stop and run `/mission check --close`. The gate opens only with an approved manifest whose actions are done with a read-back (or skipped with a reason), a human disposition on every consequential UNKNOWN, a named residual-risk decision on every live risk item, a successor that accepted every ORPHAN and KEEP, and **every thread resolved, dropped, or parked with an accepted home, with no drift**. Resolve T-1 (the big intent) with the link that proves the destination. `mission sync` also refuses `status: done` while the gate is closed.
 2. Every member must be done, superseded, or moved to a named successor. Copy the parked `horizon` items into the next mission or a new issue.
 3. Set `status: done`, then sync. Close the root issue with a comment that links the record and `closeout.html`. A phase ending is not a mission ending.
 
@@ -162,6 +176,7 @@ Read `references/terminal-replies.md` once per session. In short:
 
 - Session meshing: sessions on one mission talking to each other directly. Research tracked in the PM repo.
 - A hook that captures Gabriel's asks at turn time. A session-close gate that requires a mission update.
+- **Proposal: an open-door capture hook.** Today open-door capture is a skill duty (above). The proposal is a `UserPromptSubmit` and `Stop` hook that matches "we should also", "later", "park that", "not now" and unanswered questions, and writes `mission thread add --kind open_door --event open_door_hook` for the active mission. It catches more, and it is noisier. Decide after 3 missions: if the close-out logs more than 20% of threads as capture misses, build it. Decision 2026-11-13 (default, Gabriel may override): a skill duty now, no hook.
 - Integration with the org context graph (`context-graph-sync`).
 - Cross-component missions with more than one parent.
 

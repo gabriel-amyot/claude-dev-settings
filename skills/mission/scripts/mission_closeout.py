@@ -32,7 +32,7 @@ import subprocess
 import sys
 
 from mission_lib import (GH_REPO, JIRA_BROWSE, JIRA_KEY_PATTERN, JIRA_ORG, JIRA_SKILL, MISSIONS_DIR, MR_UNKNOWN_REASON, PM_ROOT,
-                         config_problem, load, now_utc, run)
+                         closeout_home, config_problem, load, now_utc, run)
 
 JIRA = str(JIRA_SKILL)
 UNKNOWN = "UNKNOWN"
@@ -76,13 +76,19 @@ DONE_WORDS = re.compile(r"done|termin|closed|won't|wont|resolved|ferm|abandon", 
 # ---------------------------------------------------------------- location
 
 def closeout_dir(slug: str | None, scope: str | None) -> tuple[pathlib.Path, dict]:
+    """The folder that holds the close-out files, and the mission record (empty for a scope without one).
+    A mission's files live in its folder, or in missions/_closeout/<slug>/ when the sweep ran before the record
+    existed. A --scope whose name is now a mission slug is that mission."""
     if config_problem():
         sys.exit(config_problem())
+    if not slug and scope and (MISSIONS_DIR / scope / "mission.yaml").exists():
+        print(f"note: '{scope}' has a mission record now; using the mission", file=sys.stderr)
+        slug = scope
     if slug:
         d = MISSIONS_DIR / slug
         if not (d / "mission.yaml").exists():
             sys.exit(f"mission not found: {slug} (looked in {d}). Use --scope NAME with seeds for a scope without a record.")
-        return d, load(d)
+        return closeout_home(d), load(d)
     if not scope:
         sys.exit("give a mission slug, or --scope NAME with --seed-jira/--seed-gh")
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", scope):
@@ -1048,12 +1054,29 @@ def approval_state(co: dict) -> dict:
 
 # ---------------------------------------------------------------- gate
 
+def mission_record_dir(d: pathlib.Path) -> pathlib.Path | None:
+    """The mission folder for a close-out folder (itself, or missions/<slug> for missions/_closeout/<slug>)."""
+    if (d / "mission.yaml").exists():
+        return d
+    if d.parent.name == "_closeout" and (MISSIONS_DIR / d.name / "mission.yaml").exists():
+        return MISSIONS_DIR / d.name
+    return None
+
+
 def gate(d: pathlib.Path) -> tuple[list[str], list[str]]:
-    """Return (errors, warnings). An empty error list means the mission may close."""
+    """Return (errors, warnings). An empty error list means the mission may close.
+    For a mission with a record, every thread must also be resolved, dropped, or parked with an accepted home."""
     err, warn = [], []
+    md = mission_record_dir(d)
+    if md is not None:
+        from mission_thread import gate_errors
+        terr, twarn = gate_errors(load(md))
+        err += [f"thread {e}" for e in terr]
+        warn += twarn
+        d = closeout_home(md)
     co = load_closeout(d)
     if co is None:
-        return [f"no closeout.yaml in {d}: run /mission check --close first"], warn
+        return [f"no closeout.yaml in {d}: run /mission check --close first"] + err, warn
     facts = {}
     if not (d / "closeout-facts.json").exists():
         err.append("no closeout-facts.json: run mission closeout gather")

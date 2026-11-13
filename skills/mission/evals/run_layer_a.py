@@ -70,6 +70,144 @@ def write(root: pathlib.Path, doc: dict, slug: str = "fixture-vendor") -> pathli
     return d
 
 
+def threads_phase2_evals(root: pathlib.Path) -> None:
+    """Phase 2: live capture commands, the flock, drift at fetch, and the close gate on threads."""
+    base = copy.deepcopy(VALID)
+    base["threads"] = [thread("T-1", kind="big_intent", title="Vendor tool writes in prod")]
+    d = write(root, base, "fixture-live")
+
+    def th(*args):
+        return script(root, "mission_thread.py", *args)
+
+    def threads():
+        return {t["id"]: t for t in yaml.safe_load((d / "mission.yaml").read_text()).get("threads") or []}
+
+    r = th("add", "fixture-live", "--kind", "rabbit_hole", "--title", "Why does the kit not start", "--session", "deft-lynx", "--event", "rabbit_hole_opened")
+    t2 = threads().get("T-2") or {}
+    check("live/add-writes-a-thread", r.returncode == 0 and t2.get("kind") == "rabbit_hole" and t2.get("state") == "open"
+          and (t2.get("origin") or {}).get("event") == "rabbit_hole_opened" and (t2.get("origin") or {}).get("session") == "deft-lynx", r.stdout + r.stderr)
+    check("live/add-parent-defaults-to-big-intent", t2.get("parent") == "T-1", str(t2.get("parent")))
+    check("live/add-appends-history", len(t2.get("history") or []) == 1 and t2["history"][0]["event"] == "rabbit_hole_opened", str(t2.get("history")))
+    r = th("add", "fixture-live", "--kind", "handoff", "--title", "Handoff: verify the gateway", "--session", "deft-lynx", "--event", "handoff_written",
+           "--home", "file:///tmp/prompts/handoff-gateway.md|handoff prompt", "--child", "Run the probe", "--child", "Record the risk decision")
+    ts = threads()
+    kids = [t for t in ts.values() if t.get("parent") == "T-3"]
+    check("live/handoff-creates-one-child-per-intent", r.returncode == 0 and (ts.get("T-3") or {}).get("kind") == "handoff"
+          and sorted(t["title"] for t in kids) == ["Record the risk decision", "Run the probe"] and all(t["kind"] == "intent" for t in kids),
+          r.stdout + r.stderr + str(list(ts)))
+    check("live/handoff-home-is-the-prompt", ((ts.get("T-3") or {}).get("home") or {}).get("link", {}).get("url") == "file:///tmp/prompts/handoff-gateway.md",
+          str((ts.get("T-3") or {}).get("home")))
+    r = th("resolve", "fixture-live", "T-2", "--how", "evidence")
+    check("live/resolve-refuses-without-evidence", r.returncode != 0 and threads()["T-2"]["state"] == "open", r.stdout + r.stderr)
+    r = th("resolve", "fixture-live", "T-2", "--how", "evidence", "--link", "https://example.invalid/run/1|probe output", "--session", "deft-lynx")
+    t2 = threads()["T-2"]
+    check("live/resolve-with-evidence", r.returncode == 0 and t2["state"] == "resolved" and t2["resolution"]["link"]["url"] == "https://example.invalid/run/1"
+          and t2["history"][-1]["event"] == "resolved", r.stdout + r.stderr)
+    r = th("resolve", "fixture-live", "T-4", "--how", "dropped", "--note", "not needed")
+    check("live/drop-refuses-without-a-named-person", r.returncode != 0 and threads()["T-4"]["state"] == "open", r.stdout + r.stderr)
+    r = th("resolve", "fixture-live", "T-4", "--how", "dropped", "--by", "Gabriel", "--note", "the probe covers it")
+    check("live/drop-with-person-and-reason", r.returncode == 0 and threads()["T-4"]["state"] == "dropped", r.stdout + r.stderr)
+    r = th("set", "fixture-live", "T-5", "--state", "needs_you")
+    check("live/set-refuses-needs-you-without-question", r.returncode != 0 and threads()["T-5"]["state"] == "open", r.stdout + r.stderr)
+    r = th("set", "fixture-live", "T-5", "--state", "needs_you", "--question", "Who accepts the write risk?", "--option", "You|recorded on the ticket",
+           "--option", "The product lead|one message", "--recommend", "The product lead", "--needs-you", "N-1")
+    t5 = threads()["T-5"]
+    check("live/set-needs-you-with-do-now", r.returncode == 0 and t5["state"] == "needs_you" and t5["do_now"]["recommendation"] == "The product lead"
+          and t5["needs_you_id"] == "N-1", r.stdout + r.stderr)
+    r = th("set", "fixture-live", "T-3", "--accepted-by", "Gabriel")
+    check("live/accept-refuses-without-link", r.returncode != 0, r.stdout + r.stderr)
+    r = th("set", "fixture-live", "T-3", "--state", "parked", "--owner", "Gabriel", "--accepted-by", "Gabriel", "--accepted-link", "https://example.invalid/ok|said yes")
+    check("live/park-with-accepted-home", r.returncode == 0 and threads()["T-3"]["state"] == "parked", r.stdout + r.stderr)
+    r = th("list", "fixture-live", "--state", "open,needs_you")
+    check("live/list-filters-by-state", r.returncode == 0 and "T-5" in r.stdout and "T-2 " not in r.stdout and "2 thread(s)" in r.stdout, r.stdout)
+    procs = [subprocess.Popen([sys.executable, str(SCRIPTS / "mission_thread.py"), "add", "fixture-live", "--kind", "open_door", "--title", f"door {i}"],
+                              env={**os.environ, "MISSION_PM_ROOT": str(root), "MISSION_CONFIG": str(root / "no-user-config.yaml")},
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE) for i in range(6)]
+    for p_ in procs:
+        p_.wait()
+    doors = [t for t in threads().values() if t["kind"] == "open_door"]
+    check("live/flock-parallel-writers-lose-nothing", len(doors) == 6 and len({t["id"] for t in doors}) == 6, str([t["id"] for t in doors]))
+    r = script(root, "mission_lint.py", str(d))
+    check("live/record-lints-after-live-writes", r.returncode == 0, r.stdout[-400:])
+
+    drift_evals(root, d, th, threads)
+    gate_thread_evals(root, d)
+
+
+def drift_evals(root: pathlib.Path, d: pathlib.Path, th, threads) -> None:
+    fspec = importlib.util.spec_from_file_location("mf2", SCRIPTS / "mission_fetch.py")
+    mf2 = importlib.util.module_from_spec(fspec)
+    fspec.loader.exec_module(mf2)
+    check("drift/fetch-has-drift-functions", all(hasattr(mf2, f) for f in ("watched_refs", "compute_drift", "read_live")))
+    if not hasattr(mf2, "compute_drift"):
+        return
+    t = {"id": "T-9", "state": "open", "refs": [{"kind": "gh", "ref": "#5", "url": "https://forge.example.invalid/acme/planning/issues/5", "title": "probe"}],
+         "lives_in": {"kind": "jira", "ref": "PRJ-7", "url": "https://tracker.example.invalid/browse/PRJ-7", "title": "PRJ-7"}}
+    check("drift/watches-refs-and-home", [w["ref"] for w in mf2.watched_refs(t)] == ["#5", "PRJ-7"], str(mf2.watched_refs(t)))
+    live1 = {"#5": {"state": "open", "comments": 0, "digest": "aaa"}, "PRJ-7": {"state": "Blocked"}}
+    out, base_n, drift_n = mf2.compute_drift([t], live1, "2026-11-12T10:00:00Z")
+    check("drift/first-fetch-is-the-baseline", base_n == 1 and drift_n == 0 and not out[0].get("drift") and out[0]["snapshot"]["at"] == "2026-11-12T10:00:00Z", str(out[0]))
+    out, _, drift_n = mf2.compute_drift(out, live1, "2026-11-12T11:00:00Z")
+    check("drift/calibration-no-change-no-drift", drift_n == 0 and not out[0].get("drift"), str(out[0].get("drift")))
+    live2 = {"#5": {"state": "closed", "comments": 2, "digest": "bbb"}, "PRJ-7": {"state": "Blocked"}}
+    out, _, drift_n = mf2.compute_drift(out, live2, "2026-11-13T09:00:00Z")
+    txt = (out[0].get("drift") or {}).get("text", "")
+    check("drift/change-sets-drift-with-a-readable-diff", drift_n == 1 and "#5 state open -> closed" in txt and "comments 0 -> 2" in txt and "body edited" in txt, txt)
+    check("drift/snapshot-kept-until-rejudged", out[0]["snapshot"]["watched"][0]["state"] == "open", str(out[0]["snapshot"]))
+    out, _, _ = mf2.compute_drift(out, {"#5": {"error": "gh failed"}, "PRJ-7": {"state": "Blocked"}}, "2026-11-13T10:00:00Z")
+    check("drift/unread-ref-is-not-a-clean-pass", (out[0].get("drift") or {}).get("at") == "2026-11-13T09:00:00Z", str(out[0].get("drift")))
+    ts = threads()
+    ts["T-5"]["drift"] = {"at": "2026-11-13T09:00:00Z", "text": "#5 state open -> closed"}
+    lib = importlib.util.spec_from_file_location("ml3", SCRIPTS / "mission_lib.py")
+    ml3 = importlib.util.module_from_spec(lib)
+    lib.loader.exec_module(ml3)
+    ml3.set_section(d, "threads", list(ts.values()))
+    r = th("resolve", "fixture-live", "T-5", "--how", "evidence", "--link", "https://example.invalid/x|old evidence")
+    check("drift/resolve-refused-on-old-evidence", r.returncode != 0 and threads()["T-5"]["state"] == "needs_you", r.stdout + r.stderr)
+    r = th("set", "fixture-live", "T-5", "--clear-drift", "--note", "re-read #5: closed by the fix")
+    check("drift/clear-drift-after-rejudge", r.returncode == 0 and not threads()["T-5"].get("drift") and threads()["T-5"]["history"][-1]["event"] == "rejudged", r.stdout + r.stderr)
+    before = (d / "mission.yaml").read_text()
+    r = script(root, "mission_fetch.py", str(d), "--offline")
+    check("drift/offline-fetch-leaves-threads", r.returncode == 0 and (d / "mission.yaml").read_text() == before, r.stdout + r.stderr)
+
+
+
+def gate_thread_evals(root: pathlib.Path, d: pathlib.Path) -> None:
+    tspec = importlib.util.spec_from_file_location("mt2", SCRIPTS / "mission_thread.py")
+    mt2 = importlib.util.module_from_spec(tspec)
+    tspec.loader.exec_module(mt2)
+    gerr, _ = mt2.gate_errors(yaml.safe_load((d / "mission.yaml").read_text()))
+    check("gate/threads-open-block-the-close", any(e.startswith("T-1 (open)") for e in gerr) and any(e.startswith("T-5 (needs_you)") for e in gerr)
+          and not any(e.startswith("T-2 ") or e.startswith("T-4 ") or e.startswith("T-3 ") for e in gerr), str(gerr))
+    parked_bad = {"threads": [thread("T-1", state="parked", home={"link": LINK, "owner": "Gabriel", "accepted": None})]}
+    check("gate/parked-without-accepted-home-blocks", any("parked_unaccepted" in e for e in mt2.gate_errors(parked_bad)[0]), str(mt2.gate_errors(parked_bad)))
+    drifted = {"threads": [thread("T-1", state="resolved", resolution={"at": "x", "how": "evidence", "link": LINK}, drift={"at": "x", "text": "#5 reopened"})]}
+    check("gate/drifted-resolved-thread-blocks", any("changed since it was judged" in e for e in mt2.gate_errors(drifted)[0]), str(mt2.gate_errors(drifted)))
+    ok = {"threads": [thread("T-1", state="resolved", resolution={"at": "x", "how": "evidence", "link": LINK}),
+                      thread("T-2", state="dropped", resolution={"at": "x", "how": "dropped", "by": "Gabriel", "note": "n"}),
+                      thread("T-3", state="parked", home={"link": LINK, "accepted": {"by": "Gabriel", "link": LINK}})]}
+    check("gate/calibration-closable-threads-pass", mt2.gate_errors(ok)[0] == [], str(mt2.gate_errors(ok)))
+    check("gate/record-without-threads-warns-only", mt2.gate_errors({})[0] == [] and mt2.gate_errors({})[1], str(mt2.gate_errors({})))
+    r = script(root, "mission_closeout.py", "gate", "fixture-live")
+    check("gate/cli-reports-open-threads", r.returncode == 1 and "thread T-5 (needs_you)" in r.stdout and "GATE CLOSED" in r.stdout, r.stdout[-600:])
+    doc = yaml.safe_load((d / "mission.yaml").read_text())
+    doc["status"] = "done"
+    (d / "mission.yaml").write_text(yaml.safe_dump(doc, sort_keys=False, allow_unicode=True))
+    r = script(root, "mission_sync.py", "fixture-live", "-m", "close")
+    check("gate/sync-refuses-done-with-open-threads", r.returncode != 0 and "thread T-5" in r.stdout and "close-out gate is closed" in r.stderr, r.stdout + r.stderr)
+    shutil.rmtree(d)
+
+    r = script(root, "mission_new.py", "--slug", "fixture-new", "--title", "A new mission", "--destination", "Done looks like this.", "--session", "eval", "--no-issue")
+    nd = root / "missions" / "fixture-new"
+    nm = yaml.safe_load((nd / "mission.yaml").read_text()) if (nd / "mission.yaml").exists() else {}
+    tt = (nm.get("threads") or [{}])[0]
+    check("live/mission-start-writes-the-big-intent", r.returncode == 0 and tt.get("id") == "T-1" and tt.get("kind") == "big_intent"
+          and (tt.get("origin") or {}).get("event") == "mission_start", r.stdout + r.stderr + str(tt))
+    r = script(root, "mission_lint.py", str(nd))
+    check("live/new-mission-lints", r.returncode == 0, r.stdout[-300:])
+    shutil.rmtree(nd)
+
+
 def closeout_evals(root: pathlib.Path, d: pathlib.Path, util) -> None:
     """Close-out: gatherer reports UNKNOWN on missing data, the gate refuses orphans, sync refuses done."""
     cspec = util.spec_from_file_location("mco", SCRIPTS / "mission_closeout.py")
@@ -947,6 +1085,7 @@ def main() -> int:
         r3 = script(root, "mission_log.py", "summary")
         check("log/use-feedback-summary", all(x.returncode == 0 for x in (r, r2, r3)) and "what is N-2?" in r3.stdout and "net rating: -1" in r3.stdout, r3.stdout)
         threads_phase1_evals(root)
+        threads_phase2_evals(root)
         closeout_evals(root, d, util)
         grader_calibration_evals()
     finally:

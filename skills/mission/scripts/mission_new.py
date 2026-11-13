@@ -14,7 +14,7 @@ import re
 import sys
 import tempfile
 
-from mission_lib import GH_REPO, MISSIONS_DIR, SKILL_DIR, gh_url, load, now_utc, run, set_top
+from mission_lib import GH_REPO, MISSIONS_DIR, SKILL_DIR, gh_url, load, now_utc, run, set_section, set_top
 
 LABEL = "kind:mission"
 
@@ -68,6 +68,10 @@ def main() -> int:
         text = text.replace(k, v)
     (d / "mission.yaml").write_text(text)
     (d / "evidence" / ".gitkeep").touch()
+    big = {"id": "T-1", "title": a.title if len(a.title) <= 70 else a.title[:69].rsplit(" ", 1)[0] + "…", "kind": "big_intent",
+           "origin": {"at": ts, "session": a.session, "event": "mission_start"}, "state": "open", "finding": a.destination,
+           "history": [{"at": ts, "session": a.session, "event": "mission_start", "note": "the mission destination"}]}
+    set_section(d, "threads", [big])
 
     m = load(d)
     if not a.no_issue:

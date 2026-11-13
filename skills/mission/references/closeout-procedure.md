@@ -182,7 +182,8 @@ Every UNKNOWN source key in `closeout-facts.json` (the text before the first col
    - every live security, access, safety or contract item has a residual-risk decision by a named person, or a successor with a named owner;
    - every ORPHAN and KEEP has a successor that accepted it;
    - every human-found big miss names its `new_check` and `eval_case`;
-   - every open HUMAN-ONLY item has a named owner or successor.
+   - every open HUMAN-ONLY item has a named owner or successor;
+   - for a mission with a record: every thread is resolved, dropped (by a named person, with a reason), or parked with a home that accepted it, and no thread has drift since it was judged. A record with no threads gets a warning: run `mission threads import <slug>` first.
    When the gate is open, `/mission close` can run. `mission sync` refuses `status: done` while it is closed.
 7. Log the close-out: `mission closeout log <slug>` (see `self-improvement.md`).
 

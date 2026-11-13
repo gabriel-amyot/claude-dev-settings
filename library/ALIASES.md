@@ -4,7 +4,7 @@ Retrieval index for `~/.claude/library/context/`. Read by `bibliotheque-recall.s
 (UserPromptSubmit), which keyword-matches the user's prompt against the `alias` and
 `trigger` columns and injects pointers to matching files.
 
-This is SILVER tier: a derived index, not a source of truth. It replaced the
+This is GOLD tier: a derived index, not a source of truth. It replaced the
 "On-Demand Context Files" table that used to sit in CLAUDE.md and cost context on
 every session. Adding a row here costs nothing at load time.
 
@@ -26,6 +26,7 @@ Every file in `~/.claude/library/context/` must have a row. `wiki-lint` checks t
 | git-history-verification | context/git-history-verification.md | Writing PR bodies, asserting code history ("X was deleted", "X never existed"), reviewing agent-written PR descriptions | absence across actual added adjacent agent asserts auth before body broader call cannot changed check cites code code-level codebase command commit commits |
 | harness-machine-migration-checklist | context/harness-machine-migration-checklist.md | new Mac, new machine, new laptop, migrate my harness, set up Claude on the new Mac, move credentials from the old Mac | audit bootstrap clone credentials enabledplugins gitignored harness keychain laptop mac machine manifest migrate migration plugin restore settings symlink tokens username |
 | harness-self-management | context/harness-self-management.md | Improving the harness, transcript mining, auto cost monitoring, batch API for crawls | accumulate agent agents automation build cadence candidate checking cleanupperioddays continuous corrections cost costs cron data days decisions delete dirs discard does each |
+| harness-routing-factories-crit-skill-authoring | context/harness-routing-factories-crit-skill-authoring.md | go autonomous, work overnight, run this ticket, one-shot this, dark-factory vs sprint-factory vs sprint-crawl, crit review of a plan or large diff, create a new skill or agent, graphify, read a pptx | agent autonomous crawl crit dark-factory diff epic factory graphify nav one-shot overnight plan powerpoint pptx ralph-loop review skill slides sprint-crawl sprint-factory unattended |
 | codex-hook-enforcement | context/codex-hook-enforcement-unverified.md | Claiming a hook/guard/gate protects Codex, wiring a hook for Codex, whether Codex guards fire | codex hooks.json hook fire guard enforcement file-guard unverified probe plugin marketplace codex exec interactive parity allowlist |
 | claude-config-filesystem-topology | context/claude-config-filesystem-topology.md | Editing any file under ~/.claude/, symlink write refusal, which ~/.claude paths are git-backed (library IS, plugins/local-marketplace is NOT) | symlink claude.md hooks skills shared-config resolve target refusing write through local-marketplace library git-tracked untracked commit ledger backup second-machine |
 | java-standards | context/java-standards.md | Writing/reviewing Java code — mockito strict stubs, junit assertions, java testing standard, unnecessary stubbing | access affects backend below bigquery boot build builds cause classic client code command committed compile config data default during editing engineers entry |

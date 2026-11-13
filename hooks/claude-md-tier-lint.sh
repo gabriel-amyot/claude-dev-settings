@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # CLAUDE.md Tier Lint: PostToolUse hook for Edit and Write.
-# CLAUDE.md is the always-on RULE layer. Facts belong in gold library pages, locators in
-# silver indexes, raw origins in bronze (_archive/). Warns when an edit leaves an inline
+# CLAUDE.md is the always-on RULE layer. Facts belong in silver library pages, locators in
+# gold indexes, raw origins in bronze (_archive/). Warns when an edit leaves an inline
 # incident narrative or an unlinked ticket key behind, and when a file grows past its
 # high-water mark.
 #
@@ -24,7 +24,7 @@ if [ -n "$OUT" ]; then
   echo "CLAUDE.MD TIER LINT"
   echo "$OUT"
   echo ""
-  echo "Rules stay. Origins go to _archive/ (bronze), lessons to a gold page, and the"
+  echo "Rules stay. Origins go to _archive/ (bronze), lessons to a fact page, and the"
   echo "rule line cites the page. Never block on this; fix when you are next in the file."
 fi
 exit 0

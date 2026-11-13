@@ -24,6 +24,7 @@ Generated from `../ALIASES.md`. Every file has a row.
 | `harness-architecture-textbook.md` | how the harness is wired, harness subsystems, onboarding to the harness design |
 | `harness-machine-migration-checklist.md` | new Mac, new machine, migrate my harness, move credentials from the old Mac |
 | `harness-self-management.md` | Improving the harness, transcript mining, auto cost monitoring, batch API for crawls |
+| `harness-routing-factories-crit-skill-authoring.md` | Factory Family routing, crit review, skill/agent authoring, graphify, pptx reading |
 | `hermes-agent-platform-mechanics.md` | hermes agent runtime, nous hermes, gravel first-responder, local agent install |
 | `java-standards.md` | Writing/reviewing Java code |
 | `jira-skill-gotchas.md` | Running `jira_skill.py` (subcommands, org slugs, comment rules, deadline mode) |

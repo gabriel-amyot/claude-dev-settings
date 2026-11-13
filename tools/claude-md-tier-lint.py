@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Tier lint for CLAUDE.md files.
 
-CLAUDE.md is the always-on RULE layer. Facts belong in GOLD library pages, locators in
-SILVER indexes (ALIASES.md), raw origins in BRONZE (_archive/). A raw incident narrative
+CLAUDE.md is the always-on RULE layer. Facts belong in SILVER library pages, locators in
+GOLD indexes (ALIASES.md), raw origins in BRONZE (_archive/). A raw incident narrative
 sitting inline is a tier violation: bronze content in the layer that loads every session.
 
 Checks:
@@ -63,7 +63,7 @@ def lint_file(path: Path):
         if NARRATIVE.search(line):
             out.append(("BRONZE-IN-RULES", n,
                         "inline incident narrative; move the origin to _archive/ (bronze), "
-                        "the lesson to a gold page, and cite the page"))
+                        "the lesson to a fact page, and cite the page"))
             continue
         if SKIP.match(line) or LINKED.search(line):
             continue
@@ -128,7 +128,7 @@ def main() -> int:
 
     if violations:
         print(f"\n{violations} tier violation(s). "
-              f"CLAUDE.md holds rules; origins go to bronze, lessons to gold.")
+              f"CLAUDE.md holds rules; origins go to bronze, lessons to fact pages.")
     elif not grew and "--hook" not in sys.argv:
         print("Tier lint clean. No inline origins, no unlinked ticket keys.")
 

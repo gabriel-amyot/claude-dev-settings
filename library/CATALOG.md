@@ -34,6 +34,7 @@ Entry point: [INDEX.md](INDEX.md)
 | long-running-process-pattern.md | Nohup launcher, tool timeout limits | Running multi-hour jobs |
 | python-http-client-egress-gotchas.md | `httpx` `trust_env`, loopback resolution | Claiming a request stays local; writing a localhost security check |
 | harness-self-management.md | Cost config, transcript mining, batch API, local-plugin cache-sync gotcha | Improving the harness |
+| harness-routing-factories-crit-skill-authoring.md | Factory Family routing table, crit review rules, skill/agent authoring, graphify, pptx | Go autonomous, crit, new skill |
 | harness-machine-migration-checklist.md | Ordered new-Mac harness migration: audit, plugins enabled vs installed, settings merge, credentials, repos, verify | New Mac, new laptop, migrate the harness |
 | harness-architecture-textbook.md | Whole-harness map + deploy-identity subsystem deconstructed; reusable mermaid diagrams D1–D9; weaknesses/constraints/trade-offs self-documented | "How does my harness work", subsystem/hook-lifecycle diagrams, deploy-identity, harness onboarding |
 | vendor-api-contract-validation.md | 5-gate defense for vendor API parsing (anti-hallucination) | Writing vendor API parsing, spike completion, debugging all-null vendor metrics |

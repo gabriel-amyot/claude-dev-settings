@@ -23,6 +23,8 @@ PAIRS = [
      Path.home() / "Developer/grp-beklever-com/project-management/AGENTS.md"),
     (Path.home() / "Developer/grp-beklever-com/.claude/CLAUDE.md",
      Path.home() / "Developer/grp-beklever-com/AGENTS.md"),
+    (Path.home() / "Developer/supervisr-ai/.claude/CLAUDE.md",
+     Path.home() / "Developer/supervisr-ai/AGENTS.md"),
 ]
 
 MARKER = "<!-- generated-mirror-of-claude-md -->"

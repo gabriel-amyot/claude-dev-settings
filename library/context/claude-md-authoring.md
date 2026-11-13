@@ -38,8 +38,8 @@ one belongs there:
 | Kind | Belongs in | Test |
 |---|---|---|
 | Rule | CLAUDE.md | Changes behaviour in *every* session, and cannot be a hook or a lookup |
-| Fact | GOLD (bibliothèque) | A statement about how the world is. Can go stale. Can be challenged. |
-| Locator | SILVER (`ALIASES.md`, `INDEX.md`) | Tells you where to find a fact |
+| Fact | SILVER (bibliothèque fact page) | A statement about how the world is. Can go stale. Can be challenged. |
+| Locator | GOLD (`ALIASES.md`, `INDEX.md`) | Tells you where to find a fact |
 | Origin | BRONZE (`_archive/`) | The ticket or incident a rule came from |
 | Check | HOOK | Deterministic and mechanically verifiable |
 
@@ -51,14 +51,14 @@ provenance with no library pointer.
 **How to apply:** classify a candidate CLAUDE.md line before adding it. If it is a fact, a
 locator, an origin, or a deterministic check, it does not belong there.
 
-### Migrating an existing rule to gold: search first
+### Migrating an existing rule to a fact page: search first
 
-Migrating 17 inline incident narratives out of Klever's CLAUDE.md into gold pages produced
+Migrating 17 inline incident narratives out of Klever's CLAUDE.md into fact pages produced
 13 EXISTING, 2 EXTEND, 0 NEW. The lessons were already documented; CLAUDE.md was duplicating
-gold pages rather than holding unique knowledge. That result is the strongest evidence the
+fact pages rather than holding unique knowledge. That result is the strongest evidence the
 tier model is right.
 
-**How to apply:** before authoring a new gold page for a CLAUDE.md lesson, search the
+**How to apply:** before authoring a new fact page for a CLAUDE.md lesson, search the
 library first. A migration pass that produces mostly NEW pages means the search was not
 thorough enough.
 

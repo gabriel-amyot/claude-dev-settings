@@ -128,7 +128,7 @@ Your prompt will specify a mode. If no mode is given, infer from the prompt cont
       user's words), append a page via the CLI:
       `echo '[{"id":"<source>:<entity>:<event>[:<disc>]","ts":"<ISO>","source":"<source>","entity":"<entity>","title":"<short>","body":"<verbatim excerpt>","ref":"<deep-link or path>"}]' | python3 /Users/gabrielamyot/Developer/grp-beklever-com/project-management/tools/bibliotheque/archive_lib.py /Users/gabrielamyot/Developer/grp-beklever-com/project-management/documentation/bibliotheque/_archive <source>`
       (dedup + atomicity are the lib's job). The body MUST carry the verbatim excerpt (stand-alone rule).
-   b. **Gold second:** write/extend the fact page with full frontmatter INCLUDING the
+   b. **Silver second:** write/extend the fact page with full frontmatter INCLUDING the
       `provenance:` block (epistemic, confidence, primary_sources,
       raw_pages: [<the bronze ids from a>], status: active).
       CONFIDENCE INVARIANT: a fresh fact starts low|medium — NEVER high at creation.
@@ -149,7 +149,7 @@ If the prompt contains enough information (content + source + clear topic), skip
 **Conversational / user-verbatim shelve:** when the caller relays Gabriel's own stated fact
 ("the code for feature A is in repo X"), treat his words as first-class raw evidence:
 bronze page `{id: gabriel:<date>:<slug>, source: gabriel, body: <his verbatim words>,
-ref: <session/transcript pointer>}` → gold fact stamped `[VERBATIM ← Gabriel@<date> · page:<id>]`
+ref: <session/transcript pointer>}` → silver fact stamped `[VERBATIM ← Gabriel@<date> · page:<id>]`
 with `epistemic: verbatim`, `primary_sources[].kind: user-verbatim`. The fact is refutable like
 any other: later corroboration upgrades confidence via that verification event; contradiction
 goes through challenge (never silently discard what Gabriel said — supersede with history).

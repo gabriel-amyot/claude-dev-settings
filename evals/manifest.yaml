@@ -253,6 +253,16 @@ suites:
       asserts every grader FAILS a reconstructed old-behaviour run. Deterministic,
       no agent runs. Catches grader regressions that would let a gamed run pass.
 
+  - target: architect-lens/layer-a
+    layer: A
+    runner: python3 ~/.claude-shared-config/skills/architect-lens/evals/run_layer_a.py
+    owner_skill: architect-lens
+    last_green: null
+    notes: >
+      Structure, method-fidelity pin (Codex F04), worksheet import format, Winston [AL] wiring,
+      Codex registry, KB routes and a copyright guard (no 10-word book run in public files).
+      KB-dependent cases SKIP when the local FoSA knowledge base is absent.
+
   # --- Layer B behavioral suites (on-demand via skill-creator grader; see /skill-evals) ---
 
   - target: service-factory/paper-replays
@@ -275,6 +285,18 @@ suites:
     layer: B
     runner: skill-creator benchmark — evals at ~/.claude-shared-config/skills/klever-mr/evals/evals.json
     owner_skill: klever-mr
+    last_green: null
+
+  - target: architect-lens/behavioral
+    layer: B
+    runner: skill-creator benchmark — evals at ~/.claude-shared-config/skills/architect-lens/evals/evals.json (needs the local FoSA KB; eval 4 runs with FOSA_KB unset on purpose)
+    owner_skill: architect-lens
+    last_green: null
+
+  - target: architect-lens/trigger
+    layer: B'
+    runner: skill-creator run_eval.py trigger mode — ~/.claude-shared-config/skills/architect-lens/evals/trigger-evals.json
+    owner_skill: architect-lens
     last_green: null
 
   - target: sprint-close/behavioral

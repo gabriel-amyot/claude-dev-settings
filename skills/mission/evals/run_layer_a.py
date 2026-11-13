@@ -1,3 +1,7 @@
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["pyyaml"]
+# ///
 """Layer A (deterministic) evals for the mission skill. Exit 1 on any failure.
 
 Runs in a temp PM root, so it never touches the real missions/ folder.
@@ -14,7 +18,15 @@ import subprocess
 import sys
 import tempfile
 
-import yaml
+try:
+    import yaml
+except ModuleNotFoundError:
+    import os, shutil, sys
+    _uv, _main = shutil.which("uv"), getattr(sys.modules.get("__main__"), "__file__", None)
+    if _uv and _main and os.environ.get("UV_DEPS_REEXEC") != os.path.abspath(_main):
+        os.environ["UV_DEPS_REEXEC"] = os.path.abspath(_main)
+        os.execv(_uv, [_uv, "run", "--quiet", "--with", "pyyaml", "python", os.path.abspath(_main), *sys.argv[1:]])
+    raise
 
 HERE = pathlib.Path(__file__).resolve().parent
 SCRIPTS = HERE.parent / "scripts"

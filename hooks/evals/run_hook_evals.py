@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["pyyaml"]
+# ///
 """run_hook_evals.py — deterministic eval runner for Claude Code hooks.
 
 Each hook gets a fixture file at fixtures/<hook-name>.yaml. The runner pipes the
@@ -41,7 +45,15 @@ import subprocess
 import sys
 import tempfile
 
-import yaml
+try:
+    import yaml
+except ModuleNotFoundError:
+    import os, shutil, sys
+    _uv, _main = shutil.which("uv"), getattr(sys.modules.get("__main__"), "__file__", None)
+    if _uv and _main and os.environ.get("UV_DEPS_REEXEC") != os.path.abspath(_main):
+        os.environ["UV_DEPS_REEXEC"] = os.path.abspath(_main)
+        os.execv(_uv, [_uv, "run", "--quiet", "--with", "pyyaml", "python", os.path.abspath(_main), *sys.argv[1:]])
+    raise
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 HOOKS_DIR = os.path.dirname(HERE)

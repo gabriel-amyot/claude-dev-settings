@@ -1,10 +1,22 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["pyyaml"]
+# ///
 """Template engine for /post-comment. No external deps."""
 
 import argparse
 import re
 import sys
-import yaml
+try:
+    import yaml
+except ModuleNotFoundError:
+    import os, shutil, sys
+    _uv, _main = shutil.which("uv"), getattr(sys.modules.get("__main__"), "__file__", None)
+    if _uv and _main and os.environ.get("UV_DEPS_REEXEC") != os.path.abspath(_main):
+        os.environ["UV_DEPS_REEXEC"] = os.path.abspath(_main)
+        os.execv(_uv, [_uv, "run", "--quiet", "--with", "pyyaml", "python", os.path.abspath(_main), *sys.argv[1:]])
+    raise
 from pathlib import Path
 
 

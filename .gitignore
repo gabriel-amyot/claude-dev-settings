@@ -17,7 +17,6 @@ __pycache__/
 evals/monthly-sweep/logs/
 evals/reports/*-sweep.md
 
-<<<<<<< Updated upstream
 # generated ratchet state for claude-md-tier-lint.py
 tools/.claude-md-budget.json
 
@@ -34,9 +33,3 @@ harness/view/
 *.secret
 .env
 .env.*
-||||||| Stash base
-=======
-# Per-machine config: settings.json is wired directly at ~/.claude/settings.json
-# on each machine, deliberately, not shared through this repo.
-settings.json
->>>>>>> Stashed changes

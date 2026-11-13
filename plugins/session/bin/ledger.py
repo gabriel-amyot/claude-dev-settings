@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["ruamel.yaml"]
+# ///
 """Deterministic write path for sessions/ledger.yaml.
 
 The ONLY sanctioned way to mutate a session ledger. Hand-editing is blocked by
@@ -20,8 +24,13 @@ try:
     from ruamel.yaml import YAML
     from ruamel.yaml.constructor import DuplicateKeyError
     from ruamel.yaml.comments import CommentedMap, CommentedSeq
-except ImportError:
-    sys.stderr.write("FATAL: ruamel.yaml not installed (python3 -m pip install --user ruamel.yaml)\n")
+except ModuleNotFoundError:
+    import os, shutil, sys
+    _uv, _main = shutil.which("uv"), getattr(sys.modules.get("__main__"), "__file__", None)
+    if _uv and _main and os.environ.get("UV_DEPS_REEXEC") != os.path.abspath(_main):
+        os.environ["UV_DEPS_REEXEC"] = os.path.abspath(_main)
+        os.execv(_uv, [_uv, "run", "--quiet", "--with", "ruamel.yaml", "python", os.path.abspath(_main), *sys.argv[1:]])
+    sys.stderr.write("FATAL: ruamel.yaml not installed (install uv, or run with: uv run --with ruamel.yaml python3 <script>)\n")
     sys.exit(70)
 
 EX_USAGE, EX_DATA, EX_INTERNAL, EX_LOCK = 2, 65, 70, 75

@@ -1,5 +1,7 @@
 # Pilot state
 
+Current status (2026-11-13): archived for now at Gabriel's request. The native study completed on 2026-10-31; quality remains `INSUFFICIENT_EVIDENCE`. See [the archive](results/2026-11-13-archive.md) and [final aggregate evidence](results/final-native-evidence.json). The progress notes below are historical and do not indicate a running study. Independent evaluation and harness-health implementation are parked, with no automatic restart.
+
 Goal: build and exercise a local read-only Kev-4B recall prototype in the shared-config repository.
 
 Repository: https://github.com/gabriel-amyot/claude-dev-settings

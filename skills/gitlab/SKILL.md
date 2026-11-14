@@ -63,7 +63,7 @@ Always use `uv run`, never plain `python3`. The script declares `requests` inlin
 > ⚠️ **CAUTION:** `pipeline` (singular) TRIGGERS a new pipeline. `pipelines` (plural) LISTS existing ones. To check status, use `pipelines` or `jobs --pipeline ID`. Never use `pipeline` to check status.
 
 - `pipeline PROJECT [--ref BRANCH] [--var KEY=VALUE ...]` — Trigger CI/CD pipeline (dev by default, prod blocked)
-- `vars PROJECT [--action list|get|set] [--key KEY] [--value VALUE] [--scope ENV]` — Manage CI/CD variables
+- `vars PROJECT [--action list|get|set] [--key KEY] [--value VALUE] [--scope ENV]` — Read CI/CD variables (secret values hidden). `set` is refused for Klever in every scope; elsewhere it only updates an existing key in a dev scope, never creates one. A CI/CD variable is not a value path: non-secret → DAC Terraform per-environment map, secret → GCP Secret Manager.
 - `deploy-watch PROJECT --pipeline ID [--interval SECONDS]` — Watch deployment pipeline (3-stage)
 - `play-job PROJECT --job JOB_ID` — Trigger a manual/blocked job (requires user confirmation)
 - `index [--group GROUP_ID]` — Build/rebuild the local project index
@@ -122,13 +122,13 @@ uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py pipelines eqs
 # Watch a deployment
 uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py deploy-watch lead-lifecycle --pipeline 21872
 
-# Update image tag and trigger deploy
+# Supervisr legacy only: update an EXISTING dev image-tag key, then trigger deploy (refused for Klever)
 uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py vars "lead-lifecycle" --action set --key TF_VAR_image_tag --value 0.0.4-dev --scope dev
 uv run ~/.claude-shared-config/skills/gitlab/gitlab_skill.py pipeline "lead-lifecycle" --ref dev
 ```
 
 > **Safety:** Pipelines on `main`, `master`, `prod`, `production`, `uat` are blocked.
-> **Safety:** CI/CD variable writes (`vars --action set`) blocked on prod/uat/main/master scopes.
+> **Safety:** CI/CD variable writes: refused for Klever in every scope; elsewhere refused without `--scope`, on `*` and prod/uat/main/master scopes, and for a key that does not exist yet. Raw `api_request` POST/PUT/DELETE on any `/variables` endpoint is refused. `list`/`get` hide masked and secret-named values.
 > **Safety:** API requests retry at most 2 times on server errors (5xx). Never retries on client errors (4xx) or auth redirects.
 > **Safety:** `play-job` always requires explicit user confirmation.
 

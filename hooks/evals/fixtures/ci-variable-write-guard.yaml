@@ -1,0 +1,60 @@
+hook: ci-variable-write-guard.sh
+
+wired:
+  event: PreToolUse
+  expected: true
+  note: "blocks GitLab CI/CD variable writes; a CI variable is not a value path (klever-project-management#672)"
+
+cases:
+  # ── the guard fires (incident replays from KTP-1384 / KTP-1216) ──
+  - name: 01-skill-vars-set-dev-blocks
+    stdin: {tool_input: {command: "python3 ~/.claude/skills/gitlab/gitlab_skill.py --org klever vars 804 --action set --key TF_VAR_foursquare_targeting_key --value x --scope dev"}}
+    expected_exit: 2
+    needle: "Secret Manager"
+
+  - name: 02-skill-vars-set-unscoped-blocks
+    stdin: {tool_input: {command: "uv run gitlab_skill.py vars dac-gcp-front-klv1ai --action=set --key K --value V"}}
+    expected_exit: 2
+
+  - name: 03-curl-post-variables-blocks
+    stdin: {tool_input: {command: "curl -s -X POST -H \"PRIVATE-TOKEN: $T\" https://cicd.prod.datasophia.com/api/v4/projects/804/variables --data key=K"}}
+    expected_exit: 2
+    needle: "HTTP write"
+
+  - name: 04-curl-put-url-first-blocks
+    stdin: {tool_input: {command: "curl https://cicd.prod.datasophia.com/api/v4/projects/804/variables/K --request PUT --data value=V"}}
+    expected_exit: 2
+
+  - name: 05-glab-variable-set-blocks
+    stdin: {tool_input: {command: "glab variable set TF_VAR_x --scope production"}}
+    expected_exit: 2
+
+  - name: 06-curl-delete-variable-blocks
+    stdin: {tool_input: {command: "curl -X DELETE https://cicd.prod.datasophia.com/api/v4/projects/804/variables/K"}}
+    expected_exit: 2
+
+  # ── reads and unrelated commands pass ──
+  - name: 07-vars-list-passes
+    stdin: {tool_input: {command: "python3 gitlab_skill.py --org klever vars 804 --action list"}}
+    expected_exit: 0
+
+  - name: 08-curl-get-variables-passes
+    stdin: {tool_input: {command: "curl -s https://cicd.prod.datasophia.com/api/v4/projects/804/variables"}}
+    expected_exit: 0
+
+  - name: 09-grep-mentioning-action-set-in-other-tool-passes
+    stdin: {tool_input: {command: "grep -rn 'TF_VAR_' terraform/ | head"}}
+    expected_exit: 0
+
+  - name: 10-pipeline-post-passes
+    stdin: {tool_input: {command: "curl -X POST https://cicd.prod.datasophia.com/api/v4/projects/804/pipeline?ref=dev"}}
+    expected_exit: 0
+
+  - name: 11-kill-switch
+    stdin: {tool_input: {command: "glab variable set K V"}}
+    env: {CI_VARIABLE_GUARD_OFF: "1"}
+    expected_exit: 0
+
+  - name: 12-bad-json-fails-open
+    stdin_raw: "not-json"
+    expected_exit: 0

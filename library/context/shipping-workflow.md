@@ -65,7 +65,7 @@ RED = tag absent = do NOT play deploy-in-prod. GREEN = image exists, safe to dep
 
 ## Shipping Safeguards (from global CLAUDE.md)
 - Do NOT run GitLab pipelines from Claude in PROD or UAT (DEV is OK)
-- Do NOT update GitLab CI/CD variables from Claude in PROD or UAT (DEV is OK)
+- Do NOT update GitLab CI/CD variables from Claude in PROD or UAT (DEV is OK). This is a write permission, not a value path. Never create a NEW CI/CD variable. At Klever: a non-secret goes in the DAC Terraform per-environment map, a secret goes in GCP Secret Manager.
 - Do NOT run terraform plan/apply
 - IAM/Auth changes require human gate before committing
 - Create MR immediately after pushing. No exceptions.

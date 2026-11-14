@@ -168,6 +168,60 @@ class TestVariablesSafeguard(unittest.TestCase):
             result = gitlab_skill.manage_variables(123, "set", key="K", value="V", scope="dev")
             self.assertTrue(mock_api.called)
 
+    def test_blocks_unscoped_set(self):
+        _set_test_globals()
+        with patch.object(gitlab_skill, "api_request") as mock_api:
+            result = gitlab_skill.manage_variables(123, "set", key="K", value="V")
+            self.assertIn("BLOCKED", result["error"])
+            mock_api.assert_not_called()
+
+    def test_blocks_wildcard_scope(self):
+        _set_test_globals()
+        result = gitlab_skill.manage_variables(123, "set", key="K", value="V", scope="*")
+        self.assertIn("BLOCKED", result["error"])
+
+    def test_set_never_creates_a_new_key(self):
+        _set_test_globals()
+        with patch.object(gitlab_skill, "api_request") as mock_api:
+            mock_api.return_value = {"error": "API Error 404: Variable Not Found"}
+            result = gitlab_skill.manage_variables(123, "set", key="NEW", value="V", scope="dev")
+            self.assertIn("BLOCKED", result["error"])
+            self.assertEqual(mock_api.call_count, 1)
+            self.assertEqual(mock_api.call_args.kwargs.get("method"), "PUT")
+
+    def test_klever_refuses_every_set(self):
+        _set_test_globals()
+        gitlab_skill.current_org = {"name": "klever", "url": "https://test.example.com"}
+        with patch.object(gitlab_skill, "api_request") as mock_api:
+            result = gitlab_skill.manage_variables(804, "set", key="TF_VAR_x", value="V", scope="dev")
+            self.assertIn("BLOCKED", result["error"])
+            self.assertIn("Secret Manager", result["error"])
+            mock_api.assert_not_called()
+
+    def test_raw_api_write_on_variables_blocked(self):
+        _set_test_globals()
+        with patch("requests.post") as mock_post, patch("requests.put") as mock_put:
+            r1 = gitlab_skill.api_request("/projects/804/variables", method="POST", data={"key": "K"})
+            r2 = gitlab_skill.api_request("/groups/136/variables/K", method="PUT", data={"value": "V"})
+            self.assertIn("BLOCKED", r1["error"])
+            self.assertIn("BLOCKED", r2["error"])
+            mock_post.assert_not_called()
+            mock_put.assert_not_called()
+
+    def test_list_hides_secret_values(self):
+        _set_test_globals()
+        with patch.object(gitlab_skill, "api_request") as mock_api:
+            mock_api.return_value = [
+                {"key": "TF_VAR_METABASE_SECRET_KEY", "value": "s3cr3t", "environment_scope": "dev",
+                 "protected": False, "masked": False},
+                {"key": "TF_VAR_LOGOUT_URL", "value": "https://x", "environment_scope": "dev",
+                 "protected": False, "masked": True},
+                {"key": "TF_VAR_build_docker_tag_version", "value": "1.2.3", "environment_scope": "dev",
+                 "protected": False, "masked": False},
+            ]
+            result = gitlab_skill.manage_variables(123, "list")
+            self.assertEqual([v["value"] for v in result], ["<hidden>", "<hidden>", "1.2.3"])
+
     def test_list_allowed_any_scope(self):
         """Read-only operations should work regardless of scope."""
         _set_test_globals()

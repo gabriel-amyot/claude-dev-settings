@@ -59,6 +59,7 @@ Never close a ticket without adversarial review. Before moving any ticket from "
 2. The adversarial must give a per-AC verdict: PASS, FAIL, or BLOCKED with justification
 3. Route adversarial findings through Amelia (code) and Winston (architecture)
 4. Don't dismiss findings; address them or document why they're accepted risks
+5. **Value-path check (prod readiness and every review of a config or DAC change).** For each new runtime value, name its path. At Klever only two are valid: the DAC Terraform per-environment map (non-secret) or GCP Secret Manager (secret). A GitLab CI/CD variable, or "maintainer action" with no path, is a finding. Learned from KTP-1384 (GitHub #672): a readiness report wrote "(CI variable, maintainer action)" and two adversarial reviews passed it.
 
 **Coverage classifications (honest labeling):**
 - **VERIFIED** = tested end-to-end (E2E script, UI test, or direct observation)

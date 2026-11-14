@@ -39,6 +39,11 @@ IAP_HELPER_BIN = os.path.expanduser("~/bin/git-remote-https+iap")
 IAP_COOKIE_DIR = os.path.expanduser("~/.config/git-gcp-iap")
 BLOCKED_REFS = {"main", "master", "prod", "production", "uat"}
 BLOCKED_SCOPES = {"production", "prod", "uat", "main", "master"}
+NO_CI_VARIABLE_WRITE_ORGS = {"klever"}
+VARIABLES_ENDPOINT = re.compile(r"^/(projects|groups)/[^/]+/variables(/|\?|$)")
+SECRET_KEY_HINT = re.compile(r"SECRET|TOKEN|KEY|PASSWORD|PASSWD|URI|CREDENTIAL|WEBHOOK", re.I)
+VALUE_PATH_HINT = ("A CI/CD variable is not a value path. Put a non-secret in the DAC Terraform "
+                   "per-environment map; put a secret in GCP Secret Manager, read at runtime.")
 MAX_API_RETRIES = 2
 INDEX_FILE = os.path.join(os.path.dirname(CONFIG_FILE), "dac_index.json")
 TRACE_HEAD_LINES = 500
@@ -390,12 +395,15 @@ def _init(org_override=None):
         headers["Authorization"] = f"Bearer {iap_token}"
 
 
-def api_request(endpoint, method="GET", params=None, data=None, raw=False):
+def api_request(endpoint, method="GET", params=None, data=None, raw=False, allow_variable_write=False):
     """Make API request to GitLab with retry on transient failures.
 
     Retries up to MAX_API_RETRIES times on 5xx errors and connection failures.
     Never retries on 4xx (client errors) or redirects (IAP auth).
+    Writes on a CI/CD variables endpoint are refused unless manage_variables allows them.
     """
+    if is_variable_write(endpoint, method) and not allow_variable_write:
+        return {"error": f"BLOCKED: {method} on {endpoint} writes a CI/CD variable. {VALUE_PATH_HINT}"}
     url = f"{gitlab_url}/api/v4{endpoint}"
     last_error = None
 
@@ -1370,76 +1378,77 @@ def get_pipeline_bridges(project_id, pipeline_id):
     } for b in response]
 
 
-def manage_variables(project_id, action, key=None, value=None, scope=None):
-    """Manage CI/CD variables"""
-    if action == "set" and scope and scope.lower() in BLOCKED_SCOPES:
+def is_variable_write(endpoint, method):
+    return method != "GET" and bool(VARIABLES_ENDPOINT.match(endpoint))
+
+
+def is_variable_write_forbidden_for_org():
+    return (current_org or {}).get("name") in NO_CI_VARIABLE_WRITE_ORGS
+
+
+def looks_secret(variable):
+    return bool(variable.get("masked")) or bool(SECRET_KEY_HINT.search(variable.get("key") or ""))
+
+
+def describe_variable(variable):
+    return {
+        "key": variable.get("key"),
+        "value": "<hidden>" if looks_secret(variable) else variable.get("value"),
+        "scope": variable.get("environment_scope"),
+        "protected": variable.get("protected"),
+        "masked": variable.get("masked")
+    }
+
+
+def set_variable_refusal(scope):
+    if is_variable_write_forbidden_for_org():
+        return {"error": f"BLOCKED: CI/CD variable writes are refused for org '{current_org['name']}' in every scope. "
+                f"{VALUE_PATH_HINT}"}
+    if not scope:
+        return {"error": "BLOCKED: set requires --scope. An unscoped variable targets '*', which includes prod."}
+    if scope.lower() in BLOCKED_SCOPES or scope == "*":
         return {"error": f"BLOCKED: Setting CI/CD variables on scope '{scope}' is not allowed. "
                 "Only dev scope is permitted from Claude Code."}
+    return None
 
+
+def manage_variables(project_id, action, key=None, value=None, scope=None):
+    """List or read CI/CD variables (secret values hidden). Set only updates an existing dev key, never creates one."""
     scope_filter = {"filter[environment_scope]": scope} if scope else {}
 
     if action == "list":
         response = api_request(f"/projects/{project_id}/variables")
-
         if isinstance(response, dict) and "error" in response:
             return response
-
-        return [
-            {
-                "key": v.get("key"),
-                "value": v.get("value"),
-                "scope": v.get("environment_scope"),
-                "protected": v.get("protected"),
-                "masked": v.get("masked")
-            }
-            for v in response
-        ]
+        return [describe_variable(v) for v in response]
 
     elif action == "get":
         if not key:
             return {"error": "get action requires --key"}
-
         response = api_request(f"/projects/{project_id}/variables/{key}", params=scope_filter)
-
         if isinstance(response, dict) and "error" in response:
             return response
-
-        return {
-            "key": response.get("key"),
-            "value": response.get("value"),
-            "scope": response.get("environment_scope"),
-            "protected": response.get("protected"),
-            "masked": response.get("masked")
-        }
+        return describe_variable(response)
 
     elif action == "set":
+        refusal = set_variable_refusal(scope)
+        if refusal:
+            return refusal
         if not key or value is None:
             return {"error": "set action requires --key and --value"}
-
         update_response = api_request(
             f"/projects/{project_id}/variables/{key}",
             method="PUT",
             params=scope_filter,
-            data={"value": value}
+            data={"value": value},
+            allow_variable_write=True
         )
-
         if isinstance(update_response, dict) and "error" in update_response:
-            error_text = update_response.get("error", "")
-            if "404" in error_text:
-                create_data = {"key": key, "value": value}
-                if scope:
-                    create_data["environment_scope"] = scope
-                create_response = api_request(
-                    f"/projects/{project_id}/variables",
-                    method="POST",
-                    data=create_data
-                )
-                if isinstance(create_response, dict) and "error" in create_response:
-                    return create_response
-                return {"action": "created", "key": create_response.get("key"), "value": create_response.get("value"), "scope": create_response.get("environment_scope")}
+            if "404" in update_response.get("error", ""):
+                return {"error": f"BLOCKED: '{key}' does not exist in scope '{scope}'. "
+                        f"set never creates a new CI/CD variable. {VALUE_PATH_HINT}"}
             return update_response
-
-        return {"action": "updated", "key": update_response.get("key"), "value": update_response.get("value"), "scope": update_response.get("environment_scope")}
+        return {"action": "updated", "key": update_response.get("key"), "scope": update_response.get("environment_scope")}
 
     else:
         return {"error": f"Unknown vars action: {action}. Use: list, get, set"}

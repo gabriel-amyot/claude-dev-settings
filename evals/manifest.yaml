@@ -117,6 +117,14 @@ suites:
     # fixture; it flips green when settings.json wires the hook.
     last_green: null
 
+  - target: hooks/ci-variable-write-guard
+    layer: A
+    runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook ci-variable-write-guard
+    owner_skill: harness
+    # RED until settings.json wires the hook (file-guard blocks agent edits). Gabriel runs
+    # project-management/sessions/active/vast-ibis/wire-ci-variable-write-guard.py.
+    last_green: null
+
   - target: hooks/challenge-detect
     layer: A
     runner: uv run --quiet --with pyyaml --with requests python3 ~/.claude-shared-config/hooks/evals/run_hook_evals.py --hook challenge-detect

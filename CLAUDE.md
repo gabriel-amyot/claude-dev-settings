@@ -144,7 +144,7 @@ This applies to: GitHub PR comments/replies, Jira comments/ticket updates, Slack
 
 # Shipping Safeguards
 - Do NOT run GitLab pipelines from Claude in PROD nor UAD (Exception DEV, you can in DEV)
-- Do NOT update GitLab CI/CD variables from Claude  in PROD nor UAD (Exception DEV, you can in DEV)
+- Do NOT update GitLab CI/CD variables from Claude in PROD nor UAT (Exception DEV). This rule is about write permission, not about a valid value path. Never create a NEW CI/CD variable in any scope unless the org rule allows it. At Klever the answer is always no, see the org CLAUDE.md.
 - Do NOT run terraform plan/apply
 - Commits and tags push; CI/CD picks up automatically
 - **DAC repos: merge-forward model.** DAC repos on GitLab have three branches reflecting environments: `dev`, `uat`, `main` (prod). Each branch auto-deploys on push. ALL changes go to `dev` first. Promotion is manual forward-merge: dev → uat → main. Agents NEVER push to `main` or `uat` on DAC repos. Before any `git push` on a repo whose path contains `grp-dac`, verify the target branch is `dev`. If not, STOP. Hotfixes to uat/main are always human-initiated. See [[dac-workflow]].

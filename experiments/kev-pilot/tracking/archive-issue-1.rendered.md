@@ -1,0 +1,4 @@
+<!-- issue-status v1 -->
+Parked for now at my request. The [archive](https://github.com/gabriel-amyot/claude-dev-settings/blob/0c209f30206bc4d12b2b9db7aef434af16878354/experiments/kev-pilot/results/2026-11-13-archive.md) records the completed October 31 study: 728 measured requests, no request failures, and `INSUFFICIENT_EVIDENCE` for recall quality. The implementation remains a draft. No live integration was enabled in this pilot.
+
+The [reviewed harness-health plan](https://github.com/gabriel-amyot/claude-dev-settings/blob/bca3929/docs/plans/harness-health/PLAN.md) is preserved; its implementation is also parked. Independent queries, document judgments, and a full-text control remain unfinished. I will decide when to resume. Restart requires checking the pinned evidence and current host state; there is no scheduled restart.

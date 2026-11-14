@@ -1,0 +1,73 @@
+{
+  "repository": "gabriel-amyot/claude-dev-settings",
+  "authorization": "User requested archive, documented findings, and comments on related GitHub issues. Current project instructions authorize routine factual GitHub reporting.",
+  "pipeline": "post-comment: disk drafts, template rendering, full preview, draft/rendered claim gates, STE gate, verified remote readback",
+  "report_commit": "0c209f30206bc4d12b2b9db7aef434af16878354",
+  "entries": [
+    {
+      "at": "2026-11-14T02:03:13.691683+00:00",
+      "platform": "github",
+      "target": "https://github.com/gabriel-amyot/claude-dev-settings/issues/1",
+      "template": "body-template.md",
+      "draft": "experiments/kev-pilot/tracking/archive-issue-1.md",
+      "rendered": "experiments/kev-pilot/tracking/archive-issue-1.rendered.md",
+      "content_sha256": "545115258084e22a6ae812de140a80d58d8deb1b9705f349ba7a0cdc37047035",
+      "comment_url": "https://github.com/gabriel-amyot/claude-dev-settings/issues/1#issuecomment-6869862161",
+      "comment_id": 6869862161,
+      "action": "new",
+      "verified": true
+    },
+    {
+      "at": "2026-11-14T02:03:15.228507+00:00",
+      "platform": "github",
+      "target": "https://github.com/gabriel-amyot/claude-dev-settings/issues/2",
+      "template": "body-template.md",
+      "draft": "experiments/kev-pilot/tracking/archive-issue-2.md",
+      "rendered": "experiments/kev-pilot/tracking/archive-issue-2.rendered.md",
+      "content_sha256": "eb20a68e82db434c933ce687377b746d0048abd26f25f8ded0a4aca48bd984d0",
+      "comment_url": "https://github.com/gabriel-amyot/claude-dev-settings/issues/2#issuecomment-6869862496",
+      "comment_id": 6869862496,
+      "action": "new",
+      "verified": true
+    },
+    {
+      "at": "2026-11-14T02:03:16.985112+00:00",
+      "platform": "github",
+      "target": "https://github.com/gabriel-amyot/claude-dev-settings/issues/3",
+      "template": "body-template.md",
+      "draft": "experiments/kev-pilot/tracking/archive-issue-3.md",
+      "rendered": "experiments/kev-pilot/tracking/archive-issue-3.rendered.md",
+      "content_sha256": "b9080f101d1a271bae60f3ba738df0499f2663262d208d38b8a52b4df8a97f0f",
+      "comment_url": "https://github.com/gabriel-amyot/claude-dev-settings/issues/3#issuecomment-6869862843",
+      "comment_id": 6869862843,
+      "action": "new",
+      "verified": true
+    },
+    {
+      "at": "2026-11-14T02:03:18.562035+00:00",
+      "platform": "github",
+      "target": "https://github.com/gabriel-amyot/claude-dev-settings/issues/4",
+      "template": "body-template.md",
+      "draft": "experiments/kev-pilot/tracking/archive-issue-4.md",
+      "rendered": "experiments/kev-pilot/tracking/archive-issue-4.rendered.md",
+      "content_sha256": "3833115a8d4a467f804d5772df7520552283fa092446d504b330968d5e3e9d40",
+      "comment_url": "https://github.com/gabriel-amyot/claude-dev-settings/issues/4#issuecomment-6869863230",
+      "comment_id": 6869863230,
+      "action": "new",
+      "verified": true
+    },
+    {
+      "at": "2026-11-14T02:03:20.304523+00:00",
+      "platform": "github",
+      "target": "https://github.com/gabriel-amyot/claude-dev-settings/pull/5",
+      "template": "body-template.md",
+      "draft": "experiments/kev-pilot/tracking/archive-issue-5.md",
+      "rendered": "experiments/kev-pilot/tracking/archive-issue-5.rendered.md",
+      "content_sha256": "4ed48e6dea4e4d2948fa7b6b83bf643da8cfbfd2114d6824e70f78902b8dbe2f",
+      "comment_url": "https://github.com/gabriel-amyot/claude-dev-settings/pull/5#issuecomment-6869863574",
+      "comment_id": 6869863574,
+      "action": "new",
+      "verified": true
+    }
+  ]
+}

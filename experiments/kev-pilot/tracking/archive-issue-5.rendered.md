@@ -1,0 +1,4 @@
+<!-- issue-status v1 -->
+Archived for now; this PR remains a draft. The [final report](https://github.com/gabriel-amyot/claude-dev-settings/blob/0c209f30206bc4d12b2b9db7aef434af16878354/experiments/kev-pilot/results/2026-11-13-archive.md) supersedes the partial counts in the description: all three study runs completed, totaling 728 measured requests plus 80 separate priming attempts. The retained record includes 57 passing offline tests and three passing native authentication checks.
+
+Recall quality remains `INSUFFICIENT_EVIDENCE`. Further pilot evaluation and the [reviewed harness-health implementation](https://github.com/gabriel-amyot/claude-dev-settings/blob/bca3929/docs/plans/harness-health/PLAN.md) are parked. No merge or live integration is requested. I will decide when to resume; the report records the remaining evidence and restart requirements.

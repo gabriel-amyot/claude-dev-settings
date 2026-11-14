@@ -34,6 +34,7 @@ Entry point: [INDEX.md](INDEX.md)
 | long-running-process-pattern.md | Nohup launcher, tool timeout limits | Running multi-hour jobs |
 | python-http-client-egress-gotchas.md | `httpx` `trust_env`, loopback resolution | Claiming a request stays local; writing a localhost security check |
 | harness-self-management.md | Cost config, transcript mining, batch API, local-plugin cache-sync gotcha | Improving the harness |
+| harness-evaluation-kev-pilot-evidence.md | Dated Kev results, independent retrieval controls, eval and host qualification, safe archival | Kev pilot comparisons or harness-health scoring |
 | harness-routing-factories-crit-skill-authoring.md | Factory Family routing table, crit review rules, skill/agent authoring, graphify, pptx | Go autonomous, crit, new skill |
 | harness-machine-migration-checklist.md | Ordered new-Mac harness migration: audit, plugins enabled vs installed, settings merge, credentials, repos, verify | New Mac, new laptop, migrate the harness |
 | harness-architecture-textbook.md | Whole-harness map + deploy-identity subsystem deconstructed; reusable mermaid diagrams D1–D9; weaknesses/constraints/trade-offs self-documented | "How does my harness work", subsystem/hook-lifecycle diagrams, deploy-identity, harness onboarding |
@@ -62,6 +63,7 @@ Entry point: [INDEX.md](INDEX.md)
 
 ## Topic Cross-Reference
 
+- **Kev pilot / harness evaluation:** `harness-evaluation-kev-pilot-evidence.md` records the dated local study, its evidence limits, independent controls and cross-host qualification requirements. Raw excerpts are indexed in `_archive/INDEX.md`.
 - **Harness architecture / hooks / subsystems:** `harness-architecture-textbook.md` (whole-harness map D1, deploy-identity deconstructed, weaknesses + fixes), `harness-self-management.md` (cost/self-management), `claude-md-authoring.md` (CLAUDE.md cascade)
 - **Deploy-identity / which-branch-deploys / wrong-branch claims:** `harness-architecture-textbook.md` (Ch 3) + KTP-688 ticket artifacts (`tickets/KTP/KTP-374/KTP-688/reports/`)
 - **PR review / adversarial review:** `pr-panic-protocol.md` (panic flow), `ticket-quality-standards.md` (closure protocols)

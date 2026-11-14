@@ -22,4 +22,6 @@ Raw captures: session learnings, tribal knowledge, research snippets, and operat
 
 ## Notes
 
+Processed captures are indexed in [archive/INDEX.md](archive/INDEX.md).
+
 Inbox files are NOT loaded by CLAUDE.md triggers. They are not searchable by topic. They are not cross-referenced. That is the point — they are unfinished. Run `/bibliotheque-librarian` to process them.

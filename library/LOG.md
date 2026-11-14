@@ -43,3 +43,10 @@ Klever inbox and were routed here instead, because none of them carry Klever-dom
 ## 2026-10-26 — steady-otter scoped curation
 
 - Added `context/shared-skills-harness-observatory.md`: 10 captured subjects cataloged through canonical operational documents. Extended filesystem topology with a dated session-plugin exception; retained earlier claims as history. Source: Klever inbox archive `2026-10-26-shared-skills-harness-observatory.md`, bronze `curate:steady-otter:n1`–`n10`. Generic knowledge placed in shared library, not a new Klever shelf. No graph sweep or external action.
+
+## 2026-11-13: calm-moth selected-entry curation
+
+- **NEW-ANYWAY:** Added `context/harness-evaluation-kev-pilot-evidence.md`. Its dated Kev measurements and unimplemented qualification requirements are distinct from the observatory installation record. Contradiction search found no existing Kev or harness-health comparison page. Six subjects were promoted with medium confidence and no current-behavior verification claim.
+- **PROVENANCE:** Appended six verbatim capture excerpts through the archive helper, IDs `curate:calm-moth:kev-health:n1` through `n6`. Archived the readable source under `inbox/archive/2026/` and indexed its promoted target.
+- **NAVIGATION:** Updated the context and root indexes, catalog, and three aliases. No new subject section, always-loaded rule, skill, hook, schedule, or external post.
+- **BOUNDARY:** This shared library has no existing `GRAPH_DATA.json` or registered graph producer. No new graph infrastructure was introduced during this selected-entry archive. Other inbox entries were not processed.
